@@ -1,0 +1,18 @@
+RwSimpleProjectLoadComponentV2 {
+  #name : 'Process',
+  #projectNames : [ 'CatalystFoundation' ],
+  #componentNames : [],
+  #packageNames : [
+    'BVC-BPM-Core',
+    'BVC-BPM-BPMN',
+    'BVC-BPM-Design',
+    'BVC-BPM-Definition',
+    'BVC-BPM-Runtime',
+    'BVC-BPM-Automation',
+    'BVC-BPM-Magritte',
+    'BVC-BPM-GT',
+    'BVC-BPM-Examples',
+    'BVC-BPM-Tests'
+  ],
+  #comment : 'Catalyst Process BPM core, runtime, examples, and tests'
+}
