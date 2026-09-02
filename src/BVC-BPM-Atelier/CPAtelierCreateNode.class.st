@@ -5,7 +5,7 @@ The fresh node is supplied by the BPM client; I do not own construction policy o
 I intentionally do not define a generic Atelier creation/factory abstraction."
 Class {
 	#name : 'CPAtelierCreateNode',
-	#superclass : 'Object',
+	#superclass : 'CFAtelierOperation',
 	#instVars : [
 		'node',
 		'position',
@@ -58,16 +58,11 @@ CPAtelierCreateNode >> assess [
 ]
 
 { #category : 'applying' }
-CPAtelierCreateNode >> apply [
-	| anAssessment |
-	anAssessment := self assess.
-	anAssessment isApplicable ifFalse: [ ^ anAssessment ].
-
+CPAtelierCreateNode >> applyAssessment: anAssessment [
 	node position: position.
 	processMemento
 		write: anAssessment proposedNodes
-		using: nodesDescription.
-	^ anAssessment
+		using: nodesDescription
 ]
 
 { #category : 'accessing' }

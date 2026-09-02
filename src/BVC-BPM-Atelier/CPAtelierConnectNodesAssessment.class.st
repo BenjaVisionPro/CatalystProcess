@@ -3,15 +3,14 @@
 I am deliberately BPM-specific. I retain the observed nodes and edges, the proposed edges collection, the fresh edge, and the source and target nodes so a BPM presentation can preview exactly what was assessed. I do not mutate the design, memento, or fresh edge."
 Class {
 	#name : 'CPAtelierConnectNodesAssessment',
-	#superclass : 'Object',
+	#superclass : 'CFAtelierAssessment',
 	#instVars : [
 		'nodes',
 		'edges',
 		'proposedEdges',
 		'edge',
 		'sourceNode',
-		'targetNode',
-		'rejectionMessage'
+		'targetNode'
 	],
 	#category : 'BVC-BPM-Atelier-Connection',
 	#package : 'BVC-BPM-Atelier',
@@ -42,11 +41,6 @@ CPAtelierConnectNodesAssessment class >> nodes: nodes edges: edges edge: anEdge 
 		yourself
 ]
 
-{ #category : 'testing' }
-CPAtelierConnectNodesAssessment >> isApplicable [
-	^ rejectionMessage isNil
-]
-
 { #category : 'accessing' }
 CPAtelierConnectNodesAssessment >> edge [ ^ edge ]
 { #category : 'accessing' }
@@ -63,10 +57,6 @@ CPAtelierConnectNodesAssessment >> nodes: aCollection [ nodes := aCollection ]
 CPAtelierConnectNodesAssessment >> proposedEdges [ ^ proposedEdges ]
 { #category : 'accessing' }
 CPAtelierConnectNodesAssessment >> proposedEdges: aCollection [ proposedEdges := aCollection ]
-{ #category : 'accessing' }
-CPAtelierConnectNodesAssessment >> rejectionMessage [ ^ rejectionMessage ]
-{ #category : 'accessing' }
-CPAtelierConnectNodesAssessment >> rejectionMessage: aString [ rejectionMessage := aString ]
 { #category : 'accessing' }
 CPAtelierConnectNodesAssessment >> sourceNode [ ^ sourceNode ]
 { #category : 'accessing' }

@@ -3,13 +3,12 @@
 I am deliberately BPM-specific. I retain the observed and proposed nodes plus the fresh candidate and its requested position so a BPM presentation can preview exactly what was assessed. I do not mutate the design, memento or candidate."
 Class {
 	#name : 'CPAtelierCreateNodeAssessment',
-	#superclass : 'Object',
+	#superclass : 'CFAtelierAssessment',
 	#instVars : [
 		'nodes',
 		'proposedNodes',
 		'node',
-		'position',
-		'rejectionMessage'
+		'position'
 	],
 	#category : 'BVC-BPM-Atelier-Creation',
 	#package : 'BVC-BPM-Atelier',
@@ -36,11 +35,6 @@ CPAtelierCreateNodeAssessment class >> nodes: nodes node: aNode position: aPoint
 		yourself
 ]
 
-{ #category : 'testing' }
-CPAtelierCreateNodeAssessment >> isApplicable [
-	^ rejectionMessage isNil
-]
-
 { #category : 'accessing' }
 CPAtelierCreateNodeAssessment >> node [ ^ node ]
 { #category : 'accessing' }
@@ -57,7 +51,3 @@ CPAtelierCreateNodeAssessment >> position: aPoint [ position := aPoint ]
 CPAtelierCreateNodeAssessment >> proposedNodes [ ^ proposedNodes ]
 { #category : 'accessing' }
 CPAtelierCreateNodeAssessment >> proposedNodes: aCollection [ proposedNodes := aCollection ]
-{ #category : 'accessing' }
-CPAtelierCreateNodeAssessment >> rejectionMessage [ ^ rejectionMessage ]
-{ #category : 'accessing' }
-CPAtelierCreateNodeAssessment >> rejectionMessage: aString [ rejectionMessage := aString ]

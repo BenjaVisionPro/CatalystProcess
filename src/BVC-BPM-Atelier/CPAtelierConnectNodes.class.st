@@ -5,7 +5,7 @@ The fresh edge is supplied by the BPM client; I do not own construction policy. 
 I intentionally do not define a generic Atelier connection or creation abstraction."
 Class {
 	#name : 'CPAtelierConnectNodes',
-	#superclass : 'Object',
+	#superclass : 'CFAtelierOperation',
 	#instVars : [
 		'edge',
 		'sourceNode',
@@ -73,18 +73,13 @@ CPAtelierConnectNodes >> assess [
 ]
 
 { #category : 'applying' }
-CPAtelierConnectNodes >> apply [
-	| anAssessment |
-	anAssessment := self assess.
-	anAssessment isApplicable ifFalse: [ ^ anAssessment ].
-
+CPAtelierConnectNodes >> applyAssessment: anAssessment [
 	edge
 		sourceNode: sourceNode;
 		targetNode: targetNode.
 	processMemento
 		write: anAssessment proposedEdges
-		using: edgesDescription.
-	^ anAssessment
+		using: edgesDescription
 ]
 
 { #category : 'accessing' }
