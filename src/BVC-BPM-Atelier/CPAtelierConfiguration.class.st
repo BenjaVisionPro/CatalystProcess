@@ -1,6 +1,6 @@
 "I configure Foundation Atelier with BPM-specific editing semantics that are already proven by BPM operations.
 
-I do not choose a presentation and I do not inspect object classes to discover behavior. The client gives me the process relation descriptions explicitly. When the exact nodes relation is the source of a remove intention, I translate that intention to CPAtelierRemoveNode so incident-edge semantics are preserved. Other relations retain Foundation Atelier's ordinary relation removal semantics."
+I do not choose a presentation and I do not inspect object classes to discover behavior. The client gives me the process relation descriptions explicitly. When the exact nodes relation is the source of a remove intention, I translate one node to CPAtelierRemoveNode and a multi-selection to CPAtelierRemoveNodes so incident-edge semantics are preserved as one editing intention. Other relations retain Foundation Atelier's ordinary relation removal semantics."
 Class {
 	#name : 'CPAtelierConfiguration',
 	#superclass : 'CFAtelierConfiguration',
@@ -24,21 +24,27 @@ CPAtelierConfiguration class >> nodesDescription: aNodesDescription edgesDescrip
 { #category : 'applying' }
 CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
-	anAtelierViewModel removeOperationFor: [ :anObject :aSourceContext |
-		self removeOperationFor: anObject from: aSourceContext ].
+	anAtelierViewModel removeOperationFor: [ :someObjects :aSourceContext |
+		self removeOperationFor: someObjects from: aSourceContext ].
 	^ anAtelierViewModel
 ]
 
 { #category : 'operations' }
-CPAtelierConfiguration >> removeOperationFor: anObject from: aSourceContext [
+CPAtelierConfiguration >> removeOperationFor: someObjects from: aSourceContext [
 	aSourceContext description == nodesDescription ifTrue: [
-		^ CPAtelierRemoveNode
-			node: anObject
+		someObjects size = 1 ifTrue: [
+			^ CPAtelierRemoveNode
+				node: someObjects first
+				processMemento: aSourceContext memento
+				nodesDescription: nodesDescription
+				edgesDescription: edgesDescription ].
+		^ CPAtelierRemoveNodes
+			nodes: someObjects
 			processMemento: aSourceContext memento
 			nodesDescription: nodesDescription
 			edgesDescription: edgesDescription ].
 	^ CFAtelierRemove
-		object: anObject
+		objects: someObjects
 		memento: aSourceContext memento
 		description: aSourceContext description
 ]

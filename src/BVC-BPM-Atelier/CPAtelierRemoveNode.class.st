@@ -82,7 +82,10 @@ CPAtelierRemoveNode >> applyAssessment: anAssessment [
 	anAssessment removedEdges isEmpty ifFalse: [
 		processMemento
 			write: anAssessment proposedEdges
-			using: edgesDescription ]
+			using: edgesDescription ].
+	processMemento detachChildMementoFor: node inRelation: nodesDescription.
+	anAssessment removedEdges do: [ :anEdge |
+		processMemento detachChildMementoFor: anEdge inRelation: edgesDescription ]
 ]
 
 { #category : 'accessing' }
