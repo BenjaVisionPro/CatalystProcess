@@ -36,4 +36,3 @@ BaselineOfCatalystProcess >> baseline: spec [
 				package: 'BVC-BPM-Tests'
 					with: [ spec requires: #('BVC-BPM-Examples') ] ]
 ]
-
