@@ -139,3 +139,27 @@ CPAtelierCreateNodeExamples >> nodesDescriptionIn: aMemento [
 	^ aMemento magritteDescription
 		detect: [ :each | each handlesSelector: #nodes ]
 ]
+
+{ #category : 'examples - supply' }
+CPAtelierCreateNodeExamples >> factoryProviderMaterializesCandidateBeforeOperation [
+	<gtExample>
+	| fixture process memento provider node description operation hoverAssessment applyAssessment |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	provider := CFAtelierFactoryProvider factory: [ CPUserTaskDesignNode new ].
+	node := provider materialize.
+	description := self nodesDescriptionIn: memento.
+	operation := self create: node at: 120@80 memento: memento description: description.
+
+	hoverAssessment := operation assess.
+	self assert: hoverAssessment isApplicable.
+	self assert: hoverAssessment node == node.
+
+	applyAssessment := operation apply.
+	self assert: applyAssessment isApplicable.
+	self assert: applyAssessment node == node.
+	self assert: (memento readUsing: description) first == node.
+	self assert: process nodes isEmpty.
+	^ applyAssessment
+]
