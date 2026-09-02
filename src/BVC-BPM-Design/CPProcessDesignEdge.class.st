@@ -101,6 +101,7 @@ CPProcessDesignEdge >> sourceNodeDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #sourceNode;
+		classes: { CPProcessDesignNode };
 		label: 'Source node';
 		priority: 110;
 		group: 'Relations';
@@ -112,6 +113,7 @@ CPProcessDesignEdge >> targetNodeDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #targetNode;
+		classes: { CPProcessDesignNode };
 		label: 'Target node';
 		priority: 120;
 		group: 'Relations';

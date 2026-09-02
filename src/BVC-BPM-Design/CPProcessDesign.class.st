@@ -285,6 +285,7 @@ CPProcessDesign >> nodesDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new
 		accessor: #nodes;
+		classes: { CPProcessDesignNode };
 		label: 'Nodes';
 		priority: 170;
 		group: 'Relations';
@@ -296,6 +297,7 @@ CPProcessDesign >> edgesDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new
 		accessor: #edges;
+		classes: { CPProcessDesignEdge };
 		label: 'Edges';
 		priority: 180;
 		group: 'Relations';

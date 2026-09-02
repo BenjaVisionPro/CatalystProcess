@@ -82,6 +82,7 @@ CPProcessDesignNode >> positionDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #position;
+		classes: { Point };
 		label: 'Position';
 		priority: 110;
 		group: 'Relations';
@@ -93,6 +94,7 @@ CPProcessDesignNode >> metadataDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #metadata;
+		classes: { Dictionary };
 		label: 'Metadata';
 		priority: 120;
 		group: 'Relations';
