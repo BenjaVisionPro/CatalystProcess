@@ -65,7 +65,7 @@ CPTenantMembership >> tenantDescription [
 		accessor: #tenant;
 		label: 'Tenant';
 		priority: 10;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -76,7 +76,7 @@ CPTenantMembership >> userDescription [
 		accessor: #user;
 		label: 'User';
 		priority: 20;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -87,7 +87,7 @@ CPTenantMembership >> groupsDescription [
 		accessor: #groups;
 		label: 'Groups';
 		priority: 30;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -98,7 +98,7 @@ CPTenantMembership >> rolesDescription [
 		accessor: #roles;
 		label: 'Roles';
 		priority: 40;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

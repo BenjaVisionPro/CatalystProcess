@@ -82,7 +82,7 @@ CPValidationResult >> issuesDescription [
 		accessor: #issues;
 		label: 'Issues';
 		priority: 10;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

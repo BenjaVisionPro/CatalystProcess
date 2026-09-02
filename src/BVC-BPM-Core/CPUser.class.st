@@ -42,7 +42,7 @@ CPUser >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -53,7 +53,7 @@ CPUser >> membershipsDescription [
 		accessor: #memberships;
 		label: 'Memberships';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

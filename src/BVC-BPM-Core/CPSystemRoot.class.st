@@ -193,7 +193,7 @@ CPSystemRoot >> tenantsDescription [
 		accessor: #tenants;
 		label: 'Tenants';
 		priority: 100;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -204,7 +204,7 @@ CPSystemRoot >> usersDescription [
 		accessor: #users;
 		label: 'Users';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -215,7 +215,7 @@ CPSystemRoot >> groupsDescription [
 		accessor: #groups;
 		label: 'Groups';
 		priority: 120;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -226,7 +226,7 @@ CPSystemRoot >> processDesignsDescription [
 		accessor: #processDesigns;
 		label: 'Process designs';
 		priority: 130;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -237,7 +237,7 @@ CPSystemRoot >> processDeploymentsDescription [
 		accessor: #processDeployments;
 		label: 'Process deployments';
 		priority: 140;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -248,7 +248,7 @@ CPSystemRoot >> processInstancesDescription [
 		accessor: #processInstances;
 		label: 'Process instances';
 		priority: 150;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -259,7 +259,7 @@ CPSystemRoot >> workItemsDescription [
 		accessor: #workItems;
 		label: 'Work items';
 		priority: 160;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -270,7 +270,7 @@ CPSystemRoot >> auditEventsDescription [
 		accessor: #auditEvents;
 		label: 'Audit events';
 		priority: 170;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

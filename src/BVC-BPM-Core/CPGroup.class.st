@@ -42,7 +42,7 @@ CPGroup >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -53,7 +53,7 @@ CPGroup >> membersDescription [
 		accessor: #members;
 		label: 'Members';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

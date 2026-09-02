@@ -58,7 +58,7 @@ CPValidationIssue >> severityDescription [
 		accessor: #severity;
 		label: 'Severity';
 		priority: 10;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -69,7 +69,7 @@ CPValidationIssue >> codeDescription [
 		accessor: #code;
 		label: 'Code';
 		priority: 20;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -80,7 +80,7 @@ CPValidationIssue >> messageDescription [
 		accessor: #message;
 		label: 'Message';
 		priority: 30;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -91,7 +91,7 @@ CPValidationIssue >> subjectDescription [
 		accessor: #subject;
 		label: 'Subject';
 		priority: 40;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

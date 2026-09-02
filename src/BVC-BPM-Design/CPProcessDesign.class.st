@@ -210,7 +210,7 @@ CPProcessDesign >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -221,7 +221,7 @@ CPProcessDesign >> scopeDescription [
 		accessor: #scope;
 		label: 'Scope';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -232,7 +232,7 @@ CPProcessDesign >> ownerDescription [
 		accessor: #owner;
 		label: 'Owner';
 		priority: 120;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -243,7 +243,7 @@ CPProcessDesign >> tenantDescription [
 		accessor: #tenant;
 		label: 'Tenant';
 		priority: 130;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -254,7 +254,7 @@ CPProcessDesign >> licensingPolicyDescription [
 		accessor: #licensingPolicy;
 		label: 'Licensing policy';
 		priority: 140;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -265,7 +265,7 @@ CPProcessDesign >> tailoringPolicyDescription [
 		accessor: #tailoringPolicy;
 		label: 'Tailoring policy';
 		priority: 150;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -276,7 +276,7 @@ CPProcessDesign >> sourceDesignDescription [
 		accessor: #sourceDesign;
 		label: 'Source design';
 		priority: 160;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -287,7 +287,7 @@ CPProcessDesign >> nodesDescription [
 		accessor: #nodes;
 		label: 'Nodes';
 		priority: 170;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -298,7 +298,7 @@ CPProcessDesign >> edgesDescription [
 		accessor: #edges;
 		label: 'Edges';
 		priority: 180;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -309,7 +309,7 @@ CPProcessDesign >> diagramDescription [
 		accessor: #diagram;
 		label: 'Diagram';
 		priority: 190;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

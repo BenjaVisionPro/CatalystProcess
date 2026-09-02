@@ -73,7 +73,7 @@ CPProcessDesignNode >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -84,7 +84,7 @@ CPProcessDesignNode >> positionDescription [
 		accessor: #position;
 		label: 'Position';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -95,7 +95,7 @@ CPProcessDesignNode >> metadataDescription [
 		accessor: #metadata;
 		label: 'Metadata';
 		priority: 120;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

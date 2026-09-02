@@ -92,7 +92,7 @@ CPProcessDesignEdge >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -103,7 +103,7 @@ CPProcessDesignEdge >> sourceNodeDescription [
 		accessor: #sourceNode;
 		label: 'Source node';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -114,7 +114,7 @@ CPProcessDesignEdge >> targetNodeDescription [
 		accessor: #targetNode;
 		label: 'Target node';
 		priority: 120;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -125,7 +125,7 @@ CPProcessDesignEdge >> conditionDescription [
 		accessor: #condition;
 		label: 'Condition';
 		priority: 130;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

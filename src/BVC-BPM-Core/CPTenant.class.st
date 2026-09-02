@@ -66,7 +66,7 @@ CPTenant >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
@@ -77,7 +77,7 @@ CPTenant >> membershipsDescription [
 		accessor: #memberships;
 		label: 'Memberships';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -88,7 +88,7 @@ CPTenant >> processDesignsDescription [
 		accessor: #processDesigns;
 		label: 'Processdesigns';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 
@@ -99,7 +99,7 @@ CPTenant >> processDeploymentsDescription [
 		accessor: #processDeployments;
 		label: 'Processdeployments';
 		priority: 110;
-		cfCategory: #relations;
+		group: 'Relations';
 		yourself
 ]
 

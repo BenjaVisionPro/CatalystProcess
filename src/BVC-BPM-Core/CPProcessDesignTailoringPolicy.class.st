@@ -25,7 +25,7 @@ CPProcessDesignTailoringPolicy >> commentDescription [
 		accessor: #comment;
 		label: 'Comment';
 		priority: 100;
-		cfCategory: #general;
+		group: 'General';
 		yourself
 ]
 
