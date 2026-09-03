@@ -11,6 +11,7 @@ Class {
 		'diagramMemento',
 		'elementsDescription',
 		'shapeElementsByShape',
+		'shapeElementsByModelElement',
 		'selectedModelElement',
 		'selectionChangedBlock'
 	],
@@ -23,6 +24,7 @@ Class {
 CPProcessVisualElement >> initialize [
 	super initialize.
 	shapeElementsByShape := IdentityDictionary new.
+	shapeElementsByModelElement := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -36,7 +38,8 @@ CPProcessVisualElement >> memento: aMemento [
 		detect: [ :each | each handlesSelector: #diagram ].
 	flowElementsDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #flowElements ].
-	self refresh
+	self refresh.
+	self installMementoObserver
 ]
 
 { #category : 'accessing' }
@@ -49,6 +52,7 @@ CPProcessVisualElement >> refresh [
 	| diagram elements shapes edges |
 	self removeChildren.
 	shapeElementsByShape removeAll.
+	shapeElementsByModelElement removeAll.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
@@ -127,8 +131,10 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	element userData at: #processModelElement put: modelElement.
 	self installSelectionOn: element for: modelElement.
 	shapeElementsByShape at: aShape put: element.
+	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
-	self addExternalLabelFor: modelElement bounds: bounds
+	self addExternalLabelFor: modelElement bounds: bounds.
+	self updateSelectionAppearance
 ]
 
 { #category : 'private - shapes' }
@@ -218,6 +224,7 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 		on: BlClickEvent
 		do: [ :anEvent |
 			selectedModelElement := aModelElement.
+			self updateSelectionAppearance.
 			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
 			anEvent consumed: true ])
 ]
@@ -235,6 +242,30 @@ CPProcessVisualElement >> selectionChangedDo: aBlock [
 { #category : 'accessing - testing' }
 CPProcessVisualElement >> shapeElementFor: aShape [
 	^ shapeElementsByShape at: aShape
+]
+
+
+{ #category : 'private - updating' }
+CPProcessVisualElement >> installMementoObserver [
+	self withAsyncSinkDo: [ :anElementSink |
+		anElementSink
+			sink: AsyncPeekSink new;
+			whenUpdate: [ :anElement :aSink | anElement refresh ].
+		memento overallStatus observe: anElementSink ]
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> updateSelectionAppearance [
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+		anElement border: (BlBorder
+			paint: self shapeBorderColor
+			width: (self borderWidthFor: aModelElement selected: aModelElement == selectedModelElement)) ]
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> borderWidthFor: aModelElement selected: isSelected [
+	isSelected ifTrue: [ ^ aModelElement isEndEvent ifTrue: [ 4.5 ] ifFalse: [ 3 ] ].
+	^ aModelElement isEndEvent ifTrue: [ 3 ] ifFalse: [ 1.5 ]
 ]
 
 { #category : 'private - theme' }
