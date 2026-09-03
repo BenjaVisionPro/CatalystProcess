@@ -174,3 +174,19 @@ CPProcessDesignMementoExamples >> compoundAtelierEditingCommitAppliesWholeProces
 	self assert: (memento readUsing: edgesDescription) size equals: 2.
 	^ memento
 ]
+
+
+{ #category : 'examples - lifecycle' }
+CPProcessDesignMementoExamples >> embeddedObjectsUseFoundationChildMementos [
+	<gtExample>
+	| process node memento nodesDescription childMemento |
+	process := CPProcessDesign new.
+	node := CPUserTaskDesignNode new.
+	process nodes: (OrderedCollection with: node).
+	memento := CPProcessDesignMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	childMemento := memento childMementoFor: node inRelation: nodesDescription.
+	self assert: childMemento class equals: CFMaMemento.
+	self assert: childMemento model == node.
+	^ childMemento
+]

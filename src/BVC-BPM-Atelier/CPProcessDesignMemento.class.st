@@ -17,3 +17,11 @@ CPProcessDesignMemento >> commit [
 	wasChanged ifTrue: [ self model updatedAt: DateAndTime now ].
 	^ result
 ]
+
+
+{ #category : 'private - children' }
+CPProcessDesignMemento >> newChildMementoFor: anObject [
+	"Process lifecycle metadata belongs only to the root Process transaction. Embedded
+	nodes and edges participate through ordinary Foundation child mementos."
+	^ CFMaMemento model: anObject
+]
