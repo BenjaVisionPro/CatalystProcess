@@ -561,3 +561,75 @@ CPAtelierConfigurationExamples >> diagramNodeCreationStagesPositionOnlyOnApply [
 	^ operation
 ]
 
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramNodePositionAssessmentIsPure [
+	<gtExample>
+	| process node memento configuration operation assessment |
+	process := CPProcessDesign new.
+	node := CPUserTaskDesignNode new position: 120@80; yourself.
+	process addNode: node.
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+
+	operation := configuration
+		positionNodeOperationFor: node
+		at: 420@260
+		in: memento.
+	assessment := operation assess.
+
+	self assert: operation class equals: CPAtelierPositionNode.
+	self assert: assessment isApplicable.
+	self assert: assessment currentPosition equals: 120@80.
+	self assert: assessment proposedPosition equals: 420@260.
+	self assert: node position equals: 120@80.
+	self assert: (memento hasChildMementoFor: node inRelation: configuration nodesDescription) not.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramNodePositionStagesThroughChildMemento [
+	<gtExample>
+	| process node memento configuration operation assessment nodeMemento |
+	process := CPProcessDesign new.
+	node := CPServiceTaskDesignNode new position: 100@100; yourself.
+	process addNode: node.
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	operation := configuration
+		positionNodeOperationFor: node
+		at: 360@220
+		in: memento.
+
+	assessment := operation apply.
+	nodeMemento := memento childMementoFor: node inRelation: configuration nodesDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (nodeMemento readUsing: node positionDescription) equals: 360@220.
+	self assert: node position equals: 100@100.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramNodePositionReassessesStagedPosition [
+	<gtExample>
+	| process node memento configuration nodeMemento operation assessment |
+	process := CPProcessDesign new.
+	node := CPUserTaskDesignNode new position: 80@60; yourself.
+	process addNode: node.
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	nodeMemento := memento childMementoFor: node inRelation: configuration nodesDescription.
+	nodeMemento write: 200@140 using: node positionDescription.
+
+	operation := configuration
+		positionNodeOperationFor: node
+		at: 500@300
+		in: memento.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable.
+	self assert: assessment currentPosition equals: 200@140.
+	self assert: node position equals: 80@60.
+	^ assessment
+]

@@ -187,3 +187,12 @@ CPAtelierConfiguration class >> processNodePalette [
 			provider: (CFAtelierFactoryProvider factory: [ CPParallelGatewayDesignNode new ])).
 	^ palette
 ]
+
+{ #category : 'operations' }
+CPAtelierConfiguration >> positionNodeOperationFor: aNode at: aPoint in: aProcessMemento [
+	^ CPAtelierPositionNode
+		node: aNode
+		position: aPoint
+		processMemento: aProcessMemento
+		nodesDescription: nodesDescription
+]
