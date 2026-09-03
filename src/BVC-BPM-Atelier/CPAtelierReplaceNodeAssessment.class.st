@@ -7,7 +7,8 @@ Class {
 		'replacementNode',
 		'nodes',
 		'proposedNodes',
-		'incidentEdges'
+		'incidentEdges',
+		'preservedPosition'
 	],
 	#category : 'BVC-BPM-Atelier-Replacement',
 	#package : 'BVC-BPM-Atelier',
@@ -15,13 +16,14 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierReplaceNodeAssessment class >> node: aNode replacementNode: aReplacementNode nodes: nodes proposedNodes: proposedNodes incidentEdges: incidentEdges [
+CPAtelierReplaceNodeAssessment class >> node: aNode replacementNode: aReplacementNode nodes: nodes proposedNodes: proposedNodes incidentEdges: incidentEdges preservedPosition: aPosition [
 	^ self new
 		node: aNode;
 		replacementNode: aReplacementNode;
 		nodes: nodes;
 		proposedNodes: proposedNodes;
 		incidentEdges: incidentEdges;
+		preservedPosition: aPosition;
 		yourself
 ]
 
@@ -55,3 +57,8 @@ CPAtelierReplaceNodeAssessment >> proposedNodes: aCollection [ proposedNodes := 
 CPAtelierReplaceNodeAssessment >> incidentEdges [ ^ incidentEdges ]
 { #category : 'accessing' }
 CPAtelierReplaceNodeAssessment >> incidentEdges: aCollection [ incidentEdges := aCollection ]
+
+{ #category : 'accessing' }
+CPAtelierReplaceNodeAssessment >> preservedPosition [ ^ preservedPosition ]
+{ #category : 'accessing' }
+CPAtelierReplaceNodeAssessment >> preservedPosition: anObject [ preservedPosition := anObject ]

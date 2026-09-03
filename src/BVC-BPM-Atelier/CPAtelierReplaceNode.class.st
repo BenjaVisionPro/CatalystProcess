@@ -1,6 +1,6 @@
-"I replace one existing process node with one supplied node while preserving every incident edge identity and retargeting its endpoint from the old node to the replacement node.
+"I replace one existing process node with one supplied node while preserving both process topology and diagram placement. Every incident edge identity is retained and any endpoint that currently targets the old node is retargeted to the replacement node.
 
-The nodes relation and edge endpoint edits all remain staged in the same CFMaMemento transaction. Assessment derives and validates the complete proposed nodes value and validates each affected endpoint without mutating either process or edge models. apply uses CFAtelierOperation's fresh reassessment, stages the nodes replacement, then stages endpoint changes through the existing edge child mementos."
+The nodes relation, replacement-node position and edge endpoint edits all remain staged in the same CFMaMemento transaction. Assessment reads the old node's staged position when one exists, validates that position against the replacement node description, derives and validates the complete proposed nodes value, and validates each affected endpoint without mutation. apply uses CFAtelierOperation's fresh reassessment, stages the nodes replacement, reattaches any existing editing state for the replacement identity, stages the preserved position in the replacement child memento, then stages endpoint changes through the existing edge child mementos."
 Class {
 	#name : 'CPAtelierReplaceNode',
 	#superclass : 'CFAtelierOperation',
@@ -29,7 +29,7 @@ CPAtelierReplaceNode class >> node: aNode with: aReplacementNode processMemento:
 
 { #category : 'assessing' }
 CPAtelierReplaceNode >> assess [
-	| nodes edges proposedNodes incidentEdges sourceDescription targetDescription |
+	| nodes edges proposedNodes incidentEdges sourceDescription targetDescription preservedPosition positionDescription |
 	nodes := processMemento readUsing: nodesDescription.
 	edges := processMemento readUsing: edgesDescription.
 	nodes ifNil: [ ^ self rejectedWithNodes: nodes because: 'The process has no nodes collection.' ].
@@ -39,6 +39,13 @@ CPAtelierReplaceNode >> assess [
 	(node == replacementNode) ifTrue: [ ^ self rejectedWithNodes: nodes because: 'Replacement requires a different node identity.' ].
 	(nodes count: [ :each | each == node ]) = 1 ifFalse: [ ^ self rejectedWithNodes: nodes because: 'The replaced node must occur exactly once in the process.' ].
 	(nodes anySatisfy: [ :each | each == replacementNode ]) ifTrue: [ ^ self rejectedWithNodes: nodes because: 'The replacement node is already present in the process.' ].
+
+	preservedPosition := self stagedPositionOf: node.
+	positionDescription := replacementNode positionDescription.
+	positionDescription isReadOnly ifTrue: [ ^ self rejectedWithNodes: nodes because: 'The replacement node position is read-only.' ].
+	[ positionDescription validate: preservedPosition ]
+		on: MAValidationError
+		do: [ :anException | ^ self rejectedWithNodes: nodes because: anException printString ].
 
 	proposedNodes := nodes species withAll: (nodes collect: [ :each | each == node ifTrue: [ replacementNode ] ifFalse: [ each ] ]).
 	[ nodesDescription validate: proposedNodes ]
@@ -72,18 +79,22 @@ CPAtelierReplaceNode >> assess [
 		nodes: nodes
 		proposedNodes: proposedNodes
 		incidentEdges: incidentEdges
+		preservedPosition: preservedPosition
 ]
 
 { #category : 'applying' }
 CPAtelierReplaceNode >> applyAssessment: anAssessment [
+	| replacementMemento |
 	processMemento write: anAssessment proposedNodes using: nodesDescription.
+	processMemento detachChildMementoFor: node inRelation: nodesDescription.
+	processMemento reattachDetachedChildMementoFor: replacementNode inRelation: nodesDescription.
+	replacementMemento := processMemento childMementoFor: replacementNode inRelation: nodesDescription.
+	replacementMemento write: anAssessment preservedPosition using: replacementNode positionDescription.
 	anAssessment incidentEdges do: [ :anEdge |
 		| edgeMemento |
 		edgeMemento := processMemento childMementoFor: anEdge inRelation: edgesDescription.
 		((self stagedSourceNodeOf: anEdge) == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge sourceNodeDescription ].
-		((self stagedTargetNodeOf: anEdge) == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge targetNodeDescription ] ].
-	processMemento detachChildMementoFor: node inRelation: nodesDescription.
-	processMemento reattachDetachedChildMementoFor: replacementNode inRelation: nodesDescription
+		((self stagedTargetNodeOf: anEdge) == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge targetNodeDescription ] ]
 ]
 
 { #category : 'accessing' }
@@ -124,4 +135,11 @@ CPAtelierReplaceNode >> stagedTargetNodeOf: anEdge [
 	(processMemento hasChildMementoFor: anEdge inRelation: edgesDescription) ifFalse: [ ^ anEdge targetNode ].
 	^ (processMemento childMementoFor: anEdge inRelation: edgesDescription)
 		readUsing: anEdge targetNodeDescription
+]
+
+{ #category : 'private - staged nodes' }
+CPAtelierReplaceNode >> stagedPositionOf: aNode [
+	(processMemento hasChildMementoFor: aNode inRelation: nodesDescription) ifFalse: [ ^ aNode position ].
+	^ (processMemento childMementoFor: aNode inRelation: nodesDescription)
+		readUsing: aNode positionDescription
 ]

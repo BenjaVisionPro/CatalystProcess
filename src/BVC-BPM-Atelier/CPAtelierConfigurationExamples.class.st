@@ -449,3 +449,63 @@ CPAtelierConfigurationExamples >> nodeReplacementUsesStagedEdgeEndpoints [
 	self assert: (memento readUsing: nodesDescription) first == replacement.
 	^ assessment
 ]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nodeReplacementPreservesStagedDiagramPosition [
+	<gtExample>
+	| process oldNode replacement memento nodesDescription edgesDescription configuration oldNodeMemento replacementMemento operation assessment stagedPosition |
+	process := CPProcessDesign new.
+	oldNode := CPUserTaskDesignNode new position: 120@80; yourself.
+	replacement := CPServiceTaskDesignNode new.
+	process nodes: (OrderedCollection with: oldNode).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	oldNodeMemento := memento childMementoFor: oldNode inRelation: nodesDescription.
+	stagedPosition := 360@220.
+	oldNodeMemento write: stagedPosition using: oldNode positionDescription.
+
+	operation := configuration
+		replaceOperationFor: oldNode
+		with: replacement
+		in: memento
+		description: nodesDescription.
+	assessment := operation apply.
+	replacementMemento := memento childMementoFor: replacement inRelation: nodesDescription.
+
+	self assert: assessment isApplicable.
+	self assert: assessment preservedPosition equals: stagedPosition.
+	self assert: (memento readUsing: nodesDescription) first == replacement.
+	self assert: (replacementMemento readUsing: replacement positionDescription) equals: stagedPosition.
+	self assert: replacement position isNil.
+	self assert: oldNode position equals: 120@80.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nodeReplacementCommitsPreservedDiagramPosition [
+	<gtExample>
+	| process oldNode replacement memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	oldNode := CPUserTaskDesignNode new position: 180@140; yourself.
+	replacement := CPServiceTaskDesignNode new.
+	process nodes: (OrderedCollection with: oldNode).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		replaceOperationFor: oldNode
+		with: replacement
+		in: memento
+		description: nodesDescription.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	memento commit.
+
+	self assert: process nodes first == replacement.
+	self assert: replacement position equals: 180@140.
+	^ process
+]
