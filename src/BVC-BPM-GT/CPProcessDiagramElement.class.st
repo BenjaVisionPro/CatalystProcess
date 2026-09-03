@@ -44,13 +44,76 @@ CPProcessDiagramElement >> initialize [
 		layout: BlFrameLayout new;
 		clipChildren: false;
 		padding: (BlInsets all: 20);
-		geometry: (BlRoundedRectangleGeometry cornerRadius: 12);
-		background: (Color white alpha: 0.04);
-		border: (BlBorder paint: (Color gray alpha: 0.20) width: 1);
 		beFocusable.
+	self applyTheme.
 	self
 		installPaletteDrop;
 		installKeyboardHandler
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> resolvedThemeColor: aThemeableColor [
+	^ aThemeableColor blocResolveColorForTheme: self theme
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> surfaceBackgroundColor [
+	^ self resolvedThemeColor: self theme surfaces baseBackground
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> nodeBackgroundColor [
+	^ self resolvedThemeColor: self theme surfaces cardTint
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> nodeBorderColor [
+	^ self resolvedThemeColor: self theme surfaces separatorTint
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> edgeColor [
+	^ self resolvedThemeColor: self theme typography quaternaryForeground
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> selectedBorderColor [
+	^ self resolvedThemeColor: self theme interaction focusedBorderColor
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> controlBackgroundColor [
+	^ self resolvedThemeColor: self theme interaction controlBackgroundTint
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> labelForegroundColor [
+	^ self resolvedThemeColor: self theme typography primaryForeground
+]
+
+{ #category : 'private - theme' }
+CPProcessDiagramElement >> applyTheme [
+	self
+		geometry: (BlRoundedRectangleGeometry cornerRadius: 12);
+		background: self surfaceBackgroundColor;
+		border: (BlBorder paint: self nodeBorderColor width: 1).
+	nodeElementsByNode ifNotNil: [
+		nodeElementsByNode valuesDo: [ :each |
+			each background: self nodeBackgroundColor ].
+		edgeElementsByEdge valuesDo: [ :each |
+			each border: (BlBorder paint: self edgeColor width: 1.5) ].
+		reconnectHandleElementsByEdge valuesDo: [ :handles |
+			handles do: [ :each |
+				each
+					background: self controlBackgroundColor;
+					border: (BlBorder paint: self nodeBorderColor width: 1) ] ].
+		self updateSelectionAppearance ]
+]
+
+{ #category : 'api - theme' }
+CPProcessDiagramElement >> onThemeChanged [
+	super onThemeChanged.
+	self applyTheme
 ]
 
 { #category : 'accessing' }
@@ -163,14 +226,15 @@ CPProcessDiagramElement >> newNodeElementFor: aNode [
 	element := BlElement new
 		extent: (self extentForNode: aNode);
 		geometry: (self geometryForNode: aNode);
-		background: (Color white alpha: 0.10);
-		border: (BlBorder paint: (Color gray alpha: 0.65) width: 1.5);
+		background: self nodeBackgroundColor;
+		border: (BlBorder paint: self nodeBorderColor width: 1.5);
 		layout: BlFrameLayout new;
 		yourself.
 	label := BrLabel new
 		fitContent;
 		text: (aNode label ifNil: [ aNode class name ]) asRopedText;
-		aptitude: (BrGlamorousLabelAptitude new fontSize: 12);
+		aptitude: (BrGlamorousLabelAptitude new
+			fontSize: self theme typography bodyFontSize);
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
@@ -241,7 +305,7 @@ CPProcessDiagramElement >> addEdgeElementFor: anEdge [
 	line := BlElement new
 		constraintsDo: [ :c | c ignoreByLayout ];
 		geometry: (BlLineGeometry from: sourcePosition to: targetPosition);
-		border: (BlBorder paint: (Color gray alpha: 0.55) width: 1.5);
+		border: (BlBorder paint: self edgeColor width: 1.5);
 		yourself.
 	edgeElementsByEdge at: anEdge put: line.
 	self installSelectionOn: line forEdge: anEdge.
@@ -398,8 +462,8 @@ CPProcessDiagramElement >> installConnectionOn: aNodeElement for: aNode [
 	port := BlElement new
 		extent: 12 @ 12;
 		geometry: BlCircleGeometry new;
-		background: (Color white alpha: 0.20);
-		border: (BlBorder paint: (Color gray alpha: 0.75) width: 1.5);
+		background: self controlBackgroundColor;
+		border: (BlBorder paint: self nodeBorderColor width: 1.5);
 		constraintsDo: [ :c |
 			c frame horizontal alignRight.
 			c frame vertical alignCenter ];
@@ -430,7 +494,7 @@ CPProcessDiagramElement >> beginConnectionFrom: aNode [
 	connectionSourceNode := aNode.
 	(nodeElementsByNode at: aNode ifAbsent: [ nil ])
 		ifNotNil: [ :anElement |
-			anElement border: (BlBorder paint: (Color gray alpha: 0.95) width: 2.5) ]
+			anElement border: (BlBorder paint: self selectedBorderColor width: 2.5) ]
 ]
 
 { #category : 'private - connection' }
@@ -502,8 +566,8 @@ CPProcessDiagramElement >> newReconnectHandle [
 		extent: 10 @ 10;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		geometry: BlCircleGeometry new;
-		background: (Color white alpha: 0.16);
-		border: (BlBorder paint: (Color gray alpha: 0.65) width: 1);
+		background: self controlBackgroundColor;
+		border: (BlBorder paint: self nodeBorderColor width: 1);
 		yourself
 ]
 
@@ -642,11 +706,11 @@ CPProcessDiagramElement >> updateSelectionAppearance [
 		| isSelected |
 		isSelected := selectedNodes identityIncludes: node.
 		element border: (BlBorder
-			paint: (Color gray alpha: (isSelected ifTrue: [ 0.95 ] ifFalse: [ 0.65 ]))
+			paint: (isSelected ifTrue: [ self selectedBorderColor ] ifFalse: [ self nodeBorderColor ])
 			width: (isSelected ifTrue: [ 2.5 ] ifFalse: [ 1.5 ])) ].
 	edgeElementsByEdge keysAndValuesDo: [ :edge :element |
 		element border: (BlBorder
-			paint: (Color gray alpha: (edge == selectedEdge ifTrue: [ 0.95 ] ifFalse: [ 0.55 ]))
+			paint: (edge == selectedEdge ifTrue: [ self selectedBorderColor ] ifFalse: [ self edgeColor ])
 			width: (edge == selectedEdge ifTrue: [ 2.5 ] ifFalse: [ 1.5 ])) ]
 ]
 

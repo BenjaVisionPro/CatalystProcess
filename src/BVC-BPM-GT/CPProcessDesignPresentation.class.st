@@ -18,6 +18,7 @@ Class {
 		'detailHostElement',
 		'detailPagerElement',
 		'detailPagerModel',
+		'canvasScrollElement',
 		'workspaceElement'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -40,8 +41,18 @@ CPProcessDesignPresentation >> prepareHostElement [
 		removeEdgeOperationFor: removeEdgeOperationBlock;
 		memento: self memento.
 	diagramElement constraintsDo: [ :c |
-		c horizontal matchParent.
-		c vertical matchParent ].
+		c horizontal exact: 2200.
+		c vertical exact: 1400 ].
+
+	canvasScrollElement := BrScrollPane new
+		allowMeAndChildrenMouseEvents;
+		aptitude: BrScrollPaneAptitude
+			+ BrGlamorousWithHorizontalScrollbarAptitude
+			+ BrGlamorousWithVerticalScrollbarAptitude;
+		hMatchParent;
+		vMatchParent;
+		content: diagramElement;
+		yourself.
 
 	detailHostElement := BrVerticalPane new
 		hMatchParent;
@@ -64,6 +75,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 	detailPagerModel := GtTreePagerModel new
 		paneModel: rootPaneModel;
 		yourself.
+	detailPagerModel settings numberOfVisibleColumns: 1.
 	detailPagerElement := GtTreePager new
 		pagerModel: detailPagerModel;
 		hExact: 380;
@@ -82,7 +94,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 		hMatchParent;
 		vMatchParent;
 		cellSpacing: 0;
-		addChild: diagramElement;
+		addChild: canvasScrollElement;
 		addChild: detailPagerElement;
 		yourself.
 	self hostElement
@@ -105,6 +117,12 @@ CPProcessDesignPresentation >> groupFor: aGroup configuredBy: aConfiguration [
 { #category : 'accessing - testing' }
 CPProcessDesignPresentation >> diagramElement [
 	^ diagramElement
+]
+
+
+{ #category : 'accessing - testing' }
+CPProcessDesignPresentation >> canvasScrollElement [
+	^ canvasScrollElement
 ]
 
 { #category : 'accessing - testing' }

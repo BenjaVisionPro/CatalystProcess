@@ -29,9 +29,10 @@ CPProcessDiagramExamples >> processPresentationIncludesDiagramAndDetailForm [
 	self assert: presentation class equals: CPProcessDesignPresentation.
 	self assert: diagram isNotNil.
 	self assert: presentation workspaceElement children size equals: 2.
-	self assert: presentation workspaceElement children first == diagram.
+	self assert: presentation workspaceElement children first == presentation canvasScrollElement.
 	self assert: presentation workspaceElement children second == presentation detailPagerElement.
 	self assert: presentation detailPagerModel paneModels size equals: 1.
+	self assert: presentation detailPagerModel settings numberOfVisibleColumns equals: 1.
 	self assert: presentation detailHostElement children isEmpty not.
 	^ element
 ]
