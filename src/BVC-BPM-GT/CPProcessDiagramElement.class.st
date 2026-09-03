@@ -10,6 +10,7 @@ Class {
 		'edgesDescription',
 		'nodeElementsByNode',
 		'edgeElementsByEdge',
+		'reconnectHandleElementsByEdge',
 		'positionNodeOperationBlock',
 		'createNodeOperationBlock',
 		'activePaletteDragItem',
@@ -33,6 +34,7 @@ CPProcessDiagramElement >> initialize [
 	super initialize.
 	nodeElementsByNode := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
+	reconnectHandleElementsByEdge := IdentityDictionary new.
 	self
 		constraintsDo: [ :c |
 			c horizontal matchParent.
@@ -63,17 +65,62 @@ CPProcessDiagramElement >> memento: aMemento [
 CPProcessDiagramElement >> refresh [
 	| nodes edges |
 	memento ifNil: [ ^ self ].
-	self removeChildren.
-	nodeElementsByNode removeAll.
-	edgeElementsByEdge removeAll.
 	nodes := memento readUsing: nodesDescription.
 	edges := memento readUsing: edgesDescription.
 	(selectedNode isNotNil and: [ (nodes identityIncludes: selectedNode) not ]) ifTrue: [ selectedNode := nil ].
 	(selectedEdge isNotNil and: [ (edges identityIncludes: selectedEdge) not ]) ifTrue: [ selectedEdge := nil ].
-	edges do: [ :edge | self addEdgeElementFor: edge ].
-	nodes withIndexDo: [ :node :index | self addNodeElementFor: node index: index ].
+	self
+		removeNodeElementsAbsentFrom: nodes;
+		removeEdgeElementsAbsentFrom: edges.
+	nodes withIndexDo: [ :node :index |
+		(nodeElementsByNode includesKey: node)
+			ifTrue: [ self updateNodeElementFor: node index: index ]
+			ifFalse: [ self addNodeElementFor: node index: index ] ].
+	edges do: [ :edge |
+		(edgeElementsByEdge includesKey: edge)
+			ifTrue: [ self updateEdgeElementFor: edge ]
+			ifFalse: [ self addEdgeElementFor: edge ] ].
 	self updateSelectionAppearance.
 	^ self
+]
+
+{ #category : 'private - updating' }
+CPProcessDiagramElement >> removeNodeElementsAbsentFrom: nodes [
+	(nodeElementsByNode keys reject: [ :node | nodes identityIncludes: node ]) do: [ :node |
+		| element |
+		element := nodeElementsByNode removeKey: node.
+		element parent ifNotNil: [ :parent | parent removeChild: element ] ]
+]
+
+{ #category : 'private - updating' }
+CPProcessDiagramElement >> removeEdgeElementsAbsentFrom: edges [
+	(edgeElementsByEdge keys reject: [ :edge | edges identityIncludes: edge ]) do: [ :edge |
+		| element handles |
+		element := edgeElementsByEdge removeKey: edge.
+		element parent ifNotNil: [ :parent | parent removeChild: element ].
+		handles := reconnectHandleElementsByEdge removeKey: edge ifAbsent: [ #() ].
+		handles do: [ :handle |
+			handle parent ifNotNil: [ :parent | parent removeChild: handle ] ] ]
+]
+
+{ #category : 'private - nodes' }
+CPProcessDiagramElement >> updateNodeElementFor: aNode index: anIndex [
+	| element position |
+	element := nodeElementsByNode at: aNode.
+	position := self stagedPositionOf: aNode ifAbsent: [ self fallbackPositionForIndex: anIndex ].
+	element relocate: position
+]
+
+{ #category : 'private - edges' }
+CPProcessDiagramElement >> updateEdgeElementFor: anEdge [
+	| geometry source target |
+	geometry := self edgeGeometryFor: anEdge.
+	geometry ifNotNil: [ (edgeElementsByEdge at: anEdge) geometry: geometry ].
+	reconnectEdgeOperationBlock ifNil: [ ^ self ].
+	source := self stagedSourceOf: anEdge.
+	target := self stagedTargetOf: anEdge.
+	(source isNil or: [ target isNil ]) ifTrue: [ ^ self ].
+	self updateReconnectHandlesFor: anEdge source: source target: target
 ]
 
 { #category : 'private - nodes' }
@@ -277,9 +324,14 @@ CPProcessDiagramElement >> installPositioningOn: anElement for: aNode [
 { #category : 'private - edges' }
 CPProcessDiagramElement >> refreshEdgeGeometry [
 	edgeElementsByEdge keysAndValuesDo: [ :edge :element |
-		| geometry |
+		| geometry source target |
 		geometry := self edgeGeometryFor: edge.
-		geometry ifNotNil: [ element geometry: geometry ] ]
+		geometry ifNotNil: [ element geometry: geometry ].
+		(reconnectEdgeOperationBlock isNotNil and: [ reconnectHandleElementsByEdge includesKey: edge ]) ifTrue: [
+			source := self stagedSourceOf: edge.
+			target := self stagedTargetOf: edge.
+			(source isNotNil and: [ target isNotNil ]) ifTrue: [
+				self updateReconnectHandlesFor: edge source: source target: target ] ] ]
 ]
 
 { #category : 'private - edges' }
@@ -387,15 +439,9 @@ CPProcessDiagramElement >> reconnectEdge: anEdge from: aSourceNode to: aTargetNo
 
 { #category : 'private - reconnection' }
 CPProcessDiagramElement >> addReconnectHandlesFor: anEdge source: aSourceNode target: aTargetNode [
-	| sourceHandle targetHandle sourcePosition targetPosition |
-	sourcePosition := (self stagedPositionOf: aSourceNode ifAbsent: [ ^ self ])
-		+ ((self extentForNode: aSourceNode) / 2).
-	targetPosition := (self stagedPositionOf: aTargetNode ifAbsent: [ ^ self ])
-		+ ((self extentForNode: aTargetNode) / 2).
+	| sourceHandle targetHandle |
 	sourceHandle := self newReconnectHandle.
 	targetHandle := self newReconnectHandle.
-	sourceHandle relocate: sourcePosition - (5 @ 5).
-	targetHandle relocate: targetPosition - (5 @ 5).
 	sourceHandle addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
@@ -406,8 +452,22 @@ CPProcessDiagramElement >> addReconnectHandlesFor: anEdge source: aSourceNode ta
 		do: [ :anEvent |
 			self beginReconnectTargetOf: anEdge.
 			anEvent consumed: true ]).
+	reconnectHandleElementsByEdge at: anEdge put: { sourceHandle. targetHandle }.
 	self addChild: sourceHandle.
-	self addChild: targetHandle
+	self addChild: targetHandle.
+	self updateReconnectHandlesFor: anEdge source: aSourceNode target: aTargetNode
+]
+
+{ #category : 'private - reconnection' }
+CPProcessDiagramElement >> updateReconnectHandlesFor: anEdge source: aSourceNode target: aTargetNode [
+	| handles sourcePosition targetPosition |
+	handles := reconnectHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	sourcePosition := (self displayedPositionOf: aSourceNode ifAbsent: [ ^ self ])
+		+ ((self extentForNode: aSourceNode) / 2).
+	targetPosition := (self displayedPositionOf: aTargetNode ifAbsent: [ ^ self ])
+		+ ((self extentForNode: aTargetNode) / 2).
+	handles first relocate: sourcePosition - (5 @ 5).
+	handles second relocate: targetPosition - (5 @ 5)
 ]
 
 { #category : 'private - reconnection' }
@@ -547,4 +607,15 @@ CPProcessDiagramElement >> removeSelection [
 	selectedNode ifNotNil: [ :node | ^ self removeNode: node ].
 	selectedEdge ifNotNil: [ :edge | ^ self removeEdge: edge ].
 	^ nil
+]
+
+
+{ #category : 'private - accessing' }
+CPProcessDiagramElement >> nodeElementFor: aNode [
+	^ nodeElementsByNode at: aNode ifAbsent: [ nil ]
+]
+
+{ #category : 'private - accessing' }
+CPProcessDiagramElement >> edgeElementFor: anEdge [
+	^ edgeElementsByEdge at: anEdge ifAbsent: [ nil ]
 ]
