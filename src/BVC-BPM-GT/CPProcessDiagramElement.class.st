@@ -385,7 +385,8 @@ CPProcessDiagramElement >> connectNode: aSourceNode to: aTargetNode [
 	connectNodeOperationBlock ifNil: [ ^ nil ].
 	assessment := (connectNodeOperationBlock value: aSourceNode value: aTargetNode) apply.
 	connectionSourceNode := nil.
-	assessment isApplicable ifTrue: [ self refresh ].
+	"Refresh for both acceptance and rejection. Connection arming changes presentation state, so a rejected semantic operation must still restore appearance from authoritative staged state."
+	self refresh.
 	^ assessment
 ]
 
@@ -451,7 +452,9 @@ CPProcessDiagramElement >> reconnectEdge: anEdge from: aSourceNode to: aTargetNo
 	assessment := (reconnectEdgeOperationBlock value: anEdge value: aSourceNode value: aTargetNode) apply.
 	reconnectionEdge := nil.
 	reconnectsSource := nil.
-	assessment isApplicable ifTrue: [ self refreshWithMotion ].
+	assessment isApplicable
+		ifTrue: [ self refreshWithMotion ]
+		ifFalse: [ self refresh ].
 	^ assessment
 ]
 

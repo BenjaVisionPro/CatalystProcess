@@ -146,3 +146,58 @@ CPProcessDiagramExamples >> diagramRefreshPreservesEdgePresentationIdentity [
 	self assert: edge targetNode == oldTarget.
 	^ diagram
 ]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> rejectedDiagramConnectionLeavesStagedTopologyUnchanged [
+	<gtExample>
+	| process source target outsider memento nodesDescription edgesDescription configuration diagram assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	target := CPEndEventDesignNode new position: 300 @ 120; yourself.
+	outsider := CPUserTaskDesignNode new position: 500 @ 120; yourself.
+	process
+		nodes: (OrderedCollection with: source with: target);
+		edges: OrderedCollection new.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		connectNodeOperationFor: [ :aSource :aTarget | configuration connectOperationFrom: aSource to: aTarget in: memento ];
+		memento: memento.
+
+	assessment := diagram connectNode: source to: outsider.
+
+	self assert: assessment isApplicable not.
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	self assert: process edges isEmpty.
+	^ diagram
+]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> rejectedDiagramReconnectLeavesStagedEndpointUnchanged [
+	<gtExample>
+	| process source target outsider edge memento nodesDescription edgesDescription configuration diagram assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	target := CPEndEventDesignNode new position: 300 @ 120; yourself.
+	outsider := CPUserTaskDesignNode new position: 500 @ 120; yourself.
+	edge := CPProcessDesignEdge new sourceNode: source; targetNode: target; yourself.
+	process
+		nodes: (OrderedCollection with: source with: target);
+		edges: (OrderedCollection with: edge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		reconnectEdgeOperationFor: [ :anEdge :aSource :aTarget | configuration reconnectOperationFor: anEdge from: aSource to: aTarget in: memento ];
+		memento: memento.
+
+	assessment := diagram reconnectEdge: edge from: source to: outsider.
+
+	self assert: assessment isApplicable not.
+	self assert: (diagram stagedTargetOf: edge) == target.
+	self assert: edge targetNode == target.
+	^ diagram
+]
