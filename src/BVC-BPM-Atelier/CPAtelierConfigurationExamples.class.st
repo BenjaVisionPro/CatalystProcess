@@ -633,3 +633,91 @@ CPAtelierConfigurationExamples >> diagramNodePositionReassessesStagedPosition [
 	self assert: node position equals: 80@60.
 	^ assessment
 ]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramEdgeReconnectAssessmentIsPure [
+	<gtExample>
+	| process first second third edge memento configuration operation assessment |
+	process := CPProcessDesign new.
+	first := CPStartEventDesignNode new.
+	second := CPUserTaskDesignNode new.
+	third := CPEndEventDesignNode new.
+	edge := CPProcessDesignEdge new sourceNode: first; targetNode: second; yourself.
+	process nodes: (OrderedCollection with: first with: second with: third); edges: (OrderedCollection with: edge).
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+
+	operation := configuration
+		reconnectOperationFor: edge
+		from: first
+		to: third
+		in: memento.
+	assessment := operation assess.
+
+	self assert: operation class equals: CPAtelierReconnectEdge.
+	self assert: assessment isApplicable.
+	self assert: assessment currentSourceNode == first.
+	self assert: assessment currentTargetNode == second.
+	self assert: assessment proposedTargetNode == third.
+	self assert: edge targetNode == second.
+	self assert: (memento hasChildMementoFor: edge inRelation: configuration edgesDescription) not.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramEdgeReconnectStagesEndpoints [
+	<gtExample>
+	| process first second third edge memento configuration operation assessment edgeMemento |
+	process := CPProcessDesign new.
+	first := CPStartEventDesignNode new.
+	second := CPUserTaskDesignNode new.
+	third := CPEndEventDesignNode new.
+	edge := CPProcessDesignEdge new sourceNode: first; targetNode: second; yourself.
+	process nodes: (OrderedCollection with: first with: second with: third); edges: (OrderedCollection with: edge).
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	operation := configuration
+		reconnectOperationFor: edge
+		from: second
+		to: third
+		in: memento.
+
+	assessment := operation apply.
+	edgeMemento := memento childMementoFor: edge inRelation: configuration edgesDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (edgeMemento readUsing: edge sourceNodeDescription) == second.
+	self assert: (edgeMemento readUsing: edge targetNodeDescription) == third.
+	self assert: edge sourceNode == first.
+	self assert: edge targetNode == second.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramEdgeReconnectReassessesStagedEndpoints [
+	<gtExample>
+	| process first second third fourth edge memento configuration edgeMemento operation assessment |
+	process := CPProcessDesign new.
+	first := CPStartEventDesignNode new.
+	second := CPUserTaskDesignNode new.
+	third := CPServiceTaskDesignNode new.
+	fourth := CPEndEventDesignNode new.
+	edge := CPProcessDesignEdge new sourceNode: first; targetNode: second; yourself.
+	process nodes: (OrderedCollection with: first with: second with: third with: fourth); edges: (OrderedCollection with: edge).
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	edgeMemento := memento childMementoFor: edge inRelation: configuration edgesDescription.
+	edgeMemento write: third using: edge targetNodeDescription.
+
+	operation := configuration
+		reconnectOperationFor: edge
+		from: first
+		to: fourth
+		in: memento.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable.
+	self assert: assessment currentTargetNode == third.
+	self assert: edge targetNode == second.
+	^ assessment
+]

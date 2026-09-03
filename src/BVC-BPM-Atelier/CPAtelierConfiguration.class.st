@@ -196,3 +196,14 @@ CPAtelierConfiguration >> positionNodeOperationFor: aNode at: aPoint in: aProces
 		processMemento: aProcessMemento
 		nodesDescription: nodesDescription
 ]
+
+{ #category : 'operations' }
+CPAtelierConfiguration >> reconnectOperationFor: anEdge from: aSourceNode to: aTargetNode in: aProcessMemento [
+	^ CPAtelierReconnectEdge
+		edge: anEdge
+		sourceNode: aSourceNode
+		targetNode: aTargetNode
+		processMemento: aProcessMemento
+		nodesDescription: nodesDescription
+		edgesDescription: edgesDescription
+]
