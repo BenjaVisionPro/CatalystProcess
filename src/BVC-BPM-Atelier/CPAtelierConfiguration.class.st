@@ -36,7 +36,9 @@ CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 				createNodeOperationFor: [ :aNode :aPoint |
 					self createNodeOperationFor: aNode at: aPoint in: aPresentation memento ];
 				positionNodeOperationFor: [ :aNode :aPoint |
-					self positionNodeOperationFor: aNode at: aPoint in: aPresentation memento ] ].
+					self positionNodeOperationFor: aNode at: aPoint in: aPresentation memento ];
+				connectNodeOperationFor: [ :aSourceNode :aTargetNode |
+					self connectOperationFrom: aSourceNode to: aTargetNode in: aPresentation memento ] ].
 	^ anAtelierViewModel
 ]
 
@@ -212,4 +214,15 @@ CPAtelierConfiguration >> reconnectOperationFor: anEdge from: aSourceNode to: aT
 		processMemento: aProcessMemento
 		nodesDescription: nodesDescription
 		edgesDescription: edgesDescription
+]
+
+
+{ #category : 'operations' }
+CPAtelierConfiguration >> connectOperationFrom: aSourceNode to: aTargetNode in: aProcessMemento [
+	"The Process client owns fresh edge materialization for a diagram connection gesture. The operation itself still receives an already-supplied edge."
+	^ self
+		connectOperationFor: CPProcessDesignEdge new
+		from: aSourceNode
+		to: aTargetNode
+		in: aProcessMemento
 ]

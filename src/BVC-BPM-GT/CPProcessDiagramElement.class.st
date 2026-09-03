@@ -12,7 +12,9 @@ Class {
 		'edgeElementsByEdge',
 		'positionNodeOperationBlock',
 		'createNodeOperationBlock',
-		'activePaletteDragItem'
+		'activePaletteDragItem',
+		'connectNodeOperationBlock',
+		'connectionSourceNode'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -71,6 +73,7 @@ CPProcessDiagramElement >> addNodeElementFor: aNode index: anIndex [
 		relocate: position.
 	nodeElementsByNode at: aNode put: element.
 	positionNodeOperationBlock ifNotNil: [ self installPositioningOn: element for: aNode ].
+	connectNodeOperationBlock ifNotNil: [ self installConnectionOn: element for: aNode ].
 	self addChild: element
 ]
 
@@ -279,4 +282,65 @@ CPProcessDiagramElement >> displayedPositionOf: aNode ifAbsent: aBlock [
 	(nodeElementsByNode at: aNode ifAbsent: [ nil ])
 		ifNotNil: [ :anElement | ^ anElement position ].
 	^ self stagedPositionOf: aNode ifAbsent: aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessDiagramElement >> connectNodeOperationFor: aBlock [
+	"The block receives source node and target node and answers the Process editing operation for that connection intention."
+	connectNodeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> connectNode: aSourceNode to: aTargetNode [
+	| assessment |
+	connectNodeOperationBlock ifNil: [ ^ nil ].
+	assessment := (connectNodeOperationBlock value: aSourceNode value: aTargetNode) apply.
+	connectionSourceNode := nil.
+	assessment isApplicable ifTrue: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - connection' }
+CPProcessDiagramElement >> installConnectionOn: aNodeElement for: aNode [
+	| port |
+	port := BlElement new
+		extent: 12 @ 12;
+		geometry: BlCircleGeometry new;
+		background: (Color white alpha: 0.20);
+		border: (BlBorder paint: (Color gray alpha: 0.75) width: 1.5);
+		constraintsDo: [ :c |
+			c frame horizontal alignRight.
+			c frame vertical alignCenter ];
+		yourself.
+	port addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			self beginConnectionFrom: aNode.
+			anEvent consumed: true ]).
+	aNodeElement addChild: port.
+	aNodeElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			connectionSourceNode ifNotNil: [
+				self completeConnectionTo: aNode.
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - connection' }
+CPProcessDiagramElement >> beginConnectionFrom: aNode [
+	connectionSourceNode := aNode.
+	(nodeElementsByNode at: aNode ifAbsent: [ nil ])
+		ifNotNil: [ :anElement |
+			anElement border: (BlBorder paint: (Color gray alpha: 0.95) width: 2.5) ]
+]
+
+{ #category : 'private - connection' }
+CPProcessDiagramElement >> completeConnectionTo: aNode [
+	| source |
+	source := connectionSourceNode.
+	connectionSourceNode := nil.
+	source ifNil: [ ^ self ].
+	source == aNode ifTrue: [ self refresh. ^ self ].
+	self connectNode: source to: aNode
 ]

@@ -771,3 +771,30 @@ CPAtelierConfigurationExamples >> diagramCreateSurfaceUsesConfiguredOperation [
 	self assert: process nodes isEmpty.
 	^ diagram
 ]
+
+{ #category : 'examples - diagram integration' }
+CPAtelierConfigurationExamples >> diagramConnectSurfaceUsesConfiguredOperation [
+	<gtExample>
+	| process source target memento configuration diagram assessment edge |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 160; yourself.
+	target := CPUserTaskDesignNode new position: 280 @ 160; yourself.
+	process nodes: (OrderedCollection with: source with: target).
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	diagram := CPProcessDiagramElement new
+		connectNodeOperationFor: [ :aSourceNode :aTargetNode |
+			configuration connectOperationFrom: aSourceNode to: aTargetNode in: memento ];
+		memento: memento.
+
+	assessment := diagram connectNode: source to: target.
+	edge := assessment edge.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: configuration edgesDescription) size equals: 1.
+	self assert: (memento readUsing: configuration edgesDescription) first == edge.
+	self assert: edge sourceNode == source.
+	self assert: edge targetNode == target.
+	self assert: process edges isEmpty.
+	^ diagram
+]

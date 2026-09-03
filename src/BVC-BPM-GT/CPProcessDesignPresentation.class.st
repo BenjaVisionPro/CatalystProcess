@@ -6,7 +6,8 @@ Class {
 	#superclass : 'CFMaDetailPresentation',
 	#instVars : [
 		'positionNodeOperationBlock',
-		'createNodeOperationBlock'
+		'createNodeOperationBlock',
+		'connectNodeOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -20,6 +21,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 	diagram := CPProcessDiagramElement new
 		createNodeOperationFor: createNodeOperationBlock;
 		positionNodeOperationFor: positionNodeOperationBlock;
+		connectNodeOperationFor: connectNodeOperationBlock;
 		memento: self memento.
 	diagram margin: (BlInsets bottom: 10).
 	self hostElement addChild: diagram
@@ -35,4 +37,10 @@ CPProcessDesignPresentation >> positionNodeOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessDesignPresentation >> createNodeOperationFor: aBlock [
 	createNodeOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessDesignPresentation >> connectNodeOperationFor: aBlock [
+	connectNodeOperationBlock := aBlock
 ]
