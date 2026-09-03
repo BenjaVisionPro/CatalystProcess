@@ -36,6 +36,16 @@ CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 
 
 
+
+{ #category : 'operations' }
+CPAtelierConfiguration >> createNodeOperationFor: aNode at: aPoint in: aProcessMemento [
+	^ CPAtelierCreateNode
+		node: aNode
+		position: aPoint
+		processMemento: aProcessMemento
+		nodesDescription: nodesDescription
+]
+
 { #category : 'operations' }
 CPAtelierConfiguration >> connectOperationFor: anEdge from: aSourceNode to: aTargetNode in: aProcessMemento [
 	^ CPAtelierConnectNodes
@@ -52,6 +62,8 @@ CPAtelierConfiguration >> connectOperationFor: anEdge from: aSourceNode to: aTar
 { #category : 'operations' }
 CPAtelierConfiguration >> insertOperationFor: aCandidate into: aMemento description: aDescription at: anIndex [
 	aDescription == nodesDescription ifTrue: [
+		anIndex ifNil: [
+			^ self createNodeOperationFor: aCandidate at: nil in: aMemento ].
 		^ CPAtelierCreateNode
 			node: aCandidate
 			position: nil

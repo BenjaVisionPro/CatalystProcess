@@ -509,3 +509,55 @@ CPAtelierConfigurationExamples >> nodeReplacementCommitsPreservedDiagramPosition
 	self assert: replacement position equals: 180@140.
 	^ process
 ]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramNodeCreationCarriesExactDropPosition [
+	<gtExample>
+	| process memento configuration candidate operation assessment nodesDescription |
+	process := CPProcessDesign new.
+	memento := CPProcessDesignMemento model: process.
+	nodesDescription := memento magritteDescription
+		detect: [ :each | each handlesSelector: #nodes ].
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	candidate := CPServiceTaskDesignNode new.
+
+	operation := configuration
+		createNodeOperationFor: candidate
+		at: 420@260
+		in: memento.
+	assessment := operation assess.
+
+	self assert: operation class equals: CPAtelierCreateNode.
+	self assert: operation node == candidate.
+	self assert: operation position equals: 420@260.
+	self assert: assessment isApplicable.
+	self assert: process nodes isEmpty.
+	self assert: candidate position isNil.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> diagramNodeCreationStagesPositionOnlyOnApply [
+	<gtExample>
+	| process memento configuration candidate operation assessment nodesDescription |
+	process := CPProcessDesign new.
+	memento := CPProcessDesignMemento model: process.
+	nodesDescription := memento magritteDescription
+		detect: [ :each | each handlesSelector: #nodes ].
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	candidate := CPUserTaskDesignNode new.
+	operation := configuration
+		createNodeOperationFor: candidate
+		at: 300@180
+		in: memento.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: candidate position equals: 300@180.
+	self assert: (memento readUsing: nodesDescription) size equals: 1.
+	self assert: (memento readUsing: nodesDescription) first == candidate.
+	self assert: process nodes isEmpty.
+	^ operation
+]
+
