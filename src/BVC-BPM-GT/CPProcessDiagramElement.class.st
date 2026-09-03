@@ -85,6 +85,22 @@ CPProcessDiagramElement >> refresh [
 ]
 
 { #category : 'private - updating' }
+CPProcessDiagramElement >> refreshWithMotion [
+	| participants |
+	self isAttachedToSceneGraph ifFalse: [ ^ self refresh ].
+	participants := OrderedCollection new.
+	participants addAll: nodeElementsByNode values.
+	participants addAll: edgeElementsByEdge values.
+	reconnectHandleElementsByEdge valuesDo: [ :handles | participants addAll: handles ].
+	participants isEmpty ifTrue: [ ^ self refresh ].
+	^ (CFMotionLayoutTransaction on: self)
+		affecting: participants;
+		duration: 180 milliSeconds;
+		mutate: [ self refresh ];
+		play
+]
+
+{ #category : 'private - updating' }
 CPProcessDiagramElement >> removeNodeElementsAbsentFrom: nodes [
 	(nodeElementsByNode keys reject: [ :node | nodes identityIncludes: node ]) do: [ :node |
 		| element |
@@ -292,7 +308,9 @@ CPProcessDiagramElement >> positionNode: aNode at: aPoint [
 	| assessment |
 	positionNodeOperationBlock ifNil: [ ^ nil ].
 	assessment := (positionNodeOperationBlock value: aNode value: aPoint) apply.
-	self refresh.
+	assessment isApplicable
+		ifTrue: [ self refreshWithMotion ]
+		ifFalse: [ self refresh ].
 	^ assessment
 ]
 
@@ -433,7 +451,7 @@ CPProcessDiagramElement >> reconnectEdge: anEdge from: aSourceNode to: aTargetNo
 	assessment := (reconnectEdgeOperationBlock value: anEdge value: aSourceNode value: aTargetNode) apply.
 	reconnectionEdge := nil.
 	reconnectsSource := nil.
-	assessment isApplicable ifTrue: [ self refresh ].
+	assessment isApplicable ifTrue: [ self refreshWithMotion ].
 	^ assessment
 ]
 
