@@ -239,12 +239,15 @@ CPAtelierConfigurationExamples >> interactiveProcessAtelier [
 		yourself.
 	start := CPStartEventDesignNode new
 		label: 'Start';
+		position: 60 @ 170;
 		yourself.
 	task := CPUserTaskDesignNode new
 		label: 'Review request';
+		position: 250 @ 164;
 		yourself.
 	finish := CPEndEventDesignNode new
 		label: 'Done';
+		position: 470 @ 170;
 		yourself.
 	edge1 := CPProcessDesignEdge new
 		label: 'Start to review';
