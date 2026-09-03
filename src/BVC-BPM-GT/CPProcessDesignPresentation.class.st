@@ -1,6 +1,6 @@
 "I am the Foundation Magritte presentation used for CPProcessDesign.
 
-I remain a CFMaDetailPresentation and therefore retain the normal Foundation form. I add the Process diagram as another part of that presentation rather than making Atelier choose or render Process UI."
+I remain a CFMaDetailPresentation and therefore retain the normal Foundation Detail form. For Process I compose that unchanged Detail content beside the diagram so the diagram is the primary work surface and Detail is an inspector region. Atelier still does not choose or render Process UI."
 Class {
 	#name : 'CPProcessDesignPresentation',
 	#superclass : 'CFMaDetailPresentation',
@@ -11,7 +11,10 @@ Class {
 		'reconnectEdgeOperationBlock',
 		'removeNodeOperationBlock',
 		'removeNodesOperationBlock',
-		'removeEdgeOperationBlock'
+		'removeEdgeOperationBlock',
+		'diagramElement',
+		'detailHostElement',
+		'workspaceElement'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -20,9 +23,10 @@ Class {
 
 { #category : 'private - building' }
 CPProcessDesignPresentation >> prepareHostElement [
-	| diagram |
+	| detailScroll |
 	super prepareHostElement.
-	diagram := CPProcessDiagramElement new
+
+	diagramElement := CPProcessDiagramElement new
 		createNodeOperationFor: createNodeOperationBlock;
 		positionNodeOperationFor: positionNodeOperationBlock;
 		connectNodeOperationFor: connectNodeOperationBlock;
@@ -31,8 +35,59 @@ CPProcessDesignPresentation >> prepareHostElement [
 		removeNodesOperationFor: removeNodesOperationBlock;
 		removeEdgeOperationFor: removeEdgeOperationBlock;
 		memento: self memento.
-	diagram margin: (BlInsets bottom: 10).
-	self hostElement addChild: diagram
+	diagramElement constraintsDo: [ :c |
+		c horizontal matchParent.
+		c vertical matchParent ].
+
+	detailHostElement := BrVerticalPane new
+		hMatchParent;
+		vFitContent;
+		cellSpacing: 0;
+		padding: BlInsets empty;
+		background: Color transparent;
+		yourself.
+	detailScroll := BrScrollPane new
+		allowMeAndChildrenMouseEvents;
+		aptitude: BrScrollPaneAptitude + BrGlamorousWithVerticalScrollbarAptitude;
+		hExact: 360;
+		vMatchParent;
+		content: detailHostElement;
+		yourself.
+
+	workspaceElement := BrHorizontalPane new
+		hMatchParent;
+		vExact: 620;
+		cellSpacing: 12;
+		addChild: diagramElement;
+		addChild: detailScroll;
+		yourself.
+	self hostElement addChild: workspaceElement
+]
+
+{ #category : 'private - groups' }
+CPProcessDesignPresentation >> groupFor: aGroup configuredBy: aConfiguration [
+	^ groups
+		at: aGroup
+		ifAbsentPut: [
+			self
+				newGroup: aGroup
+				in: detailHostElement
+				configuredBy: aConfiguration ]
+]
+
+{ #category : 'accessing - testing' }
+CPProcessDesignPresentation >> diagramElement [
+	^ diagramElement
+]
+
+{ #category : 'accessing - testing' }
+CPProcessDesignPresentation >> detailHostElement [
+	^ detailHostElement
+]
+
+{ #category : 'accessing - testing' }
+CPProcessDesignPresentation >> workspaceElement [
+	^ workspaceElement
 ]
 
 
