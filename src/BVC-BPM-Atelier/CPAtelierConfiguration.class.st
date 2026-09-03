@@ -43,6 +43,8 @@ CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					self reconnectOperationFor: anEdge from: aSourceNode to: aTargetNode in: aPresentation memento ];
 				removeNodeOperationFor: [ :aNode |
 					self removeNodeOperationFor: aNode in: aPresentation memento ];
+				removeNodesOperationFor: [ :someNodes |
+					self removeNodesOperationFor: someNodes in: aPresentation memento ];
 				removeEdgeOperationFor: [ :anEdge |
 					self removeEdgeOperationFor: anEdge in: aPresentation memento ] ].
 	^ anAtelierViewModel
@@ -243,6 +245,16 @@ CPAtelierConfiguration >> removeNodeOperationFor: aNode in: aProcessMemento [
 			description: nodesDescription)
 ]
 
+
+
+{ #category : 'operations' }
+CPAtelierConfiguration >> removeNodesOperationFor: someNodes in: aProcessMemento [
+	^ self
+		removeOperationFor: someNodes
+		from: (CFAtelierRelationDragContext
+			memento: aProcessMemento
+			description: nodesDescription)
+]
 { #category : 'operations' }
 CPAtelierConfiguration >> removeEdgeOperationFor: anEdge in: aProcessMemento [
 	^ self

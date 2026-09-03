@@ -20,8 +20,9 @@ Class {
 		'reconnectionEdge',
 		'reconnectsSource',
 		'removeNodeOperationBlock',
+		'removeNodesOperationBlock',
 		'removeEdgeOperationBlock',
-		'selectedNode',
+		'selectedNodes',
 		'selectedEdge'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -35,6 +36,7 @@ CPProcessDiagramElement >> initialize [
 	nodeElementsByNode := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
+	selectedNodes := OrderedCollection new.
 	self
 		constraintsDo: [ :c |
 			c horizontal matchParent.
@@ -67,7 +69,7 @@ CPProcessDiagramElement >> refresh [
 	memento ifNil: [ ^ self ].
 	nodes := memento readUsing: nodesDescription.
 	edges := memento readUsing: edgesDescription.
-	(selectedNode isNotNil and: [ (nodes identityIncludes: selectedNode) not ]) ifTrue: [ selectedNode := nil ].
+	selectedNodes := selectedNodes select: [ :node | nodes identityIncludes: node ].
 	(selectedEdge isNotNil and: [ (edges identityIncludes: selectedEdge) not ]) ifTrue: [ selectedEdge := nil ].
 	self
 		removeNodeElementsAbsentFrom: nodes;
@@ -537,6 +539,12 @@ CPProcessDiagramElement >> removeNodeOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
+CPProcessDiagramElement >> removeNodesOperationFor: aBlock [
+	"The block receives the selected node identities in selection order and answers the Process editing operation for removing them as one semantic intention."
+	removeNodesOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
 CPProcessDiagramElement >> removeEdgeOperationFor: aBlock [
 	"The block receives the selected edge and answers the Process editing operation for removing that edge."
 	removeEdgeOperationBlock := aBlock
@@ -548,7 +556,18 @@ CPProcessDiagramElement >> removeNode: aNode [
 	removeNodeOperationBlock ifNil: [ ^ nil ].
 	assessment := (removeNodeOperationBlock value: aNode) apply.
 	assessment isApplicable ifTrue: [
-		selectedNode := nil.
+		selectedNodes := OrderedCollection new.
+		self refresh ].
+	^ assessment
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> removeNodes: someNodes [
+	| assessment |
+	removeNodesOperationBlock ifNil: [ ^ nil ].
+	assessment := (removeNodesOperationBlock value: someNodes) apply.
+	assessment isApplicable ifTrue: [
+		selectedNodes := OrderedCollection new.
 		self refresh ].
 	^ assessment
 ]
@@ -570,7 +589,9 @@ CPProcessDiagramElement >> installSelectionOn: anElement forNode: aNode [
 		on: BlClickEvent
 		do: [ :anEvent |
 			(connectionSourceNode isNil and: [ reconnectionEdge isNil ]) ifTrue: [
-				self selectNode: aNode.
+				self
+					selectNode: aNode
+					adding: (anEvent modifiers isPrimaryModifier or: [ anEvent modifiers isShift ]).
 				anEvent consumed: true ] ])
 ]
 
@@ -584,18 +605,29 @@ CPProcessDiagramElement >> installSelectionOn: anElement forEdge: anEdge [
 ]
 
 { #category : 'private - selection' }
-CPProcessDiagramElement >> selectNode: aNode [
-	selectedNode := aNode.
+CPProcessDiagramElement >> selectNode: aNode adding: shouldAdd [
 	selectedEdge := nil.
+	shouldAdd
+		ifTrue: [
+			(selectedNodes identityIncludes: aNode)
+				ifTrue: [ selectedNodes := selectedNodes reject: [ :each | each == aNode ] ]
+				ifFalse: [ selectedNodes add: aNode ] ]
+		ifFalse: [
+			selectedNodes := OrderedCollection with: aNode ].
 	self
 		updateSelectionAppearance;
 		requestFocus
 ]
 
 { #category : 'private - selection' }
+CPProcessDiagramElement >> selectNode: aNode [
+	self selectNode: aNode adding: false
+]
+
+{ #category : 'private - selection' }
 CPProcessDiagramElement >> selectEdge: anEdge [
 	selectedEdge := anEdge.
-	selectedNode := nil.
+	selectedNodes := OrderedCollection new.
 	self
 		updateSelectionAppearance;
 		requestFocus
@@ -604,9 +636,11 @@ CPProcessDiagramElement >> selectEdge: anEdge [
 { #category : 'private - selection' }
 CPProcessDiagramElement >> updateSelectionAppearance [
 	nodeElementsByNode keysAndValuesDo: [ :node :element |
+		| isSelected |
+		isSelected := selectedNodes identityIncludes: node.
 		element border: (BlBorder
-			paint: (Color gray alpha: (node == selectedNode ifTrue: [ 0.95 ] ifFalse: [ 0.65 ]))
-			width: (node == selectedNode ifTrue: [ 2.5 ] ifFalse: [ 1.5 ])) ].
+			paint: (Color gray alpha: (isSelected ifTrue: [ 0.95 ] ifFalse: [ 0.65 ]))
+			width: (isSelected ifTrue: [ 2.5 ] ifFalse: [ 1.5 ])) ].
 	edgeElementsByEdge keysAndValuesDo: [ :edge :element |
 		element border: (BlBorder
 			paint: (Color gray alpha: (edge == selectedEdge ifTrue: [ 0.95 ] ifFalse: [ 0.55 ]))
@@ -625,7 +659,9 @@ CPProcessDiagramElement >> installDeleteKeyHandler [
 
 { #category : 'private - selection' }
 CPProcessDiagramElement >> removeSelection [
-	selectedNode ifNotNil: [ :node | ^ self removeNode: node ].
+	selectedNodes ifNotEmpty: [
+		selectedNodes size = 1 ifTrue: [ ^ self removeNode: selectedNodes first ].
+		^ self removeNodes: selectedNodes asArray ].
 	selectedEdge ifNotNil: [ :edge | ^ self removeEdge: edge ].
 	^ nil
 ]

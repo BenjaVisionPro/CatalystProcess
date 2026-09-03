@@ -201,3 +201,38 @@ CPProcessDiagramExamples >> rejectedDiagramReconnectLeavesStagedEndpointUnchange
 	self assert: edge targetNode == target.
 	^ diagram
 ]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> diagramMultiNodeRemovalUsesOneProcessIntention [
+	<gtExample>
+	| process first second survivor firstEdge secondEdge memento nodesDescription edgesDescription configuration diagram assessment |
+	process := CPProcessDesign new.
+	first := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	second := CPUserTaskDesignNode new position: 280 @ 120; yourself.
+	survivor := CPEndEventDesignNode new position: 480 @ 120; yourself.
+	firstEdge := CPProcessDesignEdge new sourceNode: first; targetNode: second; yourself.
+	secondEdge := CPProcessDesignEdge new sourceNode: second; targetNode: survivor; yourself.
+	process
+		nodes: (OrderedCollection with: first with: second with: survivor);
+		edges: (OrderedCollection with: firstEdge with: secondEdge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		removeNodeOperationFor: [ :aNode | configuration removeNodeOperationFor: aNode in: memento ];
+		removeNodesOperationFor: [ :someNodes | configuration removeNodesOperationFor: someNodes in: memento ];
+		memento: memento.
+
+	diagram selectNode: first adding: false.
+	diagram selectNode: second adding: true.
+	assessment := diagram removeSelection.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: nodesDescription) size equals: 1.
+	self assert: (memento readUsing: nodesDescription) first == survivor.
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	self assert: process nodes size equals: 3.
+	self assert: process edges size equals: 2.
+	^ diagram
+]
