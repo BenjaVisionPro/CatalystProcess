@@ -747,3 +747,27 @@ CPAtelierConfigurationExamples >> diagramPositionSurfaceUsesConfiguredOperation 
 	self assert: node position equals: 80@60.
 	^ diagram
 ]
+
+{ #category : 'examples - diagram integration' }
+CPAtelierConfigurationExamples >> diagramCreateSurfaceUsesConfiguredOperation [
+	<gtExample>
+	| process memento configuration candidate diagram assessment nodeMemento |
+	process := CPProcessDesign new.
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	candidate := CPServiceTaskDesignNode new.
+	diagram := CPProcessDiagramElement new
+		createNodeOperationFor: [ :aNode :aPoint |
+			configuration createNodeOperationFor: aNode at: aPoint in: memento ];
+		memento: memento.
+
+	assessment := diagram createNode: candidate at: 340@190.
+	nodeMemento := memento childMementoFor: candidate inRelation: configuration nodesDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: configuration nodesDescription) first == candidate.
+	self assert: (nodeMemento readUsing: candidate positionDescription) equals: 340@190.
+	self assert: candidate position equals: 340@190.
+	self assert: process nodes isEmpty.
+	^ diagram
+]

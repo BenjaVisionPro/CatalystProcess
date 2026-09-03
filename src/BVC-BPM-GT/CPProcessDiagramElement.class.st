@@ -10,7 +10,9 @@ Class {
 		'edgesDescription',
 		'nodeElementsByNode',
 		'edgeElementsByEdge',
-		'positionNodeOperationBlock'
+		'positionNodeOperationBlock',
+		'createNodeOperationBlock',
+		'activePaletteDragItem'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -31,7 +33,8 @@ CPProcessDiagramElement >> initialize [
 		padding: (BlInsets all: 20);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 12);
 		background: (Color white alpha: 0.04);
-		border: (BlBorder paint: (Color gray alpha: 0.20) width: 1)
+		border: (BlBorder paint: (Color gray alpha: 0.20) width: 1).
+	self installPaletteDrop
 ]
 
 { #category : 'accessing' }
@@ -159,6 +162,54 @@ CPProcessDiagramElement >> addEdgeElementFor: anEdge [
 		yourself.
 	edgeElementsByEdge at: anEdge put: line.
 	self addChildFirst: line
+]
+
+
+{ #category : 'configuration' }
+CPProcessDiagramElement >> createNodeOperationFor: aBlock [
+	"The block receives the exact palette candidate and proposed diagram position and answers the Process editing operation for that intention."
+	createNodeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> createNode: aNode at: aPoint [
+	| assessment |
+	createNodeOperationBlock ifNil: [ ^ nil ].
+	assessment := (createNodeOperationBlock value: aNode value: aPoint) apply.
+	assessment isApplicable ifTrue: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - installing' }
+CPProcessDiagramElement >> installPaletteDrop [
+	self addEventHandler: (BlDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
+		whenDragLeftDo: [ :anEvent | activePaletteDragItem := nil ];
+		whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - testing' }
+CPProcessDiagramElement >> acceptsPaletteDragItem: aDragItem [
+	| sourceElement assessment |
+	createNodeOperationBlock ifNil: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	assessment := (createNodeOperationBlock value: aDragItem domainObject value: 0 @ 0) assess.
+	assessment isApplicable ifTrue: [ activePaletteDragItem := aDragItem ].
+	^ assessment isApplicable
+]
+
+{ #category : 'private - interaction' }
+CPProcessDiagramElement >> dropPaletteEvent: anEvent [
+	| dragItem candidate |
+	anEvent domainObjects size = 1 ifFalse: [ activePaletteDragItem := nil. ^ self ].
+	dragItem := activePaletteDragItem.
+	activePaletteDragItem := nil.
+	dragItem ifNil: [ ^ self ].
+	candidate := dragItem domainObject.
+	^ self createNode: candidate at: anEvent position
 ]
 
 
