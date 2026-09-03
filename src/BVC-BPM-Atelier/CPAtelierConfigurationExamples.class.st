@@ -121,13 +121,13 @@ CPAtelierConfigurationExamples >> nodeInsertionUsesProcessCreateOperation [
 		insertOperationFor: candidate
 		into: memento
 		description: nodesDescription
-		at: 1.
+		at: nil.
 	assessment := operation apply.
 
 	self assert: operation class equals: CPAtelierCreateNode.
 	self assert: assessment isApplicable.
-	self assert: (memento readUsing: nodesDescription) first == candidate.
-	self assert: (memento readUsing: nodesDescription) second == first.
+	self assert: (memento readUsing: nodesDescription) first == first.
+	self assert: (memento readUsing: nodesDescription) second == candidate.
 	self assert: candidate position equals: 240@120.
 	self assert: process nodes size equals: 1.
 	^ operation
@@ -148,7 +148,7 @@ CPAtelierConfigurationExamples >> nonNodeInsertionKeepsGenericAtelierSemantics [
 		insertOperationFor: edge
 		into: memento
 		description: edgesDescription
-		at: 1.
+		at: nil.
 	assessment := operation assess.
 
 	self assert: operation class equals: CFAtelierInsert.
