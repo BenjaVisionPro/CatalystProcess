@@ -58,6 +58,12 @@ CPAtelierConfiguration >> insertOperationFor: aCandidate into: aMemento descript
 			processMemento: aMemento
 			nodesDescription: nodesDescription
 			at: anIndex ].
+	aDescription == edgesDescription ifTrue: [
+		^ self
+			connectOperationFor: aCandidate
+			from: aCandidate sourceNode
+			to: aCandidate targetNode
+			in: aMemento ].
 	anIndex ifNil: [
 		^ CFAtelierInsert
 			object: aCandidate
@@ -97,6 +103,13 @@ CPAtelierConfiguration >> replaceOperationFor: anObject with: aCandidate in: aMe
 	aDescription == nodesDescription ifTrue: [
 		^ CPAtelierReplaceNode
 			node: anObject
+			with: aCandidate
+			processMemento: aMemento
+			nodesDescription: nodesDescription
+			edgesDescription: edgesDescription ].
+	aDescription == edgesDescription ifTrue: [
+		^ CPAtelierReplaceEdge
+			edge: anObject
 			with: aCandidate
 			processMemento: aMemento
 			nodesDescription: nodesDescription

@@ -379,3 +379,94 @@ CPAtelierConfigurationExamples >> nonNodeReplacementKeepsGenericAtelierSemantics
 	self assert: process edges first == oldEdge.
 	^ operation
 ]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> edgeInsertionUsesConnectSemantics [
+	<gtExample>
+	| process source target edge memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new.
+	target := CPEndEventDesignNode new.
+	process
+		addNode: source;
+		addNode: target.
+	edge := CPProcessDesignEdge new
+		sourceNode: source;
+		targetNode: target;
+		yourself.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		insertOperationFor: edge
+		into: memento
+		description: edgesDescription
+		at: nil.
+	assessment := operation assess.
+
+	self assert: operation class equals: CPAtelierConnectNodes.
+	self assert: assessment isApplicable.
+	self assert: process edges isEmpty.
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> edgeReplacementUsesProcessEndpointSemantics [
+	<gtExample>
+	| process source target oldEdge replacement memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new.
+	target := CPEndEventDesignNode new.
+	oldEdge := CPProcessDesignEdge new sourceNode: source; targetNode: target; yourself.
+	process addNode: source; addNode: target; addEdge: oldEdge.
+	replacement := CPProcessDesignEdge new sourceNode: source; targetNode: target; yourself.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		replaceOperationFor: oldEdge
+		with: replacement
+		in: memento
+		description: edgesDescription.
+	assessment := operation apply.
+
+	self assert: operation class equals: CPAtelierReplaceEdge.
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: edgesDescription) first == replacement.
+	self assert: process edges first == oldEdge.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> edgeReplacementRejectsEndpointOutsideProcess [
+	<gtExample>
+	| process source target outsider oldEdge replacement memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new.
+	target := CPEndEventDesignNode new.
+	outsider := CPUserTaskDesignNode new.
+	oldEdge := CPProcessDesignEdge new sourceNode: source; targetNode: target; yourself.
+	process addNode: source; addNode: target; addEdge: oldEdge.
+	replacement := CPProcessDesignEdge new sourceNode: source; targetNode: outsider; yourself.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		replaceOperationFor: oldEdge
+		with: replacement
+		in: memento
+		description: edgesDescription.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable not.
+	self assert: (memento readUsing: edgesDescription) first == oldEdge.
+	self assert: process edges first == oldEdge.
+	^ assessment
+]
