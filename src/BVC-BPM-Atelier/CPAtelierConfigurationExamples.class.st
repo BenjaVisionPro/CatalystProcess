@@ -293,7 +293,7 @@ CPAtelierConfigurationExamples >> interactiveProcessAtelier [
 	element := atelier asElement.
 
 	self assert: atelier palette items size equals: 6.
-	self assert: atelier memento model == process.
+	self assert: atelier class equals: CFAtelierViewModel.
 	self assert: process nodes size equals: 3.
 	self assert: process edges size equals: 2.
 	^ element
