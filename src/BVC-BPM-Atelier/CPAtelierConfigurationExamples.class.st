@@ -255,3 +255,46 @@ CPAtelierConfigurationExamples >> processNodePaletteMaterializesFreshIdentities 
 	self assert: first ~~ second.
 	^ palette
 ]
+
+{ #category : 'examples - interactive' }
+CPAtelierConfigurationExamples >> interactiveProcessAtelier [
+	<gtExample>
+	| process start task finish edge1 edge2 atelier element |
+	process := CPProcessDesign new
+		label: 'Interactive Atelier process';
+		yourself.
+	start := CPStartEventDesignNode new
+		label: 'Start';
+		yourself.
+	task := CPUserTaskDesignNode new
+		label: 'Review request';
+		yourself.
+	finish := CPEndEventDesignNode new
+		label: 'Done';
+		yourself.
+	edge1 := CPProcessDesignEdge new
+		label: 'Start to review';
+		sourceNode: start;
+		targetNode: task;
+		yourself.
+	edge2 := CPProcessDesignEdge new
+		label: 'Review to done';
+		sourceNode: task;
+		targetNode: finish;
+		yourself.
+	process
+		addNode: start;
+		addNode: task;
+		addNode: finish;
+		addEdge: edge1;
+		addEdge: edge2.
+
+	atelier := process asAtelier.
+	element := atelier asElement.
+
+	self assert: atelier palette items size equals: 6.
+	self assert: atelier memento model == process.
+	self assert: process nodes size equals: 3.
+	self assert: process edges size equals: 2.
+	^ element
+]
