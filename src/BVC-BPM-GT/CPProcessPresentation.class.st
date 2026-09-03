@@ -16,8 +16,6 @@ Class {
 CPProcessPresentation >> prepareHostElement [
 	diagramElement := CPProcessVisualElement new
 		memento: self memento;
-		hMatchParent;
-		vMatchParent;
 		yourself.
 	self hostElement
 		hMatchParent;
