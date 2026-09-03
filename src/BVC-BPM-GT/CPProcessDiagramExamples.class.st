@@ -112,7 +112,7 @@ CPProcessDiagramExamples >> diagramRefreshPreservesNodePresentationIdentity [
 
 	self assert: assessment isApplicable.
 	self assert: elementBefore == elementAfter.
-	self assert: elementAfter position equals: 220 @ 180.
+	self assert: (diagram stagedPositionOf: node ifAbsent: [ nil ]) equals: 220 @ 180.
 	self assert: node position equals: 80 @ 120.
 	^ diagram
 ]
