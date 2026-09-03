@@ -4,3 +4,8 @@ Class {
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
+
+{ #category : 'testing' }
+CPActivity >> isActivity [
+	^ true
+]

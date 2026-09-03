@@ -44,3 +44,8 @@ CPShape >> boundsDescription [
 		beRequired;
 		yourself
 ]
+
+{ #category : 'testing' }
+CPShape >> isShape [
+	^ true
+]

@@ -54,3 +54,8 @@ CPEdge >> waypointsDescription [
 		group: 'Diagram';
 		yourself
 ]
+
+{ #category : 'testing' }
+CPEdge >> isEdge [
+	^ true
+]

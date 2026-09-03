@@ -1,0 +1,254 @@
+"I render one CPProcess diagram directly with Bloc.
+
+The Process model owns semantic and diagram-depiction state. Bloc owns visual geometry. I read the staged Magritte state through the supplied memento and retain the represented Process objects on the Bloc elements so interaction can resolve directly back to domain objects."
+Class {
+	#name : 'CPProcessVisualElement',
+	#superclass : 'BlElement',
+	#instVars : [
+		'memento',
+		'diagramDescription',
+		'flowElementsDescription',
+		'diagramMemento',
+		'elementsDescription',
+		'shapeElementsByShape',
+		'selectedModelElement',
+		'selectionChangedBlock'
+	],
+	#category : 'BVC-BPM-GT-Diagram',
+	#package : 'BVC-BPM-GT',
+	#tag : 'Diagram'
+}
+
+{ #category : 'initialization' }
+CPProcessVisualElement >> initialize [
+	super initialize.
+	shapeElementsByShape := IdentityDictionary new.
+	self
+		layout: BlFrameLayout new;
+		clipChildren: false;
+		background: Color transparent
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> memento: aMemento [
+	memento := aMemento.
+	diagramDescription := memento magritteDescription
+		detect: [ :each | each handlesSelector: #diagram ].
+	flowElementsDescription := memento magritteDescription
+		detect: [ :each | each handlesSelector: #flowElements ].
+	self refresh
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> memento [
+	^ memento
+]
+
+{ #category : 'updating' }
+CPProcessVisualElement >> refresh [
+	| diagram elements shapes edges |
+	self removeChildren.
+	shapeElementsByShape removeAll.
+	diagram := memento readUsing: diagramDescription.
+	diagram ifNil: [ ^ self ].
+
+	diagramMemento := memento childMementoFor: diagram inRelation: diagramDescription.
+	elementsDescription := diagramMemento magritteDescription
+		detect: [ :each | each handlesSelector: #elements ].
+	elements := diagramMemento readUsing: elementsDescription.
+	elements ifNil: [ ^ self ].
+
+	self extent: (self canvasExtentFor: elements).
+	edges := elements select: #isEdge.
+	shapes := elements select: #isShape.
+	edges do: [ :each | self addEdgeFor: each ].
+	shapes do: [ :each | self addShapeFor: each ]
+]
+
+{ #category : 'private - layout' }
+CPProcessVisualElement >> canvasExtentFor: someDiagramElements [
+	| maximumX maximumY |
+	maximumX := 640.
+	maximumY := 260.
+	someDiagramElements do: [ :each |
+		each isShape ifTrue: [
+			| bounds |
+			bounds := self stagedBoundsOf: each.
+			bounds ifNotNil: [
+				maximumX := maximumX max: bounds right + 80.
+				maximumY := maximumY max: bounds bottom + 80 ] ].
+		each isEdge ifTrue: [
+			(self stagedWaypointsOf: each) do: [ :aPoint |
+				maximumX := maximumX max: aPoint x + 80.
+				maximumY := maximumY max: aPoint y + 80 ] ] ].
+	^ maximumX @ maximumY
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedBoundsOf: aShape [
+	| shapeMemento description |
+	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
+	^ shapeMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedWaypointsOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #waypoints ].
+	^ (edgeMemento readUsing: description) ifNil: [ #() ]
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedLabelOf: aFlowElement [
+	| flowElements flowMemento description |
+	flowElements := memento readUsing: flowElementsDescription.
+	(flowElements identityIncludes: aFlowElement) ifFalse: [ ^ aFlowElement label ].
+	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+	^ flowMemento readUsing: description
+]
+
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> addShapeFor: aShape [
+	| bounds modelElement element |
+	bounds := self stagedBoundsOf: aShape.
+	bounds ifNil: [ ^ self ].
+	modelElement := aShape modelElement.
+	element := self newShapeElementFor: modelElement bounds: bounds.
+	element
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: bounds origin;
+		userData at: #processDiagramElement put: aShape;
+		userData at: #processModelElement put: modelElement.
+	self installSelectionOn: element for: modelElement.
+	shapeElementsByShape at: aShape put: element.
+	self addChild: element.
+	self addExternalLabelFor: modelElement bounds: bounds
+]
+
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
+	| element label |
+	element := BlElement new
+		extent: bounds extent;
+		geometry: (self geometryFor: aFlowNode bounds: bounds);
+		background: self shapeBackgroundColor;
+		border: (BlBorder
+			paint: self shapeBorderColor
+			width: (aFlowNode isEndEvent ifTrue: [ 3 ] ifFalse: [ 1.5 ]));
+		layout: BlFrameLayout new;
+		yourself.
+
+	aFlowNode isActivity ifTrue: [
+		label := BrLabel new
+			fitContent;
+			text: ((self stagedLabelOf: aFlowNode) ifNil: [ '' ]) asRopedText;
+			aptitude: (BrGlamorousLabelAptitude new fontSize: self theme typography bodyFontSize);
+			constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ];
+			yourself.
+		element addChild: label ].
+	^ element
+]
+
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
+	aFlowNode isEvent ifTrue: [ ^ BlCircleGeometry new ].
+	aFlowNode isActivity ifTrue: [ ^ BlRoundedRectangleGeometry cornerRadius: 8 ].
+	^ BlRectangleGeometry new
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
+	| text label |
+	aFlowNode isEvent ifFalse: [ ^ self ].
+	text := self stagedLabelOf: aFlowNode.
+	text ifNil: [ ^ self ].
+	label := BrLabel new
+		fitContent;
+		text: text asRopedText;
+		aptitude: (BrGlamorousLabelAptitude new fontSize: self theme typography bodyFontSize);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	label relocate: bounds center x @ (bounds bottom + 6).
+	self addChild: label
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> addEdgeFor: anEdge [
+	| waypoints pairCount |
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size < 2 ifTrue: [ ^ self ].
+	pairCount := waypoints size - 1.
+	1 to: pairCount do: [ :index |
+		| line |
+		line := self
+			newLineFrom: (waypoints at: index)
+			to: (waypoints at: index + 1)
+			withArrowhead: index = pairCount.
+		line
+			userData at: #processDiagramElement put: anEdge;
+			userData at: #processModelElement put: anEdge modelElement.
+		self addChildFirst: line ]
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> newLineFrom: aStartPoint to: anEndPoint withArrowhead: hasArrowhead [
+	| line |
+	line := BlLineElement new
+		fromAnchor: (BlAbsolutePositionAnchor position: aStartPoint);
+		toAnchor: (BlAbsolutePositionAnchor position: anEndPoint);
+		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	hasArrowhead ifTrue: [
+		line toHead: (BlArrowheadSimpleArrow new
+			border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
+	^ line
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
+	anElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			selectedModelElement := aModelElement.
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
+			anEvent consumed: true ])
+]
+
+{ #category : 'selection' }
+CPProcessVisualElement >> selectedModelElement [
+	^ selectedModelElement
+]
+
+{ #category : 'selection' }
+CPProcessVisualElement >> selectionChangedDo: aBlock [
+	selectionChangedBlock := aBlock
+]
+
+{ #category : 'accessing - testing' }
+CPProcessVisualElement >> shapeElementFor: aShape [
+	^ shapeElementsByShape at: aShape
+]
+
+{ #category : 'private - theme' }
+CPProcessVisualElement >> shapeBackgroundColor [
+	^ self resolvedThemeColor: self theme surfaces cardTint
+]
+
+{ #category : 'private - theme' }
+CPProcessVisualElement >> shapeBorderColor [
+	^ self resolvedThemeColor: self theme typography primaryForeground
+]
+
+{ #category : 'private - theme' }
+CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
+	^ aThemeableColor blocResolveColorForTheme: self theme
+]

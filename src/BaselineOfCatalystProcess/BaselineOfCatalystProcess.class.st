@@ -30,7 +30,7 @@ BaselineOfCatalystProcess >> baseline: spec [
 				package: 'BVC-BPM-Magritte'
 					with: [ spec requires: #('BVC-BPM-Core') ];
 				package: 'BVC-BPM-GT'
-					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-Design' 'BVC-BPM-Definition' 'BVC-BPM-Runtime' 'BVC-BPM-Automation' 'BVC-BPM-Magritte') ];
+					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-BPMN' 'BVC-BPM-Design' 'BVC-BPM-Definition' 'BVC-BPM-Runtime' 'BVC-BPM-Automation' 'BVC-BPM-Magritte') ];
 				package: 'BVC-BPM-Atelier'
 					with: [ spec requires: #('BVC-BPM-Design' 'BVC-BPM-GT' 'CatalystFoundation') ];
 				package: 'BVC-BPM-Examples'

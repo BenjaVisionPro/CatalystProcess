@@ -17,3 +17,13 @@ CPDiagramElement >> modelElement [
 CPDiagramElement >> modelElement: anObject [
 	modelElement := anObject
 ]
+
+{ #category : 'testing' }
+CPDiagramElement >> isShape [
+	^ false
+]
+
+{ #category : 'testing' }
+CPDiagramElement >> isEdge [
+	^ false
+]

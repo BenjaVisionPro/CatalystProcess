@@ -79,3 +79,18 @@ CPFlowNode >> prepareForRemovalFrom: aContainer [
 	incoming copy do: [ :aSequenceFlow | aContainer removeFlowElement: aSequenceFlow ].
 	outgoing copy do: [ :aSequenceFlow | aContainer removeFlowElement: aSequenceFlow ]
 ]
+
+{ #category : 'testing' }
+CPFlowNode >> isEvent [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowNode >> isActivity [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowNode >> isEndEvent [
+	^ false
+]
