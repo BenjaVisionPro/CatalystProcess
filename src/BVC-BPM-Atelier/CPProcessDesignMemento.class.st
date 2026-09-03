@@ -12,7 +12,7 @@ Class {
 { #category : 'actions' }
 CPProcessDesignMemento >> commit [
 	| wasChanged result |
-	wasChanged := self computeCompositeOverallStatus isChanged.
+	wasChanged := self hasChangesToCommit.
 	result := super commit.
 	wasChanged ifTrue: [ self model updatedAt: DateAndTime now ].
 	^ result
