@@ -1,6 +1,8 @@
 "I am the Foundation Magritte presentation used for CPProcessDesign.
 
-I remain a CFMaDetailPresentation and therefore retain the normal Foundation Detail form. For Process I compose that unchanged Detail content beside the diagram so the diagram is the primary work surface and Detail is an inspector region. Atelier still does not choose or render Process UI."
+For Process I compose a two-part Atelier work surface: the diagram fills the available primary area and a resizable GT Tree Pager forms the detail strip on the right. The pager's root pane hosts the ordinary Foundation Detail content built against this presentation's existing memento, so editing remains in the same transaction while relation navigation continues through standard Phlow/Tree Pager behaviour.
+
+The Atelier palette is not one of these layout regions; CFAtelierElement floats it over the primary surface."
 Class {
 	#name : 'CPProcessDesignPresentation',
 	#superclass : 'CFMaDetailPresentation',
@@ -14,6 +16,8 @@ Class {
 		'removeEdgeOperationBlock',
 		'diagramElement',
 		'detailHostElement',
+		'detailPagerElement',
+		'detailPagerModel',
 		'workspaceElement'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -23,7 +27,7 @@ Class {
 
 { #category : 'private - building' }
 CPProcessDesignPresentation >> prepareHostElement [
-	| detailScroll |
+	| detailScroll rootPaneModel resizer |
 	super prepareHostElement.
 
 	diagramElement := CPProcessDiagramElement new
@@ -35,9 +39,9 @@ CPProcessDesignPresentation >> prepareHostElement [
 		removeNodesOperationFor: removeNodesOperationBlock;
 		removeEdgeOperationFor: removeEdgeOperationBlock;
 		memento: self memento.
-	diagramElement constraintsDo: [ :c |
-		c horizontal matchParent.
-		c vertical matchParent ].
+	diagramElement
+		hMatchParent;
+		vMatchParent.
 
 	detailHostElement := BrVerticalPane new
 		hMatchParent;
@@ -49,19 +53,42 @@ CPProcessDesignPresentation >> prepareHostElement [
 	detailScroll := BrScrollPane new
 		allowMeAndChildrenMouseEvents;
 		aptitude: BrScrollPaneAptitude + BrGlamorousWithVerticalScrollbarAptitude;
-		hExact: 360;
+		hMatchParent;
 		vMatchParent;
 		content: detailHostElement;
 		yourself.
 
+	rootPaneModel := GtTreePagerPaneModel new
+		stencil: [ detailScroll ];
+		yourself.
+	detailPagerModel := GtTreePagerModel new
+		paneModel: rootPaneModel;
+		yourself.
+	detailPagerElement := GtTreePager new
+		pagerModel: detailPagerModel;
+		hExact: 380;
+		vMatchParent;
+		yourself.
+
+	resizer := BrResizer new
+		aptitude: BrGlamorousThinBarResizerAptitude;
+		beLeft;
+		target: detailPagerElement;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	detailPagerElement addChild: resizer.
+
 	workspaceElement := BrHorizontalPane new
 		hMatchParent;
-		vExact: 620;
-		cellSpacing: 12;
+		vMatchParent;
+		cellSpacing: 0;
 		addChild: diagramElement;
-		addChild: detailScroll;
+		addChild: detailPagerElement;
 		yourself.
-	self hostElement addChild: workspaceElement
+	self hostElement
+		hMatchParent;
+		vMatchParent;
+		addChild: workspaceElement
 ]
 
 { #category : 'private - groups' }
@@ -86,34 +113,39 @@ CPProcessDesignPresentation >> detailHostElement [
 ]
 
 { #category : 'accessing - testing' }
+CPProcessDesignPresentation >> detailPagerElement [
+	^ detailPagerElement
+]
+
+{ #category : 'accessing - testing' }
+CPProcessDesignPresentation >> detailPagerModel [
+	^ detailPagerModel
+]
+
+{ #category : 'accessing - testing' }
 CPProcessDesignPresentation >> workspaceElement [
 	^ workspaceElement
 ]
-
 
 { #category : 'configuration' }
 CPProcessDesignPresentation >> positionNodeOperationFor: aBlock [
 	positionNodeOperationBlock := aBlock
 ]
 
-
 { #category : 'configuration' }
 CPProcessDesignPresentation >> createNodeOperationFor: aBlock [
 	createNodeOperationBlock := aBlock
 ]
-
 
 { #category : 'configuration' }
 CPProcessDesignPresentation >> connectNodeOperationFor: aBlock [
 	connectNodeOperationBlock := aBlock
 ]
 
-
 { #category : 'configuration' }
 CPProcessDesignPresentation >> reconnectEdgeOperationFor: aBlock [
 	reconnectEdgeOperationBlock := aBlock
 ]
-
 
 { #category : 'configuration' }
 CPProcessDesignPresentation >> removeNodeOperationFor: aBlock [
@@ -124,7 +156,6 @@ CPProcessDesignPresentation >> removeNodeOperationFor: aBlock [
 CPProcessDesignPresentation >> removeEdgeOperationFor: aBlock [
 	removeEdgeOperationBlock := aBlock
 ]
-
 
 { #category : 'configuration' }
 CPProcessDesignPresentation >> removeNodesOperationFor: aBlock [
