@@ -85,3 +85,60 @@ CPProcessExamples >> completedSimpleUserTaskInstance [
 	^ instance
 ]
 
+
+{ #category : 'examples - process model' }
+CPProcessExamples >> simpleProcess [
+	<gtExample>
+	| process start task finish firstFlow secondFlow diagram startShape taskShape finishShape firstEdge secondEdge |
+	process := CPProcess new label: 'Simple process'; yourself.
+	start := CPStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	finish := CPEndEvent new label: 'End'; yourself.
+
+	firstFlow := CPSequenceFlow new
+		label: 'start to review';
+		sourceRef: start;
+		targetRef: task;
+		yourself.
+	secondFlow := CPSequenceFlow new
+		label: 'review to end';
+		sourceRef: task;
+		targetRef: finish;
+		yourself.
+
+	process
+		addFlowElement: start;
+		addFlowElement: task;
+		addFlowElement: finish;
+		addFlowElement: firstFlow;
+		addFlowElement: secondFlow.
+
+	diagram := CPDiagram new.
+	process diagram: diagram.
+
+	startShape := CPShape new modelElement: start; bounds: (100 @ 100 extent: 42 @ 42); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (220 @ 94 extent: 132 @ 54); yourself.
+	finishShape := CPShape new modelElement: finish; bounds: (430 @ 100 extent: 42 @ 42); yourself.
+
+	firstEdge := CPEdge new modelElement: firstFlow; yourself.
+	firstEdge addWaypoint: 142 @ 121; addWaypoint: 220 @ 121.
+	secondEdge := CPEdge new modelElement: secondFlow; yourself.
+	secondEdge addWaypoint: 352 @ 121; addWaypoint: 430 @ 121.
+
+	diagram
+		addElement: startShape;
+		addElement: taskShape;
+		addElement: finishShape;
+		addElement: firstEdge;
+		addElement: secondEdge.
+
+	self assert: process flowElements size equals: 5.
+	self assert: start outgoing equals: { firstFlow } asOrderedCollection.
+	self assert: task incoming equals: { firstFlow } asOrderedCollection.
+	self assert: task outgoing equals: { secondFlow } asOrderedCollection.
+	self assert: finish incoming equals: { secondFlow } asOrderedCollection.
+	self assert: diagram modelElement equals: process.
+	self assert: diagram elements size equals: 5.
+
+	^ process
+]
