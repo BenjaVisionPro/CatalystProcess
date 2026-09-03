@@ -36,9 +36,9 @@ CPProcessDesignMementoExamples >> unchangedCommitPreservesUpdatedAt [
 	<gtExample>
 	| process marker memento |
 	process := CPProcessDesign new.
-	marker := Object new.
-	process updatedAt: marker.
 	memento := CPProcessDesignMemento model: process.
+	memento commit.
+	marker := process updatedAt.
 	memento commit.
 	self assert: process updatedAt == marker.
 	^ memento
