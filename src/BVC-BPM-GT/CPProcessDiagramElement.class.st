@@ -1,6 +1,6 @@
-"I render the current staged topology of a CPProcessDesign memento as a simple diagram surface.
+"I render and manipulate the current staged topology of a CPProcessDesign memento.
 
-I am a Process presentation element, not an Atelier operation surface. I read staged relation and embedded values when they already exist, without creating child mementos merely to display the diagram."
+I belong to the Process presentation layer. I own diagram geometry, selection and gestures, but semantic mutations are delegated through configured Process/Atelier operations. I read staged relation and embedded values when they already exist, without creating child mementos merely to display the diagram."
 Class {
 	#name : 'CPProcessDiagramElement',
 	#superclass : 'BlElement',

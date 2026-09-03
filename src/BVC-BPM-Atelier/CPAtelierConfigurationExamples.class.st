@@ -230,7 +230,7 @@ CPAtelierConfigurationExamples >> processNodePaletteMaterializesFreshIdentities 
 	^ palette
 ]
 
-{ #category : 'examples - interactive' }
+{ #category : 'examples - showcase' }
 CPAtelierConfigurationExamples >> interactiveProcessAtelier [
 	<gtExample>
 	| process start task finish edge1 edge2 atelier element |

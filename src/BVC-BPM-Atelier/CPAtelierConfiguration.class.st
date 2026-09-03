@@ -238,28 +238,26 @@ CPAtelierConfiguration >> connectOperationFrom: aSourceNode to: aTargetNode in: 
 
 { #category : 'operations' }
 CPAtelierConfiguration >> removeNodeOperationFor: aNode in: aProcessMemento [
-	^ self
-		removeOperationFor: { aNode }
-		from: (CFAtelierRelationDragContext
-			memento: aProcessMemento
-			description: nodesDescription)
+	^ CPAtelierRemoveNode
+		node: aNode
+		processMemento: aProcessMemento
+		nodesDescription: nodesDescription
+		edgesDescription: edgesDescription
 ]
-
-
 
 { #category : 'operations' }
 CPAtelierConfiguration >> removeNodesOperationFor: someNodes in: aProcessMemento [
-	^ self
-		removeOperationFor: someNodes
-		from: (CFAtelierRelationDragContext
-			memento: aProcessMemento
-			description: nodesDescription)
+	^ CPAtelierRemoveNodes
+		nodes: someNodes
+		processMemento: aProcessMemento
+		nodesDescription: nodesDescription
+		edgesDescription: edgesDescription
 ]
+
 { #category : 'operations' }
 CPAtelierConfiguration >> removeEdgeOperationFor: anEdge in: aProcessMemento [
-	^ self
-		removeOperationFor: { anEdge }
-		from: (CFAtelierRelationDragContext
-			memento: aProcessMemento
-			description: edgesDescription)
+	^ CFAtelierRemove
+		object: anEdge
+		memento: aProcessMemento
+		description: edgesDescription
 ]
