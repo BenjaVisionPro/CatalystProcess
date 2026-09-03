@@ -724,3 +724,26 @@ CPAtelierConfigurationExamples >> diagramEdgeReconnectReassessesStagedEndpoints 
 	self assert: edge targetNode == second.
 	^ assessment
 ]
+
+{ #category : 'examples - diagram integration' }
+CPAtelierConfigurationExamples >> diagramPositionSurfaceUsesConfiguredOperation [
+	<gtExample>
+	| process node memento configuration diagram assessment nodeMemento |
+	process := CPProcessDesign new.
+	node := CPUserTaskDesignNode new position: 80@60; yourself.
+	process addNode: node.
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	diagram := CPProcessDiagramElement new
+		positionNodeOperationFor: [ :aNode :aPoint |
+			configuration positionNodeOperationFor: aNode at: aPoint in: memento ];
+		memento: memento.
+
+	assessment := diagram positionNode: node at: 320@210.
+	nodeMemento := memento childMementoFor: node inRelation: configuration nodesDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (nodeMemento readUsing: node positionDescription) equals: 320@210.
+	self assert: node position equals: 80@60.
+	^ diagram
+]

@@ -4,6 +4,9 @@ I remain a CFMaDetailPresentation and therefore retain the normal Foundation for
 Class {
 	#name : 'CPProcessDesignPresentation',
 	#superclass : 'CFMaDetailPresentation',
+	#instVars : [
+		'positionNodeOperationBlock'
+	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
@@ -13,7 +16,15 @@ Class {
 CPProcessDesignPresentation >> prepareHostElement [
 	| diagram |
 	super prepareHostElement.
-	diagram := CPProcessDiagramElement new memento: self memento.
+	diagram := CPProcessDiagramElement new
+		positionNodeOperationFor: positionNodeOperationBlock;
+		memento: self memento.
 	diagram margin: (BlInsets bottom: 10).
 	self hostElement addChild: diagram
+]
+
+
+{ #category : 'configuration' }
+CPProcessDesignPresentation >> positionNodeOperationFor: aBlock [
+	positionNodeOperationBlock := aBlock
 ]

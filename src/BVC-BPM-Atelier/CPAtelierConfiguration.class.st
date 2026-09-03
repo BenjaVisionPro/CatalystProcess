@@ -30,7 +30,10 @@ CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 		removeOperationFor: [ :someObjects :aSourceContext |
 			self removeOperationFor: someObjects from: aSourceContext ];
 		replaceOperationFor: [ :candidate :currentObject :aMemento :aDescription |
-			self replaceOperationFor: currentObject with: candidate in: aMemento description: aDescription ].
+			self replaceOperationFor: currentObject with: candidate in: aMemento description: aDescription ];
+		presentationDo: [ :aPresentation |
+			aPresentation positionNodeOperationFor: [ :aNode :aPoint |
+				self positionNodeOperationFor: aNode at: aPoint in: aPresentation memento ] ].
 	^ anAtelierViewModel
 ]
 

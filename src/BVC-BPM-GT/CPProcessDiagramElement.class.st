@@ -8,7 +8,9 @@ Class {
 		'memento',
 		'nodesDescription',
 		'edgesDescription',
-		'nodeElementsByNode'
+		'nodeElementsByNode',
+		'edgeElementsByEdge',
+		'positionNodeOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -19,6 +21,7 @@ Class {
 CPProcessDiagramElement >> initialize [
 	super initialize.
 	nodeElementsByNode := IdentityDictionary new.
+	edgeElementsByEdge := IdentityDictionary new.
 	self
 		constraintsDo: [ :c |
 			c horizontal matchParent.
@@ -47,6 +50,7 @@ CPProcessDiagramElement >> refresh [
 	memento ifNil: [ ^ self ].
 	self removeChildren.
 	nodeElementsByNode removeAll.
+	edgeElementsByEdge removeAll.
 	nodes := memento readUsing: nodesDescription.
 	edges := memento readUsing: edgesDescription.
 	edges do: [ :edge | self addEdgeElementFor: edge ].
@@ -63,6 +67,7 @@ CPProcessDiagramElement >> addNodeElementFor: aNode index: anIndex [
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: position.
 	nodeElementsByNode at: aNode put: element.
+	positionNodeOperationBlock ifNotNil: [ self installPositioningOn: element for: aNode ].
 	self addChild: element
 ]
 
@@ -152,5 +157,75 @@ CPProcessDiagramElement >> addEdgeElementFor: anEdge [
 		geometry: (BlLineGeometry from: sourcePosition to: targetPosition);
 		border: (BlBorder paint: (Color gray alpha: 0.55) width: 1.5);
 		yourself.
-	self addChild: line
+	edgeElementsByEdge at: anEdge put: line.
+	self addChildFirst: line
+]
+
+
+{ #category : 'configuration' }
+CPProcessDiagramElement >> positionNodeOperationFor: aBlock [
+	"The block receives node and proposed diagram position and answers the Process editing operation for that intention."
+	positionNodeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> positionNode: aNode at: aPoint [
+	| assessment |
+	positionNodeOperationBlock ifNil: [ ^ nil ].
+	assessment := (positionNodeOperationBlock value: aNode value: aPoint) apply.
+	self refresh.
+	^ assessment
+]
+
+{ #category : 'private - positioning' }
+CPProcessDiagramElement >> installPositioningOn: anElement for: aNode [
+	| dragStartEventPosition dragStartNodePosition |
+	anElement
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				dragStartEventPosition := anEvent position.
+				dragStartNodePosition := anElement position.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				| proposedPosition |
+				proposedPosition := dragStartNodePosition + anEvent position - dragStartEventPosition.
+				anElement relocate: proposedPosition.
+				self refreshEdgeGeometry.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				anEvent consumed: true.
+				self positionNode: aNode at: anElement position ])
+]
+
+{ #category : 'private - edges' }
+CPProcessDiagramElement >> refreshEdgeGeometry [
+	edgeElementsByEdge keysAndValuesDo: [ :edge :element |
+		| geometry |
+		geometry := self edgeGeometryFor: edge.
+		geometry ifNotNil: [ element geometry: geometry ] ]
+]
+
+{ #category : 'private - edges' }
+CPProcessDiagramElement >> edgeGeometryFor: anEdge [
+	| source target sourcePosition targetPosition |
+	source := self stagedSourceOf: anEdge.
+	target := self stagedTargetOf: anEdge.
+	(source isNil or: [ target isNil ]) ifTrue: [ ^ nil ].
+	sourcePosition := self displayedPositionOf: source ifAbsent: [ ^ nil ].
+	targetPosition := self displayedPositionOf: target ifAbsent: [ ^ nil ].
+	sourcePosition := sourcePosition + ((self extentForNode: source) / 2).
+	targetPosition := targetPosition + ((self extentForNode: target) / 2).
+	^ BlLineGeometry from: sourcePosition to: targetPosition
+]
+
+{ #category : 'private - nodes' }
+CPProcessDiagramElement >> displayedPositionOf: aNode ifAbsent: aBlock [
+	(nodeElementsByNode at: aNode ifAbsent: [ nil ])
+		ifNotNil: [ :anElement | ^ anElement position ].
+	^ self stagedPositionOf: aNode ifAbsent: aBlock
 ]
