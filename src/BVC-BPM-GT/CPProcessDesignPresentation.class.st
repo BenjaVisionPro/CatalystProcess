@@ -28,8 +28,9 @@ Class {
 
 { #category : 'private - building' }
 CPProcessDesignPresentation >> prepareHostElement [
-	| detailScroll rootPaneModel resizer |
+	| detailScroll rootPaneModel resizer surfaceColor |
 	super prepareHostElement.
+	surfaceColor := self workspaceSurfaceColor.
 
 	diagramElement := CPProcessDiagramElement new
 		createNodeOperationFor: createNodeOperationBlock;
@@ -45,6 +46,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 		c vertical exact: 1400 ].
 
 	canvasScrollElement := BrScrollPane new
+		background: surfaceColor;
 		allowMeAndChildrenMouseEvents;
 		aptitude: BrScrollPaneAptitude
 			+ BrGlamorousWithHorizontalScrollbarAptitude
@@ -59,9 +61,10 @@ CPProcessDesignPresentation >> prepareHostElement [
 		vFitContent;
 		cellSpacing: 0;
 		padding: BlInsets empty;
-		background: Color transparent;
+		background: surfaceColor;
 		yourself.
 	detailScroll := BrScrollPane new
+		background: surfaceColor;
 		allowMeAndChildrenMouseEvents;
 		aptitude: BrScrollPaneAptitude + BrGlamorousWithVerticalScrollbarAptitude;
 		hMatchParent;
@@ -77,6 +80,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 		yourself.
 	detailPagerModel settings numberOfVisibleColumns: 1.
 	detailPagerElement := GtTreePager new
+		background: surfaceColor;
 		pagerModel: detailPagerModel;
 		hExact: 380;
 		vMatchParent;
@@ -91,6 +95,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 	detailPagerElement addChild: resizer.
 
 	workspaceElement := BrHorizontalPane new
+		background: surfaceColor;
 		hMatchParent;
 		vMatchParent;
 		cellSpacing: 0;
@@ -98,9 +103,21 @@ CPProcessDesignPresentation >> prepareHostElement [
 		addChild: detailPagerElement;
 		yourself.
 	self hostElement
+		background: surfaceColor;
 		hMatchParent;
 		vMatchParent;
 		addChild: workspaceElement
+]
+
+
+{ #category : 'private - theme' }
+CPProcessDesignPresentation >> resolvedThemeColor: aThemeableColor [
+	^ aThemeableColor blocResolveColorForTheme: self hostElement theme
+]
+
+{ #category : 'private - theme' }
+CPProcessDesignPresentation >> workspaceSurfaceColor [
+	^ self resolvedThemeColor: self hostElement theme surfaces baseBackground
 ]
 
 { #category : 'private - groups' }
