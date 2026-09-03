@@ -70,7 +70,7 @@ CPProcessPresentation >> prepareHostElement [
 		vMatchParent;
 		addChild: workspaceElement.
 
-	self selectModelElement: self memento model
+	selectedModelElement := nil
 ]
 
 { #category : 'private - selection' }

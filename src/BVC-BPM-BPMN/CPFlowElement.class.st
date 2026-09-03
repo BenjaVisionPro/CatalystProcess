@@ -24,6 +24,7 @@ CPFlowElement >> containerDescription [
 	^ MAToOneRelationDescription new
 		accessor: #container;
 		classes: { CPProcess };
+		reference: CPProcess new labelDescription;
 		label: 'Container';
 		priority: 100;
 		group: 'Relations';
