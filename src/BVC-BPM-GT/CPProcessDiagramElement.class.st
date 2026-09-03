@@ -50,7 +50,7 @@ CPProcessDiagramElement >> initialize [
 		beFocusable.
 	self
 		installPaletteDrop;
-		installDeleteKeyHandler
+		installKeyboardHandler
 ]
 
 { #category : 'accessing' }
@@ -424,6 +424,9 @@ CPProcessDiagramElement >> installConnectionOn: aNodeElement for: aNode [
 
 { #category : 'private - connection' }
 CPProcessDiagramElement >> beginConnectionFrom: aNode [
+	"Connection and reconnection are mutually exclusive transient gestures."
+	reconnectionEdge := nil.
+	reconnectsSource := nil.
 	connectionSourceNode := aNode.
 	(nodeElementsByNode at: aNode ifAbsent: [ nil ])
 		ifNotNil: [ :anElement |
@@ -648,13 +651,42 @@ CPProcessDiagramElement >> updateSelectionAppearance [
 ]
 
 { #category : 'private - installing' }
-CPProcessDiagramElement >> installDeleteKeyHandler [
+CPProcessDiagramElement >> installKeyboardHandler [
 	self addEventHandler: (BlEventHandler
 		on: BlKeyDownEvent
 		do: [ :anEvent |
 			(anEvent key = BlKeyboardKey delete or: [ anEvent key = BlKeyboardKey backspace ]) ifTrue: [
 				self removeSelection.
+				anEvent consumed: true ].
+			anEvent key = BlKeyboardKey escape ifTrue: [
+				self cancelInteraction.
 				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - interaction' }
+CPProcessDiagramElement >> hasPendingInteraction [
+	^ activePaletteDragItem isNotNil
+		or: [ connectionSourceNode isNotNil
+		or: [ reconnectionEdge isNotNil ] ]
+]
+
+{ #category : 'private - interaction' }
+CPProcessDiagramElement >> cancelPendingInteraction [
+	activePaletteDragItem := nil.
+	connectionSourceNode := nil.
+	reconnectionEdge := nil.
+	reconnectsSource := nil.
+	self refresh
+]
+
+{ #category : 'private - interaction' }
+CPProcessDiagramElement >> cancelInteraction [
+	"Escape first cancels an armed/drag interaction without discarding selection.
+	When no transient interaction is active, Escape clears the diagram selection."
+	self hasPendingInteraction ifTrue: [ ^ self cancelPendingInteraction ].
+	selectedNodes := OrderedCollection new.
+	selectedEdge := nil.
+	self updateSelectionAppearance
 ]
 
 { #category : 'private - selection' }

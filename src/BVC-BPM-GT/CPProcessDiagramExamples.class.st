@@ -236,3 +236,89 @@ CPProcessDiagramExamples >> diagramMultiNodeRemovalUsesOneProcessIntention [
 	self assert: process edges size equals: 2.
 	^ diagram
 ]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> cancelArmedConnectionLeavesTopologyUnchanged [
+	<gtExample>
+	| process source target memento nodesDescription edgesDescription configuration diagram |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	target := CPEndEventDesignNode new position: 300 @ 120; yourself.
+	process
+		nodes: (OrderedCollection with: source with: target);
+		edges: OrderedCollection new.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		connectNodeOperationFor: [ :aSource :aTarget | configuration connectOperationFrom: aSource to: aTarget in: memento ];
+		memento: memento.
+
+	diagram beginConnectionFrom: source.
+	diagram cancelInteraction.
+	diagram completeConnectionTo: target.
+
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	self assert: process edges isEmpty.
+	^ diagram
+]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> startingReconnectCancelsArmedConnection [
+	<gtExample>
+	| process source target replacementTarget edge memento nodesDescription edgesDescription configuration diagram |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	target := CPUserTaskDesignNode new position: 280 @ 120; yourself.
+	replacementTarget := CPEndEventDesignNode new position: 480 @ 120; yourself.
+	edge := CPProcessDesignEdge new sourceNode: source; targetNode: target; yourself.
+	process
+		nodes: (OrderedCollection with: source with: target with: replacementTarget);
+		edges: (OrderedCollection with: edge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		connectNodeOperationFor: [ :aSource :aTarget | configuration connectOperationFrom: aSource to: aTarget in: memento ];
+		reconnectEdgeOperationFor: [ :anEdge :aSource :aTarget | configuration reconnectOperationFor: anEdge from: aSource to: aTarget in: memento ];
+		memento: memento.
+
+	diagram beginConnectionFrom: source.
+	diagram beginReconnectTargetOf: edge.
+	diagram completeReconnectionTo: replacementTarget.
+
+	self assert: (memento readUsing: edgesDescription) size equals: 1.
+	self assert: (diagram stagedTargetOf: edge) == replacementTarget.
+	self assert: edge targetNode == target.
+	^ diagram
+]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> escapeStyleCancellationPreservesSelectionBeforeClearingIt [
+	<gtExample>
+	| process source target memento nodesDescription edgesDescription configuration diagram |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	target := CPEndEventDesignNode new position: 300 @ 120; yourself.
+	process
+		nodes: (OrderedCollection with: source with: target);
+		edges: OrderedCollection new.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		connectNodeOperationFor: [ :aSource :aTarget | configuration connectOperationFrom: aSource to: aTarget in: memento ];
+		memento: memento.
+
+	diagram selectNode: target.
+	diagram beginConnectionFrom: source.
+	diagram cancelInteraction.
+	self assert: (diagram nodeElementFor: target) border width equals: 2.5.
+
+	diagram cancelInteraction.
+	self assert: (diagram nodeElementFor: target) border width equals: 1.5.
+	^ diagram
+]
