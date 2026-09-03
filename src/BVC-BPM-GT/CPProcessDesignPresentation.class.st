@@ -39,9 +39,9 @@ CPProcessDesignPresentation >> prepareHostElement [
 		removeNodesOperationFor: removeNodesOperationBlock;
 		removeEdgeOperationFor: removeEdgeOperationBlock;
 		memento: self memento.
-	diagramElement
-		hMatchParent;
-		vMatchParent.
+	diagramElement constraintsDo: [ :c |
+		c horizontal matchParent.
+		c vertical matchParent ].
 
 	detailHostElement := BrVerticalPane new
 		hMatchParent;
