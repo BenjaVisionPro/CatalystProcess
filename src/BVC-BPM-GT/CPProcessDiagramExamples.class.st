@@ -31,3 +31,62 @@ CPProcessDiagramExamples >> processPresentationIncludesDiagramAndDetailForm [
 	self assert: diagram isNotNil.
 	^ element
 ]
+
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> diagramNodeRemovalUsesProcessSemantics [
+	<gtExample>
+	| process node other edge memento nodesDescription edgesDescription configuration diagram assessment |
+	process := CPProcessDesign new.
+	node := CPUserTaskDesignNode new position: 80 @ 120; yourself.
+	other := CPEndEventDesignNode new position: 300 @ 120; yourself.
+	edge := CPProcessDesignEdge new sourceNode: node; targetNode: other; yourself.
+	process
+		nodes: (OrderedCollection with: node with: other);
+		edges: (OrderedCollection with: edge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		removeNodeOperationFor: [ :aNode | configuration removeNodeOperationFor: aNode in: memento ];
+		memento: memento.
+
+	assessment := diagram removeNode: node.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: nodesDescription) size equals: 1.
+	self assert: (memento readUsing: nodesDescription) first == other.
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	self assert: process nodes size equals: 2.
+	self assert: process edges size equals: 1.
+	^ diagram
+]
+
+{ #category : 'examples - diagram' }
+CPProcessDiagramExamples >> diagramEdgeRemovalUsesRelationSemantics [
+	<gtExample>
+	| process source target edge memento nodesDescription edgesDescription configuration diagram assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new position: 80 @ 120; yourself.
+	target := CPEndEventDesignNode new position: 300 @ 120; yourself.
+	edge := CPProcessDesignEdge new sourceNode: source; targetNode: target; yourself.
+	process
+		nodes: (OrderedCollection with: source with: target);
+		edges: (OrderedCollection with: edge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	diagram := CPProcessDiagramElement new
+		removeEdgeOperationFor: [ :anEdge | configuration removeEdgeOperationFor: anEdge in: memento ];
+		memento: memento.
+
+	assessment := diagram removeEdge: edge.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	self assert: (memento readUsing: nodesDescription) size equals: 2.
+	self assert: process edges size equals: 1.
+	^ diagram
+]

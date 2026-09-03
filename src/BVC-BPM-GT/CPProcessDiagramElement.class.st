@@ -17,7 +17,11 @@ Class {
 		'connectionSourceNode',
 		'reconnectEdgeOperationBlock',
 		'reconnectionEdge',
-		'reconnectsSource'
+		'reconnectsSource',
+		'removeNodeOperationBlock',
+		'removeEdgeOperationBlock',
+		'selectedNode',
+		'selectedEdge'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -38,8 +42,11 @@ CPProcessDiagramElement >> initialize [
 		padding: (BlInsets all: 20);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 12);
 		background: (Color white alpha: 0.04);
-		border: (BlBorder paint: (Color gray alpha: 0.20) width: 1).
-	self installPaletteDrop
+		border: (BlBorder paint: (Color gray alpha: 0.20) width: 1);
+		beFocusable.
+	self
+		installPaletteDrop;
+		installDeleteKeyHandler
 ]
 
 { #category : 'accessing' }
@@ -61,8 +68,11 @@ CPProcessDiagramElement >> refresh [
 	edgeElementsByEdge removeAll.
 	nodes := memento readUsing: nodesDescription.
 	edges := memento readUsing: edgesDescription.
+	(selectedNode isNotNil and: [ (nodes identityIncludes: selectedNode) not ]) ifTrue: [ selectedNode := nil ].
+	(selectedEdge isNotNil and: [ (edges identityIncludes: selectedEdge) not ]) ifTrue: [ selectedEdge := nil ].
 	edges do: [ :edge | self addEdgeElementFor: edge ].
 	nodes withIndexDo: [ :node :index | self addNodeElementFor: node index: index ].
+	self updateSelectionAppearance.
 	^ self
 ]
 
@@ -75,6 +85,7 @@ CPProcessDiagramElement >> addNodeElementFor: aNode index: anIndex [
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: position.
 	nodeElementsByNode at: aNode put: element.
+	self installSelectionOn: element forNode: aNode.
 	positionNodeOperationBlock ifNotNil: [ self installPositioningOn: element for: aNode ].
 	(connectNodeOperationBlock isNotNil or: [ reconnectEdgeOperationBlock isNotNil ]) ifTrue: [
 		self installConnectionOn: element for: aNode ].
@@ -168,6 +179,7 @@ CPProcessDiagramElement >> addEdgeElementFor: anEdge [
 		border: (BlBorder paint: (Color gray alpha: 0.55) width: 1.5);
 		yourself.
 	edgeElementsByEdge at: anEdge put: line.
+	self installSelectionOn: line forEdge: anEdge.
 	self addChildFirst: line.
 	reconnectEdgeOperationBlock ifNotNil: [
 		self addReconnectHandlesFor: anEdge source: source target: target ]
@@ -434,4 +446,105 @@ CPProcessDiagramElement >> completeReconnectionTo: aNode [
 		ifTrue: [ source := aNode ]
 		ifFalse: [ target := aNode ].
 	self reconnectEdge: edge from: source to: target
+]
+
+
+{ #category : 'configuration' }
+CPProcessDiagramElement >> removeNodeOperationFor: aBlock [
+	"The block receives the selected node and answers the Process editing operation for removing that node."
+	removeNodeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessDiagramElement >> removeEdgeOperationFor: aBlock [
+	"The block receives the selected edge and answers the Process editing operation for removing that edge."
+	removeEdgeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> removeNode: aNode [
+	| assessment |
+	removeNodeOperationBlock ifNil: [ ^ nil ].
+	assessment := (removeNodeOperationBlock value: aNode) apply.
+	assessment isApplicable ifTrue: [
+		selectedNode := nil.
+		self refresh ].
+	^ assessment
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> removeEdge: anEdge [
+	| assessment |
+	removeEdgeOperationBlock ifNil: [ ^ nil ].
+	assessment := (removeEdgeOperationBlock value: anEdge) apply.
+	assessment isApplicable ifTrue: [
+		selectedEdge := nil.
+		self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - selection' }
+CPProcessDiagramElement >> installSelectionOn: anElement forNode: aNode [
+	anElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			(connectionSourceNode isNil and: [ reconnectionEdge isNil ]) ifTrue: [
+				self selectNode: aNode.
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - selection' }
+CPProcessDiagramElement >> installSelectionOn: anElement forEdge: anEdge [
+	anElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			self selectEdge: anEdge.
+			anEvent consumed: true ])
+]
+
+{ #category : 'private - selection' }
+CPProcessDiagramElement >> selectNode: aNode [
+	selectedNode := aNode.
+	selectedEdge := nil.
+	self
+		updateSelectionAppearance;
+		requestFocus
+]
+
+{ #category : 'private - selection' }
+CPProcessDiagramElement >> selectEdge: anEdge [
+	selectedEdge := anEdge.
+	selectedNode := nil.
+	self
+		updateSelectionAppearance;
+		requestFocus
+]
+
+{ #category : 'private - selection' }
+CPProcessDiagramElement >> updateSelectionAppearance [
+	nodeElementsByNode keysAndValuesDo: [ :node :element |
+		element border: (BlBorder
+			paint: (Color gray alpha: (node == selectedNode ifTrue: [ 0.95 ] ifFalse: [ 0.65 ]))
+			width: (node == selectedNode ifTrue: [ 2.5 ] ifFalse: [ 1.5 ])) ].
+	edgeElementsByEdge keysAndValuesDo: [ :edge :element |
+		element border: (BlBorder
+			paint: (Color gray alpha: (edge == selectedEdge ifTrue: [ 0.95 ] ifFalse: [ 0.55 ]))
+			width: (edge == selectedEdge ifTrue: [ 2.5 ] ifFalse: [ 1.5 ])) ]
+]
+
+{ #category : 'private - installing' }
+CPProcessDiagramElement >> installDeleteKeyHandler [
+	self addEventHandler: (BlEventHandler
+		on: BlKeyDownEvent
+		do: [ :anEvent |
+			(anEvent key = BlKeyboardKey delete or: [ anEvent key = BlKeyboardKey backspace ]) ifTrue: [
+				self removeSelection.
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - selection' }
+CPProcessDiagramElement >> removeSelection [
+	selectedNode ifNotNil: [ :node | ^ self removeNode: node ].
+	selectedEdge ifNotNil: [ :edge | ^ self removeEdge: edge ].
+	^ nil
 ]
