@@ -38,7 +38,9 @@ CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 				positionNodeOperationFor: [ :aNode :aPoint |
 					self positionNodeOperationFor: aNode at: aPoint in: aPresentation memento ];
 				connectNodeOperationFor: [ :aSourceNode :aTargetNode |
-					self connectOperationFrom: aSourceNode to: aTargetNode in: aPresentation memento ] ].
+					self connectOperationFrom: aSourceNode to: aTargetNode in: aPresentation memento ];
+				reconnectEdgeOperationFor: [ :anEdge :aSourceNode :aTargetNode |
+					self reconnectOperationFor: anEdge from: aSourceNode to: aTargetNode in: aPresentation memento ] ].
 	^ anAtelierViewModel
 ]
 

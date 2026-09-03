@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'positionNodeOperationBlock',
 		'createNodeOperationBlock',
-		'connectNodeOperationBlock'
+		'connectNodeOperationBlock',
+		'reconnectEdgeOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -22,6 +23,7 @@ CPProcessDesignPresentation >> prepareHostElement [
 		createNodeOperationFor: createNodeOperationBlock;
 		positionNodeOperationFor: positionNodeOperationBlock;
 		connectNodeOperationFor: connectNodeOperationBlock;
+		reconnectEdgeOperationFor: reconnectEdgeOperationBlock;
 		memento: self memento.
 	diagram margin: (BlInsets bottom: 10).
 	self hostElement addChild: diagram
@@ -43,4 +45,10 @@ CPProcessDesignPresentation >> createNodeOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessDesignPresentation >> connectNodeOperationFor: aBlock [
 	connectNodeOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessDesignPresentation >> reconnectEdgeOperationFor: aBlock [
+	reconnectEdgeOperationBlock := aBlock
 ]

@@ -14,7 +14,10 @@ Class {
 		'createNodeOperationBlock',
 		'activePaletteDragItem',
 		'connectNodeOperationBlock',
-		'connectionSourceNode'
+		'connectionSourceNode',
+		'reconnectEdgeOperationBlock',
+		'reconnectionEdge',
+		'reconnectsSource'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -73,7 +76,8 @@ CPProcessDiagramElement >> addNodeElementFor: aNode index: anIndex [
 		relocate: position.
 	nodeElementsByNode at: aNode put: element.
 	positionNodeOperationBlock ifNotNil: [ self installPositioningOn: element for: aNode ].
-	connectNodeOperationBlock ifNotNil: [ self installConnectionOn: element for: aNode ].
+	(connectNodeOperationBlock isNotNil or: [ reconnectEdgeOperationBlock isNotNil ]) ifTrue: [
+		self installConnectionOn: element for: aNode ].
 	self addChild: element
 ]
 
@@ -164,7 +168,9 @@ CPProcessDiagramElement >> addEdgeElementFor: anEdge [
 		border: (BlBorder paint: (Color gray alpha: 0.55) width: 1.5);
 		yourself.
 	edgeElementsByEdge at: anEdge put: line.
-	self addChildFirst: line
+	self addChildFirst: line.
+	reconnectEdgeOperationBlock ifNotNil: [
+		self addReconnectHandlesFor: anEdge source: source target: target ]
 ]
 
 
@@ -322,9 +328,13 @@ CPProcessDiagramElement >> installConnectionOn: aNodeElement for: aNode [
 	aNodeElement addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
-			connectionSourceNode ifNotNil: [
-				self completeConnectionTo: aNode.
-				anEvent consumed: true ] ])
+			reconnectionEdge ifNotNil: [
+				self completeReconnectionTo: aNode.
+				anEvent consumed: true ]
+			ifNil: [
+				connectionSourceNode ifNotNil: [
+					self completeConnectionTo: aNode.
+					anEvent consumed: true ] ] ])
 ]
 
 { #category : 'private - connection' }
@@ -343,4 +353,85 @@ CPProcessDiagramElement >> completeConnectionTo: aNode [
 	source ifNil: [ ^ self ].
 	source == aNode ifTrue: [ self refresh. ^ self ].
 	self connectNode: source to: aNode
+]
+
+
+{ #category : 'configuration' }
+CPProcessDiagramElement >> reconnectEdgeOperationFor: aBlock [
+	"The block receives an existing edge plus proposed source and target nodes and answers the Process editing operation for that reconnection intention."
+	reconnectEdgeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessDiagramElement >> reconnectEdge: anEdge from: aSourceNode to: aTargetNode [
+	| assessment |
+	reconnectEdgeOperationBlock ifNil: [ ^ nil ].
+	assessment := (reconnectEdgeOperationBlock value: anEdge value: aSourceNode value: aTargetNode) apply.
+	reconnectionEdge := nil.
+	reconnectsSource := nil.
+	assessment isApplicable ifTrue: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - reconnection' }
+CPProcessDiagramElement >> addReconnectHandlesFor: anEdge source: aSourceNode target: aTargetNode [
+	| sourceHandle targetHandle sourcePosition targetPosition |
+	sourcePosition := (self stagedPositionOf: aSourceNode ifAbsent: [ ^ self ])
+		+ ((self extentForNode: aSourceNode) / 2).
+	targetPosition := (self stagedPositionOf: aTargetNode ifAbsent: [ ^ self ])
+		+ ((self extentForNode: aTargetNode) / 2).
+	sourceHandle := self newReconnectHandle.
+	targetHandle := self newReconnectHandle.
+	sourceHandle relocate: sourcePosition - (5 @ 5).
+	targetHandle relocate: targetPosition - (5 @ 5).
+	sourceHandle addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			self beginReconnectSourceOf: anEdge.
+			anEvent consumed: true ]).
+	targetHandle addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			self beginReconnectTargetOf: anEdge.
+			anEvent consumed: true ]).
+	self addChild: sourceHandle.
+	self addChild: targetHandle
+]
+
+{ #category : 'private - reconnection' }
+CPProcessDiagramElement >> newReconnectHandle [
+	^ BlElement new
+		extent: 10 @ 10;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		geometry: BlCircleGeometry new;
+		background: (Color white alpha: 0.16);
+		border: (BlBorder paint: (Color gray alpha: 0.65) width: 1);
+		yourself
+]
+
+{ #category : 'private - reconnection' }
+CPProcessDiagramElement >> beginReconnectSourceOf: anEdge [
+	reconnectionEdge := anEdge.
+	reconnectsSource := true.
+	connectionSourceNode := nil
+]
+
+{ #category : 'private - reconnection' }
+CPProcessDiagramElement >> beginReconnectTargetOf: anEdge [
+	reconnectionEdge := anEdge.
+	reconnectsSource := false.
+	connectionSourceNode := nil
+]
+
+{ #category : 'private - reconnection' }
+CPProcessDiagramElement >> completeReconnectionTo: aNode [
+	| edge source target |
+	edge := reconnectionEdge.
+	edge ifNil: [ ^ self ].
+	source := self stagedSourceOf: edge.
+	target := self stagedTargetOf: edge.
+	reconnectsSource
+		ifTrue: [ source := aNode ]
+		ifFalse: [ target := aNode ].
+	self reconnectEdge: edge from: source to: target
 ]

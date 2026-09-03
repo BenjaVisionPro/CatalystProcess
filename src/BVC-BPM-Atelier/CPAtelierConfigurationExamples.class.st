@@ -798,3 +798,35 @@ CPAtelierConfigurationExamples >> diagramConnectSurfaceUsesConfiguredOperation [
 	self assert: process edges isEmpty.
 	^ diagram
 ]
+
+
+{ #category : 'examples - diagram integration' }
+CPAtelierConfigurationExamples >> diagramReconnectSurfaceUsesConfiguredOperation [
+	<gtExample>
+	| process first second third edge memento configuration diagram assessment edgeMemento |
+	process := CPProcessDesign new.
+	first := CPStartEventDesignNode new position: 80 @ 160; yourself.
+	second := CPUserTaskDesignNode new position: 280 @ 160; yourself.
+	third := CPEndEventDesignNode new position: 480 @ 160; yourself.
+	edge := CPProcessDesignEdge new sourceNode: first; targetNode: second; yourself.
+	process
+		nodes: (OrderedCollection with: first with: second with: third);
+		edges: (OrderedCollection with: edge).
+	memento := CPProcessDesignMemento model: process.
+	configuration := CPAtelierConfiguration forProcessMemento: memento.
+	diagram := CPProcessDiagramElement new
+		reconnectEdgeOperationFor: [ :anEdge :aSourceNode :aTargetNode |
+			configuration reconnectOperationFor: anEdge from: aSourceNode to: aTargetNode in: memento ];
+		memento: memento.
+
+	assessment := diagram reconnectEdge: edge from: first to: third.
+	edgeMemento := memento childMementoFor: edge inRelation: configuration edgesDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: configuration edgesDescription) first == edge.
+	self assert: (edgeMemento readUsing: edge sourceNodeDescription) == first.
+	self assert: (edgeMemento readUsing: edge targetNodeDescription) == third.
+	self assert: edge sourceNode == first.
+	self assert: edge targetNode == second.
+	^ diagram
+]
