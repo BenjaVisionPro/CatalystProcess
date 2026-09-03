@@ -122,9 +122,9 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	element := self newShapeElementFor: modelElement bounds: bounds.
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: bounds origin;
-		userData at: #processDiagramElement put: aShape;
-		userData at: #processModelElement put: modelElement.
+		relocate: bounds origin.
+	element userData at: #processDiagramElement put: aShape.
+	element userData at: #processModelElement put: modelElement.
 	self installSelectionOn: element for: modelElement.
 	shapeElementsByShape at: aShape put: element.
 	self addChild: element.
@@ -192,9 +192,8 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 			newLineFrom: (waypoints at: index)
 			to: (waypoints at: index + 1)
 			withArrowhead: index = pairCount.
-		line
-			userData at: #processDiagramElement put: anEdge;
-			userData at: #processModelElement put: anEdge modelElement.
+		line userData at: #processDiagramElement put: anEdge.
+		line userData at: #processModelElement put: anEdge modelElement.
 		self addChildFirst: line ]
 ]
 
