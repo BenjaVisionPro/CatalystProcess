@@ -286,6 +286,7 @@ CPProcessDesign >> nodesDescription [
 	^ MAToManyRelationDescription new
 		accessor: #nodes;
 		classes: { CPProcessDesignNode };
+		reference: self labelDescription;
 		label: 'Nodes';
 		priority: 170;
 		group: 'Relations';
@@ -298,6 +299,7 @@ CPProcessDesign >> edgesDescription [
 	^ MAToManyRelationDescription new
 		accessor: #edges;
 		classes: { CPProcessDesignEdge };
+		reference: self labelDescription;
 		label: 'Edges';
 		priority: 180;
 		group: 'Relations';
