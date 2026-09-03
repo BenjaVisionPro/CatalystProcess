@@ -9,7 +9,7 @@ Class {
 { #category : 'examples - diagram' }
 CPProcessDiagramExamples >> processPresentationIncludesDiagramAndDetailForm [
 	<gtExample>
-	| process start task finish firstEdge secondEdge memento element diagram |
+	| process start task finish firstEdge secondEdge memento viewModel element diagram |
 	process := CPProcessDesign new label: 'Diagram pressure test'; yourself.
 	start := CPStartEventDesignNode new label: 'Start'; position: 60 @ 170; yourself.
 	task := CPUserTaskDesignNode new label: 'Review'; position: 250 @ 164; yourself.
@@ -20,7 +20,9 @@ CPProcessDiagramExamples >> processPresentationIncludesDiagramAndDetailForm [
 		nodes: (OrderedCollection with: start with: task with: finish);
 		edges: (OrderedCollection with: firstEdge with: secondEdge).
 	memento := CFMaMemento model: process.
-	element := (CFMaViewModel forObject: process memento: memento) asElement.
+	viewModel := CFMaViewModel forObject: process memento: memento.
+	element := CFMaFormRootElement new.
+	viewModel initializeForm: element forMemento: memento.
 	diagram := element
 		allChildrenBreadthFirstDetect: [ :each | each isKindOf: CPProcessDiagramElement ]
 		ifFound: [ :each | each ]
