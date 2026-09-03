@@ -9,7 +9,7 @@ Class {
 { #category : 'examples - diagram' }
 CPProcessDiagramExamples >> processPresentationIncludesDiagramAndDetailForm [
 	<gtExample>
-	| process start task finish firstEdge secondEdge memento presentation element |
+	| process start task finish firstEdge secondEdge memento element diagram |
 	process := CPProcessDesign new label: 'Diagram pressure test'; yourself.
 	start := CPStartEventDesignNode new label: 'Start'; position: 60 @ 170; yourself.
 	task := CPUserTaskDesignNode new label: 'Review'; position: 250 @ 164; yourself.
@@ -20,10 +20,12 @@ CPProcessDiagramExamples >> processPresentationIncludesDiagramAndDetailForm [
 		nodes: (OrderedCollection with: start with: task with: finish);
 		edges: (OrderedCollection with: firstEdge with: secondEdge).
 	memento := CFMaMemento model: process.
-	presentation := CPProcessDesignPresentation new.
-	presentation
-		memento: memento;
-		fieldContainerDo: [ :aContainer | element := aContainer ].
-	self assert: presentation class equals: CPProcessDesignPresentation.
-	^ (CFMaViewModel forObject: process memento: memento) asElement
+	element := (CFMaViewModel forObject: process memento: memento) asElement.
+	diagram := element
+		allChildrenBreadthFirstDetect: [ :each | each isKindOf: CPProcessDiagramElement ]
+		ifFound: [ :each | each ]
+		ifNone: [ nil ].
+	self assert: element class equals: CFMaFormRootElement.
+	self assert: diagram isNotNil.
+	^ element
 ]
