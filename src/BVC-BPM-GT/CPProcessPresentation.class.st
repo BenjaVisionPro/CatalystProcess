@@ -10,7 +10,8 @@ Class {
 		'detailHostElement',
 		'detailScrollElement',
 		'workspaceElement',
-		'selectedModelElement'
+		'selectedModelElement',
+		'moveShapeOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -25,6 +26,7 @@ CPProcessPresentation >> prepareHostElement [
 	diagramElement := CPProcessVisualElement new
 		memento: self memento;
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+		moveShapeOperationFor: moveShapeOperationBlock;
 		yourself.
 
 	diagramScrollElement := BrScrollPane new
@@ -105,7 +107,9 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
 	| viewModel |
 	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
-	viewModel elementBuilderDo: [ CFMaDetailPresentation new ].
+	viewModel
+		includeImplicitActions: false;
+		elementBuilderDo: [ CFMaDetailPresentation new ].
 	^ viewModel asElement
 ]
 
@@ -146,4 +150,9 @@ CPProcessPresentation >> selectedModelElement [
 { #category : 'accessing - testing' }
 CPProcessPresentation >> workspaceElement [
 	^ workspaceElement
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> moveShapeOperationFor: aBlock [
+	moveShapeOperationBlock := aBlock
 ]

@@ -13,7 +13,8 @@ Class {
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'selectedModelElement',
-		'selectionChangedBlock'
+		'selectionChangedBlock',
+		'moveShapeOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -27,8 +28,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByModelElement := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
-		clipChildren: false;
-		background: Color transparent
+		clipChildren: false
 ]
 
 { #category : 'accessing' }
@@ -130,6 +130,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	element userData at: #processDiagramElement put: aShape.
 	element userData at: #processModelElement put: modelElement.
 	self installSelectionOn: element for: modelElement.
+	self installPositioningOn: element for: aShape.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
@@ -257,15 +258,62 @@ CPProcessVisualElement >> installMementoObserver [
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateSelectionAppearance [
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+		| isSelected |
+		isSelected := aModelElement == selectedModelElement.
 		anElement border: (BlBorder
-			paint: self shapeBorderColor
-			width: (self borderWidthFor: aModelElement selected: aModelElement == selectedModelElement)) ]
+			paint: (isSelected
+				ifTrue: [ self selectionColor ]
+				ifFalse: [ self shapeBorderColor ])
+			width: (self borderWidthFor: aModelElement selected: isSelected)) ]
 ]
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> borderWidthFor: aModelElement selected: isSelected [
 	isSelected ifTrue: [ ^ aModelElement isEndEvent ifTrue: [ 4.5 ] ifFalse: [ 3 ] ].
 	^ aModelElement isEndEvent ifTrue: [ 3 ] ifFalse: [ 1.5 ]
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> moveShapeOperationFor: aBlock [
+	"The block receives the CPShape and proposed bounds and answers the Process Atelier operation for that diagram intention."
+	moveShapeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
+	| assessment |
+	moveShapeOperationBlock ifNil: [ ^ nil ].
+	assessment := (moveShapeOperationBlock value: aShape value: aRectangle) apply.
+	assessment isApplicable ifFalse: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
+	| dragStartEventPosition dragStartElementPosition originalBounds |
+	moveShapeOperationBlock ifNil: [ ^ self ].
+	anElement
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				dragStartEventPosition := anEvent position.
+				dragStartElementPosition := anElement position.
+				originalBounds := self stagedBoundsOf: aShape.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				| proposedPosition |
+				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+				anElement relocate: proposedPosition.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				| proposedBounds |
+				anEvent consumed: true.
+				proposedBounds := anElement position extent: originalBounds extent.
+				self moveShape: aShape toBounds: proposedBounds ])
 ]
 
 { #category : 'private - theme' }
@@ -276,6 +324,11 @@ CPProcessVisualElement >> shapeBackgroundColor [
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBorderColor [
 	^ self resolvedThemeColor: self theme typography primaryForeground
+]
+
+{ #category : 'private - theme' }
+CPProcessVisualElement >> selectionColor [
+	^ self theme item selectedColor
 ]
 
 { #category : 'private - theme' }
