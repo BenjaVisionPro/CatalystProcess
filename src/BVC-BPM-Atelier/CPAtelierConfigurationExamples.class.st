@@ -422,3 +422,30 @@ CPAtelierConfigurationExamples >> edgeReplacementRejectsEndpointOutsideProcess [
 	self assert: process edges first == oldEdge.
 	^ assessment
 ]
+
+{ #category : 'examples - staged edge state' }
+CPAtelierConfigurationExamples >> nodeReplacementUsesStagedEdgeEndpoints [
+	<gtExample>
+	| process oldNode replacement other edge memento nodesDescription edgesDescription configuration edgeMemento assessment |
+	process := CPProcessDesign new.
+	oldNode := CPUserTaskDesignNode new.
+	replacement := CPServiceTaskDesignNode new.
+	other := CPEndEventDesignNode new.
+	edge := CPProcessDesignEdge new sourceNode: oldNode; targetNode: other; yourself.
+	process nodes: (OrderedCollection with: oldNode with: other); edges: (OrderedCollection with: edge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+	edgeMemento := memento childMementoFor: edge inRelation: edgesDescription.
+	edgeMemento write: other using: edge sourceNodeDescription.
+
+	assessment := (configuration replaceOperationFor: oldNode with: replacement in: memento description: nodesDescription) apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment incidentEdges isEmpty.
+	self assert: (edgeMemento readUsing: edge sourceNodeDescription) == other.
+	self assert: edge sourceNode == oldNode.
+	self assert: (memento readUsing: nodesDescription) first == replacement.
+	^ assessment
+]

@@ -45,7 +45,9 @@ CPAtelierReplaceNode >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedWithNodes: nodes because: anException printString ].
 
-	incidentEdges := edges select: [ :each | each sourceNode == node or: [ each targetNode == node ] ].
+	incidentEdges := edges select: [ :each |
+		(self stagedSourceNodeOf: each) == node
+			or: [ (self stagedTargetNodeOf: each) == node ] ].
 	incidentEdges isEmpty ifFalse: [
 		(nodesDescription autoAccept or: [ edgesDescription autoAccept ]) ifTrue: [
 			^ self rejectedWithNodes: nodes because: 'Replacing a connected node requires staged node and edge editing state; an affected relation is auto-accepting.' ] ].
@@ -53,12 +55,12 @@ CPAtelierReplaceNode >> assess [
 	incidentEdges do: [ :anEdge |
 		sourceDescription := anEdge sourceNodeDescription.
 		targetDescription := anEdge targetNodeDescription.
-		(anEdge sourceNode == node) ifTrue: [
+		((self stagedSourceNodeOf: anEdge) == node) ifTrue: [
 			sourceDescription isReadOnly ifTrue: [ ^ self rejectedWithNodes: nodes because: 'An incident edge source is read-only.' ].
 			[ sourceDescription validate: replacementNode ]
 				on: MAValidationError
 				do: [ :anException | ^ self rejectedWithNodes: nodes because: anException printString ] ].
-		(anEdge targetNode == node) ifTrue: [
+		((self stagedTargetNodeOf: anEdge) == node) ifTrue: [
 			targetDescription isReadOnly ifTrue: [ ^ self rejectedWithNodes: nodes because: 'An incident edge target is read-only.' ].
 			[ targetDescription validate: replacementNode ]
 				on: MAValidationError
@@ -78,8 +80,8 @@ CPAtelierReplaceNode >> applyAssessment: anAssessment [
 	anAssessment incidentEdges do: [ :anEdge |
 		| edgeMemento |
 		edgeMemento := processMemento childMementoFor: anEdge inRelation: edgesDescription.
-		(anEdge sourceNode == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge sourceNodeDescription ].
-		(anEdge targetNode == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge targetNodeDescription ] ].
+		((self stagedSourceNodeOf: anEdge) == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge sourceNodeDescription ].
+		((self stagedTargetNodeOf: anEdge) == node) ifTrue: [ edgeMemento write: replacementNode using: anEdge targetNodeDescription ] ].
 	processMemento detachChildMementoFor: node inRelation: nodesDescription.
 	processMemento reattachDetachedChildMementoFor: replacementNode inRelation: nodesDescription
 ]
@@ -108,4 +110,18 @@ CPAtelierReplaceNode >> edgesDescription: aDescription [ edgesDescription := aDe
 { #category : 'private' }
 CPAtelierReplaceNode >> rejectedWithNodes: nodes because: aString [
 	^ CPAtelierReplaceNodeAssessment node: node replacementNode: replacementNode nodes: nodes rejectedBecause: aString
+]
+
+{ #category : 'private - staged edges' }
+CPAtelierReplaceNode >> stagedSourceNodeOf: anEdge [
+	(processMemento hasChildMementoFor: anEdge inRelation: edgesDescription) ifFalse: [ ^ anEdge sourceNode ].
+	^ (processMemento childMementoFor: anEdge inRelation: edgesDescription)
+		readUsing: anEdge sourceNodeDescription
+]
+
+{ #category : 'private - staged edges' }
+CPAtelierReplaceNode >> stagedTargetNodeOf: anEdge [
+	(processMemento hasChildMementoFor: anEdge inRelation: edgesDescription) ifFalse: [ ^ anEdge targetNode ].
+	^ (processMemento childMementoFor: anEdge inRelation: edgesDescription)
+		readUsing: anEdge targetNodeDescription
 ]

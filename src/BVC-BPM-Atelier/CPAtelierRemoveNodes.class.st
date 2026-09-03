@@ -47,7 +47,8 @@ CPAtelierRemoveNodes >> assess [
 
 	removedEdges := edges select: [ :anEdge |
 		nodesToRemove anySatisfy: [ :aNode |
-			anEdge sourceNode == aNode or: [ anEdge targetNode == aNode ] ] ].
+			(self stagedSourceNodeOf: anEdge) == aNode
+				or: [ (self stagedTargetNodeOf: anEdge) == aNode ] ] ].
 	removedEdges isEmpty ifFalse: [
 		edgesDescription isReadOnly ifTrue: [
 			^ self rejectedWithNodes: nodes edges: edges because: 'Incident edges cannot be removed because the edges relation is read-only.' ].
@@ -58,7 +59,8 @@ CPAtelierRemoveNodes >> assess [
 		nodesToRemove anySatisfy: [ :aNode | each == aNode ] ]).
 	proposedEdges := edges species withAll: (edges reject: [ :anEdge |
 		nodesToRemove anySatisfy: [ :aNode |
-			anEdge sourceNode == aNode or: [ anEdge targetNode == aNode ] ] ]).
+			(self stagedSourceNodeOf: anEdge) == aNode
+				or: [ (self stagedTargetNodeOf: anEdge) == aNode ] ] ]).
 
 	[ nodesDescription validate: proposedNodes ]
 		on: MAValidationError
@@ -119,4 +121,18 @@ CPAtelierRemoveNodes >> rejectedWithNodes: nodes edges: edges because: aString [
 		nodes: nodes
 		edges: edges
 		rejectedBecause: aString
+]
+
+{ #category : 'private - staged edges' }
+CPAtelierRemoveNodes >> stagedSourceNodeOf: anEdge [
+	(processMemento hasChildMementoFor: anEdge inRelation: edgesDescription) ifFalse: [ ^ anEdge sourceNode ].
+	^ (processMemento childMementoFor: anEdge inRelation: edgesDescription)
+		readUsing: anEdge sourceNodeDescription
+]
+
+{ #category : 'private - staged edges' }
+CPAtelierRemoveNodes >> stagedTargetNodeOf: anEdge [
+	(processMemento hasChildMementoFor: anEdge inRelation: edgesDescription) ifFalse: [ ^ anEdge targetNode ].
+	^ (processMemento childMementoFor: anEdge inRelation: edgesDescription)
+		readUsing: anEdge targetNodeDescription
 ]

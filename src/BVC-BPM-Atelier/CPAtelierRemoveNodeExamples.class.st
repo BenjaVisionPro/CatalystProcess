@@ -174,3 +174,52 @@ CPAtelierRemoveNodeExamples >> remove: aNode memento: aMemento nodes: nodesDescr
 		nodesDescription: nodesDescription
 		edgesDescription: edgesDescription
 ]
+
+{ #category : 'examples - staged edge state' }
+CPAtelierRemoveNodeExamples >> stagedEndpointMovedAwayIsNotRemovedWithNode [
+	<gtExample>
+	| fixture memento first middle last firstToMiddle nodesDescription edgesDescription edgeMemento assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	first := fixture third.
+	middle := fixture fourth.
+	last := fixture fifth.
+	firstToMiddle := fixture sixth.
+	nodesDescription := self nodesDescriptionIn: memento.
+	edgesDescription := self edgesDescriptionIn: memento.
+	edgeMemento := memento childMementoFor: firstToMiddle inRelation: edgesDescription.
+	edgeMemento write: last using: firstToMiddle targetNodeDescription.
+
+	assessment := (self remove: middle memento: memento nodes: nodesDescription edges: edgesDescription) assess.
+
+	self assert: assessment isApplicable.
+	self assert: (assessment removedEdges anySatisfy: [ :each | each == firstToMiddle ]) not.
+	self assert: assessment removedEdges size equals: 1.
+	self assert: firstToMiddle targetNode == middle.
+	self assert: (edgeMemento readUsing: firstToMiddle targetNodeDescription) == last.
+	self assert: first ~~ middle.
+	^ assessment
+]
+
+{ #category : 'examples - staged edge state' }
+CPAtelierRemoveNodeExamples >> stagedEndpointMovedToNodeIsRemovedWithNode [
+	<gtExample>
+	| fixture memento middle firstToLast nodesDescription edgesDescription edgeMemento assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	middle := fixture fourth.
+	firstToLast := fixture eighth.
+	nodesDescription := self nodesDescriptionIn: memento.
+	edgesDescription := self edgesDescriptionIn: memento.
+	edgeMemento := memento childMementoFor: firstToLast inRelation: edgesDescription.
+	edgeMemento write: middle using: firstToLast targetNodeDescription.
+
+	assessment := (self remove: middle memento: memento nodes: nodesDescription edges: edgesDescription) assess.
+
+	self assert: assessment isApplicable.
+	self assert: (assessment removedEdges anySatisfy: [ :each | each == firstToLast ]).
+	self assert: assessment removedEdges size equals: 3.
+	self assert: firstToLast targetNode ~~ middle.
+	self assert: (edgeMemento readUsing: firstToLast targetNodeDescription) == middle.
+	^ assessment
+]
