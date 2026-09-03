@@ -223,3 +223,35 @@ CPAtelierConfigurationExamples >> connectionApplyStagesOneProcessEdgeWithExactEn
 	self assert: process edges isEmpty.
 	^ operation
 ]
+
+{ #category : 'examples - entry' }
+CPAtelierConfigurationExamples >> processAtelierEntryInstallsProcessPalette [
+	<gtExample>
+	| process atelier palette |
+	process := CPProcessDesign new.
+	atelier := process asAtelier.
+	palette := atelier palette.
+
+	self assert: palette items size equals: 6.
+	self assert: palette items first label equals: 'Start event'.
+	self assert: palette items second label equals: 'End event'.
+	self assert: palette items third label equals: 'User task'.
+	self assert: palette items fourth label equals: 'Service task'.
+	self assert: palette items fifth label equals: 'Exclusive gateway'.
+	self assert: palette items sixth label equals: 'Parallel gateway'.
+	^ atelier
+]
+
+{ #category : 'examples - entry' }
+CPAtelierConfigurationExamples >> processNodePaletteMaterializesFreshIdentities [
+	<gtExample>
+	| palette first second |
+	palette := CPAtelierConfiguration processNodePalette.
+	first := palette items third materialize.
+	second := palette items third materialize.
+
+	self assert: first class equals: CPUserTaskDesignNode.
+	self assert: second class equals: CPUserTaskDesignNode.
+	self assert: first ~~ second.
+	^ palette
+]

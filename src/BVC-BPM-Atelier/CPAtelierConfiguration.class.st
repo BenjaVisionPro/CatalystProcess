@@ -107,3 +107,43 @@ CPAtelierConfiguration >> edgesDescription [
 CPAtelierConfiguration >> edgesDescription: aDescription [
 	edgesDescription := aDescription
 ]
+
+{ #category : 'instance creation' }
+CPAtelierConfiguration class >> forProcessMemento: aProcessMemento [
+	| nodesDescription edgesDescription |
+	nodesDescription := aProcessMemento magritteDescription
+		detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := aProcessMemento magritteDescription
+		detect: [ :each | each handlesSelector: #edges ].
+	^ (self
+		nodesDescription: nodesDescription
+		edgesDescription: edgesDescription)
+		palette: self processNodePalette;
+		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierConfiguration class >> processNodePalette [
+	| palette |
+	palette := CFAtelierPalette new.
+	palette
+		add: (CFAtelierPaletteItem
+			label: 'Start event'
+			provider: (CFAtelierFactoryProvider factory: [ CPStartEventDesignNode new ]));
+		add: (CFAtelierPaletteItem
+			label: 'End event'
+			provider: (CFAtelierFactoryProvider factory: [ CPEndEventDesignNode new ]));
+		add: (CFAtelierPaletteItem
+			label: 'User task'
+			provider: (CFAtelierFactoryProvider factory: [ CPUserTaskDesignNode new ]));
+		add: (CFAtelierPaletteItem
+			label: 'Service task'
+			provider: (CFAtelierFactoryProvider factory: [ CPServiceTaskDesignNode new ]));
+		add: (CFAtelierPaletteItem
+			label: 'Exclusive gateway'
+			provider: (CFAtelierFactoryProvider factory: [ CPExclusiveGatewayDesignNode new ]));
+		add: (CFAtelierPaletteItem
+			label: 'Parallel gateway'
+			provider: (CFAtelierFactoryProvider factory: [ CPParallelGatewayDesignNode new ])).
+	^ palette
+]
