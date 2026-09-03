@@ -49,17 +49,17 @@ CPAtelierConnectNodes >> assess [
 		^ self rejectedWithNodes: nodes edges: edges because: 'The candidate edge is already present in the process.' ].
 
 	[ sourceNodeDescription validate: sourceNode ]
-		on: Error
+		on: MAValidationError
 		do: [ :anException |
 			^ self rejectedWithNodes: nodes edges: edges because: anException printString ].
 	[ targetNodeDescription validate: targetNode ]
-		on: Error
+		on: MAValidationError
 		do: [ :anException |
 			^ self rejectedWithNodes: nodes edges: edges because: anException printString ].
 
 	proposedEdges := edges copyWith: edge.
 	[ edgesDescription validate: proposedEdges ]
-		on: Error
+		on: MAValidationError
 		do: [ :anException |
 			^ self rejectedWithNodes: nodes edges: edges because: anException printString ].
 

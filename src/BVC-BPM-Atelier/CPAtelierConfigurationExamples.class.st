@@ -1,4 +1,4 @@
-"I prove that BPM installs its semantic node-removal operation through Atelier configuration without changing Atelier or Foundation presentation code."
+"I prove that BPM installs its proven domain editing intentions through Atelier configuration without changing Atelier or Foundation presentation code. Node insertion and removal translate at the exact process relations; connection creation remains an explicit BPM intention because its source and target endpoints come from the BPM interaction rather than generic relation insertion."
 Class {
 	#name : 'CPAtelierConfigurationExamples',
 	#superclass : 'Object',
@@ -100,5 +100,126 @@ CPAtelierConfigurationExamples >> multiNodeRemovalUsesOneProcessSemanticOperatio
 	self assert: (memento readUsing: edgesDescription) isEmpty.
 	self assert: process nodes size equals: 3.
 	self assert: process edges size equals: 2.
+	^ operation
+]
+
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nodeInsertionUsesProcessCreateOperation [
+	<gtExample>
+	| process first candidate memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	first := CPUserTaskDesignNode new.
+	candidate := CPServiceTaskDesignNode new position: 240@120; yourself.
+	process nodes: (OrderedCollection with: first).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		insertOperationFor: candidate
+		into: memento
+		description: nodesDescription
+		at: 1.
+	assessment := operation apply.
+
+	self assert: operation class equals: CPAtelierCreateNode.
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: nodesDescription) first == candidate.
+	self assert: (memento readUsing: nodesDescription) second == first.
+	self assert: candidate position equals: 240@120.
+	self assert: process nodes size equals: 1.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nonNodeInsertionKeepsGenericAtelierSemantics [
+	<gtExample>
+	| process edge memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	edge := CPProcessDesignEdge new.
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		insertOperationFor: edge
+		into: memento
+		description: edgesDescription
+		at: 1.
+	assessment := operation assess.
+
+	self assert: operation class equals: CFAtelierInsert.
+	self assert: assessment isApplicable.
+	self assert: process edges isEmpty.
+	self assert: (memento readUsing: edgesDescription) isEmpty.
+	^ operation
+]
+
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> connectionUsesProcessConnectOperation [
+	<gtExample>
+	| process source target edge memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new.
+	target := CPUserTaskDesignNode new.
+	edge := CPProcessDesignEdge new.
+	process nodes: (OrderedCollection with: source with: target).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		connectOperationFor: edge
+		from: source
+		to: target
+		in: memento.
+	assessment := operation assess.
+
+	self assert: operation class equals: CPAtelierConnectNodes.
+	self assert: assessment isApplicable.
+	self assert: operation edge == edge.
+	self assert: operation sourceNode == source.
+	self assert: operation targetNode == target.
+	self assert: operation processMemento == memento.
+	self assert: operation nodesDescription == nodesDescription.
+	self assert: operation edgesDescription == edgesDescription.
+	self assert: process edges isEmpty.
+	self assert: edge sourceNode isNil.
+	self assert: edge targetNode isNil.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> connectionApplyStagesOneProcessEdgeWithExactEndpoints [
+	<gtExample>
+	| process source target edge memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new.
+	target := CPServiceTaskDesignNode new.
+	edge := CPProcessDesignEdge new.
+	process nodes: (OrderedCollection with: source with: target).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration
+		connectOperationFor: edge
+		from: source
+		to: target
+		in: memento.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: edgesDescription) size equals: 1.
+	self assert: (memento readUsing: edgesDescription) first == edge.
+	self assert: edge sourceNode == source.
+	self assert: edge targetNode == target.
+	self assert: process edges isEmpty.
 	^ operation
 ]

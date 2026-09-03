@@ -10,7 +10,8 @@ Class {
 		'node',
 		'position',
 		'processMemento',
-		'nodesDescription'
+		'nodesDescription',
+		'insertionIndex'
 	],
 	#category : 'BVC-BPM-Atelier-Creation',
 	#package : 'BVC-BPM-Atelier',
@@ -27,9 +28,20 @@ CPAtelierCreateNode class >> node: aNode position: aPoint processMemento: aMemen
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierCreateNode class >> node: aNode position: aPoint processMemento: aMemento nodesDescription: aDescription at: anIndex [
+	^ self new
+		node: aNode;
+		position: aPoint;
+		processMemento: aMemento;
+		nodesDescription: aDescription;
+		insertionIndex: anIndex;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierCreateNode >> assess [
-	| nodes proposedNodes |
+	| nodes proposedNodes effectiveIndex |
 	nodes := processMemento readUsing: nodesDescription.
 
 	node ifNil: [ ^ self rejectedWithNodes: nodes because: 'A fresh process node is required.' ].
@@ -43,8 +55,18 @@ CPAtelierCreateNode >> assess [
 	(nodes anySatisfy: [ :each | each == node ])
 		ifTrue: [ ^ self rejectedWithNodes: nodes because: 'The candidate node is already present in the process.' ].
 
+	nodesDescription isOrdered
+		ifTrue: [
+			insertionIndex ifNil: [ effectiveIndex := nodes size + 1 ] ifNotNil: [
+				(insertionIndex between: 1 and: nodes size + 1)
+					ifFalse: [ ^ self rejectedWithNodes: nodes because: 'The insertion index is outside the process nodes relation.' ].
+				effectiveIndex := insertionIndex ] ]
+		ifFalse: [
+			insertionIndex ifNotNil: [ ^ self rejectedWithNodes: nodes because: 'An unordered process nodes relation does not accept an insertion index.' ].
+			effectiveIndex := nodes size + 1 ].
+
 	proposedNodes := nodes species withAll: nodes.
-	proposedNodes := proposedNodes copyWith: node.
+	proposedNodes add: node beforeIndex: effectiveIndex.
 
 	[ nodesDescription validate: proposedNodes ]
 		on: MAValidationError
@@ -59,7 +81,7 @@ CPAtelierCreateNode >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateNode >> applyAssessment: anAssessment [
-	node position: position.
+	position ifNotNil: [ node position: position ].
 	processMemento
 		write: anAssessment proposedNodes
 		using: nodesDescription
@@ -81,6 +103,11 @@ CPAtelierCreateNode >> position: aPoint [ position := aPoint ]
 CPAtelierCreateNode >> processMemento [ ^ processMemento ]
 { #category : 'accessing' }
 CPAtelierCreateNode >> processMemento: aMemento [ processMemento := aMemento ]
+
+{ #category : 'accessing' }
+CPAtelierCreateNode >> insertionIndex [ ^ insertionIndex ]
+{ #category : 'accessing' }
+CPAtelierCreateNode >> insertionIndex: anInteger [ insertionIndex := anInteger ]
 
 { #category : 'private' }
 CPAtelierCreateNode >> rejectedWithNodes: nodes because: aString [

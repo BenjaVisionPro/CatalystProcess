@@ -61,10 +61,10 @@ CPAtelierRemoveNodes >> assess [
 			anEdge sourceNode == aNode or: [ anEdge targetNode == aNode ] ] ]).
 
 	[ nodesDescription validate: proposedNodes ]
-		on: Error
+		on: MAValidationError
 		do: [ :anException | ^ self rejectedWithNodes: nodes edges: edges because: anException printString ].
 	[ edgesDescription validate: proposedEdges ]
-		on: Error
+		on: MAValidationError
 		do: [ :anException | ^ self rejectedWithNodes: nodes edges: edges because: anException printString ].
 
 	^ CPAtelierRemoveNodesAssessment
