@@ -298,3 +298,84 @@ CPAtelierConfigurationExamples >> interactiveProcessAtelier [
 	self assert: process edges size equals: 2.
 	^ element
 ]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nodeReplacementRetargetsIncidentEdgesInOneProcessTransaction [
+	<gtExample>
+	| process source oldNode replacement target incoming outgoing memento nodesDescription edgesDescription configuration operation assessment incomingMemento outgoingMemento |
+	process := CPProcessDesign new.
+	source := CPStartEventDesignNode new.
+	oldNode := CPUserTaskDesignNode new.
+	replacement := CPServiceTaskDesignNode new.
+	target := CPEndEventDesignNode new.
+	incoming := CPProcessDesignEdge new sourceNode: source; targetNode: oldNode; yourself.
+	outgoing := CPProcessDesignEdge new sourceNode: oldNode; targetNode: target; yourself.
+	process nodes: (OrderedCollection with: source with: oldNode with: target); edges: (OrderedCollection with: incoming with: outgoing).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration replaceOperationFor: oldNode with: replacement in: memento description: nodesDescription.
+	assessment := operation apply.
+	incomingMemento := memento childMementoFor: incoming inRelation: edgesDescription.
+	outgoingMemento := memento childMementoFor: outgoing inRelation: edgesDescription.
+
+	self assert: operation class equals: CPAtelierReplaceNode.
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: nodesDescription) second == replacement.
+	self assert: (incomingMemento readUsing: incoming targetNodeDescription) == replacement.
+	self assert: (outgoingMemento readUsing: outgoing sourceNodeDescription) == replacement.
+	self assert: incoming targetNode == oldNode.
+	self assert: outgoing sourceNode == oldNode.
+	self assert: process nodes second == oldNode.
+	^ operation
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nodeReplacementCommitPreservesTopologyWithReplacementIdentity [
+	<gtExample>
+	| process oldNode replacement target edge memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	oldNode := CPUserTaskDesignNode new.
+	replacement := CPServiceTaskDesignNode new.
+	target := CPEndEventDesignNode new.
+	edge := CPProcessDesignEdge new sourceNode: oldNode; targetNode: target; yourself.
+	process nodes: (OrderedCollection with: oldNode with: target); edges: (OrderedCollection with: edge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration replaceOperationFor: oldNode with: replacement in: memento description: nodesDescription.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	memento commit.
+
+	self assert: process nodes first == replacement.
+	self assert: edge sourceNode == replacement.
+	self assert: edge targetNode == target.
+	^ process
+]
+
+{ #category : 'examples - configuration' }
+CPAtelierConfigurationExamples >> nonNodeReplacementKeepsGenericAtelierSemantics [
+	<gtExample>
+	| process oldEdge replacementEdge memento nodesDescription edgesDescription configuration operation assessment |
+	process := CPProcessDesign new.
+	oldEdge := CPProcessDesignEdge new.
+	replacementEdge := CPProcessDesignEdge new.
+	process edges: (OrderedCollection with: oldEdge).
+	memento := CFMaMemento model: process.
+	nodesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #nodes ].
+	edgesDescription := memento magritteDescription detect: [ :each | each handlesSelector: #edges ].
+	configuration := CPAtelierConfiguration nodesDescription: nodesDescription edgesDescription: edgesDescription.
+
+	operation := configuration replaceOperationFor: oldEdge with: replacementEdge in: memento description: edgesDescription.
+	assessment := operation assess.
+
+	self assert: operation class equals: CFAtelierReplace.
+	self assert: assessment isApplicable.
+	self assert: process edges first == oldEdge.
+	^ operation
+]

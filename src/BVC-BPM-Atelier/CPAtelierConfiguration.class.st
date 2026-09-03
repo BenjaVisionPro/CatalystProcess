@@ -28,7 +28,9 @@ CPAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 		insertOperationFor: [ :candidate :aMemento :aDescription :anIndex |
 			self insertOperationFor: candidate into: aMemento description: aDescription at: anIndex ];
 		removeOperationFor: [ :someObjects :aSourceContext |
-			self removeOperationFor: someObjects from: aSourceContext ].
+			self removeOperationFor: someObjects from: aSourceContext ];
+		replaceOperationFor: [ :candidate :currentObject :aMemento :aDescription |
+			self replaceOperationFor: currentObject with: candidate in: aMemento description: aDescription ].
 	^ anAtelierViewModel
 ]
 
@@ -88,6 +90,19 @@ CPAtelierConfiguration >> removeOperationFor: someObjects from: aSourceContext [
 		description: aSourceContext description
 ]
 
+
+
+{ #category : 'operations' }
+CPAtelierConfiguration >> replaceOperationFor: anObject with: aCandidate in: aMemento description: aDescription [
+	aDescription == nodesDescription ifTrue: [
+		^ CPAtelierReplaceNode
+			node: anObject
+			with: aCandidate
+			processMemento: aMemento
+			nodesDescription: nodesDescription
+			edgesDescription: edgesDescription ].
+	^ CFAtelierReplace object: anObject with: aCandidate memento: aMemento description: aDescription
+]
 { #category : 'accessing' }
 CPAtelierConfiguration >> nodesDescription [
 	^ nodesDescription
