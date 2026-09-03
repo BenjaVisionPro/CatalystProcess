@@ -20,8 +20,9 @@ CPProcessDiagramElement >> initialize [
 	super initialize.
 	nodeElementsByNode := IdentityDictionary new.
 	self
-		hMatchParent;
-		vExact: 420;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical exact: 420 ];
 		layout: BlFrameLayout new;
 		clipChildren: false;
 		padding: (BlInsets all: 20);
