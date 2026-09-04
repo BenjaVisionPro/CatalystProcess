@@ -179,6 +179,23 @@ CPProcessPresentation >> moveShapeOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
+CPProcessPresentation >> synchronizeEditingConfiguration [
+	diagramElement ifNil: [ ^ self ].
+	diagramElement
+		moveShapeOperationFor: moveShapeOperationBlock;
+		resizeShapeOperationFor: resizeShapeOperationBlock;
+		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
+		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
+		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
+		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
+		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
+		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
+		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock.
+	diagramElement refresh
+]
+
+{ #category : 'configuration' }
 CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
 { #category : 'configuration' }
 CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]

@@ -84,7 +84,8 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					edge: anEdge
 					waypoints: someWaypoints
 					processMemento: aPresentation memento
-					diagramDescription: diagramDescription ] ].
+					diagramDescription: diagramDescription ].
+		aPresentation synchronizeEditingConfiguration ].
 	^ anAtelierViewModel
 ]
 
