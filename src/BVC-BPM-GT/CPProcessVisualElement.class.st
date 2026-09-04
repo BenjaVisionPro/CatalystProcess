@@ -170,6 +170,7 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
 		element addChild: label.
+		element userData at: #processEditableLabel put: label.
 		self installLabelEditingTriggerOn: element for: label ].
 	^ element
 ]
@@ -217,7 +218,10 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 		focused: Color transparent
 		border: Color transparent
 		focused: Color transparent.
-	aptitude defaultForeground: self theme typography titleForeground.
+	aptitude
+		glamorousRegularFont;
+		fontSize: self theme typography titleFontSize;
+		defaultForeground: self theme typography titleForeground.
 	label
 		aptitude: aptitude;
 		addAptitude: (BrLazyStyleCommonAptitude new
@@ -427,35 +431,47 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	anElement
-		addEventHandler: (BlEventHandler
+		addEventFilter: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
-				dragStartEventPosition := anEvent position.
-				dragStartElementPosition := anElement position.
-				originalBounds := self stagedBoundsOf: aShape.
-				dragStartLabelPosition := (externalLabelElementsByModelElement
-					at: aShape modelElement
-					ifAbsent: [ nil ])
-					ifNotNil: [ :aLabel | aLabel position ].
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
+				(self isEditingLabelIn: anElement) ifFalse: [
+					dragStartEventPosition := anEvent position.
+					dragStartElementPosition := anElement position.
+					originalBounds := self stagedBoundsOf: aShape.
+					dragStartLabelPosition := (externalLabelElementsByModelElement
+						at: aShape modelElement
+						ifAbsent: [ nil ])
+						ifNotNil: [ :aLabel | aLabel position ].
+					anEvent consumed: true ] ]);
+		addEventFilter: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
-				| proposedPosition delta |
-				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
-				anElement relocate: proposedPosition.
-				delta := anElement position - dragStartElementPosition.
-				dragStartLabelPosition ifNotNil: [
-					(externalLabelElementsByModelElement at: aShape modelElement)
-						relocate: dragStartLabelPosition + delta ].
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
+				(self isEditingLabelIn: anElement) ifFalse: [
+					| proposedPosition delta |
+					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+					anElement relocate: proposedPosition.
+					delta := anElement position - dragStartElementPosition.
+					dragStartLabelPosition ifNotNil: [
+						(externalLabelElementsByModelElement at: aShape modelElement)
+							relocate: dragStartLabelPosition + delta ].
+					anEvent consumed: true ] ]);
+		addEventFilter: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
-				| proposedBounds |
-				anEvent consumed: true.
-				proposedBounds := anElement position extent: originalBounds extent.
-				self moveShape: aShape toBounds: proposedBounds ])
+				(self isEditingLabelIn: anElement) ifFalse: [
+					| proposedBounds |
+					anEvent consumed: true.
+					proposedBounds := anElement position extent: originalBounds extent.
+					self moveShape: aShape toBounds: proposedBounds ] ])
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> isEditingLabelIn: anElement [
+	| label |
+	label := anElement userData
+		at: #processEditableLabel
+		ifAbsent: [ ^ false ].
+	^ label isEditable
 ]
 
 { #category : 'private - theme' }
