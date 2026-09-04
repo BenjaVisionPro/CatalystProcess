@@ -201,115 +201,115 @@ CPProcessVisualElement >> addShapeFor: aShape [
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
-\t| popupHost |
-\taFlowNode isTask ifFalse: [ ^ self ].
-\treplaceFlowNodeOperationBlock ifNil: [ ^ self ].
+	| popupHost |
+	aFlowNode isTask ifFalse: [ ^ self ].
+	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
 
-\tpopupHost := BrFrame new
-\t\tfitContent;
-\t\tconstraintsDo: [ :c |
-\t\t\tc frame horizontal alignLeft.
-\t\t\tc frame vertical alignTop.
-\t\t\tc margin: (BlInsets top: 7 left: 7) ];
-\t\tyourself.
+	popupHost := BrFrame new
+		fitContent;
+		constraintsDo: [ :c |
+			c frame horizontal alignLeft.
+			c frame vertical alignTop.
+			c margin: (BlInsets top: 7 left: 7) ];
+		yourself.
 
-\tpopupHost addAptitude: (BrGlamorousWithExplicitDropdownAptitude
-\t\thandle: [
-\t\t\tself newTaskTypePopupHandleFor: aFlowNode ]
-\t\tcontent: [
-\t\t\tself
-\t\t\t\tnewTaskTypePopupContentFor: aFlowNode
-\t\t\t\tshape: aShape
-\t\t\t\tanchor: popupHost ]).
+	popupHost addAptitude: (BrGlamorousWithExplicitDropdownAptitude
+		handle: [
+			self newTaskTypePopupHandleFor: aFlowNode ]
+		content: [
+			self
+				newTaskTypePopupContentFor: aFlowNode
+				shape: aShape
+				anchor: popupHost ]).
 
-\taShapeElement addChild: popupHost
+	aShapeElement addChild: popupHost
 ]
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> newTaskTypePopupHandleFor: aTask [
-\t| icon |
-\ticon := FontAwesomeIcons icon: aTask class taskTypeIcon.
-\ticon
-\t\theight: 15;
-\t\tcolor: self shapeBorderColor.
+	| icon |
+	icon := FontAwesomeIcons icon: aTask class taskTypeIcon.
+	icon
+		height: 15;
+		color: self shapeBorderColor.
 
-\t^ BrButton new
-\t\taptitude: BrGlamorousButtonWithIconAptitude - BrGlamorousButtonExteriorAptitude;
-\t\ticon: icon;
-\t\tlabel: aTask class taskTypeLabel;
-\t\tpadding: BlInsets empty;
-\t\tmargin: BlInsets empty;
-\t\tfitContent;
-\t\tyourself
+	^ BrButton new
+		aptitude: BrGlamorousButtonWithIconAptitude - BrGlamorousButtonExteriorAptitude;
+		icon: icon;
+		label: aTask class taskTypeLabel;
+		padding: BlInsets empty;
+		margin: BlInsets empty;
+		fitContent;
+		yourself
 ]
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape anchor: aDropdownAnchor [
-\t| pane |
-\tpane := BrVerticalPane new
-\t\tvFitContent;
-\t\thExact: 180;
-\t\tpadding: (BlInsets all: 4);
-\t\tcellSpacing: 2;
-\t\tyourself.
+	| pane |
+	pane := BrVerticalPane new
+		vFitContent;
+		hExact: 180;
+		padding: (BlInsets all: 4);
+		cellSpacing: 2;
+		yourself.
 
-\tCPTask taskTypes do: [ :aTaskClass |
-\t\tpane addChild: (self
-\t\t\tnewTaskTypePopupOptionFor: aTaskClass
-\t\t\tcurrentTask: aTask
-\t\t\tshape: aShape
-\t\t\tanchor: aDropdownAnchor) ].
-\t^ pane
+	CPTask taskTypes do: [ :aTaskClass |
+		pane addChild: (self
+			newTaskTypePopupOptionFor: aTaskClass
+			currentTask: aTask
+			shape: aShape
+			anchor: aDropdownAnchor) ].
+	^ pane
 ]
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTask shape: aShape anchor: aDropdownAnchor [
-\t| icon button |
-\ticon := FontAwesomeIcons icon: aTaskClass taskTypeIcon.
-\ticon
-\t\theight: 16;
-\t\tcolor: self shapeBorderColor.
+	| icon button |
+	icon := FontAwesomeIcons icon: aTaskClass taskTypeIcon.
+	icon
+		height: 16;
+		color: self shapeBorderColor.
 
-\tbutton := BrButton new
-\t\taptitude: BrGlamorousButtonWithLabelAndIconAptitude;
-\t\ticon: icon;
-\t\tlabel: aTaskClass taskTypeLabel;
-\t\thMatchParent;
-\t\tvFitContent;
-\t\tpadding: (BlInsets top: 5 right: 8 bottom: 5 left: 8);
-\t\tyourself.
+	button := BrButton new
+		aptitude: BrGlamorousButtonWithLabelAndIconAptitude;
+		icon: icon;
+		label: aTaskClass taskTypeLabel;
+		hMatchParent;
+		vFitContent;
+		padding: (BlInsets top: 5 right: 8 bottom: 5 left: 8);
+		yourself.
 
-\tbutton action: [
-\t\taTask class == aTaskClass
-\t\t\tifFalse: [
-\t\t\t\tself
-\t\t\t\t\treplaceTask: aTask
-\t\t\t\t\twithClass: aTaskClass
-\t\t\t\t\tshape: aShape ].
-\t\taDropdownAnchor fireEvent: BrDropdownHideWish new ].
-\t^ button
+	button action: [
+		aTask class == aTaskClass
+			ifFalse: [
+				self
+					replaceTask: aTask
+					withClass: aTaskClass
+					shape: aShape ].
+		aDropdownAnchor fireEvent: BrDropdownHideWish new ].
+	^ button
 ]
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> replaceTask: aTask withClass: aTaskClass shape: aShape [
-\t| replacement proposedBounds assessment |
-\treplaceFlowNodeOperationBlock ifNil: [ ^ nil ].
-\treplacement := aTaskClass new.
-\tproposedBounds := self stagedBoundsOf: aShape.
+	| replacement proposedBounds assessment |
+	replaceFlowNodeOperationBlock ifNil: [ ^ nil ].
+	replacement := aTaskClass new.
+	proposedBounds := self stagedBoundsOf: aShape.
 
-\tassessment := (replaceFlowNodeOperationBlock
-\t\tvalue: aTask
-\t\tvalue: replacement
-\t\tvalue: proposedBounds) apply.
+	assessment := (replaceFlowNodeOperationBlock
+		value: aTask
+		value: replacement
+		value: proposedBounds) apply.
 
-\tassessment isApplicable ifTrue: [
-\t\tselectedModelElements removeAll.
-\t\tselectedModelElements add: replacement.
-\t\tselectedModelElement := replacement.
-\t\tself refresh.
-\t\tself updateSelectionAppearance.
-\t\tselectionChangedBlock ifNotNil: [ :aBlock | aBlock value: replacement ] ].
-\t^ assessment
+	assessment isApplicable ifTrue: [
+		selectedModelElements removeAll.
+		selectedModelElements add: replacement.
+		selectedModelElement := replacement.
+		self refresh.
+		self updateSelectionAppearance.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: replacement ] ].
+	^ assessment
 ]
 
 { #category : 'private - shapes' }
