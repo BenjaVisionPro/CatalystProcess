@@ -198,7 +198,44 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge [
-	self addEdgeFor: anEdge waypoints: (self stagedWaypointsOf: anEdge)
+	| waypoints |
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size = 2
+		ifTrue: [ self addStraightEdgeFor: anEdge ]
+		ifFalse: [ self addEdgeFor: anEdge waypoints: waypoints ]
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> addStraightEdgeFor: anEdge [
+	| sequenceFlow sourceElement targetElement line |
+	sequenceFlow := anEdge modelElement.
+	sourceElement := shapeElementsByModelElement at: sequenceFlow sourceRef.
+	targetElement := shapeElementsByModelElement at: sequenceFlow targetRef.
+
+	line := BlLineElement new
+		fromAnchor: ((self anchorClassFor: sequenceFlow sourceRef)
+			nearestTo: targetElement
+			from: sourceElement);
+		toAnchor: ((self anchorClassFor: sequenceFlow targetRef)
+			nearestTo: sourceElement
+			from: targetElement);
+		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	line toHead: (BlArrowheadSimpleArrow new
+		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		yourself).
+	line userData at: #processDiagramElement put: anEdge.
+	line userData at: #processModelElement put: anEdge modelElement.
+	edgeElementsByEdge at: anEdge put: { line }.
+	self addChildFirst: line
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> anchorClassFor: aFlowNode [
+	^ aFlowNode isEvent
+		ifTrue: [ BlNearestPositionEllipseAnchor ]
+		ifFalse: [ BlNearestPositionBoundsAnchor ]
 ]
 
 { #category : 'private - edges' }
@@ -247,48 +284,6 @@ CPProcessVisualElement >> edge: anEdge isIncidentTo: aModelElement [
 CPProcessVisualElement >> removeRenderedEdgeFor: anEdge [
 	(edgeElementsByEdge removeKey: anEdge ifAbsent: [ #() ])
 		do: [ :aLine | aLine removeFromParent ]
-]
-
-{ #category : 'private - positioning' }
-CPProcessVisualElement >> redrawIncidentEdgesForMovedShape: aShape [
-	diagramElements do: [ :each |
-		(each isEdge and: [ self edge: each isIncidentTo: aShape modelElement ]) ifTrue: [
-			self redrawEdgeFromDisplayedShapes: each ] ]
-]
-
-{ #category : 'private - edges' }
-CPProcessVisualElement >> redrawEdgeFromDisplayedShapes: anEdge [
-	| waypoints displayedWaypoints sequenceFlow sourceShape targetShape sourceElement targetElement |
-	waypoints := self stagedWaypointsOf: anEdge.
-	waypoints size < 2 ifTrue: [ ^ self ].
-	displayedWaypoints := waypoints asOrderedCollection.
-	sequenceFlow := anEdge modelElement.
-
-	sourceShape := self shapeForModelElement: sequenceFlow sourceRef.
-	sourceElement := shapeElementsByModelElement at: sequenceFlow sourceRef ifAbsent: [ nil ].
-	(sourceShape notNil and: [ sourceElement notNil ]) ifTrue: [
-		displayedWaypoints
-			at: 1
-			put: sourceElement position
-				+ (waypoints first - (self stagedBoundsOf: sourceShape) origin) ].
-
-	targetShape := self shapeForModelElement: sequenceFlow targetRef.
-	targetElement := shapeElementsByModelElement at: sequenceFlow targetRef ifAbsent: [ nil ].
-	(targetShape notNil and: [ targetElement notNil ]) ifTrue: [
-		displayedWaypoints
-			at: displayedWaypoints size
-			put: targetElement position
-				+ (waypoints last - (self stagedBoundsOf: targetShape) origin) ].
-
-	self removeRenderedEdgeFor: anEdge.
-	self addEdgeFor: anEdge waypoints: displayedWaypoints
-]
-
-{ #category : 'private - shapes' }
-CPProcessVisualElement >> shapeForModelElement: aModelElement [
-	^ shapeElementsByShape keys
-		detect: [ :each | each modelElement == aModelElement ]
-		ifNone: [ nil ]
 ]
 
 { #category : 'private - selection' }
@@ -386,7 +381,6 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 				dragStartLabelPosition ifNotNil: [
 					(externalLabelElementsByModelElement at: aShape modelElement)
 						relocate: dragStartLabelPosition + delta ].
-				self redrawIncidentEdgesForMovedShape: aShape.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
