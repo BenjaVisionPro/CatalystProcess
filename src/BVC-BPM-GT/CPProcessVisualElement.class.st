@@ -14,6 +14,8 @@ Class {
 		'shapeElementsByModelElement',
 		'edgeElementsByEdge',
 		'externalLabelElementsByModelElement',
+		'connectionPortElementsByModelElement',
+		'hoveredModelElement',
 		'diagramElements',
 		'selectedModelElement',
 		'selectionChangedBlock',
@@ -35,6 +37,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
+	connectionPortElementsByModelElement := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false
@@ -63,6 +66,8 @@ CPProcessVisualElement >> refresh [
 	shapeElementsByModelElement removeAll.
 	edgeElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
+	connectionPortElementsByModelElement removeAll.
+	hoveredModelElement := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
@@ -78,7 +83,8 @@ CPProcessVisualElement >> refresh [
 	edges := elements select: #isEdge.
 	shapes := elements select: #isShape.
 	shapes do: [ :each | self addShapeFor: each ].
-	edges do: [ :each | self addEdgeFor: each ]
+	edges do: [ :each | self addEdgeFor: each ].
+	self updateConnectionPortVisibility
 ]
 
 { #category : 'private - layout' }
@@ -334,16 +340,27 @@ CPProcessVisualElement >> removeRenderedEdgeFor: anEdge [
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
-	anElement addEventHandler: (BlEventHandler
-		on: BlClickEvent
-		do: [ :anEvent |
-			connectionSourceModelElement
-				ifNotNil: [ self completeConnectionTo: aModelElement. anEvent consumed: true ]
-				ifNil: [
-					selectedModelElement := aModelElement.
-					self updateSelectionAppearance.
-					selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
-					anEvent consumed: true ] ])
+	anElement
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				connectionSourceModelElement
+					ifNotNil: [ self completeConnectionTo: aModelElement. anEvent consumed: true ]
+					ifNil: [
+						selectedModelElement := aModelElement.
+						self updateSelectionAppearance.
+						selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
+						anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseEnterEvent
+			do: [ :anEvent |
+				hoveredModelElement := aModelElement.
+				self updateConnectionPortVisibility ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseLeaveEvent
+			do: [ :anEvent |
+				hoveredModelElement == aModelElement ifTrue: [ hoveredModelElement := nil ].
+				self updateConnectionPortVisibility ])
 ]
 
 { #category : 'selection' }
@@ -371,7 +388,8 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			paint: (isSelected
 				ifTrue: [ self selectionColor ]
 				ifFalse: [ self shapeBorderColor ])
-			width: (self borderWidthFor: aModelElement selected: isSelected)) ]
+			width: (self borderWidthFor: aModelElement selected: isSelected)) ].
+	self updateConnectionPortVisibility
 ]
 
 { #category : 'private - selection' }
@@ -529,15 +547,28 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 	| port |
 	connectFlowNodesOperationBlock ifNil: [ ^ self ].
+	aFlowNode isEndEvent ifTrue: [ ^ self ].
 	port := BlElement new
 		extent: 12 @ 12;
 		geometry: BlCircleGeometry new;
 		background: self selectionColor;
 		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c frame horizontal alignRight. c frame vertical alignCenter ];
 		yourself.
 	port addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | self beginConnectionFrom: aFlowNode. anEvent consumed: true ]).
+	connectionPortElementsByModelElement at: aFlowNode put: port.
 	aNodeElement addChild: port
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> updateConnectionPortVisibility [
+	connectionPortElementsByModelElement keysAndValuesDo: [ :aFlowNode :aPort |
+		aPort visibility: ((aFlowNode == hoveredModelElement
+			or: [ aFlowNode == selectedModelElement
+			or: [ aFlowNode == connectionSourceModelElement ] ])
+			ifTrue: [ BlVisibility visible ]
+			ifFalse: [ BlVisibility hidden ]) ]
 ]
 
 { #category : 'private - connection' }
@@ -551,6 +582,7 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 	| source assessment |
 	source := connectionSourceModelElement.
 	connectionSourceModelElement := nil.
+	self updateConnectionPortVisibility.
 	source ifNil: [ ^ self ].
 	source == aFlowNode ifTrue: [ self updateSelectionAppearance. ^ self ].
 	assessment := (connectFlowNodesOperationBlock value: source value: aFlowNode) apply.
