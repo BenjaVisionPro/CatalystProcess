@@ -97,6 +97,7 @@ CPProcessVisualElement >> refresh [
 	shapes := elements select: #isShape.
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
+	self bringNodeInteractionSurfacesToFront.
 	self updateConnectionPortVisibility
 ]
 
@@ -335,8 +336,18 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	line userData at: #processModelElement put: anEdge modelElement.
 	self installEdgeSelectionOn: line for: anEdge.
 	edgeElementsByEdge at: anEdge put: { line }.
-	self addChildFirst: selectionLine.
-	self addChildFirst: line
+	self addChild: selectionLine.
+	self addChild: line
+]
+
+{ #category : 'private - layout' }
+CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
+	shapeElementsByShape valuesDo: [ :anElement |
+		anElement removeFromParent.
+		self addChild: anElement ].
+	externalLabelElementsByModelElement valuesDo: [ :anElement |
+		anElement removeFromParent.
+		self addChild: anElement ]
 ]
 
 { #category : 'private - edges' }
@@ -375,8 +386,8 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		line userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: line for: anEdge.
 		lines add: line.
-		self addChildFirst: selectionLine.
-		self addChildFirst: line ].
+		self addChild: selectionLine.
+		self addChild: line ].
 	edgeElementsByEdge at: anEdge put: lines
 ]
 
