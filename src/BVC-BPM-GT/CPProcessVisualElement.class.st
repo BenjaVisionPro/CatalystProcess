@@ -258,19 +258,37 @@ CPProcessVisualElement >> redrawIncidentEdgesForMovedShape: aShape [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> redrawEdgeFromDisplayedShapes: anEdge [
-	| waypoints displayedWaypoints sequenceFlow sourceElement targetElement |
+	| waypoints displayedWaypoints sequenceFlow sourceShape targetShape sourceElement targetElement |
 	waypoints := self stagedWaypointsOf: anEdge.
 	waypoints size < 2 ifTrue: [ ^ self ].
 	displayedWaypoints := waypoints asOrderedCollection.
 	sequenceFlow := anEdge modelElement.
+
+	sourceShape := self shapeForModelElement: sequenceFlow sourceRef.
 	sourceElement := shapeElementsByModelElement at: sequenceFlow sourceRef ifAbsent: [ nil ].
+	(sourceShape notNil and: [ sourceElement notNil ]) ifTrue: [
+		displayedWaypoints
+			at: 1
+			put: sourceElement position
+				+ (waypoints first - (self stagedBoundsOf: sourceShape) origin) ].
+
+	targetShape := self shapeForModelElement: sequenceFlow targetRef.
 	targetElement := shapeElementsByModelElement at: sequenceFlow targetRef ifAbsent: [ nil ].
-	sourceElement ifNotNil: [
-		displayedWaypoints at: 1 put: sourceElement position + (sourceElement extent / 2) ].
-	targetElement ifNotNil: [
-		displayedWaypoints at: displayedWaypoints size put: targetElement position + (targetElement extent / 2) ].
+	(targetShape notNil and: [ targetElement notNil ]) ifTrue: [
+		displayedWaypoints
+			at: displayedWaypoints size
+			put: targetElement position
+				+ (waypoints last - (self stagedBoundsOf: targetShape) origin) ].
+
 	self removeRenderedEdgeFor: anEdge.
 	self addEdgeFor: anEdge waypoints: displayedWaypoints
+]
+
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> shapeForModelElement: aModelElement [
+	^ shapeElementsByShape keys
+		detect: [ :each | each modelElement == aModelElement ]
+		ifNone: [ nil ]
 ]
 
 { #category : 'private - selection' }
@@ -338,7 +356,7 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 	| assessment |
 	moveShapeOperationBlock ifNil: [ ^ nil ].
 	assessment := (moveShapeOperationBlock value: aShape value: aRectangle) apply.
-	assessment isApplicable ifFalse: [ self refresh ].
+	self refresh.
 	^ assessment
 ]
 
