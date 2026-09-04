@@ -220,7 +220,11 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 			self
 				newTaskTypePopupContentFor: aFlowNode
 				shape: aShape
-				anchor: popupHost ]).
+				anchor: popupHost ]
+		do: [ :anAptitude |
+			anAptitude
+				withWidgetBoundsRelocator;
+				withContainerDownDropdown ]).
 
 	aShapeElement addChild: popupHost
 ]
