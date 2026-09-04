@@ -299,20 +299,32 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addStraightEdgeFor: anEdge [
-	| sequenceFlow sourceElement targetElement line source target |
+	| sequenceFlow sourceElement targetElement line selectionLine source target sourceAnchor targetAnchor |
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 	sourceElement := shapeElementsByModelElement at: source.
 	targetElement := shapeElementsByModelElement at: target.
+	sourceAnchor := (self anchorClassFor: source)
+		nearestTo: targetElement
+		from: sourceElement.
+	targetAnchor := (self anchorClassFor: target)
+		nearestTo: sourceElement
+		from: targetElement.
+
+	selectionLine := BlLineElement new
+		fromAnchor: sourceAnchor;
+		toAnchor: targetAnchor;
+		border: (BlBorder paint: Color transparent width: 2.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	selectionLine userData at: #processDiagramElement put: anEdge.
+	selectionLine userData at: #processModelElement put: anEdge modelElement.
+	self installEdgeSelectionOn: selectionLine for: anEdge.
 
 	line := BlLineElement new
-		fromAnchor: ((self anchorClassFor: source)
-			nearestTo: targetElement
-			from: sourceElement);
-		toAnchor: ((self anchorClassFor: target)
-			nearestTo: sourceElement
-			from: targetElement);
+		fromAnchor: sourceAnchor;
+		toAnchor: targetAnchor;
 		border: (BlBorder paint: self shapeBorderColor width: 1.5);
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
@@ -323,6 +335,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	line userData at: #processModelElement put: anEdge modelElement.
 	self installEdgeSelectionOn: line for: anEdge.
 	edgeElementsByEdge at: anEdge put: { line }.
+	self addChildFirst: selectionLine.
 	self addChildFirst: line
 ]
 
@@ -340,15 +353,29 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	lines := OrderedCollection new.
 	pairCount := waypoints size - 1.
 	1 to: pairCount do: [ :index |
-		| line |
+		| line selectionLine startPoint endPoint |
+		startPoint := waypoints at: index.
+		endPoint := waypoints at: index + 1.
+
+		selectionLine := BlLineElement new
+			fromAnchor: (BlAbsolutePositionAnchor position: startPoint);
+			toAnchor: (BlAbsolutePositionAnchor position: endPoint);
+			border: (BlBorder paint: Color transparent width: 2.5);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			yourself.
+		selectionLine userData at: #processDiagramElement put: anEdge.
+		selectionLine userData at: #processModelElement put: anEdge modelElement.
+		self installEdgeSelectionOn: selectionLine for: anEdge.
+
 		line := self
-			newLineFrom: (waypoints at: index)
-			to: (waypoints at: index + 1)
+			newLineFrom: startPoint
+			to: endPoint
 			withArrowhead: index = pairCount.
 		line userData at: #processDiagramElement put: anEdge.
 		line userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: line for: anEdge.
 		lines add: line.
+		self addChildFirst: selectionLine.
 		self addChildFirst: line ].
 	edgeElementsByEdge at: anEdge put: lines
 ]
