@@ -207,7 +207,6 @@ CPProcessVisualElement >> addShapeFor: aShape [
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
 	| taskTypeButton |
 	aFlowNode isActivity ifFalse: [ ^ self ].
-	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
 
 	taskTypeButton := self
 		newTaskTypePopupButtonFor: aFlowNode
