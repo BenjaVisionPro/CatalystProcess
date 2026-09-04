@@ -13,7 +13,9 @@ Class {
 		'selectedModelElement',
 		'moveShapeOperationBlock',
 		'createFlowNodeOperationBlock',
-		'connectFlowNodesOperationBlock'
+		'connectFlowNodesOperationBlock',
+		'removeFlowNodeOperationBlock',
+		'removeSequenceFlowOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -30,6 +32,8 @@ CPProcessPresentation >> prepareHostElement [
 		moveShapeOperationFor: moveShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
+		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
+		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
 		memento: self memento;
 		yourself.
 
@@ -83,6 +87,9 @@ CPProcessPresentation >> prepareHostElement [
 CPProcessPresentation >> selectModelElement: aModelElement [
 	| selectedMemento detailElement |
 	selectedModelElement := aModelElement.
+	aModelElement ifNil: [
+		detailHostElement removeChildren.
+		^ self ].
 	selectedMemento := self mementoForModelElement: aModelElement.
 	detailElement := self
 		newDetailElementFor: aModelElement
@@ -165,3 +172,9 @@ CPProcessPresentation >> moveShapeOperationFor: aBlock [
 CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
 { #category : 'configuration' }
 CPProcessPresentation >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> removeFlowNodeOperationFor: aBlock [ removeFlowNodeOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> removeSequenceFlowOperationFor: aBlock [ removeSequenceFlowOperationBlock := aBlock ]

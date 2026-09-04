@@ -35,3 +35,8 @@ CPFlowElement >> containerDescription [
 CPFlowElement >> prepareForRemovalFrom: aContainer [
 ]
 
+
+{ #category : 'testing' }
+CPFlowElement >> isSequenceFlow [
+	^ false
+]

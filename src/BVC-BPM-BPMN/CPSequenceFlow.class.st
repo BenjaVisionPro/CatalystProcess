@@ -68,3 +68,8 @@ CPSequenceFlow >> prepareForRemovalFrom: aContainer [
 	self sourceRef: nil.
 	self targetRef: nil
 ]
+
+{ #category : 'testing' }
+CPSequenceFlow >> isSequenceFlow [
+	^ true
+]

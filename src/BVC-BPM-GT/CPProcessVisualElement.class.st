@@ -22,6 +22,8 @@ Class {
 		'moveShapeOperationBlock',
 		'createFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
+		'removeFlowNodeOperationBlock',
+		'removeSequenceFlowOperationBlock',
 		'connectionSourceModelElement',
 		'activePaletteDragItem'
 	],
@@ -40,7 +42,9 @@ CPProcessVisualElement >> initialize [
 	connectionPortElementsByModelElement := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
-		clipChildren: false
+		clipChildren: false;
+		beFocusable.
+	self installKeyboardHandler
 ]
 
 { #category : 'accessing' }
@@ -307,6 +311,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 		yourself).
 	line userData at: #processDiagramElement put: anEdge.
 	line userData at: #processModelElement put: anEdge modelElement.
+	self installEdgeSelectionOn: line for: anEdge.
 	edgeElementsByEdge at: anEdge put: { line }.
 	self addChildFirst: line
 ]
@@ -332,6 +337,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 			withArrowhead: index = pairCount.
 		line userData at: #processDiagramElement put: anEdge.
 		line userData at: #processModelElement put: anEdge modelElement.
+		self installEdgeSelectionOn: line for: anEdge.
 		lines add: line.
 		self addChildFirst: line ].
 	edgeElementsByEdge at: anEdge put: lines
@@ -378,6 +384,7 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 						selectedModelElement := aModelElement.
 						self updateSelectionAppearance.
 						selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
+						self requestFocus.
 						anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
@@ -417,6 +424,13 @@ CPProcessVisualElement >> updateSelectionAppearance [
 				ifTrue: [ self selectionColor ]
 				ifFalse: [ self shapeBorderColor ])
 			width: (self borderWidthFor: aModelElement selected: isSelected)) ].
+	edgeElementsByEdge keysAndValuesDo: [ :anEdge :someLines |
+		| isSelected |
+		isSelected := anEdge modelElement == selectedModelElement.
+		someLines do: [ :aLine |
+			aLine border: (BlBorder
+				paint: (isSelected ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
+				width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
 	self updateConnectionPortVisibility
 ]
 
@@ -626,4 +640,70 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 	assessment := (connectFlowNodesOperationBlock value: source value: aFlowNode) apply.
 	self refresh.
 	^ assessment
+]
+
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> removeFlowNodeOperationFor: aBlock [ removeFlowNodeOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> removeSequenceFlowOperationFor: aBlock [ removeSequenceFlowOperationBlock := aBlock ]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> installEdgeSelectionOn: aLine for: anEdge [
+	aLine addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			connectionSourceModelElement ifNil: [
+				selectedModelElement := anEdge modelElement.
+				self updateSelectionAppearance.
+				selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: anEdge modelElement ].
+				self requestFocus.
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - installing' }
+CPProcessVisualElement >> installKeyboardHandler [
+	self addEventHandler: (BlEventHandler
+		on: BlKeyDownEvent
+		do: [ :anEvent |
+			(anEvent key = BlKeyboardKey delete or: [ anEvent key = BlKeyboardKey backspace ]) ifTrue: [
+				self removeSelection.
+				anEvent consumed: true ].
+			anEvent key = BlKeyboardKey escape ifTrue: [
+				self cancelInteraction.
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - removal' }
+CPProcessVisualElement >> removeSelection [
+	| selectedShape selectedEdge operation assessment |
+	selectedModelElement ifNil: [ ^ self ].
+	selectedShape := shapeElementsByModelElement at: selectedModelElement ifAbsent: [ nil ].
+	selectedShape ifNotNil: [
+		removeFlowNodeOperationBlock ifNil: [ ^ self ].
+		operation := removeFlowNodeOperationBlock value: selectedModelElement ].
+	selectedShape ifNil: [
+		selectedEdge := edgeElementsByEdge keys detect: [ :each | each modelElement == selectedModelElement ] ifNone: [ nil ].
+		selectedEdge ifNil: [ ^ self ].
+		removeSequenceFlowOperationBlock ifNil: [ ^ self ].
+		operation := removeSequenceFlowOperationBlock value: selectedModelElement ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		selectedModelElement := nil.
+		connectionSourceModelElement := nil.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
+		self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> cancelInteraction [
+	connectionSourceModelElement ifNotNil: [
+		connectionSourceModelElement := nil.
+		self updateSelectionAppearance.
+		^ self ].
+	selectedModelElement := nil.
+	self updateSelectionAppearance.
+	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ]
 ]

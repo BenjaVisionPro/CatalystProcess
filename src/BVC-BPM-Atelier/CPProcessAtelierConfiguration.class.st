@@ -47,7 +47,11 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 			createFlowNodeOperationFor: [ :aFlowNode :proposedBounds |
 				CPAtelierCreateFlowNode flowNode: aFlowNode bounds: proposedBounds processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
 			connectFlowNodesOperationFor: [ :aSource :aTarget |
-				CPAtelierConnectFlowNodes source: aSource target: aTarget processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ] ].
+				CPAtelierConnectFlowNodes source: aSource target: aTarget processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
+			removeFlowNodeOperationFor: [ :aFlowNode |
+				CPAtelierRemoveFlowNode flowNode: aFlowNode processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
+			removeSequenceFlowOperationFor: [ :aSequenceFlow |
+				CPAtelierRemoveSequenceFlow sequenceFlow: aSequenceFlow processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ] ].
 	^ anAtelierViewModel
 ]
 
