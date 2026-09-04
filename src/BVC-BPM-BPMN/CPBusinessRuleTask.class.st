@@ -1,21 +1,21 @@
 Class {
-	#name : 'CPUserTask',
+	#name : 'CPBusinessRuleTask',
 	#superclass : 'CPTask',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeLabel [
-	^ 'User'
+CPBusinessRuleTask class >> taskTypeLabel [
+	^ 'Business Rule'
 ]
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeIcon [
-	^ #user
+CPBusinessRuleTask class >> taskTypeIcon [
+	^ #buildingMemo
 ]
 
 { #category : 'defaults' }
-CPUserTask class >> defaultIcon [
+CPBusinessRuleTask class >> defaultIcon [
 	^ self taskTypeIcon
 ]

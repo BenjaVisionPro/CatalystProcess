@@ -5,7 +5,17 @@ Class {
 	#package : 'BVC-BPM-BPMN'
 }
 
+{ #category : 'task type' }
+CPServiceTask class >> taskTypeLabel [
+	^ 'Service'
+]
+
+{ #category : 'task type' }
+CPServiceTask class >> taskTypeIcon [
+	^ #gear
+]
+
 { #category : 'defaults' }
 CPServiceTask class >> defaultIcon [
-	^ #serviceTask
+	^ self taskTypeIcon
 ]

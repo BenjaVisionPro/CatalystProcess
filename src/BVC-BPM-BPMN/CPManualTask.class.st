@@ -1,21 +1,21 @@
 Class {
-	#name : 'CPUserTask',
+	#name : 'CPManualTask',
 	#superclass : 'CPTask',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeLabel [
-	^ 'User'
+CPManualTask class >> taskTypeLabel [
+	^ 'Manual'
 ]
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeIcon [
-	^ #user
+CPManualTask class >> taskTypeIcon [
+	^ #personDigging
 ]
 
 { #category : 'defaults' }
-CPUserTask class >> defaultIcon [
+CPManualTask class >> defaultIcon [
 	^ self taskTypeIcon
 ]

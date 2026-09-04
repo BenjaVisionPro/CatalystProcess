@@ -1,6 +1,6 @@
-Extension { #name : 'CPServiceTask' }
+Extension { #name : 'CPReceiveTask' }
 
 { #category : '*BVC-BPM-GT' }
-CPServiceTask class >> icon [
+CPReceiveTask class >> icon [
 	^ [ (FontAwesomeIcons icon: self taskTypeIcon) height: 20 ] asStencil
 ]

@@ -1,21 +1,21 @@
 Class {
-	#name : 'CPUserTask',
+	#name : 'CPReceiveTask',
 	#superclass : 'CPTask',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeLabel [
-	^ 'User'
+CPReceiveTask class >> taskTypeLabel [
+	^ 'Receive'
 ]
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeIcon [
-	^ #user
+CPReceiveTask class >> taskTypeIcon [
+	^ #arrowDownToSquare
 ]
 
 { #category : 'defaults' }
-CPUserTask class >> defaultIcon [
+CPReceiveTask class >> defaultIcon [
 	^ self taskTypeIcon
 ]

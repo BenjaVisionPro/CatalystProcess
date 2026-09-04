@@ -1,21 +1,21 @@
 Class {
-	#name : 'CPUserTask',
+	#name : 'CPSendTask',
 	#superclass : 'CPTask',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeLabel [
-	^ 'User'
+CPSendTask class >> taskTypeLabel [
+	^ 'Send'
 ]
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeIcon [
-	^ #user
+CPSendTask class >> taskTypeIcon [
+	^ #arrowUpFromSquare
 ]
 
 { #category : 'defaults' }
-CPUserTask class >> defaultIcon [
+CPSendTask class >> defaultIcon [
 	^ self taskTypeIcon
 ]

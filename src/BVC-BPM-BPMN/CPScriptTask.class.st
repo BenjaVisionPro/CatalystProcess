@@ -1,21 +1,21 @@
 Class {
-	#name : 'CPUserTask',
+	#name : 'CPScriptTask',
 	#superclass : 'CPTask',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeLabel [
-	^ 'User'
+CPScriptTask class >> taskTypeLabel [
+	^ 'Script'
 ]
 
 { #category : 'task type' }
-CPUserTask class >> taskTypeIcon [
-	^ #user
+CPScriptTask class >> taskTypeIcon [
+	^ #scroll
 ]
 
 { #category : 'defaults' }
-CPUserTask class >> defaultIcon [
+CPScriptTask class >> defaultIcon [
 	^ self taskTypeIcon
 ]
