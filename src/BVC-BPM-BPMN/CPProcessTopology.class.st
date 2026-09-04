@@ -76,3 +76,12 @@ CPProcessTopology >> incomingConnectionsTo: aFlowNode [
 CPProcessTopology >> outgoingConnectionsFrom: aFlowNode [
 	^ sequenceFlowConnections select: [ :each | each source == aFlowNode ]
 ]
+
+
+{ #category : 'copying' }
+CPProcessTopology >> withoutSequenceFlow: aSequenceFlow [
+	| copy |
+	copy := self copy.
+	copy sequenceFlows: (sequenceFlows reject: [ :each | each == aSequenceFlow ]).
+	^ copy
+]
