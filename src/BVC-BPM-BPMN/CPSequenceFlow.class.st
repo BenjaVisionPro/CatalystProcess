@@ -73,3 +73,8 @@ CPSequenceFlow >> prepareForRemovalFrom: aContainer [
 CPSequenceFlow >> isSequenceFlow [
 	^ true
 ]
+
+{ #category : 'accessing' }
+CPSequenceFlow class >> defaultIcon [
+	^ #sequenceFlow
+]
