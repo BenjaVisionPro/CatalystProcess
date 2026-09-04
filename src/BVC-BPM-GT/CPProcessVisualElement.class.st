@@ -18,6 +18,7 @@ Class {
 		'hoveredModelElement',
 		'diagramElements',
 		'selectedModelElement',
+		'selectedModelElements',
 		'selectionChangedBlock',
 		'moveShapeOperationBlock',
 		'createFlowNodeOperationBlock',
@@ -38,6 +39,7 @@ Class {
 { #category : 'initialization' }
 CPProcessVisualElement >> initialize [
 	super initialize.
+	selectedModelElements := IdentitySet new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
@@ -450,9 +452,9 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 				connectionSourceModelElement
 					ifNotNil: [ self completeConnectionTo: aModelElement. anEvent consumed: true ]
 					ifNil: [
-						selectedModelElement := aModelElement.
-						self updateSelectionAppearance.
-						selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
+						anEvent modifiers isShift
+							ifTrue: [ self toggleSelectionOf: aModelElement ]
+							ifFalse: [ self selectOnly: aModelElement ].
 						self requestFocus.
 						anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
@@ -465,6 +467,36 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 			do: [ :anEvent |
 				hoveredModelElement == aModelElement ifTrue: [ hoveredModelElement := nil ].
 				self updateConnectionPortVisibility ])
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> selectOnly: aModelElement [
+	selectedModelElements removeAll.
+	selectedModelElements add: aModelElement.
+	selectedModelElement := aModelElement.
+	self updateSelectionAppearance.
+	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ]
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> toggleSelectionOf: aModelElement [
+	(selectedModelElements includes: aModelElement)
+		ifTrue: [
+			selectedModelElements remove: aModelElement.
+			selectedModelElement == aModelElement ifTrue: [
+				selectedModelElement := selectedModelElements
+					ifEmpty: [ nil ]
+					ifNotEmpty: [ selectedModelElements anyOne ] ] ]
+		ifFalse: [
+			selectedModelElements add: aModelElement.
+			selectedModelElement := aModelElement ].
+	self updateSelectionAppearance.
+	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: selectedModelElement ]
+]
+
+{ #category : 'selection' }
+CPProcessVisualElement >> selectedModelElements [
+	^ selectedModelElements copy
 ]
 
 { #category : 'selection' }
@@ -487,7 +519,7 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 CPProcessVisualElement >> updateSelectionAppearance [
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
 		| isSelected |
-		isSelected := aModelElement == selectedModelElement or: [ aModelElement == connectionSourceModelElement ].
+		isSelected := (selectedModelElements includes: aModelElement) or: [ aModelElement == connectionSourceModelElement ].
 		anElement border: (BlBorder
 			paint: (isSelected
 				ifTrue: [ self selectionColor ]
@@ -495,7 +527,7 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			width: (self borderWidthFor: aModelElement selected: isSelected)) ].
 	edgeElementsByEdge keysAndValuesDo: [ :anEdge :someLines |
 		| isSelected |
-		isSelected := anEdge modelElement == selectedModelElement.
+		isSelected := selectedModelElements includes: anEdge modelElement.
 		someLines do: [ :aLine |
 			aLine border: (BlBorder
 				paint: (isSelected ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
@@ -710,6 +742,8 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: 
 		value: candidate
 		value: proposedBounds) apply.
 	assessment isApplicable ifTrue: [
+		selectedModelElements removeAll.
+		selectedModelElements add: candidate.
 		selectedModelElement := candidate.
 		self refresh.
 		self updateSelectionAppearance.
@@ -1033,9 +1067,9 @@ CPProcessVisualElement >> installEdgeSelectionOn: aLine for: anEdge [
 		on: BlClickEvent
 		do: [ :anEvent |
 			connectionSourceModelElement ifNil: [
-				selectedModelElement := anEdge modelElement.
-				self updateSelectionAppearance.
-				selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: anEdge modelElement ].
+				anEvent modifiers isShift
+					ifTrue: [ self toggleSelectionOf: anEdge modelElement ]
+					ifFalse: [ self selectOnly: anEdge modelElement ].
 				self requestFocus.
 				anEvent consumed: true ] ])
 ]
@@ -1055,24 +1089,38 @@ CPProcessVisualElement >> installKeyboardHandler [
 
 { #category : 'private - removal' }
 CPProcessVisualElement >> removeSelection [
-	| selectedShape selectedEdge operation assessment |
-	selectedModelElement ifNil: [ ^ self ].
-	selectedShape := shapeElementsByModelElement at: selectedModelElement ifAbsent: [ nil ].
-	selectedShape ifNotNil: [
-		removeFlowNodeOperationBlock ifNil: [ ^ self ].
-		operation := removeFlowNodeOperationBlock value: selectedModelElement ].
-	selectedShape ifNil: [
-		selectedEdge := edgeElementsByEdge keys detect: [ :each | each modelElement == selectedModelElement ] ifNone: [ nil ].
-		selectedEdge ifNil: [ ^ self ].
-		removeSequenceFlowOperationBlock ifNil: [ ^ self ].
-		operation := removeSequenceFlowOperationBlock value: selectedModelElement ].
-	assessment := operation apply.
-	assessment isApplicable ifTrue: [
-		selectedModelElement := nil.
-		connectionSourceModelElement := nil.
-		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
-		self refresh ].
-	^ assessment
+	| selectedNodes selectedFlows edgeForFlow assessments rejected |
+	selectedModelElements isEmpty ifTrue: [ ^ self ].
+
+	selectedNodes := selectedModelElements select: [ :each |
+		shapeElementsByModelElement includesKey: each ].
+	selectedFlows := selectedModelElements select: [ :each |
+		edgeForFlow := edgeElementsByEdge keys
+			detect: [ :anEdge | anEdge modelElement == each ]
+			ifNone: [ nil ].
+		edgeForFlow notNil and: [
+			selectedNodes noneSatisfy: [ :aNode |
+				self edge: edgeForFlow isIncidentTo: aNode ] ] ].
+
+	assessments := OrderedCollection new.
+	selectedNodes do: [ :aNode |
+		removeFlowNodeOperationBlock ifNotNil: [
+			assessments add: (removeFlowNodeOperationBlock value: aNode) ] ].
+	selectedFlows do: [ :aFlow |
+		removeSequenceFlowOperationBlock ifNotNil: [
+			assessments add: (removeSequenceFlowOperationBlock value: aFlow) ] ].
+
+	rejected := assessments
+		detect: [ :anOperation | anOperation assess isApplicable not ]
+		ifNone: [ nil ].
+	rejected ifNotNil: [ ^ rejected assess ].
+
+	assessments do: [ :anOperation | anOperation apply ].
+	selectedModelElements removeAll.
+	selectedModelElement := nil.
+	connectionSourceModelElement := nil.
+	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
+	self refresh
 ]
 
 { #category : 'private - interaction' }
@@ -1081,6 +1129,7 @@ CPProcessVisualElement >> cancelInteraction [
 		connectionSourceModelElement := nil.
 		self updateSelectionAppearance.
 		^ self ].
+	selectedModelElements removeAll.
 	selectedModelElement := nil.
 	self updateSelectionAppearance.
 	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ]
