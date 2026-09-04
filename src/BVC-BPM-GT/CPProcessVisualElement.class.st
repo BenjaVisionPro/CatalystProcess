@@ -64,7 +64,7 @@ CPProcessVisualElement >> memento [
 
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram elements shapes edges |
+	| diagram elements shapes edges contentExtent |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
@@ -82,7 +82,12 @@ CPProcessVisualElement >> refresh [
 	elements ifNil: [ ^ self ].
 	diagramElements := elements.
 
-	self extent: (self canvasExtentFor: elements).
+	contentExtent := self canvasExtentFor: elements.
+	self constraintsDo: [ :c |
+		c horizontal matchParent.
+		c vertical matchParent.
+		c minWidth: contentExtent x.
+		c minHeight: contentExtent y ].
 	self addPaletteDropSurface.
 	edges := elements select: #isEdge.
 	shapes := elements select: #isShape.
@@ -546,10 +551,12 @@ CPProcessVisualElement >> connectFlowNodesOperationFor: aBlock [ connectFlowNode
 CPProcessVisualElement >> addPaletteDropSurface [
 	| dropSurface |
 	dropSurface := BlElement new
-		extent: self extent;
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
-		constraintsDo: [ :c | c ignoreByLayout ];
+		constraintsDo: [ :c |
+			c ignoreByLayout.
+			c horizontal matchParent.
+			c vertical matchParent ];
 		relocate: 0 @ 0;
 		yourself.
 	dropSurface addEventHandler: (BlDropHandler new
