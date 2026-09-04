@@ -17,7 +17,11 @@ Class {
 		'diagramElements',
 		'selectedModelElement',
 		'selectionChangedBlock',
-		'moveShapeOperationBlock'
+		'moveShapeOperationBlock',
+		'createFlowNodeOperationBlock',
+		'connectFlowNodesOperationBlock',
+		'connectionSourceModelElement',
+		'activePaletteDragItem'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -31,6 +35,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
+	self installPaletteDrop.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false
@@ -138,6 +143,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	element userData at: #processModelElement put: modelElement.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
+	self installConnectionOn: element for: modelElement.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
@@ -252,16 +258,18 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addStraightEdgeFor: anEdge [
-	| sequenceFlow sourceElement targetElement line |
+	| sequenceFlow sourceElement targetElement line source target |
 	sequenceFlow := anEdge modelElement.
-	sourceElement := shapeElementsByModelElement at: sequenceFlow sourceRef.
-	targetElement := shapeElementsByModelElement at: sequenceFlow targetRef.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
 
 	line := BlLineElement new
-		fromAnchor: ((self anchorClassFor: sequenceFlow sourceRef)
+		fromAnchor: ((self anchorClassFor: source)
 			nearestTo: targetElement
 			from: sourceElement);
-		toAnchor: ((self anchorClassFor: sequenceFlow targetRef)
+		toAnchor: ((self anchorClassFor: target)
 			nearestTo: sourceElement
 			from: targetElement);
 		border: (BlBorder paint: self shapeBorderColor width: 1.5);
@@ -336,10 +344,13 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 	anElement addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
-			selectedModelElement := aModelElement.
-			self updateSelectionAppearance.
-			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
-			anEvent consumed: true ])
+			connectionSourceModelElement
+				ifNotNil: [ self completeConnectionTo: aModelElement. anEvent consumed: true ]
+				ifNil: [
+					selectedModelElement := aModelElement.
+					self updateSelectionAppearance.
+					selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ].
+					anEvent consumed: true ] ])
 ]
 
 { #category : 'selection' }
@@ -362,7 +373,7 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 CPProcessVisualElement >> updateSelectionAppearance [
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
 		| isSelected |
-		isSelected := aModelElement == selectedModelElement.
+		isSelected := aModelElement == selectedModelElement or: [ aModelElement == connectionSourceModelElement ].
 		anElement border: (BlBorder
 			paint: (isSelected
 				ifTrue: [ self selectionColor ]
@@ -445,4 +456,102 @@ CPProcessVisualElement >> selectionColor [
 { #category : 'private - theme' }
 CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
 	^ aThemeableColor blocResolveColorForTheme: self theme
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
+	| flowMemento description |
+	flowMemento := memento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
+	^ flowMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
+	| flowMemento description |
+	flowMemento := memento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
+	^ flowMemento readUsing: description
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
+{ #category : 'configuration' }
+CPProcessVisualElement >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> installPaletteDrop [
+	self addEventHandler: (BlDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
+		whenDragLeftDo: [ :anEvent | activePaletteDragItem := nil ];
+		whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
+	| sourceElement candidate proposedBounds assessment |
+	createFlowNodeOperationBlock ifNil: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
+	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds) assess.
+	assessment isApplicable ifTrue: [ activePaletteDragItem := aDragItem ].
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> dropPaletteEvent: anEvent [
+	| dragItem candidate bounds assessment |
+	anEvent domainObjects size = 1 ifFalse: [ activePaletteDragItem := nil. ^ self ].
+	dragItem := activePaletteDragItem.
+	activePaletteDragItem := nil.
+	dragItem ifNil: [ ^ self ].
+	candidate := dragItem domainObject.
+	bounds := anEvent position extent: (self extentForModelElement: candidate).
+	assessment := (createFlowNodeOperationBlock value: candidate value: bounds) apply.
+	self refresh.
+	^ assessment
+]
+
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> extentForModelElement: aFlowNode [
+	aFlowNode isEvent ifTrue: [ ^ 42 @ 42 ].
+	aFlowNode isActivity ifTrue: [ ^ 132 @ 54 ].
+	^ 54 @ 54
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
+	| port |
+	connectFlowNodesOperationBlock ifNil: [ ^ self ].
+	port := BlElement new
+		extent: 12 @ 12;
+		geometry: BlCircleGeometry new;
+		background: self selectionColor;
+		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		constraintsDo: [ :c | c frame horizontal alignRight. c frame vertical alignCenter ];
+		yourself.
+	port addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | self beginConnectionFrom: aFlowNode. anEvent consumed: true ]).
+	aNodeElement addChild: port
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> beginConnectionFrom: aFlowNode [
+	connectionSourceModelElement := aFlowNode.
+	self updateSelectionAppearance
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> completeConnectionTo: aFlowNode [
+	| source assessment |
+	source := connectionSourceModelElement.
+	connectionSourceModelElement := nil.
+	source ifNil: [ ^ self ].
+	source == aFlowNode ifTrue: [ self updateSelectionAppearance. ^ self ].
+	assessment := (connectFlowNodesOperationBlock value: source value: aFlowNode) apply.
+	self refresh.
+	^ assessment
 ]

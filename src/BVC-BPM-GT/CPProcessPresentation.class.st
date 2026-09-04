@@ -11,7 +11,9 @@ Class {
 		'detailScrollElement',
 		'workspaceElement',
 		'selectedModelElement',
-		'moveShapeOperationBlock'
+		'moveShapeOperationBlock',
+		'createFlowNodeOperationBlock',
+		'connectFlowNodesOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -27,6 +29,8 @@ CPProcessPresentation >> prepareHostElement [
 		memento: self memento;
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
+		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
 		yourself.
 
 	diagramScrollElement := BrScrollPane new
@@ -156,3 +160,8 @@ CPProcessPresentation >> workspaceElement [
 CPProcessPresentation >> moveShapeOperationFor: aBlock [
 	moveShapeOperationBlock := aBlock
 ]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
+{ #category : 'configuration' }
+CPProcessPresentation >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]

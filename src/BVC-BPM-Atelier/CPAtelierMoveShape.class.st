@@ -82,8 +82,26 @@ CPAtelierMoveShape >> applyAssessment: anAssessment [
 CPAtelierMoveShape >> edge: anEdge isIncidentTo: aModelElement [
 	| sequenceFlow |
 	sequenceFlow := anEdge modelElement.
-	^ sequenceFlow sourceRef == aModelElement
-		or: [ sequenceFlow targetRef == aModelElement ]
+	^ (self stagedSourceOf: sequenceFlow) == aModelElement
+		or: [ (self stagedTargetOf: sequenceFlow) == aModelElement ]
+]
+
+{ #category : 'private - staged state' }
+CPAtelierMoveShape >> stagedSourceOf: aSequenceFlow [
+	| flowElementsDescription flowMemento description |
+	flowElementsDescription := processMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
+	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
+	^ flowMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPAtelierMoveShape >> stagedTargetOf: aSequenceFlow [
+	| flowElementsDescription flowMemento description |
+	flowElementsDescription := processMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
+	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
+	^ flowMemento readUsing: description
 ]
 
 { #category : 'private - applying' }
@@ -96,9 +114,9 @@ CPAtelierMoveShape >> translateEndpointOf: anEdge forMovedModelElement: aModelEl
 	waypoints ifEmpty: [ ^ self ].
 	translated := waypoints asOrderedCollection.
 	sequenceFlow := anEdge modelElement.
-	sequenceFlow sourceRef == aModelElement ifTrue: [
+	(self stagedSourceOf: sequenceFlow) == aModelElement ifTrue: [
 		translated at: 1 put: translated first + delta ].
-	sequenceFlow targetRef == aModelElement ifTrue: [
+	(self stagedTargetOf: sequenceFlow) == aModelElement ifTrue: [
 		translated at: translated size put: translated last + delta ].
 	edgeMemento write: translated using: waypointsDescription
 ]

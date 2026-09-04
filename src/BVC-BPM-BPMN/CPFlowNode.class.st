@@ -94,3 +94,6 @@ CPFlowNode >> isActivity [
 CPFlowNode >> isEndEvent [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPFlowNode >> isStartEvent [ ^ false ]

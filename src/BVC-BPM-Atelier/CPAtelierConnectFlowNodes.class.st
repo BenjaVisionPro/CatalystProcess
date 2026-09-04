@@ -1,0 +1,108 @@
+"I stage one sequence-flow connection between two existing CPFlowNode objects and add its CPEdge depiction.
+
+Source and target are written through the fresh CPSequenceFlow child memento, so assessing and staging do not mutate the existing nodes' inverse collections."
+Class {
+	#name : 'CPAtelierConnectFlowNodes',
+	#superclass : 'CFAtelierOperation',
+	#instVars : [
+		'source',
+		'target',
+		'processMemento',
+		'flowElementsDescription',
+		'diagramDescription'
+	],
+	#category : 'BVC-BPM-Atelier-Diagram',
+	#package : 'BVC-BPM-Atelier',
+	#tag : 'Diagram'
+}
+
+{ #category : 'instance creation' }
+CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
+	^ self new source: aSource; target: aTarget; processMemento: aMemento; flowElementsDescription: aFlowElementsDescription; diagramDescription: aDiagramDescription; yourself
+]
+
+{ #category : 'assessing' }
+CPAtelierConnectFlowNodes >> assess [
+	| flowElements diagram diagramMemento elementsDescription elements sourceShape targetShape sequenceFlow edge proposedFlowElements proposedElements sourceDescription targetDescription |
+	source ifNil: [ ^ self rejectedBecause: 'A source flow node is required.' ].
+	target ifNil: [ ^ self rejectedBecause: 'A target flow node is required.' ].
+	source == target ifTrue: [ ^ self rejectedBecause: 'A sequence flow requires distinct source and target nodes.' ].
+	source isEndEvent ifTrue: [ ^ self rejectedBecause: 'An end event cannot be the source of a sequence flow.' ].
+	target isStartEvent ifTrue: [ ^ self rejectedBecause: 'A start event cannot be the target of a sequence flow.' ].
+	flowElements := processMemento readUsing: flowElementsDescription.
+	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
+	((flowElements identityIncludes: source) and: [ flowElements identityIncludes: target ]) ifFalse: [ ^ self rejectedBecause: 'Both connection endpoints must belong to the staged process.' ].
+
+	diagram := processMemento readUsing: diagramDescription.
+	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
+	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
+	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	elements := diagramMemento readUsing: elementsDescription.
+	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
+	sourceShape := self shapeFor: source in: elements.
+	targetShape := self shapeFor: target in: elements.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ self rejectedBecause: 'Both connection endpoints require diagram shapes.' ].
+	((self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) isNil
+		or: [ (self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) isNil ]) ifTrue: [
+		^ self rejectedBecause: 'Both connection endpoint shapes require staged bounds.' ].
+
+	sequenceFlow := CPSequenceFlow new.
+	sourceDescription := sequenceFlow magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
+	targetDescription := sequenceFlow magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
+	[ sourceDescription validate: source. targetDescription validate: target ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+
+	edge := CPEdge new modelElement: sequenceFlow; yourself.
+	edge
+		addWaypoint: (self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) center;
+		addWaypoint: (self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) center.
+	proposedFlowElements := flowElements species withAll: flowElements.
+	proposedFlowElements add: sequenceFlow.
+	[ flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+	proposedElements := elements species withAll: elements.
+	proposedElements add: edge.
+	[ elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+
+	^ CPAtelierConnectFlowNodesAssessment source: source target: target sequenceFlow: sequenceFlow edge: edge proposedFlowElements: proposedFlowElements proposedDiagramElements: proposedElements
+]
+
+{ #category : 'applying' }
+CPAtelierConnectFlowNodes >> applyAssessment: anAssessment [
+	| flowMemento sourceDescription targetDescription diagram diagramMemento elementsDescription |
+	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
+	flowMemento := processMemento childMementoFor: anAssessment sequenceFlow inRelation: flowElementsDescription.
+	sourceDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
+	targetDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
+	flowMemento write: source using: sourceDescription.
+	flowMemento write: target using: targetDescription.
+	diagram := processMemento readUsing: diagramDescription.
+	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
+	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+]
+
+{ #category : 'private - staged state' }
+CPAtelierConnectFlowNodes >> stagedBoundsOf: aShape in: diagramMemento elementsDescription: elementsDescription [
+	| shapeMemento description |
+	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
+	description := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
+	^ shapeMemento readUsing: description
+]
+
+{ #category : 'private' }
+CPAtelierConnectFlowNodes >> shapeFor: aFlowNode in: elements [
+	| matches |
+	matches := elements select: [ :each | each isShape and: [ each modelElement == aFlowNode ] ].
+	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
+]
+{ #category : 'private' }
+CPAtelierConnectFlowNodes >> rejectedBecause: aString [ ^ CPAtelierConnectFlowNodesAssessment source: source target: target rejectedBecause: aString ]
+{ #category : 'accessing' }
+CPAtelierConnectFlowNodes >> source: anObject [ source := anObject ]
+{ #category : 'accessing' }
+CPAtelierConnectFlowNodes >> target: anObject [ target := anObject ]
+{ #category : 'accessing' }
+CPAtelierConnectFlowNodes >> processMemento: aMemento [ processMemento := aMemento ]
+{ #category : 'accessing' }
+CPAtelierConnectFlowNodes >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
+{ #category : 'accessing' }
+CPAtelierConnectFlowNodes >> diagramDescription: aDescription [ diagramDescription := aDescription ]

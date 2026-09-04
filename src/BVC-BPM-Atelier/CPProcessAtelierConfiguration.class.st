@@ -1,11 +1,12 @@
 "I configure Atelier editing intentions for the production CPProcess visual presentation.
 
-The semantic model remains Magritte-described. I retain the exact root diagram description and translate one visual move gesture into CPAtelierMoveShape. Presentation selection remains owned by the CPProcess Magritte container."
+The semantic model remains Magritte-described. I retain the exact root diagram description and translate the production visual editing gestures into Process-specific Atelier operations. Presentation selection remains owned by the CPProcess Magritte container."
 Class {
 	#name : 'CPProcessAtelierConfiguration',
 	#superclass : 'CFAtelierConfiguration',
 	#instVars : [
-		'diagramDescription'
+		'diagramDescription',
+		'flowElementsDescription'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -14,24 +15,39 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessAtelierConfiguration class >> forProcessMemento: aProcessMemento [
-	| description |
-	description := aProcessMemento magritteDescription
-		detect: [ :each | each handlesSelector: #diagram ].
+	| diagramDescription flowElementsDescription |
+	diagramDescription := aProcessMemento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
+	flowElementsDescription := aProcessMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
 	^ self new
-		diagramDescription: description;
+		diagramDescription: diagramDescription;
+		flowElementsDescription: flowElementsDescription;
+		palette: self processPalette;
 		yourself
+]
+
+
+{ #category : 'instance creation' }
+CPProcessAtelierConfiguration class >> processPalette [
+	| palette |
+	palette := CFAtelierPalette new.
+	palette
+		add: (CFAtelierPaletteItem label: 'Start event' provider: (CFAtelierFactoryProvider factory: [ CPStartEvent new label: 'Start'; yourself ]));
+		add: (CFAtelierPaletteItem label: 'End event' provider: (CFAtelierFactoryProvider factory: [ CPEndEvent new label: 'End'; yourself ]));
+		add: (CFAtelierPaletteItem label: 'User task' provider: (CFAtelierFactoryProvider factory: [ CPUserTask new label: 'Task'; yourself ])).
+	^ palette
 ]
 
 { #category : 'applying' }
 CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
-		aPresentation moveShapeOperationFor: [ :aShape :proposedBounds |
-			CPAtelierMoveShape
-				shape: aShape
-				bounds: proposedBounds
-				processMemento: aPresentation memento
-				diagramDescription: diagramDescription ] ].
+		aPresentation
+			moveShapeOperationFor: [ :aShape :proposedBounds |
+				CPAtelierMoveShape shape: aShape bounds: proposedBounds processMemento: aPresentation memento diagramDescription: diagramDescription ];
+			createFlowNodeOperationFor: [ :aFlowNode :proposedBounds |
+				CPAtelierCreateFlowNode flowNode: aFlowNode bounds: proposedBounds processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
+			connectFlowNodesOperationFor: [ :aSource :aTarget |
+				CPAtelierConnectFlowNodes source: aSource target: aTarget processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ] ].
 	^ anAtelierViewModel
 ]
 
@@ -44,3 +60,8 @@ CPProcessAtelierConfiguration >> diagramDescription [
 CPProcessAtelierConfiguration >> diagramDescription: aDescription [
 	diagramDescription := aDescription
 ]
+
+{ #category : 'accessing' }
+CPProcessAtelierConfiguration >> flowElementsDescription [ ^ flowElementsDescription ]
+{ #category : 'accessing' }
+CPProcessAtelierConfiguration >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
