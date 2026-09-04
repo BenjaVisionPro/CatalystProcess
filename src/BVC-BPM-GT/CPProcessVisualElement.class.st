@@ -576,13 +576,17 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
-	| dragItem candidate bounds assessment |
+	| dragItem candidate elementExtent origin bounds assessment |
 	anEvent domainObjects size = 1 ifFalse: [ activePaletteDragItem := nil. ^ self ].
 	dragItem := activePaletteDragItem.
 	activePaletteDragItem := nil.
 	dragItem ifNil: [ ^ self ].
 	candidate := dragItem domainObject.
-	bounds := anEvent position extent: (self extentForModelElement: candidate).
+	elementExtent := self extentForModelElement: candidate.
+	origin :=
+		((anEvent position x - (elementExtent x / 2)) max: 0)
+		@ ((anEvent position y - (elementExtent y / 2)) max: 0).
+	bounds := origin extent: elementExtent.
 	assessment := (createFlowNodeOperationBlock value: candidate value: bounds) apply.
 	self refresh.
 	^ assessment
