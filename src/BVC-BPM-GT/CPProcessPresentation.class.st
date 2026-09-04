@@ -15,7 +15,8 @@ Class {
 		'createFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'removeFlowNodeOperationBlock',
-		'removeSequenceFlowOperationBlock'
+		'removeSequenceFlowOperationBlock',
+		'reconnectSequenceFlowOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -34,6 +35,7 @@ CPProcessPresentation >> prepareHostElement [
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
 		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
 		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
+		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
 		memento: self memento;
 		yourself.
 
@@ -178,3 +180,9 @@ CPProcessPresentation >> removeFlowNodeOperationFor: aBlock [ removeFlowNodeOper
 
 { #category : 'configuration' }
 CPProcessPresentation >> removeSequenceFlowOperationFor: aBlock [ removeSequenceFlowOperationBlock := aBlock ]
+
+
+{ #category : 'configuration' }
+CPProcessPresentation >> reconnectSequenceFlowOperationFor: aBlock [
+	reconnectSequenceFlowOperationBlock := aBlock
+]

@@ -24,7 +24,9 @@ Class {
 		'connectFlowNodesOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
+		'reconnectSequenceFlowOperationBlock',
 		'connectionSourceModelElement',
+		'reconnectHandleElementsByEdge',
 		'activePaletteDragItem'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -40,6 +42,7 @@ CPProcessVisualElement >> initialize [
 	edgeElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	connectionPortElementsByModelElement := IdentityDictionary new.
+	reconnectHandleElementsByEdge := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -71,6 +74,7 @@ CPProcessVisualElement >> refresh [
 	edgeElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
 	connectionPortElementsByModelElement removeAll.
+	reconnectHandleElementsByEdge removeAll.
 	hoveredModelElement := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
@@ -289,7 +293,8 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 	waypoints := self stagedWaypointsOf: anEdge.
 	waypoints size = 2
 		ifTrue: [ self addStraightEdgeFor: anEdge ]
-		ifFalse: [ self addEdgeFor: anEdge waypoints: waypoints ]
+		ifFalse: [ self addEdgeFor: anEdge waypoints: waypoints ].
+	self installReconnectHandlesFor: anEdge
 ]
 
 { #category : 'private - edges' }
@@ -436,6 +441,12 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			aLine border: (BlBorder
 				paint: (isSelected ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
 				width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
+	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
+		| visibility |
+		visibility := anEdge modelElement == selectedModelElement
+			ifTrue: [ BlVisibility visible ]
+			ifFalse: [ BlVisibility hidden ].
+		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
 	self updateConnectionPortVisibility
 ]
 
@@ -730,6 +741,169 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 	^ self connectFrom: source to: aFlowNode
 ]
 
+
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> reconnectSequenceFlowOperationFor: aBlock [
+	reconnectSequenceFlowOperationBlock := aBlock
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
+	| sequenceFlow source target sourceElement targetElement sourceHandle targetHandle |
+	reconnectSequenceFlowOperationBlock ifNil: [ ^ self ].
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source ifAbsent: [ ^ self ].
+	targetElement := shapeElementsByModelElement at: target ifAbsent: [ ^ self ].
+
+	sourceHandle := self
+		newReconnectHandleFor: sequenceFlow
+		movingSource: true
+		owner: sourceElement
+		other: targetElement.
+	targetHandle := self
+		newReconnectHandleFor: sequenceFlow
+		movingSource: false
+		owner: targetElement
+		other: sourceElement.
+
+	reconnectHandleElementsByEdge
+		at: anEdge
+		put: { sourceHandle. targetHandle }.
+	sourceElement addChild: sourceHandle.
+	targetElement addChild: targetHandle
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: movesSource owner: ownerElement other: otherElement [
+	| handle isDragging previewLine previewCursor |
+	isDragging := false.
+	handle := BlElement new
+		extent: 12 @ 12;
+		geometry: BlCircleGeometry new;
+		background: self selectionColor;
+		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		visibility: BlVisibility hidden;
+		yourself.
+	self
+		positionReconnectHandle: handle
+		on: ownerElement
+		toward: otherElement.
+
+	handle
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				| source target localPoint |
+				isDragging := true.
+				source := self stagedSourceOf: aSequenceFlow.
+				target := self stagedTargetOf: aSequenceFlow.
+				localPoint := self globalPointToLocal: anEvent position.
+				previewCursor := BlElement new
+					extent: 1 @ 1;
+					background: Color transparent;
+					constraintsDo: [ :c | c ignoreByLayout ];
+					relocate: localPoint;
+					yourself.
+				previewLine := movesSource
+					ifTrue: [
+						BlLineElement new
+							fromAnchor: (BlNearestPositionBoundsAnchor
+								nearestTo: otherElement
+								from: previewCursor);
+							toAnchor: ((self anchorClassFor: target)
+								nearestTo: previewCursor
+								from: otherElement);
+							border: (BlBorder paint: self selectionColor width: 1.5);
+							constraintsDo: [ :c | c ignoreByLayout ];
+							yourself ]
+					ifFalse: [
+						BlLineElement new
+							fromAnchor: ((self anchorClassFor: source)
+								nearestTo: previewCursor
+								from: otherElement);
+							toAnchor: (BlNearestPositionBoundsAnchor
+								nearestTo: otherElement
+								from: previewCursor);
+							border: (BlBorder paint: self selectionColor width: 1.5);
+							constraintsDo: [ :c | c ignoreByLayout ];
+							yourself ].
+				previewLine toHead: (BlArrowheadSimpleArrow new
+					border: (BlBorder paint: self selectionColor width: 1.5)).
+				self addChild: previewCursor.
+				self addChildFirst: previewLine.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					previewCursor relocate: (self globalPointToLocal: anEvent position).
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| candidate source target |
+					isDragging := false.
+					previewLine ifNotNil: [ previewLine removeFromParent ].
+					previewCursor ifNotNil: [ previewCursor removeFromParent ].
+					previewLine := nil.
+					previewCursor := nil.
+					candidate := self
+						connectionTargetAtGlobalPoint: anEvent position
+						excluding: nil.
+					candidate ifNotNil: [
+						source := self stagedSourceOf: aSequenceFlow.
+						target := self stagedTargetOf: aSequenceFlow.
+						movesSource
+							ifTrue: [ source := candidate ]
+							ifFalse: [ target := candidate ].
+						self
+							reconnectSequenceFlow: aSequenceFlow
+							source: source
+							target: target ].
+					anEvent consumed: true ] ]).
+	^ handle
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> positionReconnectHandle: aHandle on: ownerElement toward: otherElement [
+	| ownerCenter otherCenter delta |
+	ownerCenter := ownerElement position + (ownerElement extent / 2).
+	otherCenter := otherElement position + (otherElement extent / 2).
+	delta := otherCenter - ownerCenter.
+	aHandle constraintsDo: [ :c |
+		delta x abs >= delta y abs
+			ifTrue: [
+				delta x >= 0
+					ifTrue: [ c frame horizontal alignRight ]
+					ifFalse: [ c frame horizontal alignLeft ].
+				c frame vertical alignCenter ]
+			ifFalse: [
+				c frame horizontal alignCenter.
+				delta y >= 0
+					ifTrue: [ c frame vertical alignBottom ]
+					ifFalse: [ c frame vertical alignTop ] ] ]
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget [
+	| assessment |
+	reconnectSequenceFlowOperationBlock ifNil: [ ^ nil ].
+	assessment := (reconnectSequenceFlowOperationBlock
+		value: aSequenceFlow
+		value: aSource
+		value: aTarget) apply.
+	assessment isApplicable
+		ifTrue: [ self refresh ]
+		ifFalse: [ self updateSelectionAppearance ].
+	^ assessment
+]
 
 { #category : 'configuration' }
 CPProcessVisualElement >> removeFlowNodeOperationFor: aBlock [ removeFlowNodeOperationBlock := aBlock ]
