@@ -211,6 +211,15 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 		margin: BlInsets empty;
 		background: Color transparent;
 		border: BlBorder empty;
+		addShortcut: (BlShortcutWithAction new
+			name: 'Finish editing process label';
+			description: 'Finishes in-place label editing and returns focus to the diagram.';
+			combination: BlKeyCombination enter;
+			overrideChildren: true;
+			action: [ :anEvent |
+				anEvent currentTarget loseFocus.
+				anEvent consumed: true ];
+			yourself);
 		addAptitude: CFMaRowEditorAptitude new;
 		addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
