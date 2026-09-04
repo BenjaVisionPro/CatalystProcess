@@ -169,9 +169,7 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 		label constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
-		element addChild: label.
-		element userData at: #processEditableLabel put: label.
-		self installLabelEditingTriggerOn: element for: label ].
+		element addChild: label ].
 	^ element
 ]
 
@@ -197,33 +195,32 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
-	self installLabelEditingTriggerOn: labelHost for: label.
 	externalLabelElementsByModelElement at: aFlowNode put: labelHost.
 	self addChild: labelHost
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
-	| label aptitude |
+	| flowMemento description label |
+	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+
 	label := CFEditableLabel new
+		aptitude: ((BrGlamorousEditableLabelAptitude
+			background: Color transparent
+			focused: Color transparent
+			border: Color transparent
+			focused: Color transparent)
+			glamorousRegularFont;
+			fontSize: self theme typography titleFontSize;
+			defaultForeground: self theme typography titleForeground);
+		text: ((flowMemento readUsing: description) ifNil: [ '' ]);
 		fitContent;
-		text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]);
 		padding: BlInsets empty;
 		margin: BlInsets empty;
 		background: Color transparent;
 		border: BlBorder empty;
-		yourself.
-	aptitude := BrGlamorousEditableLabelAptitude
-		background: Color transparent
-		focused: Color transparent
-		border: Color transparent
-		focused: Color transparent.
-	aptitude
-		glamorousRegularFont;
-		fontSize: self theme typography titleFontSize;
-		defaultForeground: self theme typography titleForeground.
-	label
-		aptitude: aptitude;
 		addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
 				aStyle
@@ -236,39 +233,38 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 					aStyle
 						background: Color transparent;
 						border: BlBorder empty ];
-			yourself);
+			hovered: [ :aStyle |
+				aStyle
+					background: Color transparent;
+					border: BlBorder empty ];
+			focused: [ :aStyle |
+				aStyle
+					background: Color transparent;
+					border: BlBorder empty ]);
+		yourself.
+
+	label editor
+		when: BrTextEditorModifiedEvent
+		do: [ :anEvent |
+			GtMagritteBuilderUtility
+				writeText: anEvent text
+				using: description
+				memento: flowMemento
+				element: label ].
+
+	label
 		when: BrEditorAcceptWish
-		do: [ :aWish |
-			self acceptLabelFrom: label for: aFlowElement.
-			label preventMeAndChildrenMouseEvents ];
+		do: [ :aWish | label loseFocus ];
 		when: BrEditorCancelWish
 		do: [ :aWish |
-			label text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]).
-			label preventMeAndChildrenMouseEvents ].
-	label preventMeAndChildrenMouseEvents.
+			GtMagritteBuilderUtility
+				writeText: label text
+				using: description
+				memento: flowMemento
+				element: label.
+			label loseFocus ].
+
 	^ label
-]
-
-{ #category : 'private - labels' }
-CPProcessVisualElement >> installLabelEditingTriggerOn: aHostElement for: anEditableLabel [
-	aHostElement
-		when: BlDoubleClickEvent
-		do: [ :anEvent |
-			anEvent consumed: true.
-			anEditableLabel
-				allowMeAndChildrenMouseEvents;
-				switchToEditor;
-				requestFocus ]
-]
-
-{ #category : 'private - labels' }
-CPProcessVisualElement >> acceptLabelFrom: anEditableLabel for: aFlowElement [
-	| flowMemento description value |
-	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #label ].
-	value := description fromString: anEditableLabel text asString.
-	flowMemento write: value using: description
 ]
 
 { #category : 'private - edges' }
@@ -431,47 +427,35 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	anElement
-		addEventFilter: (BlEventHandler
+		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
-				(self isEditingLabelIn: anElement) ifFalse: [
-					dragStartEventPosition := anEvent position.
-					dragStartElementPosition := anElement position.
-					originalBounds := self stagedBoundsOf: aShape.
-					dragStartLabelPosition := (externalLabelElementsByModelElement
-						at: aShape modelElement
-						ifAbsent: [ nil ])
-						ifNotNil: [ :aLabel | aLabel position ].
-					anEvent consumed: true ] ]);
-		addEventFilter: (BlEventHandler
+				dragStartEventPosition := anEvent position.
+				dragStartElementPosition := anElement position.
+				originalBounds := self stagedBoundsOf: aShape.
+				dragStartLabelPosition := (externalLabelElementsByModelElement
+					at: aShape modelElement
+					ifAbsent: [ nil ])
+					ifNotNil: [ :aLabel | aLabel position ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
-				(self isEditingLabelIn: anElement) ifFalse: [
-					| proposedPosition delta |
-					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
-					anElement relocate: proposedPosition.
-					delta := anElement position - dragStartElementPosition.
-					dragStartLabelPosition ifNotNil: [
-						(externalLabelElementsByModelElement at: aShape modelElement)
-							relocate: dragStartLabelPosition + delta ].
-					anEvent consumed: true ] ]);
-		addEventFilter: (BlEventHandler
+				| proposedPosition delta |
+				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+				anElement relocate: proposedPosition.
+				delta := anElement position - dragStartElementPosition.
+				dragStartLabelPosition ifNotNil: [
+					(externalLabelElementsByModelElement at: aShape modelElement)
+						relocate: dragStartLabelPosition + delta ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
-				(self isEditingLabelIn: anElement) ifFalse: [
-					| proposedBounds |
-					anEvent consumed: true.
-					proposedBounds := anElement position extent: originalBounds extent.
-					self moveShape: aShape toBounds: proposedBounds ] ])
-]
-
-{ #category : 'private - positioning' }
-CPProcessVisualElement >> isEditingLabelIn: anElement [
-	| label |
-	label := anElement userData
-		at: #processEditableLabel
-		ifAbsent: [ ^ false ].
-	^ label isEditable
+				| proposedBounds |
+				anEvent consumed: true.
+				proposedBounds := anElement position extent: originalBounds extent.
+				self moveShape: aShape toBounds: proposedBounds ])
 ]
 
 { #category : 'private - theme' }
