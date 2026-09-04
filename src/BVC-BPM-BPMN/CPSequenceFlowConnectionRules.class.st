@@ -24,12 +24,3 @@ CPSequenceFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: a
 CPSequenceFlowConnectionRules >> rejectedBecause: aString [
 	^ CPSequenceFlowConnectionRuleResult rejectedBecause: aString
 ]
-
-
-{ #category : 'assessing' }
-CPSequenceFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: aTopology ignoring: aSequenceFlow [
-	^ self
-		assessConnectionFrom: aSource
-		to: aTarget
-		in: (aTopology withoutSequenceFlow: aSequenceFlow)
-]
