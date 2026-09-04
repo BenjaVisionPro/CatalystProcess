@@ -15,6 +15,7 @@ Class {
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
+		'insertFlowNodeOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
@@ -36,6 +37,7 @@ CPProcessPresentation >> prepareHostElement [
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
 		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
+		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
 		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
 		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
 		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
@@ -198,4 +200,10 @@ CPProcessPresentation >> reconnectSequenceFlowOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessPresentation >> setEdgeWaypointsOperationFor: aBlock [
 	setEdgeWaypointsOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessPresentation >> insertFlowNodeOperationFor: aBlock [
+	insertFlowNodeOperationBlock := aBlock
 ]

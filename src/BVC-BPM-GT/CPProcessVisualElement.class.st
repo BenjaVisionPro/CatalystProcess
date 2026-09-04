@@ -24,6 +24,7 @@ Class {
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
+		'insertFlowNodeOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
@@ -343,6 +344,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	selectionLine userData at: #processDiagramElement put: anEdge.
 	selectionLine userData at: #processModelElement put: anEdge modelElement.
 	self installEdgeSelectionOn: selectionLine for: anEdge.
+	self installPaletteInsertionOn: selectionLine for: anEdge.
 
 	line := BlLineElement new
 		fromAnchor: sourceAnchor;
@@ -433,6 +435,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		selectionLine userData at: #processDiagramElement put: anEdge.
 		selectionLine userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: selectionLine for: anEdge.
+	self installPaletteInsertionOn: selectionLine for: anEdge.
 
 		line := BlLineElement new
 			fromAnchor: fromAnchor;
@@ -702,6 +705,64 @@ CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
 
 { #category : 'configuration' }
 CPProcessVisualElement >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> insertFlowNodeOperationFor: aBlock [
+	insertFlowNodeOperationBlock := aBlock
+]
+
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> installPaletteInsertionOn: anEdgeElement for: anEdge [
+	insertFlowNodeOperationBlock ifNil: [ ^ self ].
+	anEdgeElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsPaletteDragItem: aDragItem insertingInto: anEdge ];
+		whenDroppedDo: [ :anEvent |
+			self dropPaletteEvent: anEvent insertingInto: anEdge ];
+		yourself)
+]
+
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdge [
+	| sourceElement candidate proposedBounds assessment |
+	insertFlowNodeOperationBlock ifNil: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
+	assessment := (insertFlowNodeOperationBlock
+		value: anEdge modelElement
+		value: candidate
+		value: proposedBounds) assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
+	| dragItem candidate elementExtent localPoint origin bounds assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	candidate := dragItem domainObject.
+	elementExtent := self extentForModelElement: candidate.
+	localPoint := self globalPointToLocal: anEvent position.
+	origin :=
+		((localPoint x - (elementExtent x / 2)) max: 0)
+		@ ((localPoint y - (elementExtent y / 2)) max: 0).
+	bounds := origin extent: elementExtent.
+	assessment := (insertFlowNodeOperationBlock
+		value: anEdge modelElement
+		value: candidate
+		value: bounds) apply.
+	assessment isApplicable ifTrue: [
+		selectedModelElements removeAll.
+		selectedModelElements add: candidate.
+		selectedModelElement := candidate.
+		self refresh.
+		self updateSelectionAppearance.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
+	^ assessment
+]
 
 { #category : 'configuration' }
 CPProcessVisualElement >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]
