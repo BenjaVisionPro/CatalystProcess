@@ -172,7 +172,9 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 
 	aFlowNode isActivity ifTrue: [
 		label := self newEditableLabelFor: aFlowNode.
+		label fitContent.
 		label constraintsDo: [ :c |
+			c maxWidth: (bounds width - 20 max: 1).
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
 		element addChild: label ].
@@ -188,16 +190,21 @@ CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
-	| labelHost label |
+	| labelHost label labelWidth |
 	aFlowNode isEvent ifFalse: [ ^ self ].
+	labelWidth := 180.
 	labelHost := BlElement new
-		extent: bounds width @ 28;
+		hExact: labelWidth;
+		vFitContent;
+		clipChildren: false;
 		layout: BlFrameLayout new;
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: bounds left @ (bounds bottom + 4);
+		relocate: (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4);
 		yourself.
 	label := self newEditableLabelFor: aFlowNode.
+	label fitContent.
 	label constraintsDo: [ :c |
+		c maxWidth: labelWidth.
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
@@ -215,7 +222,6 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 	label := CFEditableLabel new
 		aptitude: CPProcessLabelAptitude new;
 		text: ((flowMemento readUsing: description) ifNil: [ '' ]);
-		fitContent;
 		padding: BlInsets empty;
 		margin: BlInsets empty;
 		background: Color transparent;
