@@ -701,10 +701,13 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 
 { #category : 'private - resizing' }
 CPProcessVisualElement >> positionResizeHandle: aHandle forShapeElement: aShapeElement [
+	| handleExtent |
+	handleExtent := aHandle extent.
+	handleExtent isZero ifTrue: [ handleExtent := 9 @ 9 ].
 	aHandle relocate:
 		aShapeElement position
 			+ aShapeElement extent
-			- (aHandle extent / 2)
+			- (handleExtent / 2)
 ]
 
 { #category : 'private - layout' }
