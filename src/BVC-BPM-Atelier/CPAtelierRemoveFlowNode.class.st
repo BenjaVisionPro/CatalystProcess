@@ -68,8 +68,19 @@ CPAtelierRemoveFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription |
+	| incidentTopology diagram diagramMemento elementsDescription |
+	incidentTopology := anAssessment removedSequenceFlows collect: [ :aSequenceFlow |
+		{ aSequenceFlow. self stagedSourceOf: aSequenceFlow. self stagedTargetOf: aSequenceFlow } ].
+
 	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
+	incidentTopology do: [ :each |
+		| aSequenceFlow source target |
+		aSequenceFlow := each first.
+		source := each second.
+		target := each third.
+		source == flowNode ifFalse: [ self stageOutgoingWithout: aSequenceFlow for: source ].
+		target == flowNode ifFalse: [ self stageIncomingWithout: aSequenceFlow for: target ] ].
+
 	diagram := processMemento readUsing: diagramDescription.
 	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
@@ -79,6 +90,28 @@ CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
 		processMemento detachChildMementoFor: aSequenceFlow inRelation: flowElementsDescription ].
 	anAssessment removedDiagramElements do: [ :aDiagramElement |
 		diagramMemento detachChildMementoFor: aDiagramElement inRelation: elementsDescription ]
+]
+
+{ #category : 'private - staged topology' }
+CPAtelierRemoveFlowNode >> stageIncomingWithout: aSequenceFlow for: aFlowNode [
+	| nodeMemento description current proposed |
+	aFlowNode ifNil: [ ^ self ].
+	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
+	current := nodeMemento readUsing: description.
+	proposed := current species withAll: (current reject: [ :each | each == aSequenceFlow ]).
+	nodeMemento write: proposed using: description
+]
+
+{ #category : 'private - staged topology' }
+CPAtelierRemoveFlowNode >> stageOutgoingWithout: aSequenceFlow for: aFlowNode [
+	| nodeMemento description current proposed |
+	aFlowNode ifNil: [ ^ self ].
+	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
+	current := nodeMemento readUsing: description.
+	proposed := current species withAll: (current reject: [ :each | each == aSequenceFlow ]).
+	nodeMemento write: proposed using: description
 ]
 
 { #category : 'private - staged state' }
