@@ -2,7 +2,7 @@ Class {
 	#name : 'CPTaskTypeSelection',
 	#superclass : 'Object',
 	#instVars : [
-		'taskClass',
+		'taskClass'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
