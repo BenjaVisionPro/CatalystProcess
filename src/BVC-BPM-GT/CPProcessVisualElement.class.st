@@ -73,8 +73,8 @@ CPProcessVisualElement >> refresh [
 	self extent: (self canvasExtentFor: elements).
 	edges := elements select: #isEdge.
 	shapes := elements select: #isShape.
-	edges do: [ :each | self addEdgeFor: each ].
-	shapes do: [ :each | self addShapeFor: each ]
+	shapes do: [ :each | self addShapeFor: each ].
+	edges do: [ :each | self addEdgeFor: each ]
 ]
 
 { #category : 'private - layout' }
