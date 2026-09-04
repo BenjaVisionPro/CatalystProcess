@@ -949,8 +949,9 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 
 { #category : 'private - bendpoints' }
 CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointIndex at: aPoint inserting: insertsWaypoint [
-	| handle dragStartEventPosition dragStartHandlePosition isDragging |
+	| handle dragStartEventPosition dragStartHandlePosition isDragging previewLines |
 	isDragging := false.
+	previewLines := #().
 	handle := BlElement new
 		extent: 9 @ 9;
 		geometry: BlRectangleGeometry new;
@@ -968,28 +969,77 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 				dragStartEventPosition := anEvent position.
 				dragStartHandlePosition := handle position.
 				isDragging := true.
+				(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+					do: [ :aLine | aLine visibility: BlVisibility hidden ].
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
+					| newPoint proposed |
 					handle relocate: dragStartHandlePosition + anEvent position - dragStartEventPosition.
+					newPoint := handle position + (handle extent / 2).
+					proposed := self
+						previewWaypointsFor: anEdge
+						waypointIndex: waypointIndex
+						at: newPoint
+						inserting: insertsWaypoint.
+					previewLines do: [ :aLine | aLine removeFromParent ].
+					previewLines := self newPreviewLinesForWaypoints: proposed.
+					previewLines do: [ :aLine | self addChild: aLine ].
+					self bringBendpointHandlesToFront.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| waypoints newPoint proposed |
+					| newPoint proposed |
 					isDragging := false.
-					waypoints := (self stagedWaypointsOf: anEdge) asOrderedCollection.
 					newPoint := handle position + (handle extent / 2).
-					proposed := waypoints copy.
-					insertsWaypoint
-						ifTrue: [ proposed add: newPoint afterIndex: 1 ]
-						ifFalse: [ proposed at: waypointIndex put: newPoint ].
+					proposed := self
+						previewWaypointsFor: anEdge
+						waypointIndex: waypointIndex
+						at: newPoint
+						inserting: insertsWaypoint.
+					previewLines do: [ :aLine | aLine removeFromParent ].
+					previewLines := #().
+					(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+						do: [ :aLine | aLine visibility: BlVisibility visible ].
 					self setWaypoints: proposed forEdge: anEdge.
 					anEvent consumed: true ] ]).
 	^ handle
+]
+
+{ #category : 'private - bendpoints' }
+CPProcessVisualElement >> previewWaypointsFor: anEdge waypointIndex: waypointIndex at: aPoint inserting: insertsWaypoint [
+	| proposed renderedLines |
+	proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+	insertsWaypoint ifTrue: [
+		renderedLines := edgeElementsByEdge at: anEdge ifAbsent: [ #() ].
+		renderedLines ifNotEmpty: [
+			proposed := OrderedCollection
+				with: renderedLines first fromPosition
+				with: renderedLines last toPosition ].
+		proposed add: aPoint afterIndex: 1.
+		^ proposed ].
+	proposed at: waypointIndex put: aPoint.
+	^ proposed
+]
+
+{ #category : 'private - bendpoints' }
+CPProcessVisualElement >> newPreviewLinesForWaypoints: someWaypoints [
+	| lines pairCount |
+	lines := OrderedCollection new.
+	pairCount := someWaypoints size - 1.
+	1 to: pairCount do: [ :index |
+		| line |
+		line := self
+			newLineFrom: (someWaypoints at: index)
+			to: (someWaypoints at: index + 1)
+			withArrowhead: index = pairCount.
+		line border: (BlBorder paint: self selectionColor width: 3).
+		lines add: line ].
+	^ lines
 ]
 
 { #category : 'private - layout' }
