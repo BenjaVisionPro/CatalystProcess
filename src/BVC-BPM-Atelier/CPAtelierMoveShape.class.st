@@ -57,7 +57,7 @@ CPAtelierMoveShape >> assess [
 
 { #category : 'applying' }
 CPAtelierMoveShape >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription elements shapeMemento boundsDescription modelElementDescription movedModelElement delta |
+	| diagram diagramMemento elementsDescription elements shapeMemento boundsDescription delta |
 	diagram := processMemento readUsing: diagramDescription.
 	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
@@ -66,16 +66,13 @@ CPAtelierMoveShape >> applyAssessment: anAssessment [
 	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
 	boundsDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
-	modelElementDescription := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	movedModelElement := shapeMemento readUsing: modelElementDescription.
 	delta := anAssessment proposedBounds origin - anAssessment currentBounds origin.
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
 	elements do: [ :each |
-		(each isEdge and: [ self edge: each isIncidentTo: movedModelElement ]) ifTrue: [
+		(each isEdge and: [ self edge: each isIncidentTo: shape modelElement ]) ifTrue: [
 			self
 				translateEndpointOf: each
-				forMovedModelElement: movedModelElement
+				forMovedModelElement: shape modelElement
 				by: delta
 				in: diagramMemento
 				elementsDescription: elementsDescription ] ]
