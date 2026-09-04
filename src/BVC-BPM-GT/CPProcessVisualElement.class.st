@@ -980,12 +980,24 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 	waypoints := self stagedWaypointsOf: anEdge.
 	waypoints size < 2 ifTrue: [ ^ self ].
 	handles := OrderedCollection new.
-	waypoints size = 2
-		ifTrue: [
-			handles add: (self newBendpointHandleFor: anEdge waypointIndex: 2 at: (waypoints first + waypoints last) / 2 inserting: true) ]
-		ifFalse: [
-			2 to: waypoints size - 1 do: [ :index |
-				handles add: (self newBendpointHandleFor: anEdge waypointIndex: index at: (waypoints at: index) inserting: false) ] ].
+
+	"Existing intermediate waypoints are direct manipulation handles."
+	2 to: waypoints size - 1 do: [ :index |
+		handles add: (self
+			newBendpointHandleFor: anEdge
+			waypointIndex: index
+			at: (waypoints at: index)
+			inserting: false) ].
+
+	"Every segment gets a midpoint insertion handle. The insertion index is
+	the index the new waypoint will occupy."
+	1 to: waypoints size - 1 do: [ :index |
+		handles add: (self
+			newBendpointHandleFor: anEdge
+			waypointIndex: index + 1
+			at: ((waypoints at: index) + (waypoints at: index + 1)) / 2
+			inserting: true) ].
+
 	bendpointHandleElementsByEdge at: anEdge put: handles.
 	handles do: [ :aHandle | self addChild: aHandle ]
 ]
@@ -996,16 +1008,30 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 	isDragging := false.
 	previewLines := #().
 	handle := BlElement new
-		extent: 9 @ 9;
+		extent: (insertsWaypoint ifTrue: [ 7 @ 7 ] ifFalse: [ 9 @ 9 ]);
 		geometry: BlRectangleGeometry new;
 		background: Color white;
-		border: (BlBorder paint: self selectionColor width: 1.5);
+		border: (BlBorder
+			paint: self selectionColor
+			width: (insertsWaypoint ifTrue: [ 1 ] ifFalse: [ 1.5 ]));
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: aPoint - (4.5 @ 4.5);
+		relocate: aPoint - (handle extent / 2);
 		yourself.
 	handle
-		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]).
+	insertsWaypoint ifFalse: [
+		handle addEventHandler: (BlEventHandler
+			on: BlDoubleClickEvent
+			do: [ :anEvent |
+				| waypoints proposed |
+				waypoints := (self stagedWaypointsOf: anEdge) asOrderedCollection.
+				waypoints size > 2 ifTrue: [
+					proposed := waypoints copy.
+					proposed removeAt: waypointIndex.
+					self setWaypoints: proposed forEdge: anEdge ].
+				anEvent consumed: true ]) ].
+	handle
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
@@ -1062,7 +1088,7 @@ CPProcessVisualElement >> previewWaypointsFor: anEdge waypointIndex: waypointInd
 	| proposed |
 	proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
 	insertsWaypoint ifTrue: [
-		proposed add: aPoint afterIndex: 1.
+		proposed add: aPoint afterIndex: waypointIndex - 1.
 		^ proposed ].
 	proposed at: waypointIndex put: aPoint.
 	^ proposed
