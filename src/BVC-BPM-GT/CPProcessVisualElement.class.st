@@ -315,7 +315,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	selectionLine := BlLineElement new
 		fromAnchor: sourceAnchor;
 		toAnchor: targetAnchor;
-		border: (BlBorder paint: Color transparent width: 2.5);
+		border: (BlBorder paint: Color transparent width: 6);
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
 	selectionLine userData at: #processDiagramElement put: anEdge.
@@ -360,7 +360,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		selectionLine := BlLineElement new
 			fromAnchor: (BlAbsolutePositionAnchor position: startPoint);
 			toAnchor: (BlAbsolutePositionAnchor position: endPoint);
-			border: (BlBorder paint: Color transparent width: 2.5);
+			border: (BlBorder paint: Color transparent width: 6);
 			constraintsDo: [ :c | c ignoreByLayout ];
 			yourself.
 		selectionLine userData at: #processDiagramElement put: anEdge.
