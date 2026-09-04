@@ -250,19 +250,27 @@ CPProcessVisualElement >> removeRenderedEdgeFor: anEdge [
 ]
 
 { #category : 'private - positioning' }
-CPProcessVisualElement >> redrawIncidentEdgesForMovedShape: aShape by: delta [
+CPProcessVisualElement >> redrawIncidentEdgesForMovedShape: aShape [
 	diagramElements do: [ :each |
 		(each isEdge and: [ self edge: each isIncidentTo: aShape modelElement ]) ifTrue: [
-			| waypoints sequenceFlow translated |
-			waypoints := self stagedWaypointsOf: each.
-			translated := waypoints asOrderedCollection.
-			sequenceFlow := each modelElement.
-			(sequenceFlow sourceRef == aShape modelElement and: [ translated notEmpty ]) ifTrue: [
-				translated at: 1 put: translated first + delta ].
-			(sequenceFlow targetRef == aShape modelElement and: [ translated notEmpty ]) ifTrue: [
-				translated at: translated size put: translated last + delta ].
-			self removeRenderedEdgeFor: each.
-			self addEdgeFor: each waypoints: translated ] ]
+			self redrawEdgeFromDisplayedShapes: each ] ]
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> redrawEdgeFromDisplayedShapes: anEdge [
+	| waypoints displayedWaypoints sequenceFlow sourceElement targetElement |
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size < 2 ifTrue: [ ^ self ].
+	displayedWaypoints := waypoints asOrderedCollection.
+	sequenceFlow := anEdge modelElement.
+	sourceElement := shapeElementsByModelElement at: sequenceFlow sourceRef ifAbsent: [ nil ].
+	targetElement := shapeElementsByModelElement at: sequenceFlow targetRef ifAbsent: [ nil ].
+	sourceElement ifNotNil: [
+		displayedWaypoints at: 1 put: sourceElement position + (sourceElement extent / 2) ].
+	targetElement ifNotNil: [
+		displayedWaypoints at: displayedWaypoints size put: targetElement position + (targetElement extent / 2) ].
+	self removeRenderedEdgeFor: anEdge.
+	self addEdgeFor: anEdge waypoints: displayedWaypoints
 ]
 
 { #category : 'private - selection' }
@@ -360,7 +368,7 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 				dragStartLabelPosition ifNotNil: [
 					(externalLabelElementsByModelElement at: aShape modelElement)
 						relocate: dragStartLabelPosition + delta ].
-				self redrawIncidentEdgesForMovedShape: aShape by: delta.
+				self redrawIncidentEdgesForMovedShape: aShape.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
