@@ -17,7 +17,8 @@ Class {
 		'connectFlowNodesOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
-		'reconnectSequenceFlowOperationBlock'
+		'reconnectSequenceFlowOperationBlock',
+		'setEdgeWaypointsOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -38,6 +39,7 @@ CPProcessPresentation >> prepareHostElement [
 		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
 		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
 		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
+		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
 		memento: self memento;
 		yourself.
 
@@ -190,4 +192,10 @@ CPProcessPresentation >> removeSequenceFlowOperationFor: aBlock [ removeSequence
 { #category : 'configuration' }
 CPProcessPresentation >> reconnectSequenceFlowOperationFor: aBlock [
 	reconnectSequenceFlowOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessPresentation >> setEdgeWaypointsOperationFor: aBlock [
+	setEdgeWaypointsOperationBlock := aBlock
 ]

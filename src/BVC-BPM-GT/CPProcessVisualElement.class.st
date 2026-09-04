@@ -27,8 +27,10 @@ Class {
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
+		'setEdgeWaypointsOperationBlock',
 		'connectionSourceModelElement',
 		'reconnectHandleElementsByEdge',
+		'bendpointHandleElementsByEdge',
 		'activePaletteDragItem'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -46,6 +48,7 @@ CPProcessVisualElement >> initialize [
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	connectionPortElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
+	bendpointHandleElementsByEdge := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -78,6 +81,7 @@ CPProcessVisualElement >> refresh [
 	externalLabelElementsByModelElement removeAll.
 	connectionPortElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
+	bendpointHandleElementsByEdge removeAll.
 	hoveredModelElement := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
@@ -102,6 +106,7 @@ CPProcessVisualElement >> refresh [
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
 	self bringReconnectHandlesToFront.
+	self bringBendpointHandlesToFront.
 	self updateConnectionPortVisibility
 ]
 
@@ -310,7 +315,8 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 	waypoints size = 2
 		ifTrue: [ self addStraightEdgeFor: anEdge ]
 		ifFalse: [ self addEdgeFor: anEdge waypoints: waypoints ].
-	self installReconnectHandlesFor: anEdge
+	self installReconnectHandlesFor: anEdge.
+	self installBendpointHandlesFor: anEdge
 ]
 
 { #category : 'private - edges' }
@@ -534,6 +540,12 @@ CPProcessVisualElement >> updateSelectionAppearance [
 				width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
 	self updateReconnectHandlePositions.
 	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
+		| visibility |
+		visibility := anEdge modelElement == selectedModelElement
+			ifTrue: [ BlVisibility visible ]
+			ifFalse: [ BlVisibility hidden ].
+		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
+	bendpointHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
 		| visibility |
 		visibility := anEdge modelElement == selectedModelElement
 			ifTrue: [ BlVisibility visible ]
@@ -900,6 +912,92 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 { #category : 'configuration' }
 CPProcessVisualElement >> reconnectSequenceFlowOperationFor: aBlock [
 	reconnectSequenceFlowOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> setEdgeWaypointsOperationFor: aBlock [
+	setEdgeWaypointsOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessVisualElement >> setWaypoints: somePoints forEdge: anEdge [
+	| assessment |
+	setEdgeWaypointsOperationBlock ifNil: [ ^ nil ].
+	assessment := (setEdgeWaypointsOperationBlock value: anEdge value: somePoints) apply.
+	assessment isApplicable
+		ifTrue: [ self refresh ]
+		ifFalse: [ self updateSelectionAppearance ].
+	^ assessment
+]
+
+{ #category : 'private - bendpoints' }
+CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
+	| waypoints handles |
+	setEdgeWaypointsOperationBlock ifNil: [ ^ self ].
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size < 2 ifTrue: [ ^ self ].
+	handles := OrderedCollection new.
+	waypoints size = 2
+		ifTrue: [
+			handles add: (self newBendpointHandleFor: anEdge waypointIndex: 2 at: (waypoints first + waypoints last) / 2 inserting: true) ]
+		ifFalse: [
+			2 to: waypoints size - 1 do: [ :index |
+				handles add: (self newBendpointHandleFor: anEdge waypointIndex: index at: (waypoints at: index) inserting: false) ] ].
+	bendpointHandleElementsByEdge at: anEdge put: handles.
+	handles do: [ :aHandle | self addChild: aHandle ]
+]
+
+{ #category : 'private - bendpoints' }
+CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointIndex at: aPoint inserting: insertsWaypoint [
+	| handle dragStartEventPosition dragStartHandlePosition isDragging |
+	isDragging := false.
+	handle := BlElement new
+		extent: 9 @ 9;
+		geometry: BlRectangleGeometry new;
+		background: Color white;
+		border: (BlBorder paint: self selectionColor width: 1.5);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: aPoint - (4.5 @ 4.5);
+		yourself.
+	handle
+		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				dragStartEventPosition := anEvent position.
+				dragStartHandlePosition := handle position.
+				isDragging := true.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					handle relocate: dragStartHandlePosition + anEvent position - dragStartEventPosition.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| waypoints newPoint proposed |
+					isDragging := false.
+					waypoints := (self stagedWaypointsOf: anEdge) asOrderedCollection.
+					newPoint := handle position + (handle extent / 2).
+					proposed := waypoints copy.
+					insertsWaypoint
+						ifTrue: [ proposed add: newPoint afterIndex: 1 ]
+						ifFalse: [ proposed at: waypointIndex put: newPoint ].
+					self setWaypoints: proposed forEdge: anEdge.
+					anEvent consumed: true ] ]).
+	^ handle
+]
+
+{ #category : 'private - layout' }
+CPProcessVisualElement >> bringBendpointHandlesToFront [
+	bendpointHandleElementsByEdge valuesDo: [ :someHandles |
+		someHandles do: [ :aHandle |
+			aHandle removeFromParent.
+			self addChild: aHandle ] ]
 ]
 
 { #category : 'private - reconnecting' }

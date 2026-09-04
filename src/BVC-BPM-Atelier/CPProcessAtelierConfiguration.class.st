@@ -68,6 +68,12 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					target: aTarget
 					processMemento: aPresentation memento
 					flowElementsDescription: flowElementsDescription
+					diagramDescription: diagramDescription ];
+			setEdgeWaypointsOperationFor: [ :anEdge :someWaypoints |
+				CPAtelierSetEdgeWaypoints
+					edge: anEdge
+					waypoints: someWaypoints
+					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ] ].
 	^ anAtelierViewModel
 ]
