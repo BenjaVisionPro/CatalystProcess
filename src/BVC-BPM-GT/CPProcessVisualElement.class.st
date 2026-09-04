@@ -597,9 +597,11 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
-	| port |
+	| port isDragging didDrag previewLine previewCursor |
 	connectFlowNodesOperationBlock ifNil: [ ^ self ].
 	aFlowNode isEndEvent ifTrue: [ ^ self ].
+	isDragging := false.
+	didDrag := false.
 	port := BlElement new
 		extent: 12 @ 12;
 		geometry: BlCircleGeometry new;
@@ -608,9 +610,90 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c frame horizontal alignRight. c frame vertical alignCenter ];
 		yourself.
-	port addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | self beginConnectionFrom: aFlowNode. anEvent consumed: true ]).
+	port
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				didDrag
+					ifTrue: [ didDrag := false ]
+					ifFalse: [ self beginConnectionFrom: aFlowNode ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				| localPoint |
+				isDragging := true.
+				didDrag := true.
+				connectionSourceModelElement := aFlowNode.
+				localPoint := self globalPointToLocal: anEvent position.
+				previewCursor := BlElement new
+					extent: 1 @ 1;
+					background: Color transparent;
+					constraintsDo: [ :c | c ignoreByLayout ];
+					relocate: localPoint;
+					yourself.
+				previewLine := BlLineElement new
+					fromAnchor: ((self anchorClassFor: aFlowNode)
+						nearestTo: previewCursor
+						from: aNodeElement);
+					toAnchor: (BlNearestPositionBoundsAnchor
+						nearestTo: aNodeElement
+						from: previewCursor);
+					border: (BlBorder paint: self selectionColor width: 1.5);
+					constraintsDo: [ :c | c ignoreByLayout ];
+					yourself.
+				previewLine toHead: (BlArrowheadSimpleArrow new
+					border: (BlBorder paint: self selectionColor width: 1.5)).
+				self addChild: previewCursor.
+				self addChildFirst: previewLine.
+				self updateSelectionAppearance.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					previewCursor relocate: (self globalPointToLocal: anEvent position).
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| target |
+					isDragging := false.
+					previewLine ifNotNil: [ previewLine removeFromParent ].
+					previewCursor ifNotNil: [ previewCursor removeFromParent ].
+					previewLine := nil.
+					previewCursor := nil.
+					target := self
+						connectionTargetAtGlobalPoint: anEvent position
+						excluding: aFlowNode.
+					connectionSourceModelElement := nil.
+					target
+						ifNotNil: [ self connectFrom: aFlowNode to: target ]
+						ifNil: [ self updateSelectionAppearance ].
+					anEvent consumed: true ] ]).
 	connectionPortElementsByModelElement at: aFlowNode put: port.
 	aNodeElement addChild: port
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> connectionTargetAtGlobalPoint: aPoint excluding: aFlowNode [
+	shapeElementsByModelElement keysAndValuesDo: [ :aCandidate :anElement |
+		aCandidate == aFlowNode ifFalse: [
+			(anElement geometryBoundsInSpace containsPoint: aPoint)
+				ifTrue: [ ^ aCandidate ] ] ].
+	^ nil
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> connectFrom: aSource to: aTarget [
+	| assessment |
+	connectFlowNodesOperationBlock ifNil: [ ^ nil ].
+	assessment := (connectFlowNodesOperationBlock value: aSource value: aTarget) apply.
+	assessment isApplicable
+		ifTrue: [ self refresh ]
+		ifFalse: [ self updateSelectionAppearance ].
+	^ assessment
 ]
 
 { #category : 'private - connection' }
@@ -631,15 +714,13 @@ CPProcessVisualElement >> beginConnectionFrom: aFlowNode [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> completeConnectionTo: aFlowNode [
-	| source assessment |
+	| source |
 	source := connectionSourceModelElement.
 	connectionSourceModelElement := nil.
 	self updateConnectionPortVisibility.
 	source ifNil: [ ^ self ].
 	source == aFlowNode ifTrue: [ self updateSelectionAppearance. ^ self ].
-	assessment := (connectFlowNodesOperationBlock value: source value: aFlowNode) apply.
-	self refresh.
-	^ assessment
+	^ self connectFrom: source to: aFlowNode
 ]
 
 
