@@ -186,7 +186,10 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 	shapeMemento write: replacementNode using: modelElementDescription.
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
 
-	processMemento detachChildMementoFor: flowNode inRelation: flowElementsDescription
+	processMemento detachChildMementoFor: flowNode inRelation: flowElementsDescription.
+	processMemento
+		childMementoFor: replacementNode
+		inRelation: flowElementsDescription
 ]
 
 { #category : 'private - staged topology' }
