@@ -1004,11 +1004,12 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 
 { #category : 'private - bendpoints' }
 CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointIndex at: aPoint inserting: insertsWaypoint [
-	| handle dragStartEventPosition dragStartHandlePosition isDragging previewLines |
+	| handle handleExtent dragStartEventPosition dragStartHandlePosition isDragging previewLines |
 	isDragging := false.
 	previewLines := #().
+	handleExtent := insertsWaypoint ifTrue: [ 7 @ 7 ] ifFalse: [ 9 @ 9 ].
 	handle := BlElement new
-		extent: (insertsWaypoint ifTrue: [ 7 @ 7 ] ifFalse: [ 9 @ 9 ]);
+		extent: handleExtent;
 		geometry: BlRectangleGeometry new;
 		background: Color white;
 		border: (BlBorder
@@ -1016,7 +1017,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 			width: (insertsWaypoint ifTrue: [ 1 ] ifFalse: [ 1.5 ]));
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: aPoint - (handle extent / 2);
+		relocate: aPoint - (handleExtent / 2);
 		yourself.
 	handle
 		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]).
