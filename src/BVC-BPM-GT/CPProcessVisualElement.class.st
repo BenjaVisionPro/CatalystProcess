@@ -488,6 +488,7 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			aLine border: (BlBorder
 				paint: (isSelected ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
 				width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
+	self updateReconnectHandlePositions.
 	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
 		| visibility |
 		visibility := anEdge modelElement == selectedModelElement
@@ -820,8 +821,6 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 		owner: targetElement
 		other: sourceElement.
 
-	self positionReconnectHandle: sourceHandle at: sourceLine fromPosition.
-	self positionReconnectHandle: targetHandle at: targetLine toPosition.
 	reconnectHandleElementsByEdge
 		at: anEdge
 		put: { sourceHandle. targetHandle }.
@@ -919,6 +918,16 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 							target: target ].
 					anEvent consumed: true ] ]).
 	^ handle
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> updateReconnectHandlePositions [
+	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
+		| lines |
+		lines := edgeElementsByEdge at: anEdge ifAbsent: [ #() ].
+		lines ifNotEmpty: [
+			self positionReconnectHandle: someHandles first at: lines first fromPosition.
+			self positionReconnectHandle: someHandles last at: lines last toPosition ] ]
 ]
 
 { #category : 'private - reconnecting' }
