@@ -153,7 +153,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
-	self addExternalLabelFor: modelElement bounds: bounds.
+	self addExternalLabelFor: modelElement bounds: bounds shape: aShape shapeElement: element.
 	self updateSelectionAppearance
 ]
 
@@ -178,7 +178,8 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 			c maxWidth: (bounds width - 20 max: 1).
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
-		element addChild: label ].
+		element addChild: label.
+		self installLabelEditingOn: element label: label ].
 	^ element
 ]
 
@@ -190,7 +191,7 @@ CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
 ]
 
 { #category : 'private - labels' }
-CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
+CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
 	| labelHost label labelWidth |
 	aFlowNode isEvent ifFalse: [ ^ self ].
 	labelWidth := 180.
@@ -212,7 +213,10 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
 	externalLabelElementsByModelElement at: aFlowNode put: labelHost.
-	self addChild: labelHost
+	self addChild: labelHost.
+	self installLabelEditingOn: labelHost label: label.
+	self installSelectionOn: labelHost for: aFlowNode.
+	self installPositioningFrom: labelHost moving: aShapeElement for: aShape
 ]
 
 { #category : 'private - labels' }
@@ -242,7 +246,9 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 
 	label
 		when: BrEditorAcceptWish
-		do: [ :aWish | label loseFocus ];
+		do: [ :aWish |
+			label preventMeAndChildrenMouseEvents.
+			label loseFocus ];
 		when: BrEditorCancelWish
 		do: [ :aWish |
 			GtMagritteBuilderUtility
@@ -250,9 +256,22 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 				using: description
 				memento: flowMemento
 				element: label.
+			label preventMeAndChildrenMouseEvents.
 			label loseFocus ].
 
+	label preventMeAndChildrenMouseEvents.
 	^ label
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> installLabelEditingOn: anInteractionElement label: anEditableLabel [
+	anInteractionElement addEventHandler: (BlEventHandler
+		on: BlDoubleClickEvent
+		do: [ :anEvent |
+			anEditableLabel allowMeAndChildrenMouseEvents.
+			anEditableLabel switchToEditor.
+			anEditableLabel requestFocus.
+			anEvent consumed: true ])
 ]
 
 { #category : 'private - edges' }
@@ -424,38 +443,48 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
-	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition |
+	self installPositioningFrom: anElement moving: anElement for: aShape
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
+	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition isDragging |
 	moveShapeOperationBlock ifNil: [ ^ self ].
-	anElement
+	isDragging := false.
+	anInteractionElement
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
 				dragStartEventPosition := anEvent position.
-				dragStartElementPosition := anElement position.
+				dragStartElementPosition := aShapeElement position.
 				originalBounds := self stagedBoundsOf: aShape.
 				dragStartLabelPosition := (externalLabelElementsByModelElement
 					at: aShape modelElement
 					ifAbsent: [ nil ])
 					ifNotNil: [ :aLabel | aLabel position ].
+				isDragging := true.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
-				| proposedPosition delta |
-				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
-				anElement relocate: proposedPosition.
-				delta := anElement position - dragStartElementPosition.
-				dragStartLabelPosition ifNotNil: [
-					(externalLabelElementsByModelElement at: aShape modelElement)
-						relocate: dragStartLabelPosition + delta ].
-				anEvent consumed: true ]);
+				isDragging ifTrue: [
+					| proposedPosition delta |
+					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+					aShapeElement relocate: proposedPosition.
+					delta := aShapeElement position - dragStartElementPosition.
+					dragStartLabelPosition ifNotNil: [
+						(externalLabelElementsByModelElement at: aShape modelElement)
+							relocate: dragStartLabelPosition + delta ].
+					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
-				| proposedBounds |
-				anEvent consumed: true.
-				proposedBounds := anElement position extent: originalBounds extent.
-				self moveShape: aShape toBounds: proposedBounds ])
+				isDragging ifTrue: [
+					| proposedBounds |
+					proposedBounds := aShapeElement position extent: originalBounds extent.
+					isDragging := false.
+					anEvent consumed: true.
+					self moveShape: aShape toBounds: proposedBounds ] ])
 ]
 
 { #category : 'private - theme' }
