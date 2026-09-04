@@ -43,8 +43,7 @@ CPProcessVisualElement >> memento: aMemento [
 		detect: [ :each | each handlesSelector: #diagram ].
 	flowElementsDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #flowElements ].
-	self refresh.
-	self installMementoObserver
+	self refresh
 ]
 
 { #category : 'accessing' }
@@ -349,15 +348,6 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 	^ shapeElementsByShape at: aShape
 ]
 
-
-{ #category : 'private - updating' }
-CPProcessVisualElement >> installMementoObserver [
-	self withAsyncSinkDo: [ :anElementSink |
-		anElementSink
-			sink: AsyncPeekSink new;
-			whenUpdate: [ :anElement :aSink | anElement refresh ].
-		memento overallStatus observe: anElementSink ]
-]
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateSelectionAppearance [
