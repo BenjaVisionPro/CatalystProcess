@@ -1259,12 +1259,22 @@ CPProcessVisualElement >> updateReconnectHandlePositions [
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLines [
-	| handles |
+	| handles firstLine lastLine sourcePoint targetPoint |
 	someLines ifEmpty: [ ^ self ].
 	handles := reconnectHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
 	handles ifEmpty: [ ^ self ].
-	self positionReconnectHandle: handles first at: someLines first fromPosition.
-	self positionReconnectHandle: handles last at: someLines last toPosition
+
+	firstLine := someLines first.
+	lastLine := someLines last.
+	sourcePoint := firstLine fromAnchor
+		positionForAnchoredElement: firstLine
+		within: self.
+	targetPoint := lastLine toAnchor
+		positionForAnchoredElement: lastLine
+		within: self.
+
+	self positionReconnectHandle: handles first at: sourcePoint.
+	self positionReconnectHandle: handles last at: targetPoint
 ]
 
 { #category : 'private - reconnecting' }
