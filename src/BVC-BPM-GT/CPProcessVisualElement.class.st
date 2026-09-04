@@ -836,7 +836,7 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 	handle := BlElement new
 		extent: 10 @ 10;
 		geometry: BlCircleGeometry new;
-		background: self backgroundColor;
+		background: Color white;
 		border: (BlBorder paint: self selectionColor width: 2);
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
