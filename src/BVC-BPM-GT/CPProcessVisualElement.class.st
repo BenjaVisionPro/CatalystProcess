@@ -388,7 +388,8 @@ CPProcessVisualElement >> anchorClassFor: aFlowNode [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
-	| sequenceFlow source target sourceElement targetElement interiorPoints pairCount lines |
+	| sequenceFlow source target sourceElement targetElement interiorPoints
+	  sourceReference targetReference pairCount lines |
 	waypoints size < 3 ifTrue: [ ^ self addStraightEdgeFor: anEdge ].
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
@@ -396,18 +397,20 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	sourceElement := shapeElementsByModelElement at: source.
 	targetElement := shapeElementsByModelElement at: target.
 	interiorPoints := waypoints copyFrom: 2 to: waypoints size - 1.
+
+	sourceReference := self anchorReferenceElementAt: interiorPoints first.
+	targetReference := self anchorReferenceElementAt: interiorPoints last.
+	self addChild: sourceReference.
+	self addChild: targetReference.
+
 	lines := OrderedCollection new.
 	pairCount := interiorPoints size + 1.
-
 	1 to: pairCount do: [ :index |
 		| fromAnchor toAnchor line selectionLine |
 		index = 1
 			ifTrue: [
-				"The endpoint reference waypoints are DI state, not rendered docking
-				positions. Keep the same native source docking rule as a straight
-				flow, independent of the moving bendpoint."
 				fromAnchor := (self anchorClassFor: source)
-					nearestTo: targetElement
+					nearestTo: sourceReference
 					from: sourceElement.
 				toAnchor := BlAbsolutePositionAnchor position: interiorPoints first ]
 			ifFalse: [
@@ -415,7 +418,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 					ifTrue: [
 						fromAnchor := BlAbsolutePositionAnchor position: interiorPoints last.
 						toAnchor := (self anchorClassFor: target)
-							nearestTo: sourceElement
+							nearestTo: targetReference
 							from: targetElement ]
 					ifFalse: [
 						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
@@ -447,6 +450,17 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		self addChild: selectionLine.
 		self addChild: line ].
 	edgeElementsByEdge at: anEdge put: lines
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> anchorReferenceElementAt: aPoint [
+	^ BlElement new
+		extent: 1 @ 1;
+		background: Color transparent;
+		preventMeAndChildrenMouseEvents;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: aPoint;
+		yourself
 ]
 
 { #category : 'private - edges' }
@@ -1052,22 +1066,28 @@ CPProcessVisualElement >> previewWaypointsFor: anEdge waypointIndex: waypointInd
 
 { #category : 'private - bendpoints' }
 CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
-	| sequenceFlow source target sourceElement targetElement interiorPoints pairCount lines |
+	| sequenceFlow source target sourceElement targetElement interiorPoints
+	  sourceReference targetReference pairCount lines |
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 	sourceElement := shapeElementsByModelElement at: source.
 	targetElement := shapeElementsByModelElement at: target.
 	interiorPoints := someWaypoints copyFrom: 2 to: someWaypoints size - 1.
+
+	sourceReference := self anchorReferenceElementAt: interiorPoints first.
+	targetReference := self anchorReferenceElementAt: interiorPoints last.
+	self addChild: sourceReference.
+	self addChild: targetReference.
+
 	lines := OrderedCollection new.
 	pairCount := interiorPoints size + 1.
-
 	1 to: pairCount do: [ :index |
 		| fromAnchor toAnchor line |
 		index = 1
 			ifTrue: [
 				fromAnchor := (self anchorClassFor: source)
-					nearestTo: targetElement
+					nearestTo: sourceReference
 					from: sourceElement.
 				toAnchor := BlAbsolutePositionAnchor position: interiorPoints first ]
 			ifFalse: [
@@ -1075,7 +1095,7 @@ CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
 					ifTrue: [
 						fromAnchor := BlAbsolutePositionAnchor position: interiorPoints last.
 						toAnchor := (self anchorClassFor: target)
-							nearestTo: sourceElement
+							nearestTo: targetReference
 							from: targetElement ]
 					ifFalse: [
 						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
