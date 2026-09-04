@@ -12,6 +12,7 @@ Class {
 		'workspaceElement',
 		'selectedModelElement',
 		'moveShapeOperationBlock',
+		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
@@ -34,6 +35,7 @@ CPProcessPresentation >> prepareHostElement [
 	diagramElement := CPProcessVisualElement new
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
+		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
 		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
@@ -206,4 +208,10 @@ CPProcessPresentation >> setEdgeWaypointsOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessPresentation >> insertFlowNodeOperationFor: aBlock [
 	insertFlowNodeOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessPresentation >> resizeShapeOperationFor: aBlock [
+	resizeShapeOperationBlock := aBlock
 ]

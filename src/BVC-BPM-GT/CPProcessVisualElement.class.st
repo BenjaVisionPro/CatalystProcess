@@ -21,6 +21,7 @@ Class {
 		'selectedModelElements',
 		'selectionChangedBlock',
 		'moveShapeOperationBlock',
+		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
@@ -32,6 +33,7 @@ Class {
 		'connectionSourceModelElement',
 		'reconnectHandleElementsByEdge',
 		'bendpointHandleElementsByEdge',
+		'resizeHandleElementsByShape',
 		'activePaletteDragItem'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -50,6 +52,7 @@ CPProcessVisualElement >> initialize [
 	connectionPortElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
 	bendpointHandleElementsByEdge := IdentityDictionary new.
+	resizeHandleElementsByShape := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -83,6 +86,7 @@ CPProcessVisualElement >> refresh [
 	connectionPortElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
 	bendpointHandleElementsByEdge removeAll.
+	resizeHandleElementsByShape removeAll.
 	hoveredModelElement := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
@@ -108,6 +112,7 @@ CPProcessVisualElement >> refresh [
 	self bringNodeInteractionSurfacesToFront.
 	self bringReconnectHandlesToFront.
 	self bringBendpointHandlesToFront.
+	self bringResizeHandlesToFront.
 	self updateConnectionPortVisibility
 ]
 
@@ -185,6 +190,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installPositioningOn: element for: aShape.
 	self installReplacementOn: element for: modelElement shape: aShape.
 	self installConnectionOn: element for: modelElement.
+	self installResizeHandleFor: aShape modelElement: modelElement shapeElement: element.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
@@ -597,6 +603,12 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			ifTrue: [ BlVisibility visible ]
 			ifFalse: [ BlVisibility hidden ].
 		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
+	resizeHandleElementsByShape keysAndValuesDo: [ :aShape :aHandle |
+		| modelElement |
+		modelElement := self stagedModelElementOf: aShape.
+		aHandle visibility: ((modelElement == selectedModelElement)
+			ifTrue: [ BlVisibility visible ]
+			ifFalse: [ BlVisibility hidden ]) ].
 	self updateConnectionPortVisibility
 ]
 
@@ -610,6 +622,96 @@ CPProcessVisualElement >> borderWidthFor: aModelElement selected: isSelected [
 CPProcessVisualElement >> moveShapeOperationFor: aBlock [
 	"The block receives the CPShape and proposed bounds and answers the Process Atelier operation for that diagram intention."
 	moveShapeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> resizeShapeOperationFor: aBlock [
+	resizeShapeOperationBlock := aBlock
+]
+
+{ #category : 'operations' }
+CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
+	| assessment |
+	resizeShapeOperationBlock ifNil: [ ^ nil ].
+	assessment := (resizeShapeOperationBlock value: aShape value: aRectangle) apply.
+	assessment isApplicable ifFalse: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - resizing' }
+CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement [
+	| handle handleExtent isDragging dragStartEventPosition dragStartExtent minimumExtent |
+	resizeShapeOperationBlock ifNil: [ ^ self ].
+	aModelElement isActivity ifFalse: [ ^ self ].
+
+	handleExtent := 9 @ 9.
+	minimumExtent := self extentForModelElement: aModelElement.
+	isDragging := false.
+	handle := BlElement new
+		extent: handleExtent;
+		geometry: BlRectangleGeometry new;
+		background: Color white;
+		border: (BlBorder paint: self selectionColor width: 1.5);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	self
+		positionResizeHandle: handle
+		forShapeElement: aShapeElement.
+
+	handle
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isDragging := true.
+				dragStartEventPosition := anEvent position.
+				dragStartExtent := aShapeElement extent.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| delta proposedExtent |
+					delta := anEvent position - dragStartEventPosition.
+					proposedExtent :=
+						((dragStartExtent x + delta x) max: minimumExtent x)
+						@ ((dragStartExtent y + delta y) max: minimumExtent y).
+					aShapeElement extent: proposedExtent.
+					self
+						positionResizeHandle: handle
+						forShapeElement: aShapeElement.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| currentBounds proposedBounds |
+					isDragging := false.
+					currentBounds := self stagedBoundsOf: aShape.
+					proposedBounds := currentBounds origin extent: aShapeElement extent.
+					self resizeShape: aShape toBounds: proposedBounds.
+					anEvent consumed: true ] ]).
+
+	resizeHandleElementsByShape at: aShape put: handle.
+	self addChild: handle
+]
+
+{ #category : 'private - resizing' }
+CPProcessVisualElement >> positionResizeHandle: aHandle forShapeElement: aShapeElement [
+	aHandle relocate:
+		aShapeElement position
+			+ aShapeElement extent
+			- (aHandle extent / 2)
+]
+
+{ #category : 'private - layout' }
+CPProcessVisualElement >> bringResizeHandlesToFront [
+	resizeHandleElementsByShape valuesDo: [ :aHandle |
+		aHandle removeFromParent.
+		self addChild: aHandle ]
 ]
 
 { #category : 'operations' }

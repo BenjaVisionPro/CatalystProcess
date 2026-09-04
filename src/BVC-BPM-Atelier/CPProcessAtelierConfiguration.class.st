@@ -45,6 +45,8 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 		aPresentation
 			moveShapeOperationFor: [ :aShape :proposedBounds |
 				CPAtelierMoveShape shape: aShape bounds: proposedBounds processMemento: aPresentation memento diagramDescription: diagramDescription ];
+			resizeShapeOperationFor: [ :aShape :proposedBounds |
+				CPAtelierResizeShape shape: aShape bounds: proposedBounds processMemento: aPresentation memento diagramDescription: diagramDescription ];
 			createFlowNodeOperationFor: [ :aFlowNode :proposedBounds |
 				CPAtelierCreateFlowNode flowNode: aFlowNode bounds: proposedBounds processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
 			replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds |
