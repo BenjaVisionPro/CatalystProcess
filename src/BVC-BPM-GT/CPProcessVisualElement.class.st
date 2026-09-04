@@ -1030,6 +1030,10 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 					previewLines do: [ :aLine | aLine removeFromParent ].
 					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
 					previewLines do: [ :aLine | self addChild: aLine ].
+					self
+						positionReconnectHandlesFor: anEdge
+						fromLines: previewLines.
+					self bringReconnectHandlesToFront.
 					self bringBendpointHandlesToFront.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
@@ -1248,11 +1252,19 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> updateReconnectHandlePositions [
 	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
-		| lines |
-		lines := edgeElementsByEdge at: anEdge ifAbsent: [ #() ].
-		lines ifNotEmpty: [
-			self positionReconnectHandle: someHandles first at: lines first fromPosition.
-			self positionReconnectHandle: someHandles last at: lines last toPosition ] ]
+		self
+			positionReconnectHandlesFor: anEdge
+			fromLines: (edgeElementsByEdge at: anEdge ifAbsent: [ #() ]) ]
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLines [
+	| handles |
+	someLines ifEmpty: [ ^ self ].
+	handles := reconnectHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	handles ifEmpty: [ ^ self ].
+	self positionReconnectHandle: handles first at: someLines first fromPosition.
+	self positionReconnectHandle: handles last at: someLines last toPosition
 ]
 
 { #category : 'private - reconnecting' }
