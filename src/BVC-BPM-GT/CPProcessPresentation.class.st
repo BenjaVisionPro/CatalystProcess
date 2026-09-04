@@ -13,6 +13,7 @@ Class {
 		'selectedModelElement',
 		'moveShapeOperationBlock',
 		'createFlowNodeOperationBlock',
+		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
@@ -32,6 +33,7 @@ CPProcessPresentation >> prepareHostElement [
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
 		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
 		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
@@ -172,6 +174,9 @@ CPProcessPresentation >> moveShapeOperationFor: aBlock [
 
 { #category : 'configuration' }
 CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
+{ #category : 'configuration' }
+CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]
+
 { #category : 'configuration' }
 CPProcessPresentation >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
 

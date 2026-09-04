@@ -7,6 +7,7 @@ Class {
 		'replacementNode',
 		'incidentSequenceFlows',
 		'shape',
+		'proposedBounds',
 		'proposedFlowElements'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -15,12 +16,13 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierReplaceFlowNodeAssessment class >> flowNode: aFlowNode replacementNode: aReplacementNode incidentSequenceFlows: someSequenceFlows shape: aShape proposedFlowElements: someFlowElements [
+CPAtelierReplaceFlowNodeAssessment class >> flowNode: aFlowNode replacementNode: aReplacementNode incidentSequenceFlows: someSequenceFlows shape: aShape proposedBounds: aRectangle proposedFlowElements: someFlowElements [
 	^ self new
 		flowNode: aFlowNode;
 		replacementNode: aReplacementNode;
 		incidentSequenceFlows: someSequenceFlows;
 		shape: aShape;
+		proposedBounds: aRectangle;
 		proposedFlowElements: someFlowElements;
 		yourself
 ]
@@ -63,3 +65,10 @@ CPAtelierReplaceFlowNodeAssessment >> proposedFlowElements [ ^ proposedFlowEleme
 
 { #category : 'accessing' }
 CPAtelierReplaceFlowNodeAssessment >> proposedFlowElements: aCollection [ proposedFlowElements := aCollection ]
+
+
+{ #category : 'accessing' }
+CPAtelierReplaceFlowNodeAssessment >> proposedBounds [ ^ proposedBounds ]
+
+{ #category : 'accessing' }
+CPAtelierReplaceFlowNodeAssessment >> proposedBounds: aRectangle [ proposedBounds := aRectangle ]

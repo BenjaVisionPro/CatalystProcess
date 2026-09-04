@@ -21,6 +21,7 @@ Class {
 		'selectionChangedBlock',
 		'moveShapeOperationBlock',
 		'createFlowNodeOperationBlock',
+		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
@@ -164,6 +165,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	element userData at: #processModelElement put: modelElement.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
+	self installReplacementOn: element for: modelElement shape: aShape.
 	self installConnectionOn: element for: modelElement.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
@@ -603,6 +605,9 @@ CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
 
 { #category : 'configuration' }
 CPProcessVisualElement >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]
 { #category : 'configuration' }
 CPProcessVisualElement >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
 
@@ -652,6 +657,63 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 	assessment := (createFlowNodeOperationBlock value: candidate value: bounds) apply.
 	assessment isApplicable ifTrue: [ self refresh ].
 	^ assessment
+]
+
+{ #category : 'private - replacement' }
+CPProcessVisualElement >> installReplacementOn: aNodeElement for: aFlowNode shape: aShape [
+	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
+	aNodeElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape ];
+		whenDroppedDo: [ :anEvent |
+			self dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape ];
+		yourself)
+]
+
+{ #category : 'private - replacement' }
+CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape [
+	| sourceElement candidate proposedBounds assessment |
+	replaceFlowNodeOperationBlock ifNil: [ ^ false ].
+	aFlowNode == selectedModelElement ifFalse: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	candidate class = aFlowNode class ifTrue: [ ^ false ].
+	proposedBounds := self replacementBoundsFor: candidate shape: aShape.
+	assessment := (replaceFlowNodeOperationBlock
+		value: aFlowNode
+		value: candidate
+		value: proposedBounds) assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - replacement' }
+CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape [
+	| dragItem candidate proposedBounds assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	candidate := dragItem domainObject.
+	proposedBounds := self replacementBoundsFor: candidate shape: aShape.
+	assessment := (replaceFlowNodeOperationBlock
+		value: aFlowNode
+		value: candidate
+		value: proposedBounds) apply.
+	assessment isApplicable ifTrue: [
+		selectedModelElement := candidate.
+		self refresh.
+		self updateSelectionAppearance.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
+	^ assessment
+]
+
+{ #category : 'private - replacement' }
+CPProcessVisualElement >> replacementBoundsFor: aFlowNode shape: aShape [
+	| currentBounds replacementExtent replacementOrigin |
+	currentBounds := self stagedBoundsOf: aShape.
+	replacementExtent := self extentForModelElement: aFlowNode.
+	replacementOrigin := currentBounds center - (replacementExtent / 2).
+	^ replacementOrigin extent: replacementExtent
 ]
 
 { #category : 'private - shapes' }

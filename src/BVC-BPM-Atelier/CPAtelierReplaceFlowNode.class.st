@@ -7,6 +7,7 @@ Class {
 	#instVars : [
 		'flowNode',
 		'replacementNode',
+		'bounds',
 		'processMemento',
 		'flowElementsDescription',
 		'diagramDescription'
@@ -17,10 +18,11 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
+CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
 	^ self new
 		flowNode: aFlowNode;
 		replacementNode: aReplacementNode;
+		bounds: aRectangle;
 		processMemento: aMemento;
 		flowElementsDescription: aFlowElementsDescription;
 		diagramDescription: aDiagramDescription;
@@ -30,12 +32,15 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode pro
 { #category : 'assessing' }
 CPAtelierReplaceFlowNode >> assess [
 	| flowElements proposedFlowElements incidentFlows diagram diagramMemento
-	  elementsDescription elements shapeMatches shape modelElementDescription |
+	  elementsDescription elements shapeMatches shape modelElementDescription boundsDescription |
 
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	replacementNode ifNil: [ ^ self rejectedBecause: 'A replacement flow node is required.' ].
 	flowNode == replacementNode ifTrue: [
 		^ self rejectedBecause: 'Replacement requires a different flow-node identity.' ].
+	flowNode class = replacementNode class ifTrue: [
+		^ self rejectedBecause: 'Replacement requires a different flow-node type.' ].
+	bounds ifNil: [ ^ self rejectedBecause: 'Replacement diagram bounds are required.' ].
 
 	flowElements := processMemento readUsing: flowElementsDescription.
 	flowElements ifNil: [
@@ -108,8 +113,11 @@ CPAtelierReplaceFlowNode >> assess [
 	shape := shapeMatches first.
 	modelElementDescription := shape magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
+	boundsDescription := shape magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
 	[
-		modelElementDescription validate: replacementNode
+		modelElementDescription validate: replacementNode.
+		boundsDescription validate: bounds
 	] on: MAValidationError do: [ :anException |
 		^ self rejectedBecause: anException printString ].
 
@@ -118,15 +126,17 @@ CPAtelierReplaceFlowNode >> assess [
 		replacementNode: replacementNode
 		incidentSequenceFlows: incidentFlows
 		shape: shape
+		proposedBounds: bounds
 		proposedFlowElements: proposedFlowElements
 ]
 
 { #category : 'applying' }
 CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
-	| incoming outgoing diagram diagramMemento elementsDescription shapeMemento modelElementDescription replacementMemento incomingDescription outgoingDescription |
+	| incoming outgoing preservedLabel diagram diagramMemento elementsDescription shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription |
 
 	incoming := OrderedCollection new.
 	outgoing := OrderedCollection new.
+	preservedLabel := self stagedLabelOf: flowNode.
 	anAssessment incidentSequenceFlows do: [ :aSequenceFlow |
 		| currentSource currentTarget flowMemento sourceDescription targetDescription |
 		currentSource := self stagedSourceOf: aSequenceFlow.
@@ -154,6 +164,9 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 		detect: [ :each | each handlesSelector: #incoming ].
 	outgoingDescription := replacementMemento magritteDescription
 		detect: [ :each | each handlesSelector: #outgoing ].
+	labelDescription := replacementMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+	replacementMemento write: preservedLabel using: labelDescription.
 	replacementMemento write: incoming using: incomingDescription.
 	replacementMemento write: outgoing using: outgoingDescription.
 
@@ -168,7 +181,10 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 		inRelation: elementsDescription.
 	modelElementDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
+	boundsDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: replacementNode using: modelElementDescription.
+	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
 
 	processMemento detachChildMementoFor: flowNode inRelation: flowElementsDescription
 ]
@@ -191,6 +207,17 @@ CPAtelierReplaceFlowNode >> proposedTopologyFrom: flowElements excludingSequence
 			target == flowNode ifTrue: [ target := replacementNode ].
 			topology addSequenceFlow: each source: source target: target ] ].
 	^ topology
+]
+
+{ #category : 'private - staged state' }
+CPAtelierReplaceFlowNode >> stagedLabelOf: aFlowNode [
+	| nodeMemento description |
+	nodeMemento := processMemento
+		childMementoFor: aFlowNode
+		inRelation: flowElementsDescription.
+	description := nodeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+	^ nodeMemento readUsing: description
 ]
 
 { #category : 'private - staged state' }
@@ -248,3 +275,7 @@ CPAtelierReplaceFlowNode >> flowElementsDescription: aDescription [ flowElements
 
 { #category : 'accessing' }
 CPAtelierReplaceFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+
+{ #category : 'accessing' }
+CPAtelierReplaceFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
