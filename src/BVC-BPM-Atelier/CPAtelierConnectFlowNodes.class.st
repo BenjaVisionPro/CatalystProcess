@@ -74,10 +74,36 @@ CPAtelierConnectFlowNodes >> applyAssessment: anAssessment [
 	targetDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
 	flowMemento write: source using: sourceDescription.
 	flowMemento write: target using: targetDescription.
+	self stageOutgoingIncluding: anAssessment sequenceFlow for: source.
+	self stageIncomingIncluding: anAssessment sequenceFlow for: target.
 	diagram := processMemento readUsing: diagramDescription.
 	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+]
+
+{ #category : 'private - staged topology' }
+CPAtelierConnectFlowNodes >> stageIncomingIncluding: aSequenceFlow for: aFlowNode [
+	| nodeMemento description current proposed |
+	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
+	current := nodeMemento readUsing: description.
+	(current identityIncludes: aSequenceFlow) ifTrue: [ ^ self ].
+	proposed := current species withAll: current.
+	proposed add: aSequenceFlow.
+	nodeMemento write: proposed using: description
+]
+
+{ #category : 'private - staged topology' }
+CPAtelierConnectFlowNodes >> stageOutgoingIncluding: aSequenceFlow for: aFlowNode [
+	| nodeMemento description current proposed |
+	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
+	current := nodeMemento readUsing: description.
+	(current identityIncludes: aSequenceFlow) ifTrue: [ ^ self ].
+	proposed := current species withAll: current.
+	proposed add: aSequenceFlow.
+	nodeMemento write: proposed using: description
 ]
 
 { #category : 'private - staged state' }
