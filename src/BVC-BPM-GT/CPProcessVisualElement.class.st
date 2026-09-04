@@ -388,18 +388,46 @@ CPProcessVisualElement >> anchorClassFor: aFlowNode [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
-	| pairCount lines |
-	waypoints size < 2 ifTrue: [ ^ self ].
+	| sequenceFlow source target sourceElement targetElement interiorPoints
+	  sourceReference targetReference pairCount lines |
+	waypoints size < 3 ifTrue: [ ^ self addStraightEdgeFor: anEdge ].
+
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	interiorPoints := waypoints copyFrom: 2 to: waypoints size - 1.
+
+	sourceReference := self anchorReferenceElementAt: interiorPoints first.
+	targetReference := self anchorReferenceElementAt: interiorPoints last.
+	self addChild: sourceReference.
+	self addChild: targetReference.
+
 	lines := OrderedCollection new.
-	pairCount := waypoints size - 1.
+	pairCount := interiorPoints size + 1.
 	1 to: pairCount do: [ :index |
-		| line selectionLine startPoint endPoint |
-		startPoint := waypoints at: index.
-		endPoint := waypoints at: index + 1.
+		| fromAnchor toAnchor line selectionLine |
+		index = 1
+			ifTrue: [
+				fromAnchor := (self anchorClassFor: source)
+					nearestTo: sourceReference
+					from: sourceElement.
+				toAnchor := BlAbsolutePositionAnchor position: interiorPoints first ]
+			ifFalse: [
+				index = pairCount
+					ifTrue: [
+						fromAnchor := BlAbsolutePositionAnchor position: interiorPoints last.
+						toAnchor := (self anchorClassFor: target)
+							nearestTo: targetReference
+							from: targetElement ]
+					ifFalse: [
+						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
+						toAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index) ] ].
 
 		selectionLine := BlLineElement new
-			fromAnchor: (BlAbsolutePositionAnchor position: startPoint);
-			toAnchor: (BlAbsolutePositionAnchor position: endPoint);
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor;
 			border: (BlBorder paint: Color transparent width: 6);
 			constraintsDo: [ :c | c ignoreByLayout ];
 			yourself.
@@ -407,10 +435,15 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		selectionLine userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: selectionLine for: anEdge.
 
-		line := self
-			newLineFrom: startPoint
-			to: endPoint
-			withArrowhead: index = pairCount.
+		line := BlLineElement new
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor;
+			border: (BlBorder paint: self shapeBorderColor width: 1.5);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			yourself.
+		index = pairCount ifTrue: [
+			line toHead: (BlArrowheadSimpleArrow new
+				border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
 		line userData at: #processDiagramElement put: anEdge.
 		line userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: line for: anEdge.
@@ -418,6 +451,17 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		self addChild: selectionLine.
 		self addChild: line ].
 	edgeElementsByEdge at: anEdge put: lines
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> anchorReferenceElementAt: aPoint [
+	^ BlElement new
+		extent: 1 @ 1;
+		background: Color transparent;
+		preventMeAndChildrenMouseEvents;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: aPoint;
+		yourself
 ]
 
 { #category : 'private - edges' }
