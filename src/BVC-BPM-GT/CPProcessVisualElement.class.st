@@ -202,7 +202,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 { #category : 'private - task type' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
 	| popupHost |
-	aFlowNode isTask ifFalse: [ ^ self ].
+	aFlowNode isActivity ifFalse: [ ^ self ].
 	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
 
 	popupHost := BrFrame new

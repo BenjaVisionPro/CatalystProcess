@@ -40,3 +40,8 @@ CPFlowElement >> prepareForRemovalFrom: aContainer [
 CPFlowElement >> isSequenceFlow [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPFlowElement >> isTask [
+	^ false
+]
