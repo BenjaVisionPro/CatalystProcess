@@ -12,6 +12,9 @@ Class {
 		'elementsDescription',
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
+		'edgeElementsByEdge',
+		'externalLabelElementsByModelElement',
+		'diagramElements',
 		'selectedModelElement',
 		'selectionChangedBlock',
 		'moveShapeOperationBlock'
@@ -26,6 +29,8 @@ CPProcessVisualElement >> initialize [
 	super initialize.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
+	edgeElementsByEdge := IdentityDictionary new.
+	externalLabelElementsByModelElement := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false
@@ -53,6 +58,8 @@ CPProcessVisualElement >> refresh [
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
+	edgeElementsByEdge removeAll.
+	externalLabelElementsByModelElement removeAll.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
@@ -61,6 +68,7 @@ CPProcessVisualElement >> refresh [
 		detect: [ :each | each handlesSelector: #elements ].
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self ].
+	diagramElements := elements.
 
 	self extent: (self canvasExtentFor: elements).
 	edges := elements select: #isEdge.
@@ -184,14 +192,20 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
 	label relocate: bounds center x @ (bounds bottom + 6).
+	externalLabelElementsByModelElement at: aFlowNode put: label.
 	self addChild: label
 ]
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge [
-	| waypoints pairCount |
-	waypoints := self stagedWaypointsOf: anEdge.
+	self addEdgeFor: anEdge waypoints: (self stagedWaypointsOf: anEdge)
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
+	| pairCount lines |
 	waypoints size < 2 ifTrue: [ ^ self ].
+	lines := OrderedCollection new.
 	pairCount := waypoints size - 1.
 	1 to: pairCount do: [ :index |
 		| line |
@@ -201,7 +215,9 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 			withArrowhead: index = pairCount.
 		line userData at: #processDiagramElement put: anEdge.
 		line userData at: #processModelElement put: anEdge modelElement.
-		self addChildFirst: line ]
+		lines add: line.
+		self addChildFirst: line ].
+	edgeElementsByEdge at: anEdge put: lines
 ]
 
 { #category : 'private - edges' }
@@ -217,6 +233,36 @@ CPProcessVisualElement >> newLineFrom: aStartPoint to: anEndPoint withArrowhead:
 		line toHead: (BlArrowheadSimpleArrow new
 			border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
 	^ line
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> edge: anEdge isIncidentTo: aModelElement [
+	| sequenceFlow |
+	sequenceFlow := anEdge modelElement.
+	^ sequenceFlow sourceRef == aModelElement
+		or: [ sequenceFlow targetRef == aModelElement ]
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> removeRenderedEdgeFor: anEdge [
+	(edgeElementsByEdge removeKey: anEdge ifAbsent: [ #() ])
+		do: [ :aLine | aLine removeFromParent ]
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> redrawIncidentEdgesForMovedShape: aShape by: delta [
+	diagramElements do: [ :each |
+		(each isEdge and: [ self edge: each isIncidentTo: aShape modelElement ]) ifTrue: [
+			| waypoints sequenceFlow translated |
+			waypoints := self stagedWaypointsOf: each.
+			translated := waypoints asOrderedCollection.
+			sequenceFlow := each modelElement.
+			(sequenceFlow sourceRef == aShape modelElement and: [ translated notEmpty ]) ifTrue: [
+				translated at: 1 put: translated first + delta ].
+			(sequenceFlow targetRef == aShape modelElement and: [ translated notEmpty ]) ifTrue: [
+				translated at: translated size put: translated last + delta ].
+			self removeRenderedEdgeFor: each.
+			self addEdgeFor: each waypoints: translated ] ]
 ]
 
 { #category : 'private - selection' }
@@ -290,7 +336,7 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
-	| dragStartEventPosition dragStartElementPosition originalBounds |
+	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	anElement
 		addEventHandler: (BlEventHandler
@@ -299,13 +345,22 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 				dragStartEventPosition := anEvent position.
 				dragStartElementPosition := anElement position.
 				originalBounds := self stagedBoundsOf: aShape.
+				dragStartLabelPosition := (externalLabelElementsByModelElement
+					at: aShape modelElement
+					ifAbsent: [ nil ])
+					ifNotNil: [ :aLabel | aLabel position ].
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
-				| proposedPosition |
+				| proposedPosition delta |
 				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+				delta := proposedPosition - dragStartElementPosition.
 				anElement relocate: proposedPosition.
+				dragStartLabelPosition ifNotNil: [
+					(externalLabelElementsByModelElement at: aShape modelElement)
+						relocate: dragStartLabelPosition + delta ].
+				self redrawIncidentEdgesForMovedShape: aShape by: delta.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
