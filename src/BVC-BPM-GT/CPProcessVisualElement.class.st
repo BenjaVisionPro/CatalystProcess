@@ -132,6 +132,15 @@ CPProcessVisualElement >> stagedBoundsOf: aShape [
 ]
 
 { #category : 'private - staged state' }
+CPProcessVisualElement >> stagedModelElementOf: aShape [
+	| shapeMemento description |
+	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	^ shapeMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
 CPProcessVisualElement >> stagedWaypointsOf: anEdge [
 	| edgeMemento description |
 	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
@@ -156,7 +165,8 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	| bounds modelElement element |
 	bounds := self stagedBoundsOf: aShape.
 	bounds ifNil: [ ^ self ].
-	modelElement := aShape modelElement.
+	modelElement := self stagedModelElementOf: aShape.
+	modelElement ifNil: [ ^ self ].
 	element := self newShapeElementFor: modelElement bounds: bounds.
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
