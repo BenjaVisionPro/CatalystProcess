@@ -1032,7 +1032,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 					previewLines do: [ :aLine | self addChild: aLine ].
 					self
 						positionReconnectHandlesFor: anEdge
-						fromLines: previewLines.
+						usingWaypoints: proposed.
 					self bringReconnectHandlesToFront.
 					self bringBendpointHandlesToFront.
 					anEvent consumed: true ] ]);
@@ -1275,6 +1275,76 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLin
 
 	self positionReconnectHandle: handles first at: sourcePoint.
 	self positionReconnectHandle: handles last at: targetPoint
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: someWaypoints [
+	| handles sequenceFlow source target sourceElement targetElement interiorPoints sourcePoint targetPoint |
+	someWaypoints size < 3 ifTrue: [ ^ self ].
+	handles := reconnectHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	handles ifEmpty: [ ^ self ].
+
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source ifAbsent: [ ^ self ].
+	targetElement := shapeElementsByModelElement at: target ifAbsent: [ ^ self ].
+	interiorPoints := someWaypoints copyFrom: 2 to: someWaypoints size - 1.
+
+	sourcePoint := self
+		dockingPointFor: source
+		element: sourceElement
+		toward: interiorPoints first.
+	targetPoint := self
+		dockingPointFor: target
+		element: targetElement
+		toward: interiorPoints last.
+
+	self positionReconnectHandle: handles first at: sourcePoint.
+	self positionReconnectHandle: handles last at: targetPoint
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement toward: aPoint [
+	^ aFlowNode isEvent
+		ifTrue: [ self ellipseDockingPointFor: aNodeElement toward: aPoint ]
+		ifFalse: [ self boundsDockingPointFor: aNodeElement toward: aPoint ]
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> boundsDockingPointFor: aNodeElement toward: aPoint [
+	| bounds center direction scaleX scaleY scale |
+	bounds := aNodeElement bounds inParent: self.
+	center := bounds center.
+	direction := aPoint - center.
+	direction isZero ifTrue: [ ^ center ].
+
+	scaleX := direction x isZero
+		ifTrue: [ Float infinity ]
+		ifFalse: [ (bounds width / 2.0) / direction x abs ].
+	scaleY := direction y isZero
+		ifTrue: [ Float infinity ]
+		ifFalse: [ (bounds height / 2.0) / direction y abs ].
+	scale := scaleX min: scaleY.
+	^ center + (direction * scale)
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> ellipseDockingPointFor: aNodeElement toward: aPoint [
+	| bounds center direction major minor metric k intersection |
+	bounds := aNodeElement bounds inParent: self.
+	center := bounds center.
+	direction := aPoint - center.
+	direction isZero ifTrue: [ ^ center ].
+
+	major := bounds width / 2.0.
+	minor := bounds height / 2.0.
+	metric := ((major * major * direction y * direction y)
+		+ (minor * minor * direction x * direction x)) sqrt.
+	metric isZero ifTrue: [ ^ center ].
+	k := (major * minor) / metric.
+	intersection := (k * direction x) @ (k * direction y).
+	^ center + intersection
 ]
 
 { #category : 'private - reconnecting' }
