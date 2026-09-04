@@ -3,7 +3,6 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'taskClass',
-		'changeBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -11,10 +10,9 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPTaskTypeSelection class >> taskClass: aTaskClass changedDo: aBlock [
+CPTaskTypeSelection class >> taskClass: aTaskClass [
 	^ self new
 		taskClass: aTaskClass;
-		changeBlock: aBlock;
 		yourself
 ]
 
@@ -25,15 +23,9 @@ CPTaskTypeSelection >> taskClass [
 
 { #category : 'accessing' }
 CPTaskTypeSelection >> taskClass: aTaskClass [
-	taskClass == aTaskClass ifTrue: [ ^ self ].
-	taskClass := aTaskClass.
-	changeBlock ifNotNil: [ :aBlock | aBlock value: aTaskClass ]
+	taskClass := aTaskClass
 ]
 
-{ #category : 'accessing' }
-CPTaskTypeSelection >> changeBlock: aBlock [
-	changeBlock := aBlock
-]
 
 { #category : 'descriptions' }
 CPTaskTypeSelection >> taskClassDescription [

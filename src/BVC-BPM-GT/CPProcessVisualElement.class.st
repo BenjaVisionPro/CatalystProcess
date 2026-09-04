@@ -208,13 +208,7 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 	| aSelection aSelectionMemento aDescription aPopup |
 	aFlowNode isActivity ifFalse: [ ^ self ].
 
-	aSelection := CPTaskTypeSelection
-		taskClass: aFlowNode class
-		changedDo: [ :aTaskClass |
-			self
-				replaceTask: aFlowNode
-				withClass: aTaskClass
-				shape: aShape ].
+	aSelection := CPTaskTypeSelection taskClass: aFlowNode class.
 	aSelectionMemento := CFMaMemento model: aSelection.
 	aDescription := aSelectionMemento magritteDescription
 		detect: [ :each | each handlesSelector: #taskClass ].
@@ -222,10 +216,20 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 		singleOptionPopupElementForMemento: aSelectionMemento
 		description: aDescription
 		in: aShapeElement.
-	aPopup constraintsDo: [ :c |
-		c frame horizontal alignLeft.
-		c frame vertical alignTop.
-		c margin: (BlInsets top: 6 left: 6) ].
+	aPopup
+		popupOpenChangedDo: [ :isOpen |
+			| selectedTaskClass |
+			isOpen ifFalse: [
+				selectedTaskClass := aSelectionMemento readUsing: aDescription.
+				selectedTaskClass == aFlowNode class ifFalse: [
+					self
+						replaceTask: aFlowNode
+						withClass: selectedTaskClass
+						shape: aShape ] ] ];
+		constraintsDo: [ :c |
+			c frame horizontal alignLeft.
+			c frame vertical alignTop.
+			c margin: (BlInsets top: 6 left: 6) ].
 	aShapeElement addChild: aPopup
 ]
 
