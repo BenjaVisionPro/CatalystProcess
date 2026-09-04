@@ -108,7 +108,7 @@ CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
 	| viewModel |
 	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
 	viewModel
-		includeImplicitActions: false;
+		ignoreImplicitActions;
 		elementBuilderDo: [ CFMaDetailPresentation new ].
 	^ viewModel asElement
 ]
