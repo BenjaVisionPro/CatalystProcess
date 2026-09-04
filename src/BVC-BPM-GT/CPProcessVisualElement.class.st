@@ -191,7 +191,11 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installReplacementOn: element for: modelElement shape: aShape.
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
-	self installResizeHandleFor: aShape modelElement: modelElement shapeElement: element.
+	self
+		installResizeHandleFor: aShape
+		modelElement: modelElement
+		shapeElement: element
+		bounds: bounds.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
@@ -201,54 +205,67 @@ CPProcessVisualElement >> addShapeFor: aShape [
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
-	| popupHost |
+	| taskTypeButton |
 	aFlowNode isActivity ifFalse: [ ^ self ].
 	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
 
-	popupHost := BrFrame new
-		fitContent;
-		constraintsDo: [ :c |
-			c frame horizontal alignLeft.
-			c frame vertical alignTop.
-			c margin: (BlInsets top: 7 left: 7) ];
-		yourself.
-
-	popupHost addAptitude: (BrGlamorousWithExplicitDropdownAptitude
-		handle: [
-			self newTaskTypePopupHandleFor: aFlowNode ]
-		content: [
-			self
-				newTaskTypePopupContentFor: aFlowNode
-				shape: aShape
-				anchor: popupHost ]
-		do: [ :anAptitude |
-			anAptitude
-				withWidgetBoundsRelocator;
-				withContainerDownDropdown ]).
-
-	aShapeElement addChild: popupHost
+	taskTypeButton := self
+		newTaskTypePopupButtonFor: aFlowNode
+		shape: aShape.
+	taskTypeButton constraintsDo: [ :c |
+		c frame horizontal alignLeft.
+		c frame vertical alignTop.
+		c margin: (BlInsets top: 7 left: 7) ].
+	aShapeElement addChild: taskTypeButton
 ]
 
 { #category : 'private - task type' }
-CPProcessVisualElement >> newTaskTypePopupHandleFor: aTask [
-	| icon |
+CPProcessVisualElement >> newTaskTypePopupButtonFor: aTask shape: aShape [
+	| icon dropdownAptitude button |
 	icon := FontAwesomeIcons icon: aTask class taskTypeIcon.
 	icon
 		height: 15;
 		color: self shapeBorderColor.
 
-	^ BrButton new
-		aptitude: BrGlamorousButtonWithIconAptitude - BrGlamorousButtonExteriorAptitude;
+	dropdownAptitude := BrGlamorousWithExplicitDropdownAptitude
+		handle: [
+			| handleIcon |
+			handleIcon := FontAwesomeIcons icon: aTask class taskTypeIcon.
+			handleIcon
+				height: 15;
+				color: self shapeBorderColor.
+			BrButton new
+				aptitude: BrGlamorousButtonWithIconAptitude - BrGlamorousButtonExteriorAptitude;
+				icon: handleIcon;
+				label: aTask class taskTypeLabel;
+				padding: BlInsets empty;
+				margin: BlInsets empty;
+				fitContent;
+				yourself ]
+		content: [
+			self
+				newTaskTypePopupContentFor: aTask
+				shape: aShape ]
+		do: [ :anAptitude |
+			anAptitude
+				withWidgetBoundsRelocator;
+				withContainerDownDropdown ].
+
+	button := BrButton new
+		aptitude:
+			(BrGlamorousButtonWithIconAptitude - BrGlamorousButtonExteriorAptitude)
+				+ dropdownAptitude;
 		icon: icon;
 		label: aTask class taskTypeLabel;
 		padding: BlInsets empty;
 		margin: BlInsets empty;
 		fitContent;
-		yourself
+		yourself.
+	^ button
 ]
 
 { #category : 'private - task type' }
-CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape anchor: aDropdownAnchor [
+CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape [
 	| pane |
 	pane := BrVerticalPane new
 		vFitContent;
@@ -261,13 +278,12 @@ CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape anchor
 		pane addChild: (self
 			newTaskTypePopupOptionFor: aTaskClass
 			currentTask: aTask
-			shape: aShape
-			anchor: aDropdownAnchor) ].
+			shape: aShape) ].
 	^ pane
 ]
 
 { #category : 'private - task type' }
-CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTask shape: aShape anchor: aDropdownAnchor [
+CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTask shape: aShape [
 	| icon button |
 	icon := FontAwesomeIcons icon: aTaskClass taskTypeIcon.
 	icon
@@ -290,7 +306,7 @@ CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTa
 					replaceTask: aTask
 					withClass: aTaskClass
 					shape: aShape ].
-		aDropdownAnchor fireEvent: BrDropdownHideWish new ].
+		button fireEvent: BrDropdownHideWish new ].
 	^ button
 ]
 
@@ -757,7 +773,7 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 ]
 
 { #category : 'private - resizing' }
-CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement [
+CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement bounds: initialBounds [
 	| handle handleExtent isDragging dragStartEventPosition dragStartExtent minimumExtent |
 	resizeShapeOperationBlock ifNil: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
@@ -773,9 +789,11 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
+
 	self
 		positionResizeHandle: handle
-		forShapeElement: aShapeElement.
+		forBounds: initialBounds
+		handleExtent: handleExtent.
 
 	handle
 		addEventHandler: (BlEventHandler
@@ -800,7 +818,8 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 					aShapeElement extent: proposedExtent.
 					self
 						positionResizeHandle: handle
-						forShapeElement: aShapeElement.
+						forShapeElement: aShapeElement
+						handleExtent: handleExtent.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -818,10 +837,13 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 ]
 
 { #category : 'private - resizing' }
-CPProcessVisualElement >> positionResizeHandle: aHandle forShapeElement: aShapeElement [
-	| handleExtent |
-	handleExtent := aHandle extent.
-	handleExtent isZero ifTrue: [ handleExtent := 9 @ 9 ].
+CPProcessVisualElement >> positionResizeHandle: aHandle forBounds: aRectangle handleExtent: handleExtent [
+	aHandle relocate:
+		aRectangle bottomRight - (handleExtent / 2)
+]
+
+{ #category : 'private - resizing' }
+CPProcessVisualElement >> positionResizeHandle: aHandle forShapeElement: aShapeElement handleExtent: handleExtent [
 	aHandle relocate:
 		aShapeElement position
 			+ aShapeElement extent
@@ -878,6 +900,14 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					dragStartLabelPosition ifNotNil: [
 						(externalLabelElementsByModelElement at: aShape modelElement)
 							relocate: dragStartLabelPosition + delta ].
+					(resizeHandleElementsByShape
+						at: aShape
+						ifAbsent: [ nil ])
+						ifNotNil: [ :aResizeHandle |
+							self
+								positionResizeHandle: aResizeHandle
+								forShapeElement: aShapeElement
+								handleExtent: 9 @ 9 ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
