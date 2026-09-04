@@ -23,15 +23,12 @@ CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMement
 
 { #category : 'assessing' }
 CPAtelierConnectFlowNodes >> assess [
-	| flowElements diagram diagramMemento elementsDescription elements sourceShape targetShape sequenceFlow edge proposedFlowElements proposedElements sourceDescription targetDescription |
-	source ifNil: [ ^ self rejectedBecause: 'A source flow node is required.' ].
-	target ifNil: [ ^ self rejectedBecause: 'A target flow node is required.' ].
-	source == target ifTrue: [ ^ self rejectedBecause: 'A sequence flow requires distinct source and target nodes.' ].
-	source isEndEvent ifTrue: [ ^ self rejectedBecause: 'An end event cannot be the source of a sequence flow.' ].
-	target isStartEvent ifTrue: [ ^ self rejectedBecause: 'A start event cannot be the target of a sequence flow.' ].
+	| flowElements topology ruleResult diagram diagramMemento elementsDescription elements sourceShape targetShape sequenceFlow edge proposedFlowElements proposedElements sourceDescription targetDescription |
 	flowElements := processMemento readUsing: flowElementsDescription.
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
-	((flowElements identityIncludes: source) and: [ flowElements identityIncludes: target ]) ifFalse: [ ^ self rejectedBecause: 'Both connection endpoints must belong to the staged process.' ].
+	topology := self stagedTopologyFrom: flowElements.
+	ruleResult := CPSequenceFlowConnectionRules new assessConnectionFrom: source to: target in: topology.
+	ruleResult isAllowed ifFalse: [ ^ self rejectedBecause: ruleResult message ].
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
@@ -104,6 +101,37 @@ CPAtelierConnectFlowNodes >> stageOutgoingIncluding: aSequenceFlow for: aFlowNod
 	proposed := current species withAll: current.
 	proposed add: aSequenceFlow.
 	nodeMemento write: proposed using: description
+]
+
+
+{ #category : 'private - staged topology' }
+CPAtelierConnectFlowNodes >> stagedTopologyFrom: flowElements [
+	| topology |
+	topology := CPProcessTopology new.
+	flowElements do: [ :each |
+		each isSequenceFlow
+			ifTrue: [ topology
+				addSequenceFlow: each
+				source: (self stagedSourceOf: each)
+				target: (self stagedTargetOf: each) ]
+			ifFalse: [ topology addFlowElement: each ] ].
+	^ topology
+]
+
+{ #category : 'private - staged topology' }
+CPAtelierConnectFlowNodes >> stagedSourceOf: aSequenceFlow [
+	| flowMemento description |
+	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
+	^ flowMemento readUsing: description
+]
+
+{ #category : 'private - staged topology' }
+CPAtelierConnectFlowNodes >> stagedTargetOf: aSequenceFlow [
+	| flowMemento description |
+	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
+	^ flowMemento readUsing: description
 ]
 
 { #category : 'private - staged state' }

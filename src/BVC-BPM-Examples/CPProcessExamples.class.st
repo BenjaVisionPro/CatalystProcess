@@ -142,3 +142,58 @@ CPProcessExamples >> simpleProcess [
 
 	^ process
 ]
+
+{ #category : 'examples - process validation' }
+CPProcessExamples >> simpleProcessValidationIsValid [
+	<gtExample>
+	| result |
+	result := self simpleProcess validationResult.
+	self assert: result isValid.
+	^ result
+]
+
+{ #category : 'examples - process validation' }
+CPProcessExamples >> incompleteStartAndEndAreReported [
+	<gtExample>
+	| process start finish result |
+	process := CPProcess new label: 'Incomplete process'; yourself.
+	start := CPStartEvent new label: 'Start'; yourself.
+	finish := CPEndEvent new label: 'End'; yourself.
+	process addFlowElement: start; addFlowElement: finish.
+	result := process validationResult.
+	self assert: result errors size equals: 2.
+	self assert: (result errors anySatisfy: [ :each | each subject == start ]).
+	self assert: (result errors anySatisfy: [ :each | each subject == finish ]).
+	^ result
+]
+
+{ #category : 'examples - process validation' }
+CPProcessExamples >> duplicateSequenceFlowConnectionIsRejected [
+	<gtExample>
+	| process topology start task existing result |
+	process := CPProcess new.
+	start := CPStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Task'; yourself.
+	existing := CPSequenceFlow new sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: existing.
+	topology := CPProcessTopology fromProcess: process.
+	result := CPSequenceFlowConnectionRules new assessConnectionFrom: start to: task in: topology.
+	self assert: result isAllowed not.
+	^ result
+]
+
+{ #category : 'examples - process validation' }
+CPProcessExamples >> multipleOutgoingTaskSequenceFlowsAreAllowed [
+	<gtExample>
+	| process topology task firstTarget secondTarget existing result |
+	process := CPProcess new.
+	task := CPUserTask new label: 'Task'; yourself.
+	firstTarget := CPUserTask new label: 'First'; yourself.
+	secondTarget := CPUserTask new label: 'Second'; yourself.
+	existing := CPSequenceFlow new sourceRef: task; targetRef: firstTarget; yourself.
+	process addFlowElement: task; addFlowElement: firstTarget; addFlowElement: secondTarget; addFlowElement: existing.
+	topology := CPProcessTopology fromProcess: process.
+	result := CPSequenceFlowConnectionRules new assessConnectionFrom: task to: secondTarget in: topology.
+	self assert: result isAllowed.
+	^ result
+]

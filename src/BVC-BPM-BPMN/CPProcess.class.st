@@ -76,3 +76,8 @@ CPProcess >> diagramDescription [
 		group: 'Diagram';
 		yourself
 ]
+
+{ #category : 'validation' }
+CPProcess >> validationResult [
+	^ CPProcessValidator new validateProcess: self
+]
