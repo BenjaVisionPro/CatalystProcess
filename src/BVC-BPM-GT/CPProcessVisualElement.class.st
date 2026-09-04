@@ -355,8 +355,8 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 			do: [ :anEvent |
 				| proposedPosition delta |
 				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
-				delta := proposedPosition - dragStartElementPosition.
 				anElement relocate: proposedPosition.
+				delta := anElement position - dragStartElementPosition.
 				dragStartLabelPosition ifNotNil: [
 					(externalLabelElementsByModelElement at: aShape modelElement)
 						relocate: dragStartLabelPosition + delta ].
