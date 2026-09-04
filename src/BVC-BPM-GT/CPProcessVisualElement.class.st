@@ -454,7 +454,10 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 { #category : 'private - edges' }
 CPProcessVisualElement >> newDockingAnchorMarkerOn: aNodeElement atParentPoint: aPoint [
 	| localPoint marker |
-	localPoint := aNodeElement parentPointToLocal: aPoint.
+	"Both aPoint and aNodeElement position are expressed in this canvas's local
+	coordinate space. Keep the docking position stable relative to the node by
+	storing their direct offset as the child marker's local position."
+	localPoint := aPoint - aNodeElement position.
 	marker := BlElement new
 		extent: 1 @ 1;
 		background: Color transparent;
