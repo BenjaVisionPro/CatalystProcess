@@ -205,126 +205,28 @@ CPProcessVisualElement >> addShapeFor: aShape [
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
-	| taskTypeControl |
+	| aSelection aSelectionMemento aDescription aPopup |
 	aFlowNode isActivity ifFalse: [ ^ self ].
 
-	taskTypeControl := self
-		newTaskTypePopupControlFor: aFlowNode
-		shape: aShape.
-	taskTypeControl constraintsDo: [ :c |
+	aSelection := CPTaskTypeSelection
+		taskClass: aFlowNode class
+		changedDo: [ :aTaskClass |
+			self
+				replaceTask: aFlowNode
+				withClass: aTaskClass
+				shape: aShape ].
+	aSelectionMemento := CFMaMemento model: aSelection.
+	aDescription := aSelectionMemento magritteDescription
+		detect: [ :each | each handlesSelector: #taskClass ].
+	aPopup := CFMaDetailPresentation
+		singleOptionPopupElementForMemento: aSelectionMemento
+		description: aDescription
+		in: aShapeElement.
+	aPopup constraintsDo: [ :c |
 		c frame horizontal alignLeft.
 		c frame vertical alignTop.
 		c margin: (BlInsets top: 6 left: 6) ].
-	aShapeElement addChild: taskTypeControl
-]
-
-{ #category : 'private - task type' }
-CPProcessVisualElement >> newTaskTypePopupControlFor: aTask shape: aShape [
-	| control icon dropdownAptitude |
-	icon := FontAwesomeIcons icon: aTask class taskTypeIcon.
-	icon
-		height: 15;
-		color: self shapeBorderColor;
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ].
-
-	control := BlElement new
-		extent: 24 @ 24;
-		layout: BlFrameLayout new;
-		addChild: icon;
-		addAptitude: (BrGlamorousWithExplicitTooltipAptitude text: aTask class taskTypeLabel);
-		yourself.
-
-	dropdownAptitude := BrGlamorousWithExplicitDropdownAptitude
-		handle: [
-			| handleIcon |
-			handleIcon := FontAwesomeIcons icon: aTask class taskTypeIcon.
-			handleIcon
-				height: 15;
-				color: self shapeBorderColor;
-				constraintsDo: [ :c |
-					c frame horizontal alignCenter.
-					c frame vertical alignCenter ].
-			BlElement new
-				extent: 24 @ 24;
-				layout: BlFrameLayout new;
-				addChild: handleIcon;
-				yourself ]
-		content: [
-			self
-				newTaskTypePopupContentFor: aTask
-				shape: aShape ]
-		do: [ :anAptitude |
-			anAptitude
-				withWidgetBoundsRelocator;
-				withContainerDownDropdown ].
-
-	control addAptitude: dropdownAptitude.
-	^ control
-]
-
-{ #category : 'private - task type' }
-CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape [
-	| pane |
-	pane := BrVerticalPane new
-		fitContent;
-		padding: (BlInsets all: 4);
-		cellSpacing: 2;
-		yourself.
-
-	CPTask taskTypes do: [ :aTaskClass |
-		pane addChild: (self
-			newTaskTypePopupOptionFor: aTaskClass
-			currentTask: aTask
-			shape: aShape) ].
-	^ pane
-]
-
-{ #category : 'private - task type' }
-CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTask shape: aShape [
-	| icon iconHost label row |
-	icon := FontAwesomeIcons icon: aTaskClass taskTypeIcon.
-	icon
-		height: 16;
-		color: self shapeBorderColor;
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ].
-
-	iconHost := BlElement new
-		extent: 24 @ 24;
-		layout: BlFrameLayout new;
-		addChild: icon;
-		yourself.
-
-	label := BrLabel new
-		aptitude: BrGlamorousLabelAptitude;
-		text: aTaskClass taskTypeLabel;
-		vFitContent;
-		margin: (BlInsets top: 3);
-		yourself.
-
-	row := BrHorizontalPane new
-		fitContent;
-		cellSpacing: 6;
-		padding: (BlInsets top: 3 right: 8 bottom: 3 left: 0);
-		addChild: iconHost;
-		addChild: label;
-		yourself.
-
-	row addEventHandler: (BlEventHandler
-		on: BlClickEvent
-		do: [ :anEvent |
-			aTask class == aTaskClass
-				ifFalse: [
-					self
-						replaceTask: aTask
-						withClass: aTaskClass
-						shape: aShape ].
-			row fireEvent: BrDropdownHideWish new.
-			anEvent consumed: true ]).
-	^ row
+	aShapeElement addChild: aPopup
 ]
 
 { #category : 'private - task type' }
