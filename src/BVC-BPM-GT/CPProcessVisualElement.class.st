@@ -554,7 +554,6 @@ CPProcessVisualElement >> addPaletteDropSurface [
 		yourself.
 	dropSurface addEventHandler: (BlDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
-		whenDragLeftDo: [ :anEvent | activePaletteDragItem := nil ];
 		whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
 		yourself).
 	self addChild: dropSurface
@@ -570,17 +569,14 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	candidate := aDragItem domainObject.
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds) assess.
-	assessment isApplicable ifTrue: [ activePaletteDragItem := aDragItem ].
 	^ assessment isApplicable
 ]
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
 	| dragItem candidate elementExtent origin bounds assessment |
-	anEvent domainObjects size = 1 ifFalse: [ activePaletteDragItem := nil. ^ self ].
-	dragItem := activePaletteDragItem.
-	activePaletteDragItem := nil.
-	dragItem ifNil: [ ^ self ].
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
 	candidate := dragItem domainObject.
 	elementExtent := self extentForModelElement: candidate.
 	origin :=
@@ -588,7 +584,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 		@ ((anEvent position y - (elementExtent y / 2)) max: 0).
 	bounds := origin extent: elementExtent.
 	assessment := (createFlowNodeOperationBlock value: candidate value: bounds) apply.
-	self refresh.
+	assessment isApplicable ifTrue: [ self refresh ].
 	^ assessment
 ]
 
