@@ -98,6 +98,7 @@ CPProcessVisualElement >> refresh [
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
+	self bringReconnectHandlesToFront.
 	self updateConnectionPortVisibility
 ]
 
@@ -348,6 +349,14 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 	externalLabelElementsByModelElement valuesDo: [ :anElement |
 		anElement removeFromParent.
 		self addChild: anElement ]
+]
+
+{ #category : 'private - layout' }
+CPProcessVisualElement >> bringReconnectHandlesToFront [
+	reconnectHandleElementsByEdge valuesDo: [ :someHandles |
+		someHandles do: [ :aHandle |
+			aHandle removeFromParent.
+			self addChild: aHandle ] ]
 ]
 
 { #category : 'private - edges' }
@@ -788,13 +797,17 @@ CPProcessVisualElement >> reconnectSequenceFlowOperationFor: aBlock [
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
-	| sequenceFlow source target sourceElement targetElement sourceHandle targetHandle |
+	| sequenceFlow source target sourceElement targetElement lines sourceLine targetLine sourceHandle targetHandle |
 	reconnectSequenceFlowOperationBlock ifNil: [ ^ self ].
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 	sourceElement := shapeElementsByModelElement at: source ifAbsent: [ ^ self ].
 	targetElement := shapeElementsByModelElement at: target ifAbsent: [ ^ self ].
+	lines := edgeElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	lines ifEmpty: [ ^ self ].
+	sourceLine := lines first.
+	targetLine := lines last.
 
 	sourceHandle := self
 		newReconnectHandleFor: sequenceFlow
@@ -807,11 +820,13 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 		owner: targetElement
 		other: sourceElement.
 
+	self positionReconnectHandle: sourceHandle at: sourceLine fromPosition.
+	self positionReconnectHandle: targetHandle at: targetLine toPosition.
 	reconnectHandleElementsByEdge
 		at: anEdge
 		put: { sourceHandle. targetHandle }.
-	sourceElement addChild: sourceHandle.
-	targetElement addChild: targetHandle
+	self addChild: sourceHandle.
+	self addChild: targetHandle
 ]
 
 { #category : 'private - reconnecting' }
@@ -819,16 +834,13 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 	| handle isDragging previewLine previewCursor |
 	isDragging := false.
 	handle := BlElement new
-		extent: 12 @ 12;
+		extent: 10 @ 10;
 		geometry: BlCircleGeometry new;
-		background: self selectionColor;
-		border: (BlBorder paint: self shapeBorderColor width: 1.5);
+		background: self backgroundColor;
+		border: (BlBorder paint: self selectionColor width: 2);
 		visibility: BlVisibility hidden;
+		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
-	self
-		positionReconnectHandle: handle
-		on: ownerElement
-		toward: otherElement.
 
 	handle
 		addEventHandler: (BlEventHandler
@@ -910,23 +922,8 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 ]
 
 { #category : 'private - reconnecting' }
-CPProcessVisualElement >> positionReconnectHandle: aHandle on: ownerElement toward: otherElement [
-	| ownerCenter otherCenter delta |
-	ownerCenter := ownerElement position + (ownerElement extent / 2).
-	otherCenter := otherElement position + (otherElement extent / 2).
-	delta := otherCenter - ownerCenter.
-	aHandle constraintsDo: [ :c |
-		delta x abs >= delta y abs
-			ifTrue: [
-				delta x >= 0
-					ifTrue: [ c frame horizontal alignRight ]
-					ifFalse: [ c frame horizontal alignLeft ].
-				c frame vertical alignCenter ]
-			ifFalse: [
-				c frame horizontal alignCenter.
-				delta y >= 0
-					ifTrue: [ c frame vertical alignBottom ]
-					ifFalse: [ c frame vertical alignTop ] ] ]
+CPProcessVisualElement >> positionReconnectHandle: aHandle at: anEndpoint [
+	aHandle relocate: anEndpoint - (aHandle extent / 2)
 ]
 
 { #category : 'private - reconnecting' }
