@@ -9,3 +9,9 @@ Class {
 CPEndEvent >> isEndEvent [
 	^ true
 ]
+
+
+{ #category : 'defaults' }
+CPEndEvent class >> defaultIcon [
+	^ #endEvent
+]

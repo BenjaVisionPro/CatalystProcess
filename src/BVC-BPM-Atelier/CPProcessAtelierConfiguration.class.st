@@ -31,9 +31,9 @@ CPProcessAtelierConfiguration class >> processPalette [
 	| palette |
 	palette := CFAtelierPalette new.
 	palette
-		add: (CFAtelierPaletteItem label: 'Start event' provider: (CFAtelierFactoryProvider factory: [ CPStartEvent new label: 'Start'; yourself ]));
-		add: (CFAtelierPaletteItem label: 'End event' provider: (CFAtelierFactoryProvider factory: [ CPEndEvent new label: 'End'; yourself ]));
-		add: (CFAtelierPaletteItem label: 'User task' provider: (CFAtelierFactoryProvider factory: [ CPUserTask new label: 'Task'; yourself ])).
+		add: (CFAtelierPaletteItem label: 'Start event' icon: CPStartEvent icon provider: (CFAtelierFactoryProvider factory: [ CPStartEvent new label: 'Start'; yourself ]));
+		add: (CFAtelierPaletteItem label: 'End event' icon: CPEndEvent icon provider: (CFAtelierFactoryProvider factory: [ CPEndEvent new label: 'End'; yourself ]));
+		add: (CFAtelierPaletteItem label: 'User task' icon: CPUserTask icon provider: (CFAtelierFactoryProvider factory: [ CPUserTask new label: 'Task'; yourself ])).
 	^ palette
 ]
 

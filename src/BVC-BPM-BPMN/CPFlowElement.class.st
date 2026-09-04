@@ -34,3 +34,4 @@ CPFlowElement >> containerDescription [
 { #category : 'private - containment' }
 CPFlowElement >> prepareForRemovalFrom: aContainer [
 ]
+

@@ -169,7 +169,8 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 		label constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
-		element addChild: label ].
+		element addChild: label.
+		self installLabelEditingTriggerOn: element for: label ].
 	^ element
 ]
 
@@ -195,38 +196,30 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
+	self installLabelEditingTriggerOn: labelHost for: label.
 	externalLabelElementsByModelElement at: aFlowNode put: labelHost.
 	self addChild: labelHost
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
-	| flowMemento description editor |
-	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #label ].
-
-	editor := GtMagritteStringEditorElementStencilBuilder new
-		memento: flowMemento;
-		description: description;
-		asElement.
-
-	editor
+	| label aptitude |
+	label := CFEditableLabel new
 		fitContent;
+		text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]);
 		padding: BlInsets empty;
 		margin: BlInsets empty;
 		background: Color transparent;
 		border: BlBorder empty;
-		addShortcut: (BlShortcutWithAction new
-			name: 'Finish editing process label';
-			description: 'Finishes in-place label editing and returns focus to the diagram.';
-			combination: BlKeyCombination enter;
-			overrideChildren: true;
-			action: [ :anEvent |
-				anEvent currentTarget loseFocus.
-				anEvent consumed: true ];
-			yourself);
-		addAptitude: CFMaRowEditorAptitude new;
+		yourself.
+	aptitude := BrGlamorousEditableLabelAptitude
+		background: Color transparent
+		focused: Color transparent
+		border: Color transparent
+		focused: Color transparent.
+	aptitude defaultForeground: self theme typography titleForeground.
+	label
+		aptitude: aptitude;
 		addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
 				aStyle
@@ -234,17 +227,44 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 					border: BlBorder empty;
 					foreground: self theme typography titleForeground;
 					fontSize: self theme typography titleFontSize ];
-			hovered: [ :aStyle |
-				aStyle
-					background: Color transparent;
-					border: BlBorder empty ];
-			focused: [ :aStyle |
-				aStyle
-					background: Color transparent;
-					border: BlBorder empty ]);
-		yourself.
+			when: BrEditorModeState editable
+				style: [ :aStyle |
+					aStyle
+						background: Color transparent;
+						border: BlBorder empty ];
+			yourself);
+		when: BrEditorAcceptWish
+		do: [ :aWish |
+			self acceptLabelFrom: label for: aFlowElement.
+			label preventMeAndChildrenMouseEvents ];
+		when: BrEditorCancelWish
+		do: [ :aWish |
+			label text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]).
+			label preventMeAndChildrenMouseEvents ].
+	label preventMeAndChildrenMouseEvents.
+	^ label
+]
 
-	^ editor
+{ #category : 'private - labels' }
+CPProcessVisualElement >> installLabelEditingTriggerOn: aHostElement for: anEditableLabel [
+	aHostElement
+		when: BlDoubleClickEvent
+		do: [ :anEvent |
+			anEvent consumed: true.
+			anEditableLabel
+				allowMeAndChildrenMouseEvents;
+				switchToEditor;
+				requestFocus ]
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> acceptLabelFrom: anEditableLabel for: aFlowElement [
+	| flowMemento description value |
+	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+	value := description fromString: anEditableLabel text asString.
+	flowMemento write: value using: description
 ]
 
 { #category : 'private - edges' }

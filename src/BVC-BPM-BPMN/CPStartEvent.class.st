@@ -7,3 +7,9 @@ Class {
 
 { #category : 'testing' }
 CPStartEvent >> isStartEvent [ ^ true ]
+
+
+{ #category : 'defaults' }
+CPStartEvent class >> defaultIcon [
+	^ #startEvent
+]

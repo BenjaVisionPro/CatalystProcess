@@ -4,3 +4,9 @@ Class {
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
+
+
+{ #category : 'defaults' }
+CPUserTask class >> defaultIcon [
+	^ #userTask
+]
