@@ -172,7 +172,8 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 
 	aFlowNode isActivity ifTrue: [
 		label := self newEditableLabelFor: aFlowNode.
-		label fitContent.
+		label hFitContentLimited.
+		label vFitContent.
 		label constraintsDo: [ :c |
 			c maxWidth: (bounds width - 20 max: 1).
 			c frame horizontal alignCenter.
@@ -194,15 +195,17 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 	aFlowNode isEvent ifFalse: [ ^ self ].
 	labelWidth := 180.
 	labelHost := BlElement new
-		hExact: labelWidth;
-		vFitContent;
 		clipChildren: false;
 		layout: BlFrameLayout new;
-		constraintsDo: [ :c | c ignoreByLayout ];
+		constraintsDo: [ :c |
+			c horizontal exact: labelWidth.
+			c vertical fitContent.
+			c ignoreByLayout ];
 		relocate: (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4);
 		yourself.
 	label := self newEditableLabelFor: aFlowNode.
-	label fitContent.
+	label hFitContentLimited.
+	label vFitContent.
 	label constraintsDo: [ :c |
 		c maxWidth: labelWidth.
 		c frame horizontal alignCenter.
