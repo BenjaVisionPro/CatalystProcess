@@ -160,14 +160,10 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 		yourself.
 
 	aFlowNode isActivity ifTrue: [
-		label := BrLabel new
-			fitContent;
-			text: ((self stagedLabelOf: aFlowNode) ifNil: [ '' ]) asRopedText;
-			aptitude: (BrGlamorousLabelAptitude new fontSize: self theme typography bodyFontSize);
-			constraintsDo: [ :c |
-				c frame horizontal alignCenter.
-				c frame vertical alignCenter ];
-			yourself.
+		label := self newEditableLabelFor: aFlowNode.
+		label constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ].
 		element addChild: label ].
 	^ element
 ]
@@ -181,19 +177,66 @@ CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
-	| text label |
+	| labelHost label |
 	aFlowNode isEvent ifFalse: [ ^ self ].
-	text := self stagedLabelOf: aFlowNode.
-	text ifNil: [ ^ self ].
-	label := BrLabel new
-		fitContent;
-		text: text asRopedText;
-		aptitude: (BrGlamorousLabelAptitude new fontSize: self theme typography bodyFontSize);
+	labelHost := BlElement new
+		extent: bounds width @ 28;
+		layout: BlFrameLayout new;
 		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: bounds left @ (bounds bottom + 4);
 		yourself.
-	label relocate: bounds center x @ (bounds bottom + 6).
-	externalLabelElementsByModelElement at: aFlowNode put: label.
-	self addChild: label
+	label := self newEditableLabelFor: aFlowNode.
+	label constraintsDo: [ :c |
+		c frame horizontal alignCenter.
+		c frame vertical alignCenter ].
+	labelHost addChild: label.
+	externalLabelElementsByModelElement at: aFlowNode put: labelHost.
+	self addChild: labelHost
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
+	| label |
+	label := CFEditableLabel new
+		fitContent;
+		text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]);
+		aptitude: BrGlamorousEditableLabelAptitude new;
+		background: Color transparent;
+		border: BlBorder empty;
+		yourself.
+	self installLabelEditingOn: label for: aFlowElement.
+	^ label
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> installLabelEditingOn: anEditableLabel for: aFlowElement [
+	anEditableLabel
+		when: BlDoubleClickEvent
+		do: [ :anEvent |
+			anEvent consumed: true.
+			anEditableLabel switchToEditor.
+			anEditableLabel requestFocus ];
+		when: BrEditorAcceptWish
+		do: [ :aWish |
+			aWish consumed: true.
+			self acceptLabelFrom: anEditableLabel for: aFlowElement ];
+		when: BrEditorCancelWish
+		do: [ :aWish |
+			aWish consumed: true.
+			anEditableLabel text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]).
+			anEditableLabel switchToLabel ]
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> acceptLabelFrom: anEditableLabel for: aFlowElement [
+	| flowMemento description value |
+	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+	value := description fromString: anEditableLabel text asString.
+	flowMemento write: value using: description.
+	anEditableLabel switchToLabel.
+	self refresh
 ]
 
 { #category : 'private - edges' }
