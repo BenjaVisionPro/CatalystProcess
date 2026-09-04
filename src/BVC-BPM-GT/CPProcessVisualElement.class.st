@@ -196,47 +196,41 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
-	| label |
-	label := CFEditableLabel new
-		fitContent;
-		text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]);
-		aptitude: BrGlamorousEditableLabelAptitude new;
-		background: Color transparent;
-		border: BlBorder empty;
-		yourself.
-	self installLabelEditingOn: label for: aFlowElement.
-	^ label
-]
-
-{ #category : 'private - labels' }
-CPProcessVisualElement >> installLabelEditingOn: anEditableLabel for: aFlowElement [
-	anEditableLabel
-		when: BlDoubleClickEvent
-		do: [ :anEvent |
-			anEvent consumed: true.
-			anEditableLabel switchToEditor.
-			anEditableLabel requestFocus ];
-		when: BrEditorAcceptWish
-		do: [ :aWish |
-			aWish consumed: true.
-			self acceptLabelFrom: anEditableLabel for: aFlowElement ];
-		when: BrEditorCancelWish
-		do: [ :aWish |
-			aWish consumed: true.
-			anEditableLabel text: ((self stagedLabelOf: aFlowElement) ifNil: [ '' ]).
-			anEditableLabel switchToLabel ]
-]
-
-{ #category : 'private - labels' }
-CPProcessVisualElement >> acceptLabelFrom: anEditableLabel for: aFlowElement [
-	| flowMemento description value |
+	| flowMemento description editor |
 	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #label ].
-	value := description fromString: anEditableLabel text asString.
-	flowMemento write: value using: description.
-	anEditableLabel switchToLabel.
-	self refresh
+
+	editor := GtMagritteStringEditorElementStencilBuilder new
+		memento: flowMemento;
+		description: description;
+		asElement.
+
+	editor
+		fitContent;
+		padding: BlInsets empty;
+		margin: BlInsets empty;
+		background: Color transparent;
+		border: BlBorder empty;
+		addAptitude: CFMaRowEditorAptitude new;
+		addAptitude: (BrLazyStyleCommonAptitude new
+			default: [ :aStyle |
+				aStyle
+					background: Color transparent;
+					border: BlBorder empty;
+					foreground: self theme typography titleForeground;
+					fontSize: self theme typography titleFontSize ];
+			hovered: [ :aStyle |
+				aStyle
+					background: Color transparent;
+					border: BlBorder empty ];
+			focused: [ :aStyle |
+				aStyle
+					background: Color transparent;
+					border: BlBorder empty ]);
+		yourself.
+
+	^ editor
 ]
 
 { #category : 'private - edges' }
