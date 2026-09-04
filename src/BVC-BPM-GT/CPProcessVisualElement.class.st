@@ -268,8 +268,7 @@ CPProcessVisualElement >> newTaskTypePopupControlFor: aTask shape: aShape [
 CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape [
 	| pane |
 	pane := BrVerticalPane new
-		vFitContent;
-		hExact: 180;
+		fitContent;
 		padding: (BlInsets all: 4);
 		cellSpacing: 2;
 		yourself.
@@ -284,30 +283,47 @@ CPProcessVisualElement >> newTaskTypePopupContentFor: aTask shape: aShape [
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTask shape: aShape [
-	| icon button |
+	| icon iconHost label row |
 	icon := FontAwesomeIcons icon: aTaskClass taskTypeIcon.
 	icon
 		height: 16;
-		color: self shapeBorderColor.
+		color: self shapeBorderColor;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ].
 
-	button := BrButton new
-		aptitude: BrGlamorousButtonWithLabelAndIconAptitude;
-		icon: icon;
-		label: aTaskClass taskTypeLabel;
-		hMatchParent;
-		vFitContent;
-		padding: (BlInsets top: 5 right: 8 bottom: 5 left: 8);
+	iconHost := BlElement new
+		extent: 24 @ 24;
+		layout: BlFrameLayout new;
+		addChild: icon;
 		yourself.
 
-	button action: [
-		aTask class == aTaskClass
-			ifFalse: [
-				self
-					replaceTask: aTask
-					withClass: aTaskClass
-					shape: aShape ].
-		button fireEvent: BrDropdownHideWish new ].
-	^ button
+	label := BrLabel new
+		aptitude: BrGlamorousLabelAptitude;
+		text: aTaskClass taskTypeLabel;
+		vFitContent;
+		yourself.
+
+	row := BrHorizontalPane new
+		fitContent;
+		cellSpacing: 6;
+		padding: (BlInsets top: 3 right: 8 bottom: 3 left: 0);
+		addChild: iconHost;
+		addChild: label;
+		yourself.
+
+	row addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			aTask class == aTaskClass
+				ifFalse: [
+					self
+						replaceTask: aTask
+						withClass: aTaskClass
+						shape: aShape ].
+			row fireEvent: BrDropdownHideWish new.
+			anEvent consumed: true ]).
+	^ row
 ]
 
 { #category : 'private - task type' }
