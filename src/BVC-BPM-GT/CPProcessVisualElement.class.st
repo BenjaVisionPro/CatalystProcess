@@ -388,18 +388,42 @@ CPProcessVisualElement >> anchorClassFor: aFlowNode [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
-	| pairCount lines |
-	waypoints size < 2 ifTrue: [ ^ self ].
+	| sequenceFlow source target sourceElement targetElement interiorPoints pairCount lines |
+	waypoints size < 3 ifTrue: [ ^ self addStraightEdgeFor: anEdge ].
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	interiorPoints := waypoints copyFrom: 2 to: waypoints size - 1.
 	lines := OrderedCollection new.
-	pairCount := waypoints size - 1.
+	pairCount := interiorPoints size + 1.
+
 	1 to: pairCount do: [ :index |
-		| line selectionLine startPoint endPoint |
-		startPoint := waypoints at: index.
-		endPoint := waypoints at: index + 1.
+		| fromAnchor toAnchor line selectionLine |
+		index = 1
+			ifTrue: [
+				"The endpoint reference waypoints are DI state, not rendered docking
+				positions. Keep the same native source docking rule as a straight
+				flow, independent of the moving bendpoint."
+				fromAnchor := (self anchorClassFor: source)
+					nearestTo: targetElement
+					from: sourceElement.
+				toAnchor := BlAbsolutePositionAnchor position: interiorPoints first ]
+			ifFalse: [
+				index = pairCount
+					ifTrue: [
+						fromAnchor := BlAbsolutePositionAnchor position: interiorPoints last.
+						toAnchor := (self anchorClassFor: target)
+							nearestTo: sourceElement
+							from: targetElement ]
+					ifFalse: [
+						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
+						toAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index) ] ].
 
 		selectionLine := BlLineElement new
-			fromAnchor: (BlAbsolutePositionAnchor position: startPoint);
-			toAnchor: (BlAbsolutePositionAnchor position: endPoint);
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor;
 			border: (BlBorder paint: Color transparent width: 6);
 			constraintsDo: [ :c | c ignoreByLayout ];
 			yourself.
@@ -407,10 +431,15 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		selectionLine userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: selectionLine for: anEdge.
 
-		line := self
-			newLineFrom: startPoint
-			to: endPoint
-			withArrowhead: index = pairCount.
+		line := BlLineElement new
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor;
+			border: (BlBorder paint: self shapeBorderColor width: 1.5);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			yourself.
+		index = pairCount ifTrue: [
+			line toHead: (BlArrowheadSimpleArrow new
+				border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
 		line userData at: #processDiagramElement put: anEdge.
 		line userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: line for: anEdge.
@@ -985,7 +1014,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 						at: newPoint
 						inserting: insertsWaypoint.
 					previewLines do: [ :aLine | aLine removeFromParent ].
-					previewLines := self newPreviewLinesForWaypoints: proposed.
+					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
 					previewLines do: [ :aLine | self addChild: aLine ].
 					self bringBendpointHandlesToFront.
 					anEvent consumed: true ] ]);
@@ -1012,26 +1041,9 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 
 { #category : 'private - bendpoints' }
 CPProcessVisualElement >> previewWaypointsFor: anEdge waypointIndex: waypointIndex at: aPoint inserting: insertsWaypoint [
-	| proposed renderedLines firstLine lastLine sourcePoint targetPoint |
+	| proposed |
 	proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
 	insertsWaypoint ifTrue: [
-		renderedLines := edgeElementsByEdge at: anEdge ifAbsent: [ #() ].
-		renderedLines ifNotEmpty: [
-			firstLine := renderedLines first.
-			lastLine := renderedLines last.
-			"Ask the anchors for their positions in the diagram canvas itself.
-			Do not persist BlCurveElement>>fromPosition/toPosition; those are
-			converted presentation coordinates in the anchored element's
-			parent-children coordinate system."
-			sourcePoint := firstLine fromAnchor
-				positionForAnchoredElement: firstLine
-				within: self.
-			targetPoint := lastLine toAnchor
-				positionForAnchoredElement: lastLine
-				within: self.
-			proposed := OrderedCollection
-				with: sourcePoint
-				with: targetPoint ].
 		proposed add: aPoint afterIndex: 1.
 		^ proposed ].
 	proposed at: waypointIndex put: aPoint.
@@ -1039,17 +1051,44 @@ CPProcessVisualElement >> previewWaypointsFor: anEdge waypointIndex: waypointInd
 ]
 
 { #category : 'private - bendpoints' }
-CPProcessVisualElement >> newPreviewLinesForWaypoints: someWaypoints [
-	| lines pairCount |
+CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
+	| sequenceFlow source target sourceElement targetElement interiorPoints pairCount lines |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	interiorPoints := someWaypoints copyFrom: 2 to: someWaypoints size - 1.
 	lines := OrderedCollection new.
-	pairCount := someWaypoints size - 1.
+	pairCount := interiorPoints size + 1.
+
 	1 to: pairCount do: [ :index |
-		| line |
-		line := self
-			newLineFrom: (someWaypoints at: index)
-			to: (someWaypoints at: index + 1)
-			withArrowhead: index = pairCount.
-		line border: (BlBorder paint: self selectionColor width: 3).
+		| fromAnchor toAnchor line |
+		index = 1
+			ifTrue: [
+				fromAnchor := (self anchorClassFor: source)
+					nearestTo: targetElement
+					from: sourceElement.
+				toAnchor := BlAbsolutePositionAnchor position: interiorPoints first ]
+			ifFalse: [
+				index = pairCount
+					ifTrue: [
+						fromAnchor := BlAbsolutePositionAnchor position: interiorPoints last.
+						toAnchor := (self anchorClassFor: target)
+							nearestTo: sourceElement
+							from: targetElement ]
+					ifFalse: [
+						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
+						toAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index) ] ].
+		line := BlLineElement new
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor;
+			border: (BlBorder paint: self selectionColor width: 3);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			yourself.
+		index = pairCount ifTrue: [
+			line toHead: (BlArrowheadSimpleArrow new
+				border: (BlBorder paint: self selectionColor width: 3)) ].
 		lines add: line ].
 	^ lines
 ]
