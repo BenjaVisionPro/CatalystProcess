@@ -302,7 +302,7 @@ CPProcessVisualElement >> newTaskTypePopupOptionFor: aTaskClass currentTask: aTa
 		aptitude: BrGlamorousLabelAptitude;
 		text: aTaskClass taskTypeLabel;
 		vFitContent;
-		margin: (BlInsets top: 4);
+		margin: (BlInsets top: 3);
 		yourself.
 
 	row := BrHorizontalPane new
