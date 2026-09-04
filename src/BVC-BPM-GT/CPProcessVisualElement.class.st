@@ -35,7 +35,6 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
-	self installPaletteDrop.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false
@@ -75,6 +74,7 @@ CPProcessVisualElement >> refresh [
 	diagramElements := elements.
 
 	self extent: (self canvasExtentFor: elements).
+	self addPaletteDropSurface.
 	edges := elements select: #isEdge.
 	shapes := elements select: #isShape.
 	shapes do: [ :each | self addShapeFor: each ].
@@ -397,28 +397,38 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
-	| pullHandler |
+	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition |
 	moveShapeOperationBlock ifNil: [ ^ self ].
-
-	pullHandler := BlPullHandler new
-		allowOutOfBounds;
-		yourself.
-	anElement addEventHandler: pullHandler.
-
 	anElement
-		when: BlPullEvent
-		do: [ :anEvent |
-			(externalLabelElementsByModelElement
-				at: aShape modelElement
-				ifAbsent: [ nil ])
-				ifNotNil: [ :aLabel |
-					aLabel relocate: aLabel position + (anEvent newPosition - anEvent oldPosition) ] ];
-		when: BlPullEndEvent
-		do: [ :anEvent |
-			| originalBounds proposedBounds |
-			originalBounds := self stagedBoundsOf: aShape.
-			proposedBounds := anElement position extent: originalBounds extent.
-			self moveShape: aShape toBounds: proposedBounds ]
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				dragStartEventPosition := anEvent position.
+				dragStartElementPosition := anElement position.
+				originalBounds := self stagedBoundsOf: aShape.
+				dragStartLabelPosition := (externalLabelElementsByModelElement
+					at: aShape modelElement
+					ifAbsent: [ nil ])
+					ifNotNil: [ :aLabel | aLabel position ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				| proposedPosition delta |
+				proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+				anElement relocate: proposedPosition.
+				delta := anElement position - dragStartElementPosition.
+				dragStartLabelPosition ifNotNil: [
+					(externalLabelElementsByModelElement at: aShape modelElement)
+						relocate: dragStartLabelPosition + delta ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				| proposedBounds |
+				anEvent consumed: true.
+				proposedBounds := anElement position extent: originalBounds extent.
+				self moveShape: aShape toBounds: proposedBounds ])
 ]
 
 { #category : 'private - theme' }
@@ -463,12 +473,21 @@ CPProcessVisualElement >> createFlowNodeOperationFor: aBlock [ createFlowNodeOpe
 CPProcessVisualElement >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> installPaletteDrop [
-	self addEventHandler: (BlDropHandler new
+CPProcessVisualElement >> addPaletteDropSurface [
+	| dropSurface |
+	dropSurface := BlElement new
+		extent: self extent;
+		geometry: BlRectangleGeometry new;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: 0 @ 0;
+		yourself.
+	dropSurface addEventHandler: (BlDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
 		whenDragLeftDo: [ :anEvent | activePaletteDragItem := nil ];
 		whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
-		yourself)
+		yourself).
+	self addChild: dropSurface
 ]
 
 { #category : 'private - creation' }

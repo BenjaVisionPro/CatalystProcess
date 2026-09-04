@@ -26,11 +26,11 @@ CPProcessPresentation >> prepareHostElement [
 	surfaceColor := self workspaceSurfaceColor.
 
 	diagramElement := CPProcessVisualElement new
-		memento: self memento;
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
+		memento: self memento;
 		yourself.
 
 	diagramScrollElement := BrScrollPane new
