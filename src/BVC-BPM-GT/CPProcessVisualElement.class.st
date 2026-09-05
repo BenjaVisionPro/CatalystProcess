@@ -554,10 +554,24 @@ CPProcessVisualElement >> installLabelEditingOn: anInteractionElement label: anE
 	anInteractionElement addEventHandler: (BlEventHandler
 		on: BlDoubleClickEvent
 		do: [ :anEvent |
-			anEditableLabel allowMeAndChildrenMouseEvents.
-			anEditableLabel switchToEditor.
-			anEditableLabel requestFocus.
+			self beginEditingLabel: anEditableLabel.
 			anEvent consumed: true ])
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> beginEditingLabel: anEditableLabel [
+	anEditableLabel allowMeAndChildrenMouseEvents.
+	anEditableLabel switchToEditor.
+	anEditableLabel requestFocus
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> beginEditingLabelForEdge: anEdge [
+	| labelHost label |
+	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost children isEmpty ifTrue: [ ^ self ].
+	label := labelHost children first.
+	self beginEditingLabel: label
 ]
 
 { #category : 'private - edges' }
@@ -1832,15 +1846,23 @@ CPProcessVisualElement >> removeSequenceFlowOperationFor: aBlock [ removeSequenc
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> installEdgeSelectionOn: aLine for: anEdge [
-	aLine addEventHandler: (BlEventHandler
-		on: BlClickEvent
-		do: [ :anEvent |
-			connectionSourceModelElement ifNil: [
-				anEvent modifiers isShift
-					ifTrue: [ self toggleSelectionOf: anEdge modelElement ]
-					ifFalse: [ self selectOnly: anEdge modelElement ].
-				self requestFocus.
-				anEvent consumed: true ] ])
+	aLine
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				connectionSourceModelElement ifNil: [
+					anEvent modifiers isShift
+						ifTrue: [ self toggleSelectionOf: anEdge modelElement ]
+						ifFalse: [ self selectOnly: anEdge modelElement ].
+					self requestFocus.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDoubleClickEvent
+			do: [ :anEvent |
+				connectionSourceModelElement ifNil: [
+					self selectOnly: anEdge modelElement.
+					self beginEditingLabelForEdge: anEdge.
+					anEvent consumed: true ] ])
 ]
 
 { #category : 'private - installing' }
