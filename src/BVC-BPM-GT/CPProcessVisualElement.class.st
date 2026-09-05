@@ -1934,9 +1934,86 @@ CPProcessVisualElement >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeO
 { #category : 'configuration' }
 CPProcessVisualElement >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
 
+{ #category : 'private - selection' }
+CPProcessVisualElement >> newSelectionMarqueeElement [
+	^ BlElement new
+		geometry: BlRectangleGeometry new;
+		background: (self selectionColor alpha: 0.08);
+		border: (BlBorder paint: (self selectionColor alpha: 0.8) width: 1.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		preventMouseEvents;
+		yourself
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
+	selectedModelElements removeAll.
+
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+		((anElement bounds inParent: self) asRectangle intersects: aRectangle)
+			ifTrue: [ selectedModelElements add: aModelElement ] ].
+
+	edgeElementsByEdge keysDo: [ :anEdge |
+		(self edge: anEdge intersectsRectangle: aRectangle)
+			ifTrue: [ selectedModelElements add: anEdge modelElement ] ].
+
+	selectedModelElement := selectedModelElements
+		ifEmpty: [ nil ]
+		ifNotEmpty: [ selectedModelElements anyOne ].
+	self updateSelectionAppearance
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> edge: anEdge intersectsRectangle: aRectangle [
+	| points |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: (self stagedWaypointsOf: anEdge)
+		usingLiveBounds: true.
+	1 to: points size - 1 do: [ :index |
+		(self
+			segmentFrom: (points at: index)
+			to: (points at: index + 1)
+			intersectsRectangle: aRectangle)
+				ifTrue: [ ^ true ] ].
+	^ false
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> segmentFrom: aStart to: anEnd intersectsRectangle: aRectangle [
+	| segment top right bottom left |
+	((aRectangle containsPoint: aStart)
+		or: [ aRectangle containsPoint: anEnd ])
+			ifTrue: [ ^ true ].
+
+	segment := BlLineGeometry new
+		from: aStart to: anEnd;
+		yourself.
+	top := BlLineGeometry new
+		from: aRectangle topLeft to: aRectangle topRight;
+		yourself.
+	right := BlLineGeometry new
+		from: aRectangle topRight to: aRectangle bottomRight;
+		yourself.
+	bottom := BlLineGeometry new
+		from: aRectangle bottomRight to: aRectangle bottomLeft;
+		yourself.
+	left := BlLineGeometry new
+		from: aRectangle bottomLeft to: aRectangle topLeft;
+		yourself.
+
+	^ (segment intersectionWith: top) notNil
+		or: [ (segment intersectionWith: right) notNil
+		or: [ (segment intersectionWith: bottom) notNil
+		or: [ (segment intersectionWith: left) notNil ] ] ]
+]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> addPaletteDropSurface [
-	| dropSurface |
+	| dropSurface isMarqueeDragging marqueeOrigin marqueeElement |
+	isMarqueeDragging := false.
+	marqueeOrigin := nil.
+	marqueeElement := nil.
 	dropSurface := BlElement new
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
@@ -1953,13 +2030,58 @@ CPProcessVisualElement >> addPaletteDropSurface [
 				self clearInteractionAndSelection.
 				self requestFocus.
 				anEvent consumed: true ]);
-		addEventHandler: (BlDropHandler new
-			acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isMarqueeDragging := true.
+				marqueeOrigin := self globalPointToLocal: anEvent position.
+				connectionSourceModelElement := nil.
+				connectionTargetModelElement := nil.
+				insertionTargetEdge := nil.
+				selectedModelElements removeAll.
+				selectedModelElement := nil.
+				marqueeElement := self newSelectionMarqueeElement.
+				marqueeElement
+					relocate: marqueeOrigin;
+					extent: 0 @ 0.
+				self addChild: marqueeElement.
+				self updateSelectionAppearance.
+				self requestFocus.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isMarqueeDragging ifTrue: [
+					| corner rectangle |
+					corner := self globalPointToLocal: anEvent position.
+					rectangle := Rectangle encompassing: { marqueeOrigin. corner }.
+					marqueeElement
+						relocate: rectangle origin;
+						extent: rectangle extent.
+					self updateMarqueeSelectionFor: rectangle.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isMarqueeDragging ifTrue: [
+					| corner rectangle |
+					isMarqueeDragging := false.
+					corner := self globalPointToLocal: anEvent position.
+					rectangle := Rectangle encompassing: { marqueeOrigin. corner }.
+					self updateMarqueeSelectionFor: rectangle.
+					marqueeElement ifNotNil: [ marqueeElement removeFromParent ].
+					marqueeElement := nil.
+					marqueeOrigin := nil.
+					selectionChangedBlock ifNotNil: [
+						:aBlock | aBlock value: selectedModelElement ].
+					anEvent consumed: true ] ]);
+		addEventHandler: (CPProcessPaletteDropHandler new
+			acceptItemsSuchThat: [ :aDragItem :aDropArea |
+				self acceptsPaletteDragItem: aDragItem ];
 			whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
 			yourself).
 	self addChild: dropSurface
 ]
-
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	| sourceElement candidate proposedBounds assessment |
