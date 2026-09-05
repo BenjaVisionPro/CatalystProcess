@@ -97,8 +97,13 @@ CPProcessVisualElement >> refresh [
 		c minWidth: contentExtent x.
 		c minHeight: contentExtent y ].
 	self addPaletteDropSurface.
-	edges := elements select: #isEdge.
-	shapes := elements select: #isShape.
+	edges := elements select: [ :each |
+		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
+	shapes := (elements select: [ :each |
+		each isShape and: [ self shouldRenderDiagramElement: each ] ])
+		asSortedCollection: [ :left :right |
+			(self nestingDepthOfDiagramShape: left)
+				< (self nestingDepthOfDiagramShape: right) ].
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
@@ -106,6 +111,81 @@ CPProcessVisualElement >> refresh [
 	self bringBendpointHandlesToFront.
 	self bringResizeHandlesToFront.
 	self updateConnectionPortVisibility
+]
+
+
+
+{ #category : 'private - visibility' }
+CPProcessVisualElement >> shouldRenderDiagramElement: aDiagramElement [
+	| modelElement |
+	modelElement := aDiagramElement isShape
+		ifTrue: [ self stagedModelElementOf: aDiagramElement ]
+		ifFalse: [ aDiagramElement modelElement ].
+	modelElement ifNil: [ ^ false ].
+	^ self isFlowElementVisible: modelElement
+]
+
+{ #category : 'private - visibility' }
+CPProcessVisualElement >> isFlowElementVisible: aFlowElement [
+	^ self
+		isFlowElementVisible: aFlowElement
+		inContainerContext: (CPProcessFlowContainerContext rootFor: memento)
+]
+
+{ #category : 'private - visibility' }
+CPProcessVisualElement >> isFlowElementVisible: aFlowElement inContainerContext: aContext [
+	| stagedFlowElements |
+	stagedFlowElements := aContext stagedFlowElements.
+	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [ ^ true ].
+
+	stagedFlowElements do: [ :each |
+		each isSubProcess ifTrue: [
+			| shape |
+			shape := self diagramShapeForModelElement: each.
+			(shape notNil and: [ self stagedExpandedOf: shape ]) ifTrue: [
+				(self
+					isFlowElementVisible: aFlowElement
+					inContainerContext: (aContext childContextForSubProcess: each))
+						ifTrue: [ ^ true ] ] ] ].
+	^ false
+]
+
+{ #category : 'private - visibility' }
+CPProcessVisualElement >> diagramShapeForModelElement: aModelElement [
+	| matches |
+	matches := diagramElements select: [ :each |
+		each isShape and: [
+			(self stagedModelElementOf: each) == aModelElement ] ].
+	^ matches size = 1
+		ifTrue: [ matches first ]
+		ifFalse: [ nil ]
+]
+
+{ #category : 'private - visibility' }
+CPProcessVisualElement >> nestingDepthOfDiagramShape: aShape [
+	| modelElement |
+	modelElement := self stagedModelElementOf: aShape.
+	modelElement ifNil: [ ^ 0 ].
+	^ self
+		nestingDepthOfFlowElement: modelElement
+		inContainerContext: (CPProcessFlowContainerContext rootFor: memento)
+		depth: 0
+]
+
+{ #category : 'private - visibility' }
+CPProcessVisualElement >> nestingDepthOfFlowElement: aFlowElement inContainerContext: aContext depth: aDepth [
+	| stagedFlowElements nestedDepth |
+	stagedFlowElements := aContext stagedFlowElements.
+	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [ ^ aDepth ].
+
+	stagedFlowElements do: [ :each |
+		each isSubProcess ifTrue: [
+			nestedDepth := self
+				nestingDepthOfFlowElement: aFlowElement
+				inContainerContext: (aContext childContextForSubProcess: each)
+				depth: aDepth + 1.
+			nestedDepth ifNotNil: [ ^ nestedDepth ] ] ].
+	^ nil
 ]
 
 { #category : 'private - layout' }
@@ -2796,3 +2876,9 @@ CPProcessVisualElement >> stagedExpandedOf: aShape [
 	^ shapeMemento readUsing: description
 ]
 
+
+
+{ #category : 'accessing - testing' }
+CPProcessVisualElement >> shapeElementsByModelElement [
+	^ shapeElementsByModelElement
+]

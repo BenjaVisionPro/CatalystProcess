@@ -851,3 +851,59 @@ CPProcessVisualElementExamples >> dropPointInsideExpandedSubProcessResolvesNeste
 	self assert: (visual flowContainerAtLocalPoint: 40 @ 40) == memento model.
 	^ visual
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> collapsedAndExpandedSubProcessControlNestedDiagramVisibility [
+	<gtExample>
+	| fixture memento rootFlowDescription diagramMemento elementsDescription
+	  subProcess subProcessMemento nestedFlowDescription innerTask subShape innerShape
+	  rootFlows diagramElements shapeMemento expandedDescription visual |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootFlowDescription := self descriptionFor: #flowElements in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	rootFlows := (memento readUsing: rootFlowDescription) asOrderedCollection copy.
+	rootFlows add: subProcess.
+	memento write: rootFlows using: rootFlowDescription.
+	subProcessMemento := memento
+		childMementoFor: subProcess
+		inRelation: rootFlowDescription.
+	nestedFlowDescription := self descriptionFor: #flowElements in: subProcessMemento.
+
+	innerTask := CPUserTask new label: 'Inner'; yourself.
+	subProcessMemento write: { innerTask } asOrderedCollection using: nestedFlowDescription.
+
+	subShape := CPShape new
+		modelElement: subProcess;
+		bounds: (180 @ 180 extent: 360 @ 180);
+		yourself.
+	innerShape := CPShape new
+		modelElement: innerTask;
+		bounds: (270 @ 240 extent: 132 @ 54);
+		yourself.
+	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements
+		add: subShape;
+		add: innerShape.
+	diagramMemento write: diagramElements using: elementsDescription.
+
+	visual := self visualElementForFixture: fixture.
+	self assert: (visual isFlowElementVisible: subProcess).
+	self assert: (visual isFlowElementVisible: innerTask) not.
+	self assert: (visual shapeElementsByModelElement includesKey: subProcess).
+	self assert: (visual shapeElementsByModelElement includesKey: innerTask) not.
+
+	shapeMemento := diagramMemento childMementoFor: subShape inRelation: elementsDescription.
+	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
+	shapeMemento write: true using: expandedDescription.
+	visual refresh.
+
+	self assert: (visual isFlowElementVisible: innerTask).
+	self assert: (visual shapeElementsByModelElement includesKey: innerTask).
+	^ visual
+]

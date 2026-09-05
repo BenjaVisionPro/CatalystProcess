@@ -70,7 +70,7 @@ CPProcessFlowContainerContext >> contextContainingFlowElement: aFlowElement [
 	^ nil
 ]
 
-{ #category : 'private - resolving' }
+{ #category : 'resolving' }
 CPProcessFlowContainerContext >> childContextForSubProcess: aSubProcess [
 	| childMemento childDescription |
 	childMemento := memento
