@@ -57,6 +57,11 @@ CPProcessAtelierConfiguration class >> processPalette [
 			provider: (CFAtelierFactoryProvider factory: [
 				CPCallActivity new label: 'Call activity'; yourself ]));
 		add: (CFAtelierPaletteItem
+			label: 'Sub-process'
+			icon: CPSubProcess icon
+			provider: (CFAtelierFactoryProvider factory: [
+				CPSubProcess new label: 'Sub-process'; yourself ]));
+		add: (CFAtelierPaletteItem
 			label: 'Gateway'
 			icon: CPExclusiveGateway icon
 			provider: (CFAtelierFactoryProvider factory: [

@@ -17,6 +17,7 @@ CPBpmnIcons class >> availableIconsForStyleNamed: aStyleName [
 		#userTask -> (self icon: #userTask styleName: aStyleName).
 		#serviceTask -> (self icon: #serviceTask styleName: aStyleName).
 		#callActivity -> (self icon: #callActivity styleName: aStyleName).
+		#subProcess -> (self icon: #subProcess styleName: aStyleName).
 		#sequenceFlow -> (self icon: #sequenceFlow styleName: aStyleName).
 		#intermediateEvent -> (self icon: #intermediateEvent styleName: aStyleName).
 		#exclusiveGateway -> (self icon: #exclusiveGateway styleName: aStyleName).
@@ -36,6 +37,7 @@ CPBpmnIcons class >> icon: aSelectorSymbol styleName: aStyleName [
 	aSelectorSymbol = #userTask ifTrue: [ ^ self userTask ].
 	aSelectorSymbol = #serviceTask ifTrue: [ ^ self serviceTask ].
 	aSelectorSymbol = #callActivity ifTrue: [ ^ self callActivity ].
+	aSelectorSymbol = #subProcess ifTrue: [ ^ self subProcess ].
 	aSelectorSymbol = #sequenceFlow ifTrue: [ ^ self sequenceFlow ].
 	aSelectorSymbol = #intermediateEvent ifTrue: [ ^ self intermediateEvent ].
 	aSelectorSymbol = #exclusiveGateway ifTrue: [ ^ self exclusiveGateway ].
@@ -169,3 +171,18 @@ CPBpmnIcons class >> intermediateEvent [
 				at: #path put: 'M256 96c-88.4 0-160 71.6-160 160s71.6 160 160 160 160-71.6 160-160S344.4 96 256 96zm0 32c70.7 0 128 57.3 128 128s-57.3 128-128 128-128-57.3-128-128 57.3-128 128-128z';
 				yourself }
 ]
+
+{ #category : 'icons' }
+CPBpmnIcons class >> subProcess [
+	^ self
+		iconNamed: #subProcess
+		label: 'Sub-process'
+		pathSpecs: {
+			Dictionary new
+				at: #path put: 'M72 56h368c39.8 0 72 32.2 72 72v256c0 39.8-32.2 72-72 72H72c-39.8 0-72-32.2-72-72V128c0-39.8 32.2-72 72-72zm0 32c-22.1 0-40 17.9-40 40v256c0 22.1 17.9 40 40 40h368c22.1 0 40-17.9 40-40V128c0-22.1-17.9-40-40-40H72z';
+				yourself.
+			Dictionary new
+				at: #path put: 'M216 352h80v-32h32v80h-32v-32h-80v32h-32v-80h32v32z';
+				yourself }
+]
+

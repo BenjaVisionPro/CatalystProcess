@@ -654,3 +654,32 @@ CPProcessVisualElementExamples >> callActivityUsesActivityGeometryWithCallBounda
 	self assert: element children first children size equals: 2.
 	^ element
 ]
+
+
+{ #category : 'examples - depiction' }
+CPProcessVisualElementExamples >> collapsedSubProcessUsesActivityGeometryWithCollapseMarker [
+	<gtExample>
+	| subProcess shape element |
+	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
+	shape := CPShape new
+		modelElement: subProcess;
+		bounds: (100 @ 100 extent: 132 @ 72);
+		yourself.
+	element := CPProcessShapeElement new.
+	element
+		shape: shape
+		modelElement: subProcess
+		bounds: shape bounds
+		background: Color transparent
+		borderColor: Color black
+		label: nil.
+
+	self assert: subProcess isActivity.
+	self assert: subProcess isTask not.
+	self assert: subProcess isSubProcess.
+	self assert: element normalBorderWidth equals: 1.5.
+	self assert: element selectedBorderWidth equals: 3.
+	self assert: element children size equals: 1.
+	self assert: element children first children size equals: 2.
+	^ element
+]

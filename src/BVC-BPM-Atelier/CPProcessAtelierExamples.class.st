@@ -538,3 +538,66 @@ CPProcessAtelierExamples >> createCallActivityStagesSemanticNodeAndShapeTogether
 	self assert: (process flowElements identityIncludes: callActivity) not.
 	^ assessment
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> subProcessOwnsNestedFlowTopology [
+	<gtExample>
+	| subProcess start task flow |
+	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Pick order'; yourself.
+	flow := CPSequenceFlow new
+		sourceRef: start;
+		targetRef: task;
+		yourself.
+
+	subProcess
+		addFlowElement: start;
+		addFlowElement: task;
+		addFlowElement: flow.
+
+	self assert: subProcess isActivity.
+	self assert: subProcess isTask not.
+	self assert: subProcess isSubProcess.
+	self assert: subProcess flowElements size equals: 3.
+	self assert: start container == subProcess.
+	self assert: task container == subProcess.
+	self assert: flow container == subProcess.
+	self assert: (start outgoing identityIncludes: flow).
+	self assert: (task incoming identityIncludes: flow).
+	^ subProcess
+]
+
+{ #category : 'examples - creation' }
+CPProcessAtelierExamples >> createSubProcessStagesSemanticNodeAndShapeTogether [
+	<gtExample>
+	| fixture process memento flowElementsDescription diagramDescription subProcess operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
+
+	operation := CPAtelierCreateFlowNode
+		flowNode: subProcess
+		bounds: (300 @ 220 extent: 132 @ 72)
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (stagedFlowElements identityIncludes: subProcess).
+	self assert: (stagedElements identityIncludes: assessment shape).
+	self assert: assessment shape modelElement == subProcess.
+	self assert: assessment shape bounds equals: (300 @ 220 extent: 132 @ 72).
+	self assert: (process flowElements identityIncludes: subProcess) not.
+	^ assessment
+]

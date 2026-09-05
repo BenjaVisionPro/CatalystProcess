@@ -37,7 +37,8 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 		layout: BlFrameLayout new.
 	self addActivityLabelForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
-	self addCallActivityDecorationForBounds: aRectangle
+	self addCallActivityDecorationForBounds: aRectangle.
+	self addSubProcessDecorationForBounds: aRectangle
 ]
 
 
@@ -386,3 +387,43 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 	externalLabelHost removeFromParent.
 	aParent addChild: externalLabelHost
 ]
+
+{ #category : 'private - decoration' }
+CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
+	| marker horizontalBar verticalBar markerExtent |
+	modelElement isSubProcess ifFalse: [ ^ self ].
+	markerExtent := 14 @ 14.
+	marker := BlElement new
+		extent: markerExtent;
+		geometry: BlRectangleGeometry new;
+		background: Color transparent;
+		border: (BlBorder paint: self normalBorderColor width: 1.5);
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignBottom.
+			c margin: (BlInsets bottom: 4) ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	horizontalBar := BlElement new
+		extent: 8 @ 1.5;
+		background: self normalBorderColor;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	verticalBar := BlElement new
+		extent: 1.5 @ 8;
+		background: self normalBorderColor;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	marker
+		addChild: horizontalBar;
+		addChild: verticalBar.
+	self addChild: marker
+]
+

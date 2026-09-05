@@ -112,3 +112,9 @@ CPFlowNode >> isGateway [
 CPFlowNode >> isIntermediateEvent [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPFlowNode >> isSubProcess [
+	^ false
+]
