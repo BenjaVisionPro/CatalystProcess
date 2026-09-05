@@ -2401,6 +2401,30 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 ]
 
 { #category : 'private - reconnecting' }
+CPProcessVisualElement >> validReconnectTargetAtGlobalPoint: aPoint for: aSequenceFlow movingSource: movesSource [
+	| candidate source target assessment |
+	candidate := self
+		connectionTargetAtGlobalPoint: aPoint
+		excluding: nil.
+	candidate ifNil: [ ^ nil ].
+	reconnectSequenceFlowOperationBlock ifNil: [ ^ nil ].
+
+	source := self stagedSourceOf: aSequenceFlow.
+	target := self stagedTargetOf: aSequenceFlow.
+	movesSource
+		ifTrue: [ source := candidate ]
+		ifFalse: [ target := candidate ].
+
+	assessment := (reconnectSequenceFlowOperationBlock
+		value: aSequenceFlow
+		value: source
+		value: target) assess.
+	^ assessment isApplicable
+		ifTrue: [ candidate ]
+		ifFalse: [ nil ]
+]
+
+{ #category : 'private - reconnecting' }
 CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: movesSource owner: ownerElement other: otherElement [
 	| handle isDragging previewLine previewCursor |
 	isDragging := false.
@@ -2422,6 +2446,7 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 			do: [ :anEvent |
 				| source target localPoint |
 				isDragging := true.
+				self clearConnectionTarget.
 				source := self stagedSourceOf: aSequenceFlow.
 				target := self stagedTargetOf: aSequenceFlow.
 				localPoint := self globalPointToLocal: anEvent position.
@@ -2464,6 +2489,10 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 			do: [ :anEvent |
 				isDragging ifTrue: [
 					previewCursor relocate: (self globalPointToLocal: anEvent position).
+					self connectionTargetModelElement: (self
+						validReconnectTargetAtGlobalPoint: anEvent position
+						for: aSequenceFlow
+						movingSource: movesSource).
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -2476,8 +2505,10 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 					previewLine := nil.
 					previewCursor := nil.
 					candidate := self
-						connectionTargetAtGlobalPoint: anEvent position
-						excluding: nil.
+						validReconnectTargetAtGlobalPoint: anEvent position
+						for: aSequenceFlow
+						movingSource: movesSource.
+					self clearConnectionTarget.
 					candidate ifNotNil: [
 						source := self stagedSourceOf: aSequenceFlow.
 						target := self stagedTargetOf: aSequenceFlow.
