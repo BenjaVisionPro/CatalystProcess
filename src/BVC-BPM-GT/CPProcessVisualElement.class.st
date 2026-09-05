@@ -562,6 +562,53 @@ CPProcessVisualElement >> midpointOfRenderedLines: someLines [
 ]
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypoints [
+	| labelHost midpoint |
+	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	midpoint := self liveMidpointForEdge: anEdge waypoints: someWaypoints.
+	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> liveMidpointForEdge: anEdge waypoints: someWaypoints [
+	| sequenceFlow source target sourceElement targetElement sourceBounds targetBounds points sourcePoint targetPoint |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	sourceBounds := sourceElement bounds inParent: self.
+	targetBounds := targetElement bounds inParent: self.
+
+	someWaypoints size = 2 ifTrue: [
+		sourcePoint := self
+			dockingPointFor: source
+			bounds: sourceBounds
+			toward: targetBounds center.
+		targetPoint := self
+			dockingPointFor: target
+			bounds: targetBounds
+			toward: sourceBounds center.
+		^ (sourcePoint + targetPoint) / 2 ].
+
+	sourcePoint := self
+		dockingPointFor: source
+		bounds: sourceBounds
+		toward: (someWaypoints at: 2).
+	targetPoint := self
+		dockingPointFor: target
+		bounds: targetBounds
+		toward: (someWaypoints at: someWaypoints size - 1).
+
+	points := OrderedCollection new.
+	points add: sourcePoint.
+	2 to: someWaypoints size - 1 do: [ :index |
+		points add: (someWaypoints at: index) ].
+	points add: targetPoint.
+	^ self midpointOfPoints: points
+]
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 	edgeLabelElementsByEdge keysDo: [ :anEdge |
 		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
@@ -578,42 +625,9 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> liveMidpointForEdge: anEdge [
-	| sequenceFlow source target sourceElement targetElement sourceBounds targetBounds waypoints points sourcePoint targetPoint |
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
-	sourceElement := shapeElementsByModelElement at: source.
-	targetElement := shapeElementsByModelElement at: target.
-	sourceBounds := sourceElement bounds inParent: self.
-	targetBounds := targetElement bounds inParent: self.
-	waypoints := self stagedWaypointsOf: anEdge.
-
-	waypoints size = 2 ifTrue: [
-		sourcePoint := self
-			dockingPointFor: source
-			bounds: sourceBounds
-			toward: targetBounds center.
-		targetPoint := self
-			dockingPointFor: target
-			bounds: targetBounds
-			toward: sourceBounds center.
-		^ (sourcePoint + targetPoint) / 2 ].
-
-	sourcePoint := self
-		dockingPointFor: source
-		bounds: sourceBounds
-		toward: (waypoints at: 2).
-	targetPoint := self
-		dockingPointFor: target
-		bounds: targetBounds
-		toward: (waypoints at: waypoints size - 1).
-
-	points := OrderedCollection new.
-	points add: sourcePoint.
-	2 to: waypoints size - 1 do: [ :index |
-		points add: (waypoints at: index) ].
-	points add: targetPoint.
-	^ self midpointOfPoints: points
+	^ self
+		liveMidpointForEdge: anEdge
+		waypoints: (self stagedWaypointsOf: anEdge)
 ]
 
 { #category : 'private - labels' }
@@ -1623,6 +1637,7 @@ CPProcessVisualElement >> installBendpointInsertionOn: anEdgeElement for: anEdge
 					previewLines do: [ :aLine | aLine removeFromParent ].
 					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
 					previewLines do: [ :aLine | self addChild: aLine ].
+					self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
 					self
 						positionReconnectHandlesFor: anEdge
 						usingWaypoints: proposed.
@@ -1734,6 +1749,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 					previewLines do: [ :aLine | aLine removeFromParent ].
 					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
 					previewLines do: [ :aLine | self addChild: aLine ].
+					self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
 					self
 						positionReconnectHandlesFor: anEdge
 						usingWaypoints: proposed.
