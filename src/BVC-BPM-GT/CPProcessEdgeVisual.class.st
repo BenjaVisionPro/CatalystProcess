@@ -201,3 +201,71 @@ CPProcessEdgeVisual >> bringLabelToFrontIn: aParent [
 	labelHost removeFromParent.
 	aParent addChild: labelHost
 ]
+
+{ #category : 'appearance' }
+CPProcessEdgeVisual >> pathVisible: aBoolean [
+	| visibility |
+	visibility := aBoolean
+		ifTrue: [ BlVisibility visible ]
+		ifFalse: [ BlVisibility hidden ].
+	lineElements do: [ :aLine | aLine visibility: visibility ]
+]
+
+{ #category : 'bendpoint handles' }
+CPProcessEdgeVisual >> newBendpointHandleAt: aPoint waypointIndex: waypointIndex selectionColor: aSelectionColor removeRequested: aRemoveBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
+	| handle handleExtent dragStartEventPosition dragStartHandlePosition isDragging |
+	isDragging := false.
+	handleExtent := 9 @ 9.
+	handle := BlElement new
+		extent: handleExtent;
+		geometry: BlRectangleGeometry new;
+		background: Color white;
+		border: (BlBorder
+			paint: aSelectionColor
+			width: 1.5);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: aPoint - (handleExtent / 2);
+		yourself.
+
+	handle
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDoubleClickEvent
+			do: [ :anEvent |
+				aRemoveBlock value: waypointIndex.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				dragStartEventPosition := anEvent position.
+				dragStartHandlePosition := handle position.
+				isDragging := true.
+				self pathVisible: false.
+				aDragStartBlock value: anEvent.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| newPoint |
+					handle relocate:
+						dragStartHandlePosition + anEvent position - dragStartEventPosition.
+					newPoint := handle position + (handle extent / 2).
+					aDragBlock value: anEvent value: newPoint.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| newPoint |
+					isDragging := false.
+					newPoint := handle position + (handle extent / 2).
+					self pathVisible: true.
+					aDragEndBlock value: anEvent value: newPoint.
+					anEvent consumed: true ] ]).
+	^ handle
+]
+

@@ -2437,82 +2437,45 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 
 { #category : 'private - bendpoints' }
 CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointIndex at: aPoint [
-	| handle handleExtent dragStartEventPosition dragStartHandlePosition isDragging previewLines |
-	isDragging := false.
+	| edgeVisual previewLines |
+	edgeVisual := edgeVisualsByEdge at: anEdge.
 	previewLines := #().
-	handleExtent := 9 @ 9.
-	handle := BlElement new
-		extent: handleExtent;
-		geometry: BlRectangleGeometry new;
-		background: Color white;
-		border: (BlBorder
-			paint: self selectionColor
-			width: 1.5);
-		visibility: BlVisibility hidden;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: aPoint - (handleExtent / 2);
-		yourself.
-	handle
-		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]).
-	handle addEventHandler: (BlEventHandler
-		on: BlDoubleClickEvent
-		do: [ :anEvent |
+	^ edgeVisual
+		newBendpointHandleAt: aPoint
+		waypointIndex: waypointIndex
+		selectionColor: self selectionColor
+		removeRequested: [ :anIndex |
 			| waypoints proposed |
 			waypoints := (self stagedWaypointsOf: anEdge) asOrderedCollection.
 			waypoints size > 2 ifTrue: [
 				proposed := waypoints copy.
-				proposed removeAt: waypointIndex.
-				self setWaypoints: proposed forEdge: anEdge ].
-			anEvent consumed: true ]).
-	handle
-		addEventHandler: (BlEventHandler
-			on: BlDragStartEvent
-			do: [ :anEvent |
-				dragStartEventPosition := anEvent position.
-				dragStartHandlePosition := handle position.
-				isDragging := true.
-				(self lineElementsForEdge: anEdge)
-					do: [ :aLine | aLine visibility: BlVisibility hidden ].
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| newPoint proposed |
-					handle relocate: dragStartHandlePosition + anEvent position - dragStartEventPosition.
-					newPoint := handle position + (handle extent / 2).
-					proposed := self
-						previewWaypointsFor: anEdge
-						waypointIndex: waypointIndex
-						at: newPoint.
-					previewLines do: [ :aLine | aLine removeFromParent ].
-					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
-					previewLines do: [ :aLine | self addChild: aLine ].
-					self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
-					self
-						positionReconnectHandlesFor: anEdge
-						usingWaypoints: proposed.
-					self bringReconnectHandlesToFront.
-					self bringBendpointHandlesToFront.
-					anEvent consumed: true ] ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEndEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| newPoint proposed |
-					isDragging := false.
-					newPoint := handle position + (handle extent / 2).
-					proposed := self
-						previewWaypointsFor: anEdge
-						waypointIndex: waypointIndex
-						at: newPoint.
-					previewLines do: [ :aLine | aLine removeFromParent ].
-					previewLines := #().
-					(self lineElementsForEdge: anEdge)
-						do: [ :aLine | aLine visibility: BlVisibility visible ].
-					self setWaypoints: proposed forEdge: anEdge.
-					anEvent consumed: true ] ]).
-	^ handle
+				proposed removeAt: anIndex.
+				self setWaypoints: proposed forEdge: anEdge ] ]
+		dragStarted: [ :anEvent | ]
+		dragged: [ :anEvent :newPoint |
+			| proposed |
+			proposed := self
+				previewWaypointsFor: anEdge
+				waypointIndex: waypointIndex
+				at: newPoint.
+			previewLines do: [ :aLine | aLine removeFromParent ].
+			previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
+			previewLines do: [ :aLine | self addChild: aLine ].
+			self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
+			self
+				positionReconnectHandlesFor: anEdge
+				usingWaypoints: proposed.
+			self bringReconnectHandlesToFront.
+			self bringBendpointHandlesToFront ]
+		dragEnded: [ :anEvent :newPoint |
+			| proposed |
+			proposed := self
+				previewWaypointsFor: anEdge
+				waypointIndex: waypointIndex
+				at: newPoint.
+			previewLines do: [ :aLine | aLine removeFromParent ].
+			previewLines := #().
+			self setWaypoints: proposed forEdge: anEdge ]
 ]
 
 { #category : 'private - bendpoints' }
