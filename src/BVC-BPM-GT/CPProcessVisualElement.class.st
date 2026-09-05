@@ -1635,22 +1635,27 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
-	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds) assess.
+	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds value: memento model) assess.
 	^ assessment isApplicable
 ]
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
-	| dragItem candidate elementExtent origin bounds assessment |
+	| dragItem candidate elementExtent dropPoint origin bounds flowContainer assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	candidate := dragItem domainObject.
 	elementExtent := self extentForModelElement: candidate.
+	dropPoint := anEvent position.
 	origin :=
-		((anEvent position x - (elementExtent x / 2)) max: 0)
-		@ ((anEvent position y - (elementExtent y / 2)) max: 0).
+		((dropPoint x - (elementExtent x / 2)) max: 0)
+		@ ((dropPoint y - (elementExtent y / 2)) max: 0).
 	bounds := origin extent: elementExtent.
-	assessment := (createFlowNodeOperationBlock value: candidate value: bounds) apply.
+	flowContainer := self flowContainerAtLocalPoint: dropPoint.
+	assessment := (createFlowNodeOperationBlock
+		value: candidate
+		value: bounds
+		value: flowContainer) apply.
 	assessment isApplicable ifTrue: [ self refresh ].
 	^ assessment
 ]
@@ -1895,12 +1900,16 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 ]
 { #category : 'private - connection' }
 CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
-	| assessment |
+	| sourceContainer targetContainer assessment |
 	connectFlowNodesOperationBlock ifNil: [ ^ false ].
 	aSource == aTarget ifTrue: [ ^ false ].
+	sourceContainer := self stagedFlowContainerContaining: aSource.
+	targetContainer := self stagedFlowContainerContaining: aTarget.
+	(sourceContainer isNil or: [ sourceContainer ~~ targetContainer ]) ifTrue: [ ^ false ].
 	assessment := (connectFlowNodesOperationBlock
 		value: aSource
-		value: aTarget) assess.
+		value: aTarget
+		value: sourceContainer) assess.
 	^ assessment isApplicable
 ]
 
@@ -1939,9 +1948,15 @@ CPProcessVisualElement >> connectionTargetAtGlobalPoint: aPoint excluding: aFlow
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> connectFrom: aSource to: aTarget [
-	| assessment |
+	| sourceContainer targetContainer assessment |
 	connectFlowNodesOperationBlock ifNil: [ ^ nil ].
-	assessment := (connectFlowNodesOperationBlock value: aSource value: aTarget) apply.
+	sourceContainer := self stagedFlowContainerContaining: aSource.
+	targetContainer := self stagedFlowContainerContaining: aTarget.
+	(sourceContainer isNil or: [ sourceContainer ~~ targetContainer ]) ifTrue: [ ^ nil ].
+	assessment := (connectFlowNodesOperationBlock
+		value: aSource
+		value: aTarget
+		value: sourceContainer) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
 		ifFalse: [ self updateSelectionAppearance ].
@@ -2622,10 +2637,14 @@ CPProcessVisualElement >> removeSelection [
 	assessments := OrderedCollection new.
 	selectedNodes do: [ :aNode |
 		removeFlowNodeOperationBlock ifNotNil: [
-			assessments add: (removeFlowNodeOperationBlock value: aNode) ] ].
+			assessments add: (removeFlowNodeOperationBlock
+				value: aNode
+				value: (self stagedFlowContainerContaining: aNode)) ] ].
 	selectedFlows do: [ :aFlow |
 		removeSequenceFlowOperationBlock ifNotNil: [
-			assessments add: (removeSequenceFlowOperationBlock value: aFlow) ] ].
+			assessments add: (removeSequenceFlowOperationBlock
+				value: aFlow
+				value: (self stagedFlowContainerContaining: aFlow)) ] ].
 
 	rejected := assessments
 		detect: [ :anOperation | anOperation assess isApplicable not ]
@@ -2726,5 +2745,46 @@ CPProcessVisualElement >> flowElementMementoFor: aFlowElement inContainerMemento
 			nestedMemento ifNotNil: [ ^ nestedMemento ] ] ].
 
 	^ nil
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
+	| context |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aFlowElement
+		inRootMemento: memento.
+	^ context ifNotNil: [ context container ]
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint [
+	| candidates |
+	candidates := OrderedCollection new.
+	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
+		| modelElement bounds |
+		modelElement := self stagedModelElementOf: aShape.
+		(modelElement notNil
+			and: [ modelElement isSubProcess
+			and: [ self stagedExpandedOf: aShape ] ]) ifTrue: [
+				bounds := aShapeElement bounds inParent: self.
+				(bounds containsPoint: aPoint) ifTrue: [
+					candidates add: { modelElement. bounds } ] ] ].
+	candidates ifEmpty: [ ^ memento model ].
+	^ (candidates
+		inject: candidates first
+		into: [ :smallest :each |
+			(each second width * each second height)
+				< (smallest second width * smallest second height)
+					ifTrue: [ each ]
+					ifFalse: [ smallest ] ]) first
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedExpandedOf: aShape [
+	| shapeMemento description |
+	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isExpanded ].
+	^ shapeMemento readUsing: description
 ]
 

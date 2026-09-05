@@ -687,3 +687,142 @@ CPProcessAtelierExamples >> replacingSubProcessTypePreservesNestedFlowElements [
 	self assert: replacement label equals: nil.
 	^ replaceAssessment
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> nestedContainerCreateConnectDeleteStagesLocally [
+	<gtExample>
+	| fixture memento rootFlowDescription diagramDescription diagramMemento elementsDescription
+	  subProcess subProcessMemento nestedFlowDescription start task
+	  createStart createTask connect delete
+	  rootFlows nestedFlows diagramElements sequenceFlow |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootFlowDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	memento
+		write: ((memento readUsing: rootFlowDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: rootFlowDescription.
+	subProcessMemento := memento
+		childMementoFor: subProcess
+		inRelation: rootFlowDescription.
+	nestedFlowDescription := self descriptionFor: #flowElements in: subProcessMemento.
+	subProcessMemento write: OrderedCollection new using: nestedFlowDescription.
+
+	start := CPNoneStartEvent new label: 'Inner start'; yourself.
+	task := CPUserTask new label: 'Inner task'; yourself.
+
+	createStart := (CPAtelierCreateFlowNode
+		flowNode: start
+		bounds: (220 @ 220 extent: 42 @ 42)
+		flowContainer: subProcess
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+	createTask := (CPAtelierCreateFlowNode
+		flowNode: task
+		bounds: (340 @ 214 extent: 132 @ 54)
+		flowContainer: subProcess
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+
+	self assert: createStart isApplicable.
+	self assert: createTask isApplicable.
+	rootFlows := memento readUsing: rootFlowDescription.
+	nestedFlows := subProcessMemento readUsing: nestedFlowDescription.
+	self assert: (rootFlows identityIncludes: start) not.
+	self assert: (rootFlows identityIncludes: task) not.
+	self assert: (nestedFlows identityIncludes: start).
+	self assert: (nestedFlows identityIncludes: task).
+
+	connect := (CPAtelierConnectFlowNodes
+		source: start
+		target: task
+		flowContainer: subProcess
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+	self assert: connect isApplicable.
+	sequenceFlow := connect sequenceFlow.
+	nestedFlows := subProcessMemento readUsing: nestedFlowDescription.
+	self assert: (nestedFlows identityIncludes: sequenceFlow).
+	self assert: (rootFlows identityIncludes: sequenceFlow) not.
+
+	diagramElements := diagramMemento readUsing: elementsDescription.
+	self assert: (diagramElements identityIncludes: createStart shape).
+	self assert: (diagramElements identityIncludes: createTask shape).
+	self assert: (diagramElements identityIncludes: connect edge).
+
+	delete := (CPAtelierRemoveFlowNode
+		flowNode: task
+		flowContainer: subProcess
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+	self assert: delete isApplicable.
+	nestedFlows := subProcessMemento readUsing: nestedFlowDescription.
+	self assert: (nestedFlows identityIncludes: start).
+	self assert: (nestedFlows identityIncludes: task) not.
+	self assert: (nestedFlows identityIncludes: sequenceFlow) not.
+	rootFlows := memento readUsing: rootFlowDescription.
+	self assert: (rootFlows identityIncludes: subProcess).
+	self assert: (rootFlows identityIncludes: task) not.
+	self assert: (rootFlows identityIncludes: sequenceFlow) not.
+	^ delete
+]
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> sequenceFlowCannotCrossFlowContainerBoundary [
+	<gtExample>
+	| fixture memento rootFlowDescription diagramDescription diagramMemento elementsDescription
+	  subProcess subProcessMemento nestedFlowDescription rootTask nestedTask rootShape nestedShape operation assessment |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootFlowDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	rootTask := fixture fourth.
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	nestedTask := CPUserTask new label: 'Inner'; yourself.
+	memento
+		write: ((memento readUsing: rootFlowDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: rootFlowDescription.
+	subProcessMemento := memento
+		childMementoFor: subProcess
+		inRelation: rootFlowDescription.
+	nestedFlowDescription := self descriptionFor: #flowElements in: subProcessMemento.
+	subProcessMemento write: { nestedTask } asOrderedCollection using: nestedFlowDescription.
+
+	rootShape := fixture eighth elements
+		detect: [ :each | each isShape and: [ each modelElement == rootTask ] ].
+	nestedShape := CPShape new
+		modelElement: nestedTask;
+		bounds: (340 @ 214 extent: 132 @ 54);
+		yourself.
+	diagramMemento
+		write: ((diagramMemento readUsing: elementsDescription) asOrderedCollection copy
+			add: nestedShape;
+			yourself)
+		using: elementsDescription.
+
+	operation := CPAtelierConnectFlowNodes
+		source: rootTask
+		target: nestedTask
+		flowContainer: subProcess
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable not.
+	self assert: rootShape notNil.
+	^ assessment
+]

@@ -80,8 +80,13 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 				CPAtelierMoveShapes boundsByShape: boundsByShape processMemento: aPresentation memento diagramDescription: diagramDescription ];
 			resizeShapeOperationFor: [ :aShape :proposedBounds |
 				CPAtelierResizeShape shape: aShape bounds: proposedBounds processMemento: aPresentation memento diagramDescription: diagramDescription ];
-			createFlowNodeOperationFor: [ :aFlowNode :proposedBounds |
-				CPAtelierCreateFlowNode flowNode: aFlowNode bounds: proposedBounds processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
+			createFlowNodeOperationFor: [ :aFlowNode :proposedBounds :aFlowContainer |
+				CPAtelierCreateFlowNode
+					flowNode: aFlowNode
+					bounds: proposedBounds
+					flowContainer: aFlowContainer
+					processMemento: aPresentation memento
+					diagramDescription: diagramDescription ];
 			replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds |
 				CPAtelierReplaceFlowNode
 					flowNode: aFlowNode
@@ -90,8 +95,13 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					processMemento: aPresentation memento
 					flowElementsDescription: flowElementsDescription
 					diagramDescription: diagramDescription ];
-			connectFlowNodesOperationFor: [ :aSource :aTarget |
-				CPAtelierConnectFlowNodes source: aSource target: aTarget processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
+			connectFlowNodesOperationFor: [ :aSource :aTarget :aFlowContainer |
+				CPAtelierConnectFlowNodes
+					source: aSource
+					target: aTarget
+					flowContainer: aFlowContainer
+					processMemento: aPresentation memento
+					diagramDescription: diagramDescription ];
 			insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds |
 				CPAtelierInsertFlowNode
 					sequenceFlow: aSequenceFlow
@@ -100,10 +110,18 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					processMemento: aPresentation memento
 					flowElementsDescription: flowElementsDescription
 					diagramDescription: diagramDescription ];
-			removeFlowNodeOperationFor: [ :aFlowNode |
-				CPAtelierRemoveFlowNode flowNode: aFlowNode processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
-			removeSequenceFlowOperationFor: [ :aSequenceFlow |
-				CPAtelierRemoveSequenceFlow sequenceFlow: aSequenceFlow processMemento: aPresentation memento flowElementsDescription: flowElementsDescription diagramDescription: diagramDescription ];
+			removeFlowNodeOperationFor: [ :aFlowNode :aFlowContainer |
+				CPAtelierRemoveFlowNode
+					flowNode: aFlowNode
+					flowContainer: aFlowContainer
+					processMemento: aPresentation memento
+					diagramDescription: diagramDescription ];
+			removeSequenceFlowOperationFor: [ :aSequenceFlow :aFlowContainer |
+				CPAtelierRemoveSequenceFlow
+					sequenceFlow: aSequenceFlow
+					flowContainer: aFlowContainer
+					processMemento: aPresentation memento
+					diagramDescription: diagramDescription ];
 			reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget |
 				CPAtelierReconnectSequenceFlow
 					sequenceFlow: aSequenceFlow

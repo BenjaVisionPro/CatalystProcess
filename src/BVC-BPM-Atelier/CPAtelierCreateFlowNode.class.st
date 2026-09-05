@@ -8,7 +8,7 @@ Class {
 		'flowNode',
 		'bounds',
 		'processMemento',
-		'flowElementsDescription',
+		'flowContainerContext',
 		'diagramDescription'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -22,7 +22,23 @@ CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle processM
 		flowNode: aFlowNode;
 		bounds: aRectangle;
 		processMemento: aMemento;
-		flowElementsDescription: aFlowElementsDescription;
+		flowContainerContext: (CPProcessFlowContainerContext
+			container: aMemento model
+			memento: aMemento
+			flowElementsDescription: aFlowElementsDescription);
+		diagramDescription: aDiagramDescription;
+		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
+	^ self new
+		flowNode: aFlowNode;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext
+			forContainer: aContainer
+			inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
 		yourself
 ]
@@ -32,7 +48,8 @@ CPAtelierCreateFlowNode >> assess [
 	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements proposedElements shape boundsDescription |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Diagram bounds are required.' ].
-	flowElements := processMemento readUsing: flowElementsDescription.
+	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
+	flowElements := flowContainerContext stagedFlowElements.
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: flowNode) ifTrue: [ ^ self rejectedBecause: 'The flow node is already present in the process.' ].
 
@@ -49,7 +66,7 @@ CPAtelierCreateFlowNode >> assess [
 
 	proposedFlowElements := flowElements asOrderedCollection copy.
 	proposedFlowElements add: flowNode.
-	[ flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
@@ -65,7 +82,7 @@ CPAtelierCreateFlowNode >> assess [
 { #category : 'applying' }
 CPAtelierCreateFlowNode >> applyAssessment: anAssessment [
 	| diagram diagramMemento elementsDescription |
-	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
+	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	diagram := processMemento readUsing: diagramDescription.
 	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
@@ -88,6 +105,6 @@ CPAtelierCreateFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierCreateFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
-CPAtelierCreateFlowNode >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
+CPAtelierCreateFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierCreateFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]

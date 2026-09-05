@@ -36,12 +36,12 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				bounds: proposedBounds
 				processMemento: memento
 				diagramDescription: diagramDescription ];
-		createFlowNodeOperationFor: [ :aFlowNode :proposedBounds |
+		createFlowNodeOperationFor: [ :aFlowNode :proposedBounds :aFlowContainer |
 			CPAtelierCreateFlowNode
 				flowNode: aFlowNode
 				bounds: proposedBounds
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
 		replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds |
 			CPAtelierReplaceFlowNode
@@ -51,12 +51,12 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				processMemento: memento
 				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
-		connectFlowNodesOperationFor: [ :aSource :aTarget |
+		connectFlowNodesOperationFor: [ :aSource :aTarget :aFlowContainer |
 			CPAtelierConnectFlowNodes
 				source: aSource
 				target: aTarget
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
 		insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds |
 			CPAtelierInsertFlowNode
@@ -66,17 +66,17 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				processMemento: memento
 				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
-		removeFlowNodeOperationFor: [ :aFlowNode |
+		removeFlowNodeOperationFor: [ :aFlowNode :aFlowContainer |
 			CPAtelierRemoveFlowNode
 				flowNode: aFlowNode
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
-		removeSequenceFlowOperationFor: [ :aSequenceFlow |
+		removeSequenceFlowOperationFor: [ :aSequenceFlow :aFlowContainer |
 			CPAtelierRemoveSequenceFlow
 				sequenceFlow: aSequenceFlow
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
 		reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget |
 			CPAtelierReconnectSequenceFlow
@@ -818,4 +818,36 @@ CPProcessVisualElementExamples >> flowElementSubProcessProtocolCoversSequenceFlo
 	self assert: sequenceFlow isSubProcess not.
 	self assert: subProcess isSubProcess.
 	^ sequenceFlow
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> dropPointInsideExpandedSubProcessResolvesNestedContainer [
+	<gtExample>
+	| fixture memento rootFlowDescription diagramMemento elementsDescription subProcess subShape rootFlows diagramElements visual |
+	fixture := self fixture.
+	memento := fixture second.
+	rootFlowDescription := self descriptionFor: #flowElements in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Expanded'; yourself.
+	rootFlows := (memento readUsing: rootFlowDescription) asOrderedCollection copy.
+	rootFlows add: subProcess.
+	memento write: rootFlows using: rootFlowDescription.
+
+	subShape := CPShape new
+		modelElement: subProcess;
+		bounds: (180 @ 180 extent: 360 @ 180);
+		isExpanded: true;
+		yourself.
+	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements add: subShape.
+	diagramMemento write: diagramElements using: elementsDescription.
+
+	visual := self visualElementForFixture: fixture.
+
+	self assert: (visual flowContainerAtLocalPoint: 300 @ 240) == subProcess.
+	self assert: (visual flowContainerAtLocalPoint: 40 @ 40) == memento model.
+	^ visual
 ]

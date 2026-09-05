@@ -5,7 +5,7 @@ Class {
 	#instVars : [
 		'flowNode',
 		'processMemento',
-		'flowElementsDescription',
+		'flowContainerContext',
 		'diagramDescription'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -18,7 +18,22 @@ CPAtelierRemoveFlowNode class >> flowNode: aFlowNode processMemento: aMemento fl
 	^ self new
 		flowNode: aFlowNode;
 		processMemento: aMemento;
-		flowElementsDescription: aFlowElementsDescription;
+		flowContainerContext: (CPProcessFlowContainerContext
+			container: aMemento model
+			memento: aMemento
+			flowElementsDescription: aFlowElementsDescription);
+		diagramDescription: aDiagramDescription;
+		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierRemoveFlowNode class >> flowNode: aFlowNode flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
+	^ self new
+		flowNode: aFlowNode;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext
+			forContainer: aContainer
+			inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
 		yourself
 ]
@@ -27,7 +42,8 @@ CPAtelierRemoveFlowNode class >> flowNode: aFlowNode processMemento: aMemento fl
 CPAtelierRemoveFlowNode >> assess [
 	| flowElements incidentFlows proposedFlowElements diagram diagramMemento elementsDescription elements removedDiagramElements proposedElements |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
-	flowElements := processMemento readUsing: flowElementsDescription.
+	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
+	flowElements := flowContainerContext stagedFlowElements.
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: flowNode) ifFalse: [ ^ self rejectedBecause: 'The flow node does not belong to the staged process.' ].
 
@@ -60,7 +76,7 @@ CPAtelierRemoveFlowNode >> assess [
 		ifFalse: [ ^ self rejectedBecause: 'The flow node has no staged diagram shape.' ].
 	proposedElements := elements species withAll: (elements reject: [ :each | removedDiagramElements identityIncludes: each ]).
 
-	[ flowElementsDescription validate: proposedFlowElements ]
+	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 	[ elementsDescription validate: proposedElements ]
@@ -81,7 +97,7 @@ CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
 	incidentTopology := anAssessment removedSequenceFlows collect: [ :aSequenceFlow |
 		{ aSequenceFlow. self stagedSourceOf: aSequenceFlow. self stagedTargetOf: aSequenceFlow } ].
 
-	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
+	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	incidentTopology do: [ :each |
 		| aSequenceFlow source target |
 		aSequenceFlow := each first.
@@ -94,9 +110,9 @@ CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
 	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
-	processMemento detachChildMementoFor: flowNode inRelation: flowElementsDescription.
+	flowContainerContext detachChildMementoFor: flowNode.
 	anAssessment removedSequenceFlows do: [ :aSequenceFlow |
-		processMemento detachChildMementoFor: aSequenceFlow inRelation: flowElementsDescription ].
+		flowContainerContext detachChildMementoFor: aSequenceFlow ].
 	anAssessment removedDiagramElements do: [ :aDiagramElement |
 		diagramMemento detachChildMementoFor: aDiagramElement inRelation: elementsDescription ]
 ]
@@ -105,7 +121,7 @@ CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
 CPAtelierRemoveFlowNode >> stageIncomingWithout: aSequenceFlow for: aFlowNode [
 	| nodeMemento description current proposed |
 	aFlowNode ifNil: [ ^ self ].
-	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
 	current := nodeMemento readUsing: description.
 	proposed := current species withAll: (current reject: [ :each | each == aSequenceFlow ]).
@@ -116,7 +132,7 @@ CPAtelierRemoveFlowNode >> stageIncomingWithout: aSequenceFlow for: aFlowNode [
 CPAtelierRemoveFlowNode >> stageOutgoingWithout: aSequenceFlow for: aFlowNode [
 	| nodeMemento description current proposed |
 	aFlowNode ifNil: [ ^ self ].
-	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	current := nodeMemento readUsing: description.
 	proposed := current species withAll: (current reject: [ :each | each == aSequenceFlow ]).
@@ -126,7 +142,7 @@ CPAtelierRemoveFlowNode >> stageOutgoingWithout: aSequenceFlow for: aFlowNode [
 { #category : 'private - staged state' }
 CPAtelierRemoveFlowNode >> stagedSourceOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
 	^ flowMemento readUsing: description
 ]
@@ -134,7 +150,7 @@ CPAtelierRemoveFlowNode >> stagedSourceOf: aSequenceFlow [
 { #category : 'private - staged state' }
 CPAtelierRemoveFlowNode >> stagedTargetOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
 ]
@@ -158,6 +174,6 @@ CPAtelierRemoveFlowNode >> flowNode: anObject [ flowNode := anObject ]
 { #category : 'accessing' }
 CPAtelierRemoveFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
-CPAtelierRemoveFlowNode >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
+CPAtelierRemoveFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierRemoveFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
