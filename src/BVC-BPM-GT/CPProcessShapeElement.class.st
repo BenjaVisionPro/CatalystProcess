@@ -8,7 +8,8 @@ Class {
 		'diagramShape',
 		'modelElement',
 		'labelElement',
-		'normalBorderColor'
+		'normalBorderColor',
+		'resizeHandle'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -115,3 +116,77 @@ CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor no
 		paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
 		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
 ]
+
+{ #category : 'resizing' }
+CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent selectionColor: aSelectionColor stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
+	| handleExtent isDragging dragStartEventPosition dragStartExtent |
+	handleExtent := 9 @ 9.
+	isDragging := false.
+	resizeHandle := BlElement new
+		extent: handleExtent;
+		geometry: BlRectangleGeometry new;
+		background: Color white;
+		border: (BlBorder paint: aSelectionColor width: 1.5);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	self positionResizeHandle.
+	resizeHandle
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isDragging := true.
+				dragStartEventPosition := anEvent position.
+				dragStartExtent := self extent.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| delta proposedExtent |
+					delta := anEvent position - dragStartEventPosition.
+					proposedExtent :=
+						((dragStartExtent x + delta x) max: aMinimumExtent x)
+						@ ((dragStartExtent y + delta y) max: aMinimumExtent y).
+					self extent: proposedExtent.
+					self positionResizeHandle.
+					aGeometryChangedBlock ifNotNil: [ aGeometryChangedBlock value ].
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| currentBounds proposedBounds |
+					isDragging := false.
+					currentBounds := aStagedBoundsBlock value.
+					proposedBounds := currentBounds origin extent: self extent.
+					aResizeBlock value: proposedBounds.
+					anEvent consumed: true ] ]).
+	^ resizeHandle
+]
+
+{ #category : 'resizing' }
+CPProcessShapeElement >> positionResizeHandle [
+	resizeHandle ifNil: [ ^ self ].
+	resizeHandle relocate:
+		self position
+			+ self extent
+			- (resizeHandle extent / 2)
+]
+
+{ #category : 'resizing' }
+CPProcessShapeElement >> resizeHandle [
+	^ resizeHandle
+]
+
+{ #category : 'resizing' }
+CPProcessShapeElement >> resizeHandleVisible: aBoolean [
+	resizeHandle ifNil: [ ^ self ].
+	resizeHandle visibility: (aBoolean
+		ifTrue: [ BlVisibility visible ]
+		ifFalse: [ BlVisibility hidden ])
+]
+

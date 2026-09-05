@@ -38,7 +38,6 @@ Class {
 		'connectionTargetModelElement',
 		'reconnectHandleElementsByEdge',
 		'bendpointHandleElementsByEdge',
-		'resizeHandleElementsByShape',
 		'activePaletteDragItem',
 		'insertionTargetEdge'
 	],
@@ -60,7 +59,6 @@ CPProcessVisualElement >> initialize [
 	connectionPortElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
 	bendpointHandleElementsByEdge := IdentityDictionary new.
-	resizeHandleElementsByShape := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -96,7 +94,6 @@ CPProcessVisualElement >> refresh [
 	connectionPortElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
 	bendpointHandleElementsByEdge removeAll.
-	resizeHandleElementsByShape removeAll.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
 	connectionTargetModelElement := nil.
@@ -1329,12 +1326,9 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			ifTrue: [ BlVisibility visible ]
 			ifFalse: [ BlVisibility hidden ].
 		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
-	resizeHandleElementsByShape keysAndValuesDo: [ :aShape :aHandle |
-		| modelElement |
-		modelElement := self stagedModelElementOf: aShape.
-		aHandle visibility: ((modelElement == selectedModelElement)
-			ifTrue: [ BlVisibility visible ]
-			ifFalse: [ BlVisibility hidden ]) ].
+	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
+		aShapeElement resizeHandleVisible:
+			((self stagedModelElementOf: aShape) == selectedModelElement) ].
 	self updateConnectionPortVisibility
 ]
 
@@ -1366,89 +1360,26 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 
 { #category : 'private - resizing' }
 CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement bounds: initialBounds [
-	| handle handleExtent isDragging dragStartEventPosition dragStartExtent minimumExtent |
+	| handle |
 	resizeShapeOperationBlock ifNil: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
-
-	handleExtent := 9 @ 9.
-	minimumExtent := self extentForModelElement: aModelElement.
-	isDragging := false.
-	handle := BlElement new
-		extent: handleExtent;
-		geometry: BlRectangleGeometry new;
-		background: Color white;
-		border: (BlBorder paint: self selectionColor width: 1.5);
-		visibility: BlVisibility hidden;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		yourself.
-
-	self
-		positionResizeHandle: handle
-		forBounds: initialBounds
-		handleExtent: handleExtent.
-
-	handle
-		addEventHandler: (BlEventHandler
-			on: BlClickEvent
-			do: [ :anEvent | anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragStartEvent
-			do: [ :anEvent |
-				isDragging := true.
-				dragStartEventPosition := anEvent position.
-				dragStartExtent := aShapeElement extent.
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| delta proposedExtent |
-					delta := anEvent position - dragStartEventPosition.
-					proposedExtent :=
-						((dragStartExtent x + delta x) max: minimumExtent x)
-						@ ((dragStartExtent y + delta y) max: minimumExtent y).
-					aShapeElement extent: proposedExtent.
-					self
-						positionResizeHandle: handle
-						forShapeElement: aShapeElement
-						handleExtent: handleExtent.
-					self updateIncidentEdgeLabelsFor: aModelElement.
-					self updateIncidentReconnectHandlesFor: aModelElement.
-					anEvent consumed: true ] ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEndEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| currentBounds proposedBounds |
-					isDragging := false.
-					currentBounds := self stagedBoundsOf: aShape.
-					proposedBounds := currentBounds origin extent: aShapeElement extent.
-					self resizeShape: aShape toBounds: proposedBounds.
-					anEvent consumed: true ] ]).
-
-	resizeHandleElementsByShape at: aShape put: handle.
+	handle := aShapeElement
+		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)
+		selectionColor: self selectionColor
+		stagedBounds: [ self stagedBoundsOf: aShape ]
+		resize: [ :proposedBounds | self resizeShape: aShape toBounds: proposedBounds ]
+		geometryChanged: [
+			self updateIncidentEdgeLabelsFor: aModelElement.
+			self updateIncidentReconnectHandlesFor: aModelElement ].
 	self addChild: handle
-]
-
-{ #category : 'private - resizing' }
-CPProcessVisualElement >> positionResizeHandle: aHandle forBounds: aRectangle handleExtent: handleExtent [
-	aHandle relocate:
-		aRectangle bottomRight - (handleExtent / 2)
-]
-
-{ #category : 'private - resizing' }
-CPProcessVisualElement >> positionResizeHandle: aHandle forShapeElement: aShapeElement handleExtent: handleExtent [
-	aHandle relocate:
-		aShapeElement position
-			+ aShapeElement extent
-			- (handleExtent / 2)
 ]
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringResizeHandlesToFront [
-	resizeHandleElementsByShape valuesDo: [ :aHandle |
-		aHandle removeFromParent.
-		self addChild: aHandle ]
+	shapeElementsByShape valuesDo: [ :aShapeElement |
+		aShapeElement resizeHandle ifNotNil: [ :aHandle |
+			aHandle removeFromParent.
+			self addChild: aHandle ] ]
 ]
 
 { #category : 'operations' }
@@ -1702,12 +1633,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								label := entry fifth.
 								element relocate: bounds origin + delta.
 								label ifNotNil: [ label relocate: entry sixth + delta ].
-								(resizeHandleElementsByShape at: shape ifAbsent: [ nil ])
-									ifNotNil: [ :aResizeHandle |
-										self
-											positionResizeHandle: aResizeHandle
-											forShapeElement: element
-											handleExtent: 9 @ 9 ] ].
+								element positionResizeHandle ].
 							self removeGroupMovePreviews: groupPreviews.
 							groupPreviews := IdentityDictionary new.
 							internalBentEdges do: [ :anEdge |
@@ -1738,14 +1664,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 							self insertionTargetEdge: (self
 								insertionEdgeAtGlobalPoint: anEvent position
 								for: draggedModelElement).
-							(resizeHandleElementsByShape
-								at: aShape
-								ifAbsent: [ nil ])
-								ifNotNil: [ :aResizeHandle |
-									self
-										positionResizeHandle: aResizeHandle
-										forShapeElement: aShapeElement
-										handleExtent: 9 @ 9 ] ].
+							aShapeElement positionResizeHandle.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
