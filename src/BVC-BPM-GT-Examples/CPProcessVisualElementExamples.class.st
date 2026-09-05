@@ -308,3 +308,115 @@ CPProcessVisualElementExamples >> removalTreatsSelectedNodeAndItsSelectedInciden
 	self assert: visual selectedModelElements isEmpty.
 	^ visual
 ]
+
+
+{ #category : 'examples - gestures - selection' }
+CPProcessVisualElementExamples >> clickingShapeSelectsItsSemanticModelElement [
+	<gtExample>
+	| fixture visual task taskShape scripter |
+	fixture := self fixture.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+	(visual shapeElementFor: taskShape) id: #processTaskShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Click task shape';
+			id: #processTaskShape ].
+
+	self assert: visual selectedModelElements size equals: 1.
+	self assert: (visual selectedModelElements identityIncludes: task).
+	self assert: visual selectedModelElement == task.
+	^ scripter
+]
+
+{ #category : 'examples - gestures - selection' }
+CPProcessVisualElementExamples >> clickingAnotherShapeReplacesSelection [
+	<gtExample>
+	| fixture visual start task startShape taskShape scripter |
+	fixture := self fixture.
+	start := fixture third.
+	task := fixture fourth.
+	startShape := fixture at: 9.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+	(visual shapeElementFor: startShape) id: #processStartShape.
+	(visual shapeElementFor: taskShape) id: #processTaskShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Click task shape';
+			id: #processTaskShape ].
+	scripter clickStep: [ :step |
+		step
+			label: 'Click start shape';
+			id: #processStartShape ].
+
+	self assert: visual selectedModelElements size equals: 1.
+	self assert: (visual selectedModelElements identityIncludes: start).
+	self assert: (visual selectedModelElements identityIncludes: task) not.
+	self assert: visual selectedModelElement == start.
+	^ scripter
+]
+
+{ #category : 'examples - gestures - keyboard' }
+CPProcessVisualElementExamples >> deleteKeyRemovesSelectedNodeThroughVisualKeyboardHandler [
+	<gtExample>
+	| fixture visual memento task taskShape scripter stagedFlowElements |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+	(visual shapeElementFor: taskShape) id: #processTaskShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Select task through its rendered shape';
+			id: #processTaskShape ].
+	(scripter keyPress: BlKeyboardKey delete)
+		label: 'Delete selected BPMN node';
+		play.
+
+	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
+	self assert: stagedFlowElements size equals: 2.
+	self assert: (stagedFlowElements identityIncludes: task) not.
+	self assert: (stagedFlowElements identityIncludes: fixture sixth) not.
+	self assert: (stagedFlowElements identityIncludes: fixture seventh) not.
+	self assert: visual selectedModelElements isEmpty.
+	^ scripter
+]
+
+{ #category : 'examples - gestures - keyboard' }
+CPProcessVisualElementExamples >> escapeKeyClearsSelectionThroughVisualCancellationPath [
+	<gtExample>
+	| fixture visual task taskShape scripter |
+	fixture := self fixture.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+	(visual shapeElementFor: taskShape) id: #processTaskShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Select task through its rendered shape';
+			id: #processTaskShape ].
+	self assert: (visual selectedModelElements identityIncludes: task).
+
+	(scripter keyPress: BlKeyboardKey escape)
+		label: 'Cancel current visual interaction';
+		play.
+
+	self assert: visual selectedModelElements isEmpty.
+	self assert: visual selectedModelElement isNil.
+	^ scripter
+]
