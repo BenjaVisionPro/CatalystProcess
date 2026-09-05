@@ -1861,6 +1861,77 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 ]
 
 { #category : 'private - connection' }
+CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement target: aTarget [
+	| targetElement |
+	aTarget
+		ifNil: [
+			aLine
+				fromAnchor: ((self anchorClassFor: aSource)
+					nearestTo: aCursor
+					from: aSourceElement);
+				toAnchor: (BlNearestPositionBoundsAnchor
+					nearestTo: aSourceElement
+					from: aCursor) ]
+		ifNotNil: [
+			targetElement := shapeElementsByModelElement at: aTarget.
+			aLine
+				fromAnchor: ((self anchorClassFor: aSource)
+					nearestTo: targetElement
+					from: aSourceElement);
+				toAnchor: ((self anchorClassFor: aTarget)
+					nearestTo: aSourceElement
+					from: targetElement) ]
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequenceFlow: aSequenceFlow movingSource: movesSource target: aCandidate [
+	| source target sourceElement targetElement candidateElement |
+	source := self stagedSourceOf: aSequenceFlow.
+	target := self stagedTargetOf: aSequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+
+	aCandidate
+		ifNil: [
+			movesSource
+				ifTrue: [
+					aLine
+						fromAnchor: (BlNearestPositionBoundsAnchor
+							nearestTo: targetElement
+							from: aCursor);
+						toAnchor: ((self anchorClassFor: target)
+							nearestTo: aCursor
+							from: targetElement) ]
+				ifFalse: [
+					aLine
+						fromAnchor: ((self anchorClassFor: source)
+							nearestTo: aCursor
+							from: sourceElement);
+						toAnchor: (BlNearestPositionBoundsAnchor
+							nearestTo: sourceElement
+							from: aCursor) ] ]
+		ifNotNil: [
+			candidateElement := shapeElementsByModelElement at: aCandidate.
+			movesSource
+				ifTrue: [
+					aLine
+						fromAnchor: ((self anchorClassFor: aCandidate)
+							nearestTo: targetElement
+							from: candidateElement);
+						toAnchor: ((self anchorClassFor: target)
+							nearestTo: candidateElement
+							from: targetElement) ]
+				ifFalse: [
+					aLine
+						fromAnchor: ((self anchorClassFor: source)
+							nearestTo: candidateElement
+							from: sourceElement);
+						toAnchor: ((self anchorClassFor: aCandidate)
+							nearestTo: sourceElement
+							from: candidateElement) ] ]
+]
+
+{ #category : 'private - connection' }
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 	| port isDragging didDrag previewLine previewCursor |
 	connectFlowNodesOperationBlock ifNil: [ ^ self ].
@@ -1918,10 +1989,18 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
+					| target |
 					previewCursor relocate: (self globalPointToLocal: anEvent position).
-					self connectionTargetModelElement: (self
+					target := self
 						validConnectionTargetAtGlobalPoint: anEvent position
-						from: aFlowNode).
+						from: aFlowNode.
+					self connectionTargetModelElement: target.
+					self
+						updateConnectionPreviewLine: previewLine
+						cursor: previewCursor
+						source: aFlowNode
+						sourceElement: aNodeElement
+						target: target.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -2510,11 +2589,19 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
+					| candidate |
 					previewCursor relocate: (self globalPointToLocal: anEvent position).
-					self connectionTargetModelElement: (self
+					candidate := self
 						validReconnectTargetAtGlobalPoint: anEvent position
 						for: aSequenceFlow
-						movingSource: movesSource).
+						movingSource: movesSource.
+					self connectionTargetModelElement: candidate.
+					self
+						updateReconnectPreviewLine: previewLine
+						cursor: previewCursor
+						sequenceFlow: aSequenceFlow
+						movingSource: movesSource
+						target: candidate.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
