@@ -102,3 +102,8 @@ CPFlowNode >> isStartEvent [ ^ false ]
 CPFlowNode >> isGateway [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPFlowNode >> isIntermediateEvent [
+	^ false
+]

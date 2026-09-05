@@ -9,8 +9,3 @@ Class {
 CPEvent >> isEvent [
 	^ true
 ]
-
-{ #category : 'testing' }
-CPEvent >> isIntermediateEvent [
-	^ false
-]
