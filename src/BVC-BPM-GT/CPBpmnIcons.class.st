@@ -16,6 +16,7 @@ CPBpmnIcons class >> availableIconsForStyleNamed: aStyleName [
 		#endEvent -> (self icon: #endEvent styleName: aStyleName).
 		#userTask -> (self icon: #userTask styleName: aStyleName).
 		#serviceTask -> (self icon: #serviceTask styleName: aStyleName).
+		#callActivity -> (self icon: #callActivity styleName: aStyleName).
 		#sequenceFlow -> (self icon: #sequenceFlow styleName: aStyleName).
 		#intermediateEvent -> (self icon: #intermediateEvent styleName: aStyleName).
 		#exclusiveGateway -> (self icon: #exclusiveGateway styleName: aStyleName).
@@ -34,6 +35,7 @@ CPBpmnIcons class >> icon: aSelectorSymbol styleName: aStyleName [
 	aSelectorSymbol = #endEvent ifTrue: [ ^ self endEvent ].
 	aSelectorSymbol = #userTask ifTrue: [ ^ self userTask ].
 	aSelectorSymbol = #serviceTask ifTrue: [ ^ self serviceTask ].
+	aSelectorSymbol = #callActivity ifTrue: [ ^ self callActivity ].
 	aSelectorSymbol = #sequenceFlow ifTrue: [ ^ self sequenceFlow ].
 	aSelectorSymbol = #intermediateEvent ifTrue: [ ^ self intermediateEvent ].
 	aSelectorSymbol = #exclusiveGateway ifTrue: [ ^ self exclusiveGateway ].
@@ -103,6 +105,17 @@ CPBpmnIcons class >> serviceTask [
 				yourself }
 ]
 
+
+{ #category : 'icons' }
+CPBpmnIcons class >> callActivity [
+	^ self
+		iconNamed: #callActivity
+		label: 'Call activity'
+		pathSpecs: {
+			Dictionary new
+				at: #path put: 'M72 48h368c39.8 0 72 32.2 72 72v272c0 39.8-32.2 72-72 72H72c-39.8 0-72-32.2-72-72V120c0-39.8 32.2-72 72-72zm0 48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h368c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24H72z';
+				yourself }
+]
 
 { #category : 'icons' }
 CPBpmnIcons class >> sequenceFlow [

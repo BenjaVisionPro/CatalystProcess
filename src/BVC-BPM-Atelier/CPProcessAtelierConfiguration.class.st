@@ -52,6 +52,11 @@ CPProcessAtelierConfiguration class >> processPalette [
 			provider: (CFAtelierFactoryProvider factory: [
 				CPUserTask new label: 'Task'; yourself ]));
 		add: (CFAtelierPaletteItem
+			label: 'Call activity'
+			icon: CPCallActivity icon
+			provider: (CFAtelierFactoryProvider factory: [
+				CPCallActivity new label: 'Call activity'; yourself ]));
+		add: (CFAtelierPaletteItem
 			label: 'Gateway'
 			icon: CPExclusiveGateway icon
 			provider: (CFAtelierFactoryProvider factory: [

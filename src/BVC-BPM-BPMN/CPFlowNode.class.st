@@ -81,6 +81,11 @@ CPFlowNode >> prepareForRemovalFrom: aContainer [
 ]
 
 { #category : 'testing' }
+CPFlowNode >> isCallActivity [
+	^ false
+]
+
+{ #category : 'testing' }
 CPFlowNode >> isEvent [
 	^ false
 ]

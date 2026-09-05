@@ -36,7 +36,8 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 			width: self normalBorderWidth);
 		layout: BlFrameLayout new.
 	self addActivityLabelForBounds: aRectangle.
-	self addIntermediateEventDecorationForBounds: aRectangle
+	self addIntermediateEventDecorationForBounds: aRectangle.
+	self addCallActivityDecorationForBounds: aRectangle
 ]
 
 
@@ -82,6 +83,45 @@ CPProcessShapeElement >> addActivityLabelForBounds: aRectangle [
 ]
 
 { #category : 'private - decoration' }
+CPProcessShapeElement >> addCallActivityDecorationForBounds: aRectangle [
+	| marker horizontalBar verticalBar markerExtent |
+	(modelElement isCallActivity and: [ modelElement calledElement notNil ]) ifFalse: [ ^ self ].
+	markerExtent := 14 @ 14.
+	marker := BlElement new
+		extent: markerExtent;
+		geometry: BlRectangleGeometry new;
+		background: Color transparent;
+		border: (BlBorder paint: self normalBorderColor width: 1.5);
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignBottom.
+			c margin: (BlInsets bottom: 4) ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	horizontalBar := BlElement new
+		extent: 8 @ 1.5;
+		background: self normalBorderColor;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	verticalBar := BlElement new
+		extent: 1.5 @ 8;
+		background: self normalBorderColor;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	marker
+		addChild: horizontalBar;
+		addChild: verticalBar.
+	self addChild: marker
+]
+
+{ #category : 'private - decoration' }
 CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
 	| innerRing |
 	modelElement isIntermediateEvent ifFalse: [ ^ self ].
@@ -105,12 +145,16 @@ CPProcessShapeElement >> normalBorderColor [
 
 { #category : 'private - appearance' }
 CPProcessShapeElement >> normalBorderWidth [
-	^ modelElement isEndEvent ifTrue: [ 3 ] ifFalse: [ 1.5 ]
+	^ (modelElement isEndEvent or: [ modelElement isCallActivity ])
+		ifTrue: [ 3 ]
+		ifFalse: [ 1.5 ]
 ]
 
 { #category : 'private - appearance' }
 CPProcessShapeElement >> selectedBorderWidth [
-	^ modelElement isEndEvent ifTrue: [ 4.5 ] ifFalse: [ 3 ]
+	^ (modelElement isEndEvent or: [ modelElement isCallActivity ])
+		ifTrue: [ 4.5 ]
+		ifFalse: [ 3 ]
 ]
 
 { #category : 'appearance' }

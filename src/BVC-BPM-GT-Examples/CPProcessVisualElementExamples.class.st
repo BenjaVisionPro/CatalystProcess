@@ -622,3 +622,34 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 	^ scripter
 ]
 
+
+{ #category : 'examples - depiction' }
+CPProcessVisualElementExamples >> callActivityUsesActivityGeometryWithCallBoundary [
+	<gtExample>
+	| callActivity calledProcess shape element |
+	calledProcess := CPProcess new label: 'Fulfilment'; yourself.
+	callActivity := CPCallActivity new
+		label: 'Reuse fulfilment';
+		calledElement: calledProcess;
+		yourself.
+	shape := CPShape new
+		modelElement: callActivity;
+		bounds: (100 @ 100 extent: 132 @ 54);
+		yourself.
+	element := CPProcessShapeElement new.
+	element
+		shape: shape
+		modelElement: callActivity
+		bounds: shape bounds
+		background: Color transparent
+		borderColor: Color black
+		label: nil.
+
+	self assert: callActivity isActivity.
+	self assert: callActivity isTask not.
+	self assert: callActivity isCallActivity.
+	self assert: element normalBorderWidth equals: 3.
+	self assert: element selectedBorderWidth equals: 4.5.
+	self assert: element children size equals: 2.
+	^ element
+]

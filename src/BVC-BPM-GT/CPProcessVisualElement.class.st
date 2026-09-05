@@ -215,7 +215,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 
 { #category : 'private - type selection' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
-	aFlowNode isActivity ifFalse: [ ^ self ].
+	aFlowNode isTask ifFalse: [ ^ self ].
 	self
 		installTypePopupOn: aShapeElement
 		for: aFlowNode

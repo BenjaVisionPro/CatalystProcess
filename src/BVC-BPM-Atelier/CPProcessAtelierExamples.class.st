@@ -505,3 +505,36 @@ CPProcessAtelierExamples >> replaceFlowNodePreservesShapeAndIncidentFlowIdentity
 	self assert: fixture eighth elements second == taskShape.
 	^ memento
 ]
+
+{ #category : 'examples - creation' }
+CPProcessAtelierExamples >> createCallActivityStagesSemanticNodeAndShapeTogether [
+	<gtExample>
+	| fixture process memento flowElementsDescription diagramDescription callActivity operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	callActivity := CPCallActivity new label: 'Reuse fulfilment'; yourself.
+
+	operation := CPAtelierCreateFlowNode
+		flowNode: callActivity
+		bounds: (300 @ 220 extent: 132 @ 54)
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (stagedFlowElements identityIncludes: callActivity).
+	self assert: (stagedElements identityIncludes: assessment shape).
+	self assert: assessment shape modelElement == callActivity.
+	self assert: assessment shape bounds equals: (300 @ 220 extent: 132 @ 54).
+	self assert: (process flowElements identityIncludes: callActivity) not.
+	^ assessment
+]
