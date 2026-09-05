@@ -329,7 +329,8 @@ CPProcessVisualElementExamples >> clickingShapeSelectsItsSemanticModelElement [
 
 	self assert: visual selectedModelElements size equals: 1.
 	self assert: (visual selectedModelElements identityIncludes: task).
-	self assert: visual selectedModelElement == task.
+	self assert: visual selectedModelElements isEmpty.
+	self assert: visual selectedModelElement isNil.
 	^ scripter
 ]
 
