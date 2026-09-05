@@ -650,6 +650,7 @@ CPProcessVisualElementExamples >> callActivityUsesActivityGeometryWithCallBounda
 	self assert: callActivity isCallActivity.
 	self assert: element normalBorderWidth equals: 3.
 	self assert: element selectedBorderWidth equals: 4.5.
-	self assert: element children size equals: 2.
+	self assert: element children size equals: 1.
+	self assert: element children first children size equals: 2.
 	^ element
 ]
