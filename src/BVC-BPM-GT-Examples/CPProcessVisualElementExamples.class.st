@@ -528,3 +528,90 @@ CPProcessVisualElementExamples >> draggingOneOfMultipleSelectedShapesStagesOneGr
 	self assert: (visual selectedModelElements identityIncludes: task).
 	^ scripter
 ]
+
+
+{ #category : 'private - gestures' }
+CPProcessVisualElementExamples >> visibleResizeHandleIn: aVisualElement [
+	^ aVisualElement children
+		detect: [ :each |
+			each extent = (9 @ 9)
+				and: [ each visibility = BlVisibility visible ] ]
+]
+
+{ #category : 'examples - gestures - resizing' }
+CPProcessVisualElementExamples >> selectingActivityRevealsItsResizeHandle [
+	<gtExample>
+	| fixture visual task taskShape scripter handle |
+	fixture := self fixture.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+	(visual shapeElementFor: taskShape) id: #processTaskShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Select task to reveal resize handle';
+			id: #processTaskShape ].
+
+	handle := self visibleResizeHandleIn: visual.
+	self assert: handle isNotNil.
+	self assert: handle extent equals: (9 @ 9).
+	self assert: handle visibility equals: BlVisibility visible.
+	self assert: visual selectedModelElement == task.
+	^ scripter
+]
+
+{ #category : 'examples - gestures - resizing' }
+CPProcessVisualElementExamples >> draggingVisibleResizeHandleStagesResizeThroughBlocGesturePipeline [
+	<gtExample>
+	| fixture visual memento taskShape firstEdge secondEdge shapeElement scripter handle delta destination expectedBounds |
+	fixture := self fixture.
+	memento := fixture second.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	secondEdge := fixture at: 13.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementFor: taskShape.
+	shapeElement id: #processTaskShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Select task to reveal resize handle';
+			id: #processTaskShape ].
+
+	handle := self visibleResizeHandleIn: visual.
+	handle id: #processTaskResizeHandle.
+
+	delta := 40 @ 20.
+	destination := taskShape bounds bottomRight + delta.
+	self dragDestinationAt: destination id: #resizeDragDestination in: visual.
+	expectedBounds := taskShape bounds origin extent: (taskShape bounds extent + delta).
+
+	(scripter mouseMoveOver)
+		label: 'Move pointer over resize handle';
+		id: #processTaskResizeHandle;
+		play.
+	(scripter mouseDown)
+		label: 'Press resize handle';
+		play.
+	(scripter mouseMoveOver)
+		label: 'Drag resize handle outward';
+		id: #resizeDragDestination;
+		play.
+	(scripter mouseUp)
+		label: 'Release resize handle';
+		play.
+
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: expectedBounds.
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento)
+		equals: ({ 142 @ 121. 240 @ 131 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: secondEdge processMemento: memento)
+		equals: ({ 372 @ 131. 430 @ 121 } asOrderedCollection).
+	self assert: taskShape bounds equals: (220 @ 94 extent: 132 @ 54).
+	self assert: shapeElement extent equals: (172 @ 74).
+	^ scripter
+]
