@@ -1063,3 +1063,98 @@ CPProcessVisualElementExamples >> nestedConnectionTargetWinsOverExpandedContaine
 	self assert: chosen == innerTask.
 	^ chosen
 ]
+
+
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> expandedSubProcessHostsNestedProcessVisual [
+	<gtExample>
+	| fixture memento rootDescription diagramMemento elementsDescription
+	  subProcess task subMemento subDescription subShape taskShape diagramElements
+	  visual subShapeElement nestedVisual |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	task := CPUserTask new label: 'Inside'; yourself.
+	memento
+		write: ((memento readUsing: rootDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: rootDescription.
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: { task } asOrderedCollection using: subDescription.
+
+	subShape := CPShape new
+		modelElement: subProcess;
+		bounds: (100 @ 100 extent: 360 @ 180);
+		isExpanded: true;
+		yourself.
+	taskShape := CPShape new
+		modelElement: task;
+		bounds: (180 @ 150 extent: 132 @ 54);
+		yourself.
+	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements
+		add: subShape;
+		add: taskShape.
+	diagramMemento write: diagramElements using: elementsDescription.
+
+	visual := self visualElementForFixture: fixture.
+	subShapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := subShapeElement nestedProcessVisual.
+
+	self assert: nestedVisual notNil.
+	self assert: nestedVisual flowContainer == subProcess.
+	self assert: (visual shapeElementsByModelElement includesKey: task) not.
+	self assert: (nestedVisual shapeElementsByModelElement includesKey: task).
+	self assert: subShapeElement nestedProcessViewport notNil.
+	^ visual
+]
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> subProcessMovePersistsAbsoluteBoundsForItsNestedDiagram [
+	<gtExample>
+	| fixture memento rootDescription diagramMemento elementsDescription
+	  subProcess task subMemento subDescription subShape taskShape diagramElements
+	  visual boundsByShape |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	task := CPUserTask new label: 'Inside'; yourself.
+	memento
+		write: ((memento readUsing: rootDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: rootDescription.
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: { task } asOrderedCollection using: subDescription.
+
+	subShape := CPShape new modelElement: subProcess; bounds: (100 @ 100 extent: 360 @ 180); isExpanded: true; yourself.
+	taskShape := CPShape new modelElement: task; bounds: (180 @ 150 extent: 132 @ 54); yourself.
+	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements add: subShape; add: taskShape.
+	diagramMemento write: diagramElements using: elementsDescription.
+
+	visual := self visualElementForFixture: fixture.
+	boundsByShape := visual
+		boundsByShapeForFlowNodeSubtree: subProcess
+		delta: 25 @ 15.
+
+	self assert: boundsByShape size equals: 2.
+	self assert: (boundsByShape at: subShape) equals: (125 @ 115 extent: 360 @ 180).
+	self assert: (boundsByShape at: taskShape) equals: (205 @ 165 extent: 132 @ 54).
+	^ visual
+]

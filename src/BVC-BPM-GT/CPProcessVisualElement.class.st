@@ -1,11 +1,14 @@
-"I coordinate the Bloc presentation of one CPProcess diagram.
+"I render and coordinate one BPMN flow-container editing surface inside the single enclosing Atelier editor.
 
-The Process model owns semantic and BPMN-DI state. CPProcessShapeElement and CPProcessEdgeVisual own object-local depiction and pointer mechanics. I read staged Magritte state through the supplied memento, map model/DI objects to their visuals, coordinate selection and interactions that cross diagram objects, resolve diagram-level targets and routes, and delegate semantic changes through Atelier operations."
+For the root I render CPProcess. For an expanded Sub-Process, its CPProcessShapeElement hosts another instance of me configured for that CPSubProcess. The nested instance uses the same root memento, operation configuration, selection notification and diagram state; it is a Bloc child of the Sub-Process node, not another Atelier.
+
+Each instance renders only the flow elements directly owned by its configured flow container. Natural Bloc containment therefore supplies nested movement and clipping. The BPMN-DI model currently stores absolute diagram coordinates, so a completed Sub-Process move translates descendant DI once at the operation boundary to preserve those coordinates after refresh."
 Class {
 	#name : 'CPProcessVisualElement',
 	#superclass : 'BlElement',
 	#instVars : [
 		'memento',
+		'flowContainer',
 		'diagramDescription',
 		'flowElementsDescription',
 		'diagramMemento',
@@ -58,12 +61,25 @@ CPProcessVisualElement >> initialize [
 
 { #category : 'accessing' }
 CPProcessVisualElement >> memento: aMemento [
+	^ self
+		memento: aMemento
+		flowContainer: aMemento model
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 	memento := aMemento.
+	flowContainer := aFlowContainer.
 	diagramDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #diagram ].
 	flowElementsDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #flowElements ].
 	self refresh
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> flowContainer [
+	^ flowContainer
 ]
 
 { #category : 'accessing' }
@@ -118,38 +134,17 @@ CPProcessVisualElement >> refresh [
 
 { #category : 'private - visibility' }
 CPProcessVisualElement >> shouldRenderDiagramElement: aDiagramElement [
-	| modelElement |
+	| modelElement context |
 	modelElement := aDiagramElement isShape
 		ifTrue: [ self stagedModelElementOf: aDiagramElement ]
 		ifFalse: [ aDiagramElement modelElement ].
 	modelElement ifNil: [ ^ false ].
-	^ self isFlowElementVisible: modelElement
+	context := CPProcessFlowContainerContext
+		containingFlowElement: modelElement
+		inRootMemento: memento.
+	^ context notNil and: [ context container == flowContainer ]
 ]
 
-{ #category : 'private - visibility' }
-CPProcessVisualElement >> isFlowElementVisible: aFlowElement [
-	^ self
-		isFlowElementVisible: aFlowElement
-		inContainerContext: (CPProcessFlowContainerContext rootFor: memento)
-]
-
-{ #category : 'private - visibility' }
-CPProcessVisualElement >> isFlowElementVisible: aFlowElement inContainerContext: aContext [
-	| stagedFlowElements |
-	stagedFlowElements := aContext stagedFlowElements.
-	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [ ^ true ].
-
-	stagedFlowElements do: [ :each |
-		each isSubProcess ifTrue: [
-			| shape |
-			shape := self diagramShapeForModelElement: each.
-			(shape notNil and: [ self stagedExpandedOf: shape ]) ifTrue: [
-				(self
-					isFlowElementVisible: aFlowElement
-					inContainerContext: (aContext childContextForSubProcess: each))
-						ifTrue: [ ^ true ] ] ] ].
-	^ false
-]
 
 { #category : 'private - visibility' }
 CPProcessVisualElement >> diagramShapeForModelElement: aModelElement [
@@ -276,11 +271,8 @@ CPProcessVisualElement >> addShapeFor: aShape [
 		relocate: bounds origin.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
-	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ])
-		ifTrue: [
-			self installFlowContainerDropOn: element for: modelElement shape: aShape ]
-		ifFalse: [
-			self installReplacementOnShape: element for: modelElement shape: aShape ].
+	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
+		self installReplacementOnShape: element for: modelElement shape: aShape ].
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
@@ -297,6 +289,11 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
+	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifTrue: [
+		self
+			installNestedProcessVisualIn: element
+			for: modelElement
+			bounds: bounds ].
 	self addExternalLabelFor: modelElement bounds: bounds shape: aShape shapeElement: element.
 	self updateSelectionAppearance
 ]
@@ -1271,6 +1268,64 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 	self installPositioningFrom: anElement moving: anElement for: aShape
 ]
 
+
+
+
+
+
+
+
+
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> flowNodeSubtreeIncluding: aFlowNode [
+	| result context |
+	result := IdentitySet new.
+	result add: aFlowNode.
+	aFlowNode isSubProcess ifFalse: [ ^ result ].
+	context := CPProcessFlowContainerContext
+		forContainer: aFlowNode
+		inRootMemento: memento.
+	context ifNotNil: [
+		self addFlowNodesFromContainerContext: context to: result ].
+	^ result
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> addFlowNodesFromContainerContext: aContext to: aSet [
+	aContext stagedFlowElements do: [ :each |
+		each isSequenceFlow ifFalse: [
+			aSet add: each.
+			each isSubProcess ifTrue: [
+				self
+					addFlowNodesFromContainerContext: (aContext childContextForSubProcess: each)
+					to: aSet ] ] ]
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> boundsByShapeForFlowNodeSubtree: aFlowNode delta: delta [
+	| moved result |
+	moved := self flowNodeSubtreeIncluding: aFlowNode.
+	result := IdentityDictionary new.
+	diagramElements do: [ :each |
+		each isShape ifTrue: [
+			| modelElement bounds |
+			modelElement := self stagedModelElementOf: each.
+			(moved includes: modelElement) ifTrue: [
+				bounds := self stagedBoundsOf: each.
+				bounds ifNotNil: [
+					result at: each put: (bounds translateBy: delta) ] ] ] ].
+	^ result
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> moveShapeOrSubProcess: aShape modelElement: aFlowNode toBounds: proposedBounds delta: delta [
+	(aFlowNode isSubProcess and: [ moveShapesOperationBlock notNil ]) ifTrue: [
+		^ self moveShapesToBounds:
+			(self boundsByShapeForFlowNodeSubtree: aFlowNode delta: delta) ].
+	^ self moveShape: aShape toBounds: proposedBounds
+]
+
 { #category : 'private - positioning' }
 CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedModelElement [
 	| entries |
@@ -1383,9 +1438,9 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				ifNotNil: [ :aLabel | aLabel position ].
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
 			groupMode := moveShapesOperationBlock notNil and: [ groupEntries size > 1 ].
+			movedModelElements := IdentitySet new.
+			groupEntries do: [ :entry | movedModelElements add: entry second ].
 			groupMode ifTrue: [
-				movedModelElements := IdentitySet new.
-				groupEntries do: [ :entry | movedModelElements add: entry second ].
 				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
 				internalBentEdges do: [ :anEdge |
 					(self lineElementsForEdge: anEdge)
@@ -1467,7 +1522,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 										shape: aShape
 										toContainer: targetContainer
 										bounds: proposedBounds ]
-								ifFalse: [ self moveShape: aShape toBounds: proposedBounds ] ]
+								ifFalse: [
+									self
+										moveShapeOrSubProcess: aShape
+										modelElement: draggedModelElement
+										toBounds: proposedBounds
+										delta: delta ] ]
 						ifNotNil: [
 							self
 								insertExistingFlowNode: draggedModelElement
@@ -1672,7 +1732,7 @@ CPProcessVisualElement >> segmentFrom: aStart to: anEnd intersectsRectangle: aRe
 { #category : 'private - containment geometry' }
 CPProcessVisualElement >> contentBoundsForFlowContainer: aFlowContainer [
 	| shape bounds |
-	aFlowContainer == memento model ifTrue: [ ^ nil ].
+	aFlowContainer == flowContainer ifTrue: [ ^ nil ].
 	shape := self diagramShapeForModelElement: aFlowContainer.
 	shape ifNil: [ ^ nil ].
 	bounds := self stagedBoundsOf: shape.
@@ -1850,7 +1910,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
-	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds value: memento model) assess.
+	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds value: flowContainer) assess.
 	^ assessment isApplicable
 ]
 
@@ -3018,7 +3078,7 @@ CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint excluding: anExclude
 				bounds := self stagedBoundsOf: aShape.
 				(bounds notNil and: [ bounds containsPoint: aPoint ]) ifTrue: [
 					candidates add: { modelElement. bounds } ] ] ].
-	candidates ifEmpty: [ ^ memento model ].
+	candidates ifEmpty: [ ^ flowContainer ].
 	^ (candidates
 		inject: candidates first
 		into: [ :smallest :each |
@@ -3042,6 +3102,41 @@ CPProcessVisualElement >> stagedExpandedOf: aShape [
 { #category : 'accessing - testing' }
 CPProcessVisualElement >> shapeElementsByModelElement [
 	^ shapeElementsByModelElement
+]
+
+
+
+{ #category : 'private - subprocess' }
+CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubProcess bounds: aRectangle [
+	| nestedVisual |
+	nestedVisual := CPProcessVisualElement new.
+	self configureNestedProcessVisual: nestedVisual.
+	nestedVisual
+		memento: memento
+		flowContainer: aSubProcess.
+	aShapeElement
+		hostNestedProcessVisual: nestedVisual
+		globalBounds: aRectangle
+]
+
+{ #category : 'private - subprocess' }
+CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
+	aVisual
+		selectionChangedDo: selectionChangedBlock;
+		moveShapeOperationFor: moveShapeOperationBlock;
+		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
+		moveShapesOperationFor: moveShapesOperationBlock;
+		resizeShapeOperationFor: resizeShapeOperationBlock;
+		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
+		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
+		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
+		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
+		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
+		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
+		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
+		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
+		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock
 ]
 
 { #category : 'private - subprocess' }

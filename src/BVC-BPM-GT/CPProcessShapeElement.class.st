@@ -13,7 +13,9 @@ Class {
 		'connectionPort',
 		'externalLabelHost',
 		'isExpanded',
-		'subProcessExpansionMarker'
+		'subProcessExpansionMarker',
+		'nestedProcessViewport',
+		'nestedProcessVisual'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -443,4 +445,34 @@ CPProcessShapeElement >> installSubProcessExpansion: aBlock [
 { #category : 'accessing - testing' }
 CPProcessShapeElement >> subProcessExpansionMarker [
 	^ subProcessExpansionMarker
+]
+
+
+{ #category : 'subprocess' }
+CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual globalBounds: aRectangle [
+	nestedProcessVisual := aProcessVisual.
+	nestedProcessViewport := BlElement new
+		extent: self extent;
+		geometry: BlRectangleGeometry new;
+		background: Color transparent;
+		layout: BlFrameLayout new;
+		clipChildren: true;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: 0 @ 0;
+		yourself.
+	nestedProcessVisual
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: aRectangle origin negated.
+	nestedProcessViewport addChild: nestedProcessVisual.
+	self addChildFirst: nestedProcessViewport
+]
+
+{ #category : 'accessing - testing' }
+CPProcessShapeElement >> nestedProcessViewport [
+	^ nestedProcessViewport
+]
+
+{ #category : 'accessing - testing' }
+CPProcessShapeElement >> nestedProcessVisual [
+	^ nestedProcessVisual
 ]
