@@ -897,7 +897,7 @@ CPProcessVisualElementExamples >> collapsedAndExpandedSubProcessControlNestedDia
 		yourself.
 	innerShape := CPShape new
 		modelElement: innerTask;
-		bounds: (270 @ 240 extent: 132 @ 54);
+		bounds: (90 @ 60 extent: 132 @ 54);
 		yourself.
 	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
 	diagramElements
@@ -1047,7 +1047,7 @@ CPProcessVisualElementExamples >> expandedSubProcessHostsNestedProcessVisual [
 		yourself.
 	taskShape := CPShape new
 		modelElement: task;
-		bounds: (180 @ 150 extent: 132 @ 54);
+		bounds: (80 @ 50 extent: 132 @ 54);
 		yourself.
 	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
 	diagramElements
@@ -1067,12 +1067,28 @@ CPProcessVisualElementExamples >> expandedSubProcessHostsNestedProcessVisual [
 	^ visual
 ]
 
+
 { #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> subProcessMovePersistsAbsoluteBoundsForItsNestedDiagram [
+CPProcessVisualElementExamples >> nestedProcessVisualOwnsPaletteCreationTarget [
+	<gtExample>
+	| visual subProcessShape nestedVisual |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcessShape := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	nestedVisual := (visual shapeElementsByModelElement at: subProcessShape) nestedProcessVisual.
+
+	self assert: nestedVisual flowContainer == subProcessShape.
+	self assert: nestedVisual rootVisual == visual.
+	^ nestedVisual
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> subProcessMoveLeavesNestedLocalBoundsUnchanged [
 	<gtExample>
 	| fixture memento rootDescription diagramMemento elementsDescription
 	  subProcess task subMemento subDescription subShape taskShape diagramElements
-	  visual boundsByShape |
+	  visual assessment |
 
 	fixture := self fixture.
 	memento := fixture second.
@@ -1091,34 +1107,24 @@ CPProcessVisualElementExamples >> subProcessMovePersistsAbsoluteBoundsForItsNest
 	subDescription := self descriptionFor: #flowElements in: subMemento.
 	subMemento write: { task } asOrderedCollection using: subDescription.
 
-	subShape := CPShape new modelElement: subProcess; bounds: (100 @ 100 extent: 360 @ 180); isExpanded: true; yourself.
-	taskShape := CPShape new modelElement: task; bounds: (180 @ 150 extent: 132 @ 54); yourself.
+	subShape := CPShape new
+		modelElement: subProcess;
+		bounds: (100 @ 100 extent: 360 @ 180);
+		isExpanded: true;
+		yourself.
+	taskShape := CPShape new
+		modelElement: task;
+		bounds: (80 @ 50 extent: 132 @ 54);
+		yourself.
 	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
 	diagramElements add: subShape; add: taskShape.
 	diagramMemento write: diagramElements using: elementsDescription.
 
 	visual := self visualElementForFixture: fixture.
-	boundsByShape := visual
-		boundsByShapeForFlowNodeSubtree: subProcess
-		delta: 25 @ 15.
+	assessment := visual moveShape: subShape toBounds: (125 @ 115 extent: 360 @ 180).
 
-	self assert: boundsByShape size equals: 2.
-	self assert: (boundsByShape at: subShape) equals: (125 @ 115 extent: 360 @ 180).
-	self assert: (boundsByShape at: taskShape) equals: (205 @ 165 extent: 132 @ 54).
+	self assert: assessment isApplicable.
+	self assert: (visual stagedBoundsOf: subShape) equals: (125 @ 115 extent: 360 @ 180).
+	self assert: (visual stagedBoundsOf: taskShape) equals: (80 @ 50 extent: 132 @ 54).
 	^ visual
-]
-
-
-{ #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> nestedProcessVisualOwnsPaletteCreationTarget [
-	<gtExample>
-	| visual subProcessShape nestedVisual |
-	visual := self expandedSubProcessHostsNestedProcessVisual.
-	subProcessShape := visual shapeElementsByModelElement keys
-		detect: [ :each | each isSubProcess ].
-	nestedVisual := (visual shapeElementsByModelElement at: subProcessShape) nestedProcessVisual.
-
-	self assert: nestedVisual flowContainer == subProcessShape.
-	self assert: nestedVisual rootVisual == visual.
-	^ nestedVisual
 ]

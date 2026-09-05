@@ -2,7 +2,7 @@
 
 For the root I render CPProcess. For an expanded Sub-Process, its CPProcessShapeElement hosts another instance of me configured for that CPSubProcess. The nested instance uses the same root memento, operation configuration, selection notification and diagram state; it is a Bloc child of the Sub-Process node, not another Atelier.
 
-Each instance renders only the flow elements directly owned by its configured flow container. Natural Bloc containment therefore supplies nested movement and clipping. The BPMN-DI model currently stores absolute diagram coordinates, so a completed Sub-Process move translates descendant DI once at the operation boundary to preserve those coordinates after refresh."
+Each instance renders only the flow elements directly owned by its configured flow container. Natural Bloc containment therefore supplies nested movement and clipping. Each process surface owns its own local BPMN-DI coordinate space. Nested DI therefore remains unchanged when its hosting Sub-Process node moves."
 Class {
 	#name : 'CPProcessVisualElement',
 	#superclass : 'BlElement',
@@ -124,20 +124,17 @@ CPProcessVisualElement >> refresh [
 	elements ifNil: [ ^ self ].
 	diagramElements := elements.
 
-	contentExtent := self canvasExtentFor: elements.
+	edges := elements select: [ :each |
+		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
+	shapes := elements select: [ :each |
+		each isShape and: [ self shouldRenderDiagramElement: each ] ].
+	contentExtent := self canvasExtentFor: shapes.
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
 		c minWidth: contentExtent x.
 		c minHeight: contentExtent y ].
 	self addPaletteDropSurface.
-	edges := elements select: [ :each |
-		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
-	shapes := (elements select: [ :each |
-		each isShape and: [ self shouldRenderDiagramElement: each ] ])
-		asSortedCollection: [ :left :right |
-			(self nestingDepthOfDiagramShape: left)
-				< (self nestingDepthOfDiagramShape: right) ].
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
@@ -1294,52 +1291,11 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 
 
 
-{ #category : 'private - positioning' }
-CPProcessVisualElement >> flowNodeSubtreeIncluding: aFlowNode [
-	| result context |
-	result := IdentitySet new.
-	result add: aFlowNode.
-	aFlowNode isSubProcess ifFalse: [ ^ result ].
-	context := CPProcessFlowContainerContext
-		forContainer: aFlowNode
-		inRootMemento: memento.
-	context ifNotNil: [
-		self addFlowNodesFromContainerContext: context to: result ].
-	^ result
-]
 
-{ #category : 'private - positioning' }
-CPProcessVisualElement >> addFlowNodesFromContainerContext: aContext to: aSet [
-	aContext stagedFlowElements do: [ :each |
-		each isSequenceFlow ifFalse: [
-			aSet add: each.
-			each isSubProcess ifTrue: [
-				self
-					addFlowNodesFromContainerContext: (aContext childContextForSubProcess: each)
-					to: aSet ] ] ]
-]
 
-{ #category : 'private - positioning' }
-CPProcessVisualElement >> boundsByShapeForFlowNodeSubtree: aFlowNode delta: delta [
-	| moved result |
-	moved := self flowNodeSubtreeIncluding: aFlowNode.
-	result := IdentityDictionary new.
-	diagramElements do: [ :each |
-		each isShape ifTrue: [
-			| modelElement bounds |
-			modelElement := self stagedModelElementOf: each.
-			(moved includes: modelElement) ifTrue: [
-				bounds := self stagedBoundsOf: each.
-				bounds ifNotNil: [
-					result at: each put: (bounds translateBy: delta) ] ] ] ].
-	^ result
-]
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> moveShapeOrSubProcess: aShape modelElement: aFlowNode toBounds: proposedBounds delta: delta [
-	(aFlowNode isSubProcess and: [ moveShapesOperationBlock notNil ]) ifTrue: [
-		^ self moveShapesToBounds:
-			(self boundsByShapeForFlowNodeSubtree: aFlowNode delta: delta) ].
 	^ self moveShape: aShape toBounds: proposedBounds
 ]
 

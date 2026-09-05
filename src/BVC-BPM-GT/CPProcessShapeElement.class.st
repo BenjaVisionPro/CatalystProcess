@@ -462,7 +462,7 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual globalBounds: a
 		yourself.
 	nestedProcessVisual
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: aRectangle origin negated.
+		relocate: 0 @ 0.
 	nestedProcessViewport addChild: nestedProcessVisual.
 	self addChildFirst: nestedProcessViewport
 ]
