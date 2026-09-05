@@ -1441,6 +1441,7 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 						positionResizeHandle: handle
 						forShapeElement: aShapeElement
 						handleExtent: handleExtent.
+					self updateIncidentEdgeLabelsFor: aModelElement.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
