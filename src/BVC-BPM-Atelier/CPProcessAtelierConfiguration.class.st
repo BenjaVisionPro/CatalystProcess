@@ -106,10 +106,11 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					waypoints: someWaypoints
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
-			setEdgeLabelBoundsOperationFor: [ :anEdge :labelBounds |
-				CPAtelierSetEdgeLabelBounds
+			setEdgeLabelPlacementOperationFor: [ :anEdge :pathPosition :offset |
+				CPAtelierSetEdgeLabelPlacement
 					edge: anEdge
-					bounds: labelBounds
+					pathPosition: pathPosition
+					offset: offset
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ].
 		aPresentation synchronizeEditingConfiguration ].

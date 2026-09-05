@@ -3,7 +3,8 @@ Class {
 	#superclass : 'CPDiagramElement',
 	#instVars : [
 		'waypoints',
-		'labelBounds'
+		'labelPathPosition',
+		'labelOffset'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -57,24 +58,46 @@ CPEdge >> waypointsDescription [
 ]
 
 
+
+
 { #category : 'accessing' }
-CPEdge >> labelBounds [
-	^ labelBounds
+CPEdge >> labelPathPosition [
+	^ labelPathPosition
 ]
 
 { #category : 'accessing' }
-CPEdge >> labelBounds: aRectangle [
-	labelBounds := aRectangle
+CPEdge >> labelPathPosition: aNumber [
+	labelPathPosition := aNumber
+]
+
+{ #category : 'accessing' }
+CPEdge >> labelOffset [
+	^ labelOffset
+]
+
+{ #category : 'accessing' }
+CPEdge >> labelOffset: aNumber [
+	labelOffset := aNumber
 ]
 
 { #category : 'descriptions' }
-CPEdge >> labelBoundsDescription [
+CPEdge >> labelPathPositionDescription [
 	<magritteDescription>
-	^ MAToOneRelationDescription new
-		accessor: #labelBounds;
-		classes: { Rectangle };
-		label: 'Label bounds';
+	^ MANumberDescription new
+		accessor: #labelPathPosition;
+		label: 'Label path position';
 		priority: 120;
+		group: 'Diagram';
+		yourself
+]
+
+{ #category : 'descriptions' }
+CPEdge >> labelOffsetDescription [
+	<magritteDescription>
+	^ MANumberDescription new
+		accessor: #labelOffset;
+		label: 'Label offset';
+		priority: 130;
 		group: 'Diagram';
 		yourself
 ]

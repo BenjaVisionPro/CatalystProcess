@@ -31,7 +31,7 @@ Class {
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
 		'setEdgeWaypointsOperationBlock',
-		'setEdgeLabelBoundsOperationBlock',
+		'setEdgeLabelPlacementOperationBlock',
 		'connectionSourceModelElement',
 		'reconnectHandleElementsByEdge',
 		'bendpointHandleElementsByEdge',
@@ -167,11 +167,20 @@ CPProcessVisualElement >> stagedWaypointsOf: anEdge [
 ]
 
 { #category : 'private - staged state' }
-CPProcessVisualElement >> stagedLabelBoundsOf: anEdge [
+CPProcessVisualElement >> stagedLabelPathPositionOf: anEdge [
 	| edgeMemento description |
 	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
 	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #labelBounds ].
+		detect: [ :each | each handlesSelector: #labelPathPosition ].
+	^ edgeMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedLabelOffsetOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #labelOffset ].
 	^ edgeMemento readUsing: description
 ]
 
@@ -446,42 +455,52 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge [
-	| isDragging dragStartEventPosition dragStartPosition |
-	setEdgeLabelBoundsOperationBlock ifNil: [ ^ self ].
+	| isDragging |
+	setEdgeLabelPlacementOperationBlock ifNil: [ ^ self ].
 	isDragging := false.
 	aLabelHost
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
 				isDragging := true.
-				dragStartEventPosition := anEvent position.
-				dragStartPosition := aLabelHost position.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
+					| placement |
+					placement := self
+						nearestLabelPlacementFor: anEdge
+						to: (self globalPointToLocal: anEvent position)
+						waypoints: (self stagedWaypointsOf: anEdge).
 					aLabelHost relocate:
-						dragStartPosition + anEvent position - dragStartEventPosition.
+						placement third - (aLabelHost extent / 2).
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
+					| placement |
 					isDragging := false.
+					placement := self
+						nearestLabelPlacementFor: anEdge
+						to: (self globalPointToLocal: anEvent position)
+						waypoints: (self stagedWaypointsOf: anEdge).
 					self
-						setLabelBounds: (aLabelHost position extent: aLabelHost extent)
+						setLabelPathPosition: placement first
+						offset: placement second
 						forEdge: anEdge.
 					anEvent consumed: true ] ])
 ]
 
 { #category : 'operations' }
-CPProcessVisualElement >> setLabelBounds: aRectangle forEdge: anEdge [
+CPProcessVisualElement >> setLabelPathPosition: aPathPosition offset: anOffset forEdge: anEdge [
 	| assessment |
-	setEdgeLabelBoundsOperationBlock ifNil: [ ^ nil ].
-	assessment := (setEdgeLabelBoundsOperationBlock
+	setEdgeLabelPlacementOperationBlock ifNil: [ ^ nil ].
+	assessment := (setEdgeLabelPlacementOperationBlock
 		value: anEdge
-		value: aRectangle) apply.
+		value: aPathPosition
+		value: anOffset) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
 		ifFalse: [ self updateSelectionAppearance ].
@@ -489,22 +508,167 @@ CPProcessVisualElement >> setLabelBounds: aRectangle forEdge: anEdge [
 ]
 
 { #category : 'private - labels' }
-CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
-	| labelHost labelBounds waypoints midpoint |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	labelBounds := self stagedLabelBoundsOf: anEdge.
-	labelBounds ifNotNil: [
-		labelHost relocate: labelBounds origin.
-		^ self ].
-	waypoints := self stagedWaypointsOf: anEdge.
-	waypoints size = 2
-		ifTrue: [ midpoint := self midpointForStraightEdge: anEdge ]
+CPProcessVisualElement >> labelPlacementFor: anEdge pathPosition: aPathPosition offset: anOffset waypoints: someWaypoints usingLiveBounds: useLiveBounds [
+	| points pathPoint tangent normal |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: someWaypoints
+		usingLiveBounds: useLiveBounds.
+	pathPoint := self
+		pointAndTangentAlong: points
+		atFraction: aPathPosition.
+	tangent := pathPoint second.
+	normal := tangent y negated @ tangent x.
+	^ {
+		pathPoint first + (normal * anOffset).
+		tangent
+	}
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> nearestLabelPlacementFor: anEdge to: aPoint waypoints: someWaypoints [
+	| points segments totalLength bestDistance bestPathDistance bestPoint bestTangent traversed maximumOffset rawOffset clampedOffset normal |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: someWaypoints
+		usingLiveBounds: true.
+	segments := OrderedCollection new.
+	totalLength := 0.0.
+	1 to: points size - 1 do: [ :index |
+		| start finish length |
+		start := points at: index.
+		finish := points at: index + 1.
+		length := (finish - start) r.
+		segments add: { start. finish. length }.
+		totalLength := totalLength + length ].
+
+	bestDistance := Float infinity.
+	bestPathDistance := 0.0.
+	bestPoint := points first.
+	bestTangent := 1.0 @ 0.0.
+	traversed := 0.0.
+	segments do: [ :segment |
+		| start finish length vector parameter projected distance tangent |
+		start := segment first.
+		finish := segment second.
+		length := segment third.
+		length isZero
+			ifFalse: [
+				vector := finish - start.
+				parameter := ((aPoint - start) dotProduct: vector) / (length * length).
+				parameter := (parameter max: 0.0) min: 1.0.
+				projected := start + (vector * parameter).
+				distance := (aPoint - projected) r.
+				distance < bestDistance ifTrue: [
+					bestDistance := distance.
+					bestPathDistance := traversed + (length * parameter).
+					bestPoint := projected.
+					tangent := vector / length.
+					bestTangent := tangent ] ].
+		traversed := traversed + length ].
+
+	normal := bestTangent y negated @ bestTangent x.
+	rawOffset := (aPoint - bestPoint) dotProduct: normal.
+	maximumOffset := 40.0.
+	clampedOffset := (rawOffset max: maximumOffset negated) min: maximumOffset.
+	^ {
+		totalLength isZero
+			ifTrue: [ 0.5 ]
+			ifFalse: [ bestPathDistance / totalLength ].
+		clampedOffset.
+		bestPoint + (normal * clampedOffset)
+	}
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints usingLiveBounds: useLiveBounds [
+	| sequenceFlow source target sourceBounds targetBounds sourcePoint targetPoint points |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	useLiveBounds
+		ifTrue: [
+			sourceBounds := (shapeElementsByModelElement at: source) bounds inParent: self.
+			targetBounds := (shapeElementsByModelElement at: target) bounds inParent: self ]
 		ifFalse: [
-			| lines |
-			lines := edgeElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-			lines ifEmpty: [ ^ self ].
-			midpoint := self midpointOfRenderedLines: lines ].
-	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+			sourceBounds := self stagedBoundsOf: (self shapeForModelElement: source).
+			targetBounds := self stagedBoundsOf: (self shapeForModelElement: target) ].
+
+	someWaypoints size = 2 ifTrue: [
+		sourcePoint := self
+			dockingPointFor: source
+			bounds: sourceBounds
+			toward: targetBounds center.
+		targetPoint := self
+			dockingPointFor: target
+			bounds: targetBounds
+			toward: sourceBounds center.
+		^ { sourcePoint. targetPoint } ].
+
+	sourcePoint := self
+		dockingPointFor: source
+		bounds: sourceBounds
+		toward: (someWaypoints at: 2).
+	targetPoint := self
+		dockingPointFor: target
+		bounds: targetBounds
+		toward: (someWaypoints at: someWaypoints size - 1).
+	points := OrderedCollection new.
+	points add: sourcePoint.
+	2 to: someWaypoints size - 1 do: [ :index |
+		points add: (someWaypoints at: index) ].
+	points add: targetPoint.
+	^ points
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> pointAndTangentAlong: somePoints atFraction: aFraction [
+	| segments totalLength targetDistance traversed |
+	segments := OrderedCollection new.
+	totalLength := 0.0.
+	1 to: somePoints size - 1 do: [ :index |
+		| start finish length |
+		start := somePoints at: index.
+		finish := somePoints at: index + 1.
+		length := (finish - start) r.
+		segments add: { start. finish. length }.
+		totalLength := totalLength + length ].
+	totalLength isZero ifTrue: [ ^ { somePoints first. 1.0 @ 0.0 } ].
+
+	targetDistance := totalLength * ((aFraction max: 0.0) min: 1.0).
+	traversed := 0.0.
+	segments do: [ :segment |
+		| start finish length |
+		start := segment first.
+		finish := segment second.
+		length := segment third.
+		traversed + length >= targetDistance ifTrue: [
+			length isZero ifTrue: [ ^ { start. 1.0 @ 0.0 } ].
+			^ {
+				start + ((finish - start) * ((targetDistance - traversed) / length)).
+				(finish - start) / length
+			} ].
+		traversed := traversed + length ].
+	^ {
+		segments last second.
+		(segments last second - segments last first) normalized
+	}
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
+	| labelHost pathPosition offset placement |
+	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	pathPosition := (self stagedLabelPathPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+	placement := self
+		labelPlacementFor: anEdge
+		pathPosition: pathPosition
+		offset: offset
+		waypoints: (self stagedWaypointsOf: anEdge)
+		usingLiveBounds: false.
+	labelHost relocate:
+		placement first - (labelHost extent / 2)
 ]
 
 { #category : 'private - labels' }
@@ -622,11 +786,18 @@ CPProcessVisualElement >> midpointOfRenderedLines: someLines [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypoints [
-	| labelHost midpoint |
-	(self stagedLabelBoundsOf: anEdge) ifNotNil: [ ^ self ].
+	| labelHost pathPosition offset placement |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	midpoint := self liveMidpointForEdge: anEdge waypoints: someWaypoints.
-	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+	pathPosition := (self stagedLabelPathPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+	placement := self
+		labelPlacementFor: anEdge
+		pathPosition: pathPosition
+		offset: offset
+		waypoints: someWaypoints
+		usingLiveBounds: true.
+	labelHost relocate:
+		placement first - (labelHost extent / 2)
 ]
 
 { #category : 'private - labels' }
@@ -671,17 +842,24 @@ CPProcessVisualElement >> liveMidpointForEdge: anEdge waypoints: someWaypoints [
 { #category : 'private - labels' }
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 	edgeLabelElementsByEdge keysDo: [ :anEdge |
-		((self edge: anEdge isIncidentTo: aModelElement)
-			and: [ (self stagedLabelBoundsOf: anEdge) isNil ]) ifTrue: [
+		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
 			self positionLiveEdgeLabelFor: anEdge ] ]
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
-	| labelHost midpoint |
+	| labelHost pathPosition offset placement |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	midpoint := self liveMidpointForEdge: anEdge.
-	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+	pathPosition := (self stagedLabelPathPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+	placement := self
+		labelPlacementFor: anEdge
+		pathPosition: pathPosition
+		offset: offset
+		waypoints: (self stagedWaypointsOf: anEdge)
+		usingLiveBounds: true.
+	labelHost relocate:
+		placement first - (labelHost extent / 2)
 ]
 
 { #category : 'private - labels' }
@@ -1657,8 +1835,8 @@ CPProcessVisualElement >> setEdgeWaypointsOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
-CPProcessVisualElement >> setEdgeLabelBoundsOperationFor: aBlock [
-	setEdgeLabelBoundsOperationBlock := aBlock
+CPProcessVisualElement >> setEdgeLabelPlacementOperationFor: aBlock [
+	setEdgeLabelPlacementOperationBlock := aBlock
 ]
 
 { #category : 'operations' }

@@ -21,7 +21,7 @@ Class {
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
 		'setEdgeWaypointsOperationBlock',
-		'setEdgeLabelBoundsOperationBlock'
+		'setEdgeLabelPlacementOperationBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -45,7 +45,7 @@ CPProcessPresentation >> prepareHostElement [
 		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
 		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
 		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
-		setEdgeLabelBoundsOperationFor: setEdgeLabelBoundsOperationBlock;
+		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock;
 		memento: self memento;
 		yourself.
 
@@ -194,7 +194,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
 		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
 		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
-		setEdgeLabelBoundsOperationFor: setEdgeLabelBoundsOperationBlock.
+		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock.
 	diagramElement refresh
 ]
 
@@ -237,6 +237,6 @@ CPProcessPresentation >> resizeShapeOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
-CPProcessPresentation >> setEdgeLabelBoundsOperationFor: aBlock [
-	setEdgeLabelBoundsOperationBlock := aBlock
+CPProcessPresentation >> setEdgeLabelPlacementOperationFor: aBlock [
+	setEdgeLabelPlacementOperationBlock := aBlock
 ]
