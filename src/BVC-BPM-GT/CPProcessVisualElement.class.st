@@ -1696,7 +1696,7 @@ CPProcessVisualElement >> installFlowContainerDropOn: aShapeElement for: aFlowCo
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			self
 				acceptsPaletteDragItem: aDragItem
-				intoFlowContainer: aFlowContainer ]
+				intoFlowContainer: aFlowContainer ];
 		whenDroppedDo: [ :anEvent |
 			self
 				dropPaletteEvent: anEvent

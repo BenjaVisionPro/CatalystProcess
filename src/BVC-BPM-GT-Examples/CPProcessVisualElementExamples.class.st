@@ -691,7 +691,7 @@ CPProcessVisualElementExamples >> collapsedSubProcessUsesActivityGeometryWithCol
 
 
 { #category : 'examples - depiction' }
-CPProcessVisualElementExamples >> expandedSubProcessOmitsCollapsedMarker [
+CPProcessVisualElementExamples >> expandedSubProcessShowsCollapseMarker [
 	<gtExample>
 	| subProcess shape element |
 	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
@@ -707,14 +707,14 @@ CPProcessVisualElementExamples >> expandedSubProcessOmitsCollapsedMarker [
 		bounds: shape bounds
 		background: Color transparent
 		borderColor: Color black
-		label: nil.
+		label: nil
+		expanded: true.
 
 	self assert: shape isExpanded.
 	self assert: element normalBorderWidth equals: 1.5.
-	self assert: element children isEmpty.
+	self assert: element subProcessExpansionMarker notNil.
 	^ element
 ]
-
 
 { #category : 'examples - type selection' }
 CPProcessVisualElementExamples >> subProcessTypeSelectionDefinesRequestedTypes [
@@ -1036,6 +1036,6 @@ CPProcessVisualElementExamples >> expandedSubProcessKeepsToggleAndPositionsLabel
 		expanded: true.
 
 	self assert: element subProcessExpansionMarker notNil.
-	self assert: element children includes: label.
+	self assert: (element children includes: label).
 	^ element
 ]
