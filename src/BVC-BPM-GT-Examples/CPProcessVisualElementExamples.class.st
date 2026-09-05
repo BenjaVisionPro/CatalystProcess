@@ -454,6 +454,8 @@ CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipel
 	self dragDestinationAt: destination id: #shapeDragDestination in: visual.
 	expectedBounds := taskShape bounds translateBy: delta.
 
+	scripter := BlScripter new.
+	scripter element: visual.
 	(scripter mouseMoveOver)
 		label: 'Move pointer over task shape';
 		id: #processTaskShape;
@@ -635,18 +637,18 @@ CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
 { #category : 'examples - gestures - connection' }
 CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
-	| fixture visual memento task finish taskShape finishShape taskElement finishElement
+	| fixture visual memento start finish startShape finishShape startElement finishElement
 	  scripter port stagedFlowElements diagramMemento elementsDescription stagedElements newFlow newEdge |
 	fixture := self fixture.
 	memento := fixture second.
-	task := fixture fourth.
+	start := fixture third.
 	finish := fixture fifth.
-	taskShape := fixture at: 10.
+	startShape := fixture at: 9.
 	finishShape := fixture at: 11.
 	visual := self visualElementForFixture: fixture.
-	taskElement := visual shapeElementFor: taskShape.
+	startElement := visual shapeElementFor: startShape.
 	finishElement := visual shapeElementFor: finishShape.
-	taskElement id: #processConnectionTaskShape.
+	startElement id: #processConnectionStartShape.
 	finishElement id: #processConnectionFinishShape.
 
 	scripter := BlScripter new.
@@ -654,9 +656,9 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 	scripter clickStep: [ :step |
 		step
 			label: 'Select source node to reveal connection port';
-			id: #processConnectionTaskShape ].
+			id: #processConnectionStartShape ].
 
-	port := self visibleConnectionPortIn: taskElement.
+	port := self visibleConnectionPortIn: startElement.
 	port id: #processConnectionPort.
 
 	(scripter mouseMoveOver)
@@ -677,16 +679,15 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
 	newFlow := stagedFlowElements detect: [ :each |
 		each isSequenceFlow
-			and: [ each sourceRef == task
-			and: [ each targetRef == finish ] ] ].
+			and: [ (fixture first flowElements identityIncludes: each) not ] ].
 	diagramMemento := self diagramMementoFor: memento.
 	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
 	stagedElements := diagramMemento readUsing: elementsDescription.
 	newEdge := stagedElements detect: [ :each |
 		each isEdge and: [ each modelElement == newFlow ] ].
 
-	self assert: stagedFlowElements size equals: 5.
-	self assert: stagedElements size equals: 5.
+	self assert: stagedFlowElements size equals: 6.
+	self assert: stagedElements size equals: 6.
 	self assert: newEdge modelElement == newFlow.
 	self assert: (fixture first flowElements identityIncludes: newFlow) not.
 	self assert: (fixture eighth elements identityIncludes: newEdge) not.
@@ -715,9 +716,6 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 	self assert: handles size equals: 2.
 	targetHandle := handles last.
 	targetHandle id: #processTargetReconnectHandle.
-
-	scripter := BlScripter new.
-	scripter element: visual.
 	(scripter mouseMoveOver)
 		label: 'Move pointer over target reconnect handle';
 		id: #processTargetReconnectHandle;
