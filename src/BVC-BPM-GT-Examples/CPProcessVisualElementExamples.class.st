@@ -209,15 +209,15 @@ CPProcessVisualElementExamples >> connectDelegatesAndStagesSemanticFlowWithDiagr
 	diagramMemento := self diagramMementoFor: memento.
 	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
 	stagedElements := diagramMemento readUsing: elementsDescription.
-	newFlow := stagedFlowElements detect: [ :each |
-		each isSequenceFlow and: [ each sourceRef == start and: [ each targetRef == finish ] ] ].
-	newEdge := stagedElements detect: [ :each |
-		each isEdge and: [ each modelElement == newFlow ] ].
+	newFlow := assessment sequenceFlow.
+	newEdge := assessment edge.
 
 	self assert: assessment isApplicable.
+	self assert: (stagedFlowElements identityIncludes: newFlow).
+	self assert: (stagedElements identityIncludes: newEdge).
 	self assert: newEdge modelElement == newFlow.
-	self deny: (fixture first flowElements identityIncludes: newFlow).
-	self deny: (fixture eighth elements identityIncludes: newEdge).
+	self assert: (fixture first flowElements identityIncludes: newFlow) not.
+	self assert: (fixture eighth elements identityIncludes: newEdge) not.
 	^ visual
 ]
 
@@ -282,7 +282,7 @@ CPProcessVisualElementExamples >> replacementDelegatesAndMovesSelectionToReplace
 	self assert: assessment isApplicable.
 	self assert: visual selectedModelElements size equals: 1.
 	self assert: (visual selectedModelElements identityIncludes: replacement).
-	self deny: (visual selectedModelElements identityIncludes: task).
+	self assert: (visual selectedModelElements identityIncludes: task) not.
 	^ visual
 ]
 
@@ -302,9 +302,9 @@ CPProcessVisualElementExamples >> removalTreatsSelectedNodeAndItsSelectedInciden
 	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
 
 	self assert: stagedFlowElements size equals: 2.
-	self deny: (stagedFlowElements identityIncludes: task).
-	self deny: (stagedFlowElements identityIncludes: firstFlow).
-	self deny: (stagedFlowElements identityIncludes: fixture seventh).
+	self assert: (stagedFlowElements identityIncludes: task) not.
+	self assert: (stagedFlowElements identityIncludes: firstFlow) not.
+	self assert: (stagedFlowElements identityIncludes: fixture seventh) not.
 	self assert: visual selectedModelElements isEmpty.
 	^ visual
 ]
