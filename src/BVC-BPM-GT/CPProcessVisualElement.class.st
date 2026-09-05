@@ -1759,12 +1759,15 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								| proposed preview |
 								proposed := self translatedWaypointsOf: anEdge by: delta.
 								preview := self newGroupMovePreviewFor: anEdge waypoints: proposed.
-								groupPreviews at: anEdge put: preview.
-								self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
-								self positionReconnectHandlesFor: anEdge usingWaypoints: proposed ].
+								groupPreviews at: anEdge put: preview ].
 							movedModelElements do: [ :modelElement |
 								self updateIncidentEdgeLabelsFor: modelElement.
 								self updateIncidentReconnectHandlesFor: modelElement ].
+							internalBentEdges do: [ :anEdge |
+								| proposed |
+								proposed := self translatedWaypointsOf: anEdge by: delta.
+								self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
+								self positionReconnectHandlesFor: anEdge usingWaypoints: proposed ].
 							self bringReconnectHandlesToFront.
 							self bringBendpointHandlesToFront.
 							self bringResizeHandlesToFront ]
@@ -1957,9 +1960,9 @@ CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
 		(self edge: anEdge intersectsRectangle: aRectangle)
 			ifTrue: [ selectedModelElements add: anEdge modelElement ] ].
 
-	selectedModelElement := selectedModelElements
-		ifEmpty: [ nil ]
-		ifNotEmpty: [ selectedModelElements anyOne ].
+	selectedModelElement := selectedModelElements size = 1
+		ifTrue: [ selectedModelElements anyOne ]
+		ifFalse: [ nil ].
 	self updateSelectionAppearance
 ]
 
