@@ -530,14 +530,22 @@ CPProcessVisualElement >> defaultLabelSegmentIndexForWaypoints: someWaypoints [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> labelPlacementFor: anEdge segmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset waypoints: someWaypoints usingLiveBounds: useLiveBounds [
-	| points effectiveIndex start finish vector length tangent normal point |
-	points := self
-		renderedPathPointsFor: anEdge
-		waypoints: someWaypoints
-		usingLiveBounds: useLiveBounds.
-	effectiveIndex := (aSegmentIndex max: 1) min: points size - 1.
-	start := points at: effectiveIndex.
-	finish := points at: effectiveIndex + 1.
+	^ self
+		labelPlacementForPoints: (self
+			renderedPathPointsFor: anEdge
+			waypoints: someWaypoints
+			usingLiveBounds: useLiveBounds)
+		segmentIndex: aSegmentIndex
+		segmentPosition: aSegmentPosition
+		offset: anOffset
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> labelPlacementForPoints: somePoints segmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset [
+	| effectiveIndex start finish vector length tangent normal point |
+	effectiveIndex := (aSegmentIndex max: 1) min: somePoints size - 1.
+	start := somePoints at: effectiveIndex.
+	finish := somePoints at: effectiveIndex + 1.
 	vector := finish - start.
 	length := vector r.
 	length isZero
@@ -2573,7 +2581,7 @@ CPProcessVisualElement >> validReconnectTargetAtGlobalPoint: aPoint for: aSequen
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: movesSource owner: ownerElement other: otherElement [
-	| handle isDragging previewLine previewCursor adjacentReference hiddenTerminalLine |
+	| handle isDragging previewLine previewCursor adjacentReference hiddenTerminalLine reconnectEdge |
 	isDragging := false.
 	handle := BlElement new
 		extent: 10 @ 10;
@@ -2591,32 +2599,32 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
-				| source target localPoint waypoints edge lines adjacentPoint |
+				| source target localPoint waypoints lines adjacentPoint |
 				isDragging := true.
 				self clearConnectionTarget.
 				source := self stagedSourceOf: aSequenceFlow.
 				target := self stagedTargetOf: aSequenceFlow.
 				adjacentReference := nil.
 				hiddenTerminalLine := nil.
-				waypoints := self edgeForSequenceFlow: aSequenceFlow
-					ifFound: [ :anEdge | self stagedWaypointsOf: anEdge ]
-					ifNone: [ #() ].
+				reconnectEdge := self
+					edgeForSequenceFlow: aSequenceFlow
+					ifFound: [ :anEdge | anEdge ]
+					ifNone: [ nil ].
+				waypoints := reconnectEdge
+					ifNil: [ #() ]
+					ifNotNil: [ self stagedWaypointsOf: reconnectEdge ].
 				waypoints size >= 3 ifTrue: [
 					adjacentPoint := movesSource
 						ifTrue: [ waypoints second ]
 						ifFalse: [ waypoints at: waypoints size - 1 ].
 					adjacentReference := self anchorReferenceElementAt: adjacentPoint.
 					self addChild: adjacentReference.
-					self
-						edgeForSequenceFlow: aSequenceFlow
-						ifFound: [ :anEdge |
-							lines := edgeElementsByEdge at: anEdge ifAbsent: [ #() ].
-							lines ifNotEmpty: [
-								hiddenTerminalLine := movesSource
-									ifTrue: [ lines first ]
-									ifFalse: [ lines last ].
-								hiddenTerminalLine visibility: BlVisibility hidden ] ]
-						ifNone: [ ] ].
+					lines := edgeElementsByEdge at: reconnectEdge ifAbsent: [ #() ].
+					lines ifNotEmpty: [
+						hiddenTerminalLine := movesSource
+							ifTrue: [ lines first ]
+							ifFalse: [ lines last ].
+						hiddenTerminalLine visibility: BlVisibility hidden ] ].
 				localPoint := self globalPointToLocal: anEvent position.
 				previewCursor := BlElement new
 					extent: 1 @ 1;
@@ -2659,6 +2667,11 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 						movingSource: movesSource
 						target: candidate
 						adjacentReference: adjacentReference.
+					reconnectEdge ifNotNil: [
+						self
+							positionEdgeLabelForReconnectPreview: reconnectEdge
+							line: previewLine
+							movingSource: movesSource ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -2675,6 +2688,8 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 					previewCursor := nil.
 					adjacentReference := nil.
 					hiddenTerminalLine := nil.
+					reconnectEdge ifNotNil: [
+						self positionEdgeLabelFor: reconnectEdge ].
 					candidate := self
 						validReconnectTargetAtGlobalPoint: anEvent position
 						for: aSequenceFlow
@@ -2692,6 +2707,43 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 							target: target ].
 					anEvent consumed: true ] ]).
 	^ handle
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPreviewLine movingSource: movesSource [
+	| labelHost waypoints points endpoint segmentIndex segmentPosition offset placement |
+	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	waypoints := self stagedWaypointsOf: anEdge.
+	points := (self
+		renderedPathPointsFor: anEdge
+		waypoints: waypoints
+		usingLiveBounds: true) asOrderedCollection copy.
+
+	endpoint := movesSource
+		ifTrue: [
+			aPreviewLine fromAnchor
+				positionForAnchoredElement: aPreviewLine
+				within: self ]
+		ifFalse: [
+			aPreviewLine toAnchor
+				positionForAnchoredElement: aPreviewLine
+				within: self ].
+	movesSource
+		ifTrue: [ points at: 1 put: endpoint ]
+		ifFalse: [ points at: points size put: endpoint ].
+
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+		ifNil: [ self defaultLabelSegmentIndexForWaypoints: waypoints ].
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+	placement := self
+		labelPlacementForPoints: points
+		segmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset.
+	self
+		positionEdgeLabelHost: labelHost
+		centeredAt: placement first
 ]
 
 { #category : 'private - reconnecting' }
