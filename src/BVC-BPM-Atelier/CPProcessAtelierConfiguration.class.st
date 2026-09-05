@@ -87,13 +87,13 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
-			replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds |
+			replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds :aFlowContainer |
 				CPAtelierReplaceFlowNode
 					flowNode: aFlowNode
 					with: aReplacementNode
 					bounds: proposedBounds
+					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
-					flowElementsDescription: flowElementsDescription
 					diagramDescription: diagramDescription ];
 			connectFlowNodesOperationFor: [ :aSource :aTarget :aFlowContainer |
 				CPAtelierConnectFlowNodes
@@ -102,13 +102,13 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
-			insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds |
+			insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds :aFlowContainer |
 				CPAtelierInsertFlowNode
 					sequenceFlow: aSequenceFlow
 					flowNode: aFlowNode
 					bounds: proposedBounds
+					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
-					flowElementsDescription: flowElementsDescription
 					diagramDescription: diagramDescription ];
 			removeFlowNodeOperationFor: [ :aFlowNode :aFlowContainer |
 				CPAtelierRemoveFlowNode
@@ -122,13 +122,13 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
-			reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget |
+			reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget :aFlowContainer |
 				CPAtelierReconnectSequenceFlow
 					sequenceFlow: aSequenceFlow
 					source: aSource
 					target: aTarget
+					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
-					flowElementsDescription: flowElementsDescription
 					diagramDescription: diagramDescription ];
 			setShapeExpandedOperationFor: [ :aShape :isExpanded |
 				CPAtelierSetShapeExpanded

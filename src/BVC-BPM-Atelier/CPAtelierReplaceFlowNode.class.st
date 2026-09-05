@@ -1,6 +1,6 @@
 "I stage replacement of one CPFlowNode with another while preserving the existing diagram shape and every incident Sequence Flow and diagram edge identity.
 
-Assessment resolves the currently staged topology, substitutes the replacement node into every incident connection, and delegates connection legality to CPSequenceFlowConnectionRules. Apply replaces the semantic node in CPProcess>>flowElements, stages the replacement node's inverse incoming/outgoing relations, retargets the existing CPSequenceFlow child mementos, and stages the existing CPShape>>modelElement relation to the replacement node."
+Assessment resolves the currently staged topology, substitutes the replacement node into every incident connection, and delegates connection legality to CPSequenceFlowConnectionRules. Apply replaces the semantic node in the owning flow container's flowElements, stages the replacement node's inverse incoming/outgoing relations, retargets the existing CPSequenceFlow child mementos, and stages the existing CPShape>>modelElement relation to the replacement node."
 Class {
 	#name : 'CPAtelierReplaceFlowNode',
 	#superclass : 'CFAtelierOperation',
@@ -9,7 +9,7 @@ Class {
 		'replacementNode',
 		'bounds',
 		'processMemento',
-		'flowElementsDescription',
+		'flowContainerContext',
 		'diagramDescription'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -24,7 +24,19 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 		replacementNode: aReplacementNode;
 		bounds: aRectangle;
 		processMemento: aMemento;
-		flowElementsDescription: aFlowElementsDescription;
+		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
+		diagramDescription: aDiagramDescription;
+		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
+	^ self new
+		flowNode: aFlowNode;
+		replacementNode: aReplacementNode;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
 		yourself
 ]
@@ -34,6 +46,7 @@ CPAtelierReplaceFlowNode >> assess [
 	| flowElements proposedFlowElements incidentFlows diagram diagramMemento
 	  elementsDescription elements shapeMatches shape modelElementDescription boundsDescription |
 
+	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	replacementNode ifNil: [ ^ self rejectedBecause: 'A replacement flow node is required.' ].
 	flowNode == replacementNode ifTrue: [
@@ -42,7 +55,7 @@ CPAtelierReplaceFlowNode >> assess [
 		^ self rejectedBecause: 'Replacement requires a different flow-node type.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Replacement diagram bounds are required.' ].
 
-	flowElements := processMemento readUsing: flowElementsDescription.
+	flowElements := flowContainerContext stagedFlowElements.
 	flowElements ifNil: [
 		^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: flowNode) ifFalse: [
@@ -56,7 +69,7 @@ CPAtelierReplaceFlowNode >> assess [
 				ifTrue: [ replacementNode ]
 				ifFalse: [ each ] ]).
 	[
-		flowElementsDescription validate: proposedFlowElements
+		flowContainerContext flowElementsDescription validate: proposedFlowElements
 	] on: MAValidationError do: [ :anException |
 		^ self rejectedBecause: anException printString ].
 
@@ -142,9 +155,7 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 		| currentSource currentTarget flowMemento sourceDescription targetDescription |
 		currentSource := self stagedSourceOf: aSequenceFlow.
 		currentTarget := self stagedTargetOf: aSequenceFlow.
-		flowMemento := processMemento
-			childMementoFor: aSequenceFlow
-			inRelation: flowElementsDescription.
+		flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 		sourceDescription := flowMemento magritteDescription
 			detect: [ :each | each handlesSelector: #sourceRef ].
 		targetDescription := flowMemento magritteDescription
@@ -157,10 +168,8 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 			flowMemento write: replacementNode using: targetDescription.
 			incoming add: aSequenceFlow ] ].
 
-	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
-	replacementMemento := processMemento
-		childMementoFor: replacementNode
-		inRelation: flowElementsDescription.
+	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
+	replacementMemento := flowContainerContext childMementoFor: replacementNode.
 	incomingDescription := replacementMemento magritteDescription
 		detect: [ :each | each handlesSelector: #incoming ].
 	outgoingDescription := replacementMemento magritteDescription
@@ -192,10 +201,8 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 	shapeMemento write: replacementNode using: modelElementDescription.
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
 
-	processMemento detachChildMementoFor: flowNode inRelation: flowElementsDescription.
-	processMemento
-		childMementoFor: replacementNode
-		inRelation: flowElementsDescription
+	flowContainerContext detachChildMementoFor: flowNode.
+	flowContainerContext childMementoFor: replacementNode
 ]
 
 { #category : 'private - staged topology' }
@@ -221,9 +228,7 @@ CPAtelierReplaceFlowNode >> proposedTopologyFrom: flowElements excludingSequence
 { #category : 'private - staged state' }
 CPAtelierReplaceFlowNode >> stagedLabelOf: aFlowNode [
 	| nodeMemento description |
-	nodeMemento := processMemento
-		childMementoFor: aFlowNode
-		inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	description := nodeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #label ].
 	^ nodeMemento readUsing: description
@@ -232,9 +237,7 @@ CPAtelierReplaceFlowNode >> stagedLabelOf: aFlowNode [
 { #category : 'private - staged state' }
 CPAtelierReplaceFlowNode >> stagedSourceOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := processMemento
-		childMementoFor: aSequenceFlow
-		inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #sourceRef ].
 	^ flowMemento readUsing: description
@@ -243,9 +246,7 @@ CPAtelierReplaceFlowNode >> stagedSourceOf: aSequenceFlow [
 { #category : 'private - staged state' }
 CPAtelierReplaceFlowNode >> stagedTargetOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := processMemento
-		childMementoFor: aSequenceFlow
-		inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
@@ -280,7 +281,7 @@ CPAtelierReplaceFlowNode >> replacementNode: anObject [ replacementNode := anObj
 CPAtelierReplaceFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 
 { #category : 'accessing' }
-CPAtelierReplaceFlowNode >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
+CPAtelierReplaceFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 
 { #category : 'accessing' }
 CPAtelierReplaceFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
@@ -293,9 +294,7 @@ CPAtelierReplaceFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
 CPAtelierReplaceFlowNode >> stagedNestedFlowElementsOf: aFlowNode [
 	| nodeMemento description |
 	aFlowNode isSubProcess ifFalse: [ ^ nil ].
-	nodeMemento := processMemento
-		childMementoFor: aFlowNode
-		inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	description := nodeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #flowElements ].
 	^ nodeMemento readUsing: description

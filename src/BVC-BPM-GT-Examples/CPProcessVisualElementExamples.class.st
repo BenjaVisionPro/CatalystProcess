@@ -43,13 +43,13 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				flowContainer: aFlowContainer
 				processMemento: memento
 				diagramDescription: diagramDescription ];
-		replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds |
+		replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds :aFlowContainer |
 			CPAtelierReplaceFlowNode
 				flowNode: aFlowNode
 				with: aReplacementNode
 				bounds: proposedBounds
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
 		connectFlowNodesOperationFor: [ :aSource :aTarget :aFlowContainer |
 			CPAtelierConnectFlowNodes
@@ -58,13 +58,13 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				flowContainer: aFlowContainer
 				processMemento: memento
 				diagramDescription: diagramDescription ];
-		insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds |
+		insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds :aFlowContainer |
 			CPAtelierInsertFlowNode
 				sequenceFlow: aSequenceFlow
 				flowNode: aFlowNode
 				bounds: proposedBounds
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
 		removeFlowNodeOperationFor: [ :aFlowNode :aFlowContainer |
 			CPAtelierRemoveFlowNode
@@ -78,13 +78,13 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				flowContainer: aFlowContainer
 				processMemento: memento
 				diagramDescription: diagramDescription ];
-		reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget |
+		reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget :aFlowContainer |
 			CPAtelierReconnectSequenceFlow
 				sequenceFlow: aSequenceFlow
 				source: aSource
 				target: aTarget
+				flowContainer: aFlowContainer
 				processMemento: memento
-				flowElementsDescription: flowElementsDescription
 				diagramDescription: diagramDescription ];
 		setEdgeWaypointsOperationFor: [ :anEdge :someWaypoints |
 			CPAtelierSetEdgeWaypoints

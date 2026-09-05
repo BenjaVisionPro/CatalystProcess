@@ -1,6 +1,6 @@
 "I insert one CPFlowNode into one staged CPSequenceFlow.
 
-I replace source->target with source->flowNode and flowNode->target as one Atelier operation. A fresh flow node receives a new CPShape; an already-staged flow node retains its existing CPShape and topology. The old Sequence Flow and CPEdge are removed and both replacement Sequence Flows and CPEdges are staged together. Assessment validates both resulting connections against the staged Process topology before any mutation."
+I replace source->target with source->flowNode and flowNode->target as one Atelier operation. A fresh flow node receives a new CPShape; an already-staged flow node retains its existing CPShape and topology. The old Sequence Flow and CPEdge are removed and both replacement Sequence Flows and CPEdges are staged together. Assessment validates both resulting connections against the staged flow-container topology before any mutation."
 Class {
 	#name : 'CPAtelierInsertFlowNode',
 	#superclass : 'CFAtelierOperation',
@@ -9,7 +9,7 @@ Class {
 		'flowNode',
 		'bounds',
 		'processMemento',
-		'flowElementsDescription',
+		'flowContainerContext',
 		'diagramDescription'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -24,7 +24,19 @@ CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode
 		flowNode: aFlowNode;
 		bounds: aRectangle;
 		processMemento: aMemento;
-		flowElementsDescription: aFlowElementsDescription;
+		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
+		diagramDescription: aDiagramDescription;
+		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
+	^ self new
+		sequenceFlow: aSequenceFlow;
+		flowNode: aFlowNode;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
 		yourself
 ]
@@ -37,11 +49,12 @@ CPAtelierInsertFlowNode >> assess [
 	  shape boundsDescription sourceShape targetShape sourceBounds targetBounds
 	  firstEdge secondEdge proposedFlowElements proposedElements flowNodeAlreadyPresent |
 
+	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Diagram bounds are required.' ].
 
-	flowElements := processMemento readUsing: flowElementsDescription.
+	flowElements := flowContainerContext stagedFlowElements.
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: sequenceFlow) ifFalse: [
 		^ self rejectedBecause: 'The sequence flow does not belong to the staged process.' ].
@@ -140,7 +153,7 @@ CPAtelierInsertFlowNode >> assess [
 	proposedFlowElements
 		add: firstFlow;
 		add: secondFlow.
-	[ flowElementsDescription validate: proposedFlowElements ]
+	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -173,10 +186,10 @@ CPAtelierInsertFlowNode >> applyAssessment: anAssessment [
 	target := self stagedTargetOf: sequenceFlow.
 	firstFlow := anAssessment firstSequenceFlow.
 	secondFlow := anAssessment secondSequenceFlow.
-	flowNodeAlreadyPresent := (processMemento readUsing: flowElementsDescription)
+	flowNodeAlreadyPresent := (flowContainerContext stagedFlowElements)
 		identityIncludes: flowNode.
 
-	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
+	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	self stageEndpointsOf: firstFlow source: source target: flowNode.
 	self stageEndpointsOf: secondFlow source: flowNode target: target.
 
@@ -203,7 +216,7 @@ CPAtelierInsertFlowNode >> applyAssessment: anAssessment [
 		detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: bounds using: boundsDescription.
 
-	processMemento detachChildMementoFor: sequenceFlow inRelation: flowElementsDescription.
+	flowContainerContext detachChildMementoFor: sequenceFlow.
 	diagramMemento detachChildMementoFor: anAssessment removedEdge inRelation: elementsDescription
 ]
 
@@ -226,7 +239,7 @@ CPAtelierInsertFlowNode >> stagedTopologyFrom: flowElements excluding: excludedF
 { #category : 'private - staged topology' }
 CPAtelierInsertFlowNode >> stagedSourceOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #sourceRef ].
 	^ flowMemento readUsing: description
@@ -235,7 +248,7 @@ CPAtelierInsertFlowNode >> stagedSourceOf: aSequenceFlow [
 { #category : 'private - staged topology' }
 CPAtelierInsertFlowNode >> stagedTargetOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
@@ -244,7 +257,7 @@ CPAtelierInsertFlowNode >> stagedTargetOf: aSequenceFlow [
 { #category : 'private - applying' }
 CPAtelierInsertFlowNode >> stageEndpointsOf: aSequenceFlow source: aSource target: aTarget [
 	| flowMemento sourceDescription targetDescription |
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
 	sourceDescription := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #sourceRef ].
 	targetDescription := flowMemento magritteDescription
@@ -256,7 +269,7 @@ CPAtelierInsertFlowNode >> stageEndpointsOf: aSequenceFlow source: aSource targe
 { #category : 'private - applying' }
 CPAtelierInsertFlowNode >> stageOutgoingReplacing: oldFlow with: newFlow for: aFlowNode [
 	| nodeMemento description current proposed |
-	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	current := nodeMemento readUsing: description.
 	proposed := current species withAll: (current collect: [ :each |
@@ -267,7 +280,7 @@ CPAtelierInsertFlowNode >> stageOutgoingReplacing: oldFlow with: newFlow for: aF
 { #category : 'private - applying' }
 CPAtelierInsertFlowNode >> stageIncomingReplacing: oldFlow with: newFlow for: aFlowNode [
 	| nodeMemento description current proposed |
-	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
 	current := nodeMemento readUsing: description.
 	proposed := current species withAll: (current collect: [ :each |
@@ -278,7 +291,7 @@ CPAtelierInsertFlowNode >> stageIncomingReplacing: oldFlow with: newFlow for: aF
 { #category : 'private - applying' }
 CPAtelierInsertFlowNode >> stageIncomingAdding: incomingFlow outgoingAdding: outgoingFlow for: aFlowNode [
 	| nodeMemento incomingDescription outgoingDescription currentIncoming currentOutgoing proposedIncoming proposedOutgoing |
-	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	incomingDescription := nodeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #incoming ].
 	outgoingDescription := nodeMemento magritteDescription
@@ -296,7 +309,7 @@ CPAtelierInsertFlowNode >> stageIncomingAdding: incomingFlow outgoingAdding: out
 { #category : 'private - applying' }
 CPAtelierInsertFlowNode >> stageIncoming: incoming outgoing: outgoing for: aFlowNode [
 	| nodeMemento incomingDescription outgoingDescription |
-	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	nodeMemento := flowContainerContext childMementoFor: aFlowNode.
 	incomingDescription := nodeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #incoming ].
 	outgoingDescription := nodeMemento magritteDescription
@@ -350,6 +363,6 @@ CPAtelierInsertFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierInsertFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
-CPAtelierInsertFlowNode >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
+CPAtelierInsertFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierInsertFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]

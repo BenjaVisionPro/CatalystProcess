@@ -329,7 +329,8 @@ CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass s
 	assessment := (replaceFlowNodeOperationBlock
 		value: aFlowNode
 		value: replacement
-		value: proposedBounds) apply.
+		value: proposedBounds
+		value: (self stagedFlowContainerContaining: aFlowNode)) apply.
 
 	assessment isApplicable ifTrue: [
 		selectedModelElements removeAll.
@@ -1157,7 +1158,8 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
 		value: aFlowNode
-		value: proposedBounds) apply.
+		value: proposedBounds
+		value: (self stagedFlowContainerContaining: anEdge modelElement)) apply.
 	assessment isApplicable
 		ifTrue: [
 			selectedModelElements removeAll.
@@ -1442,7 +1444,8 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdg
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
 		value: candidate
-		value: proposedBounds) assess.
+		value: proposedBounds
+		value: (self stagedFlowContainerContaining: aFlowNode)) assess.
 	^ assessment isApplicable
 ]
 
@@ -1462,7 +1465,8 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
 		value: candidate
-		value: bounds) apply.
+		value: bounds
+		value: (self stagedFlowContainerContaining: anEdge modelElement)) apply.
 	assessment isApplicable ifTrue: [
 		selectedModelElements removeAll.
 		selectedModelElements add: candidate.
@@ -1684,7 +1688,8 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 	assessment := (replaceFlowNodeOperationBlock
 		value: aFlowNode
 		value: candidate
-		value: proposedBounds) assess.
+		value: proposedBounds
+		value: (self stagedFlowContainerContaining: aFlowNode)) assess.
 	^ assessment isApplicable
 ]
 
@@ -1698,7 +1703,8 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: 
 	assessment := (replaceFlowNodeOperationBlock
 		value: aFlowNode
 		value: candidate
-		value: proposedBounds) apply.
+		value: proposedBounds
+		value: (self stagedFlowContainerContaining: aFlowNode)) apply.
 	assessment isApplicable ifTrue: [
 		selectedModelElements removeAll.
 		selectedModelElements add: candidate.
@@ -2343,7 +2349,8 @@ CPProcessVisualElement >> validReconnectTargetAtGlobalPoint: aPoint for: aSequen
 	assessment := (reconnectSequenceFlowOperationBlock
 		value: aSequenceFlow
 		value: source
-		value: target) assess.
+		value: target
+		value: (self stagedFlowContainerContaining: aSequenceFlow)) assess.
 	^ assessment isApplicable
 		ifTrue: [ candidate ]
 		ifFalse: [ nil ]
@@ -2572,7 +2579,8 @@ CPProcessVisualElement >> reconnectSequenceFlow: aSequenceFlow source: aSource t
 	assessment := (reconnectSequenceFlowOperationBlock
 		value: aSequenceFlow
 		value: aSource
-		value: aTarget) apply.
+		value: aTarget
+		value: (self stagedFlowContainerContaining: aSequenceFlow)) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
 		ifFalse: [ self updateSelectionAppearance ].
