@@ -25,3 +25,23 @@ CPSubProcessTypeSelection >> typeLabelFor: aClass [
 CPSubProcessTypeSelection >> typeIconFor: aClass [
 	^ aClass subProcessTypeIcon
 ]
+
+
+{ #category : 'descriptions' }
+CPSubProcessTypeSelection >> typeClassDescription [
+	<magritteDescription>
+	^ MASingleOptionDescription new
+		accessor: #typeClass;
+		label: self typeDescriptionLabel;
+		options: self typeClasses;
+		autoAccept: true;
+		fieldConfigure: [ :field |
+			field bePopup
+				displayBlock: [ :aClass | self typeLabelFor: aClass ] ];
+		blocOptionIconStencil: [ :aClass |
+			(FontAwesomeIcons defaultStyle icon: (self typeIconFor: aClass))
+				size: 14 @ 14;
+				yourself ];
+		beRequired;
+		yourself
+]

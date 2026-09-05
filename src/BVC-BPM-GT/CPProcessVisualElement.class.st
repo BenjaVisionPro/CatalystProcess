@@ -2681,11 +2681,11 @@ CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlow
 		for: aFlowNode
 		shape: aShape
 		selection: (CPSubProcessTypeSelection typeClass: aFlowNode class)
-		iconExtent: 16 @ 16
+		iconExtent: 14 @ 14
 		configure: [ :anElement |
 			anElement constraintsDo: [ :c |
 				c frame horizontal alignCenter.
 				c frame vertical alignBottom.
-				c margin: (BlInsets bottom: 4 right: 36) ] ]
+				c margin: (BlInsets bottom: 4 right: 34) ] ]
 ]
 
