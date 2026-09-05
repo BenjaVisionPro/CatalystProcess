@@ -160,10 +160,15 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
 	waypointsDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #waypoints ].
-	proposedWaypoints := (edgeMemento readUsing: waypointsDescription) species
-		with: sourceBounds center
-		with: targetBounds center.
-	edgeMemento write: proposedWaypoints using: waypointsDescription
+	proposedWaypoints := (edgeMemento readUsing: waypointsDescription) asOrderedCollection copy.
+	proposedWaypoints size < 2 ifTrue: [
+		self error: 'A reconnectable sequence-flow edge requires source and target waypoints' ].
+	proposedWaypoints
+		at: 1 put: sourceBounds center;
+		at: proposedWaypoints size put: targetBounds center.
+	edgeMemento
+		write: (proposedWaypoints species withAll: proposedWaypoints)
+		using: waypointsDescription
 ]
 
 { #category : 'private - staged topology' }
