@@ -1664,7 +1664,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 							self insertionTargetEdge: (self
 								insertionEdgeAtGlobalPoint: anEvent position
 								for: draggedModelElement).
-							aShapeElement positionResizeHandle.
+							aShapeElement positionResizeHandle ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
