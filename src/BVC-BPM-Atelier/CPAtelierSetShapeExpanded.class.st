@@ -74,7 +74,8 @@ CPAtelierSetShapeExpanded >> applyAssessment: anAssessment [
 	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
 	expandedDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #isExpanded ].
-	shapeMemento write: anAssessment proposedExpanded using: expandedDescription
+	shapeMemento write: anAssessment proposedExpanded using: expandedDescription.
+	^ anAssessment
 ]
 
 { #category : 'private' }
