@@ -12,8 +12,7 @@ Class {
 		'elementsDescription',
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
-		'edgeElementsByEdge',
-		'edgeHitElementsByEdge',
+		'edgeVisualsByEdge',
 		'edgeLabelElementsByEdge',
 		'externalLabelElementsByModelElement',
 		'hoveredModelElement',
@@ -51,8 +50,7 @@ CPProcessVisualElement >> initialize [
 	selectedModelElements := IdentitySet new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
-	edgeElementsByEdge := IdentityDictionary new.
-	edgeHitElementsByEdge := IdentityDictionary new.
+	edgeVisualsByEdge := IdentityDictionary new.
 	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
@@ -85,8 +83,7 @@ CPProcessVisualElement >> refresh [
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
-	edgeElementsByEdge removeAll.
-	edgeHitElementsByEdge removeAll.
+	edgeVisualsByEdge removeAll.
 	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
@@ -828,7 +825,7 @@ CPProcessVisualElement >> updateIncidentReconnectHandlesFor: aModelElement [
 		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
 			self
 				positionReconnectHandlesFor: anEdge
-				fromLines: (edgeElementsByEdge at: anEdge ifAbsent: [ #() ]) ] ]
+				fromLines: (self lineElementsForEdge: anEdge) ] ]
 ]
 
 { #category : 'private - labels' }
@@ -1041,8 +1038,10 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	self installEdgeSelectionOn: line for: anEdge.
 	self installPaletteInsertionOn: line for: anEdge.
 	self installBendpointInsertionOn: line for: anEdge segmentIndex: 1.
-	edgeElementsByEdge at: anEdge put: { line }.
-	edgeHitElementsByEdge at: anEdge put: { selectionLine }.
+	edgeVisualsByEdge at: anEdge put: (CPProcessEdgeVisual new
+		edge: anEdge
+		lineElements: { line }
+		hitElements: { selectionLine }).
 	self addChild: selectionLine.
 	self addChild: line
 ]
@@ -1066,6 +1065,16 @@ CPProcessVisualElement >> bringReconnectHandlesToFront [
 		someHandles do: [ :aHandle |
 			aHandle removeFromParent.
 			self addChild: aHandle ] ]
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> lineElementsForEdge: anEdge [
+	^ (edgeVisualsByEdge at: anEdge ifAbsent: [ ^ #() ]) lineElements
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> hitElementsForEdge: anEdge [
+	^ (edgeVisualsByEdge at: anEdge ifAbsent: [ ^ #() ]) hitElements
 ]
 
 { #category : 'private - edges' }
@@ -1150,8 +1159,10 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		hitLines add: selectionLine.
 		self addChild: selectionLine.
 		self addChild: line ].
-	edgeElementsByEdge at: anEdge put: lines.
-	edgeHitElementsByEdge at: anEdge put: hitLines
+	edgeVisualsByEdge at: anEdge put: (CPProcessEdgeVisual new
+		edge: anEdge
+		lineElements: lines
+		hitElements: hitLines)
 ]
 
 { #category : 'private - edges' }
@@ -1190,8 +1201,9 @@ CPProcessVisualElement >> edge: anEdge isIncidentTo: aModelElement [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> removeRenderedEdgeFor: anEdge [
-	(edgeElementsByEdge removeKey: anEdge ifAbsent: [ #() ])
-		do: [ :aLine | aLine removeFromParent ]
+	| visual |
+	visual := edgeVisualsByEdge removeKey: anEdge ifAbsent: [ ^ self ].
+	visual removeRenderedElements
 ]
 
 { #category : 'private - selection' }
@@ -1284,8 +1296,9 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			selected: isSelected
 			selectionColor: self selectionColor
 			normalColor: self shapeBorderColor ].
-	edgeElementsByEdge keysAndValuesDo: [ :anEdge :someLines |
-		| isSelected isInsertionTarget isEmphasized |
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		| someLines isSelected isInsertionTarget isEmphasized |
+		someLines := anEdgeVisual lineElements.
 		isSelected := selectedModelElements includes: anEdge modelElement.
 		isInsertionTarget := anEdge == insertionTargetEdge.
 		isEmphasized := isSelected or: [ isInsertionTarget ].
@@ -1398,7 +1411,9 @@ CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNod
 	| candidates localPoint |
 	insertFlowNodeOperationBlock ifNil: [ ^ nil ].
 	candidates := OrderedCollection new.
-	edgeHitElementsByEdge keysAndValuesDo: [ :anEdge :someHitElements |
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		| someHitElements |
+		someHitElements := anEdgeVisual hitElements.
 		((self stagedSourceOf: anEdge modelElement) == aFlowNode
 			or: [ (self stagedTargetOf: anEdge modelElement) == aFlowNode ])
 			ifFalse: [
@@ -1491,7 +1506,7 @@ CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedMode
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> internalBentEdgesForMovedModelElements: movedModelElements [
-	^ edgeElementsByEdge keys select: [ :anEdge |
+	^ edgeVisualsByEdge keys select: [ :anEdge |
 		| sequenceFlow |
 		sequenceFlow := anEdge modelElement.
 		(movedModelElements includes: (self stagedSourceOf: sequenceFlow))
@@ -1586,7 +1601,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				groupEntries do: [ :entry | movedModelElements add: entry second ].
 				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
 				internalBentEdges do: [ :anEdge |
-					(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+					(self lineElementsForEdge: anEdge)
 						do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ] ]
 		dragged: [ :anEvent :delta |
 			groupMode
@@ -1635,7 +1650,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
 					internalBentEdges do: [ :anEdge |
-						(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+						(self lineElementsForEdge: anEdge)
 							do: [ :aLine | aLine visibility: BlVisibility visible ] ].
 					boundsByShape := IdentityDictionary new.
 					groupEntries do: [ :entry |
@@ -1786,7 +1801,7 @@ CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
 		((anElement bounds inParent: self) asRectangle intersects: aRectangle)
 			ifTrue: [ selectedModelElements add: aModelElement ] ].
 
-	edgeElementsByEdge keysDo: [ :anEdge |
+	edgeVisualsByEdge keysDo: [ :anEdge |
 		(self edge: anEdge intersectsRectangle: aRectangle)
 			ifTrue: [ selectedModelElements add: anEdge modelElement ] ].
 
@@ -2404,7 +2419,7 @@ CPProcessVisualElement >> installBendpointInsertionOn: anEdgeElement for: anEdge
 				labelPathFraction := self
 					labelPathFractionFor: anEdge
 					waypoints: (self stagedWaypointsOf: anEdge).
-				(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+				(self lineElementsForEdge: anEdge)
 					do: [ :aLine | aLine visibility: BlVisibility hidden ].
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -2444,7 +2459,7 @@ CPProcessVisualElement >> installBendpointInsertionOn: anEdgeElement for: anEdge
 						afterSegment: aSegmentIndex.
 					previewLines do: [ :aLine | aLine removeFromParent ].
 					previewLines := #().
-					(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+					(self lineElementsForEdge: anEdge)
 						do: [ :aLine | aLine visibility: BlVisibility visible ].
 					self setWaypoints: proposed forEdge: anEdge.
 					anEvent consumed: true ] ])
@@ -2528,7 +2543,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 				dragStartEventPosition := anEvent position.
 				dragStartHandlePosition := handle position.
 				isDragging := true.
-				(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+				(self lineElementsForEdge: anEdge)
 					do: [ :aLine | aLine visibility: BlVisibility hidden ].
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -2565,7 +2580,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 						at: newPoint.
 					previewLines do: [ :aLine | aLine removeFromParent ].
 					previewLines := #().
-					(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+					(self lineElementsForEdge: anEdge)
 						do: [ :aLine | aLine visibility: BlVisibility visible ].
 					self setWaypoints: proposed forEdge: anEdge.
 					anEvent consumed: true ] ]).
@@ -2646,7 +2661,8 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 	target := self stagedTargetOf: sequenceFlow.
 	sourceElement := shapeElementsByModelElement at: source ifAbsent: [ ^ self ].
 	targetElement := shapeElementsByModelElement at: target ifAbsent: [ ^ self ].
-	lines := edgeElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
+	lines := self lineElementsForEdge: anEdge.
 	lines ifEmpty: [ ^ self ].
 	sourceLine := lines first.
 	targetLine := lines last.
@@ -2671,7 +2687,7 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> edgeForSequenceFlow: aSequenceFlow ifFound: aFoundBlock ifNone: aNoneBlock [
-	edgeElementsByEdge keysDo: [ :anEdge |
+	edgeVisualsByEdge keysDo: [ :anEdge |
 		anEdge modelElement == aSequenceFlow ifTrue: [
 			^ aFoundBlock value: anEdge ] ].
 	^ aNoneBlock value
@@ -2741,7 +2757,7 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 						ifFalse: [ waypoints at: waypoints size - 1 ].
 					adjacentReference := self anchorReferenceElementAt: adjacentPoint.
 					self addChild: adjacentReference.
-					lines := edgeElementsByEdge at: reconnectEdge ifAbsent: [ #() ].
+					lines := self lineElementsForEdge: reconnectEdge.
 					lines ifNotEmpty: [
 						hiddenTerminalLine := movesSource
 							ifTrue: [ lines first ]
@@ -2836,9 +2852,7 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 							reconnectEdge ifNotNil: [
 								self
 									positionReconnectHandlesFor: reconnectEdge
-									fromLines: (edgeElementsByEdge
-										at: reconnectEdge
-										ifAbsent: [ #() ]) ] ].
+									fromLines: (self lineElementsForEdge: reconnectEdge) ] ].
 					anEvent consumed: true ] ]).
 	^ handle
 ]
@@ -2900,7 +2914,7 @@ CPProcessVisualElement >> updateReconnectHandlePositions [
 	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
 		self
 			positionReconnectHandlesFor: anEdge
-			fromLines: (edgeElementsByEdge at: anEdge ifAbsent: [ #() ]) ]
+			fromLines: (self lineElementsForEdge: anEdge) ]
 ]
 
 { #category : 'private - reconnecting' }
@@ -3060,7 +3074,7 @@ CPProcessVisualElement >> removeSelection [
 	selectedNodes := selectedModelElements select: [ :each |
 		shapeElementsByModelElement includesKey: each ].
 	selectedFlows := selectedModelElements select: [ :each |
-		edgeForFlow := edgeElementsByEdge keys
+		edgeForFlow := edgeVisualsByEdge keys
 			detect: [ :anEdge | anEdge modelElement == each ]
 			ifNone: [ nil ].
 		edgeForFlow notNil and: [
