@@ -882,6 +882,15 @@ CPProcessVisualElement >> liveMidpointForEdge: anEdge waypoints: someWaypoints [
 	^ self midpointOfPoints: points
 ]
 
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> updateIncidentReconnectHandlesFor: aModelElement [
+	reconnectHandleElementsByEdge keysDo: [ :anEdge |
+		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+			self
+				positionReconnectHandlesFor: anEdge
+				fromLines: (edgeElementsByEdge at: anEdge ifAbsent: [ #() ]) ] ]
+]
+
 { #category : 'private - labels' }
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 	edgeLabelElementsByEdge keysDo: [ :anEdge |
@@ -1442,6 +1451,7 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 						forShapeElement: aShapeElement
 						handleExtent: handleExtent.
 					self updateIncidentEdgeLabelsFor: aModelElement.
+					self updateIncidentReconnectHandlesFor: aModelElement.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -1604,6 +1614,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						(externalLabelElementsByModelElement at: draggedModelElement)
 							relocate: dragStartLabelPosition + delta ].
 					self updateIncidentEdgeLabelsFor: draggedModelElement.
+					self updateIncidentReconnectHandlesFor: draggedModelElement.
 					self insertionTargetEdge: (self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement).
