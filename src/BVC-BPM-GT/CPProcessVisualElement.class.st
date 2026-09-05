@@ -2181,8 +2181,8 @@ CPProcessVisualElement >> preferredConnectionTargetFrom: candidates [
 			each second > best second
 				ifTrue: [ each ]
 				ifFalse: [
-					each second = best second
-						and: [ (each third width * each third height) < (best third width * best third height) ]
+					(each second = best second
+						and: [ (each third width * each third height) < (best third width * best third height) ])
 							ifTrue: [ each ]
 							ifFalse: [ best ] ] ]) first
 ]
