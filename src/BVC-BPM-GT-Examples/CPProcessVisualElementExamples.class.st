@@ -86,6 +86,12 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				flowContainer: aFlowContainer
 				processMemento: memento
 				diagramDescription: diagramDescription ];
+		setShapeExpandedOperationFor: [ :aShape :isExpanded |
+			CPAtelierSetShapeExpanded
+				shape: aShape
+				expanded: isExpanded
+				processMemento: memento
+				diagramDescription: diagramDescription ];
 		setEdgeWaypointsOperationFor: [ :anEdge :someWaypoints |
 			CPAtelierSetEdgeWaypoints
 				edge: anEdge
