@@ -287,3 +287,39 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 					aReplacementBlock value: selectedClass ]) ] ].
 	self addChild: aPopup
 ]
+
+{ #category : 'positioning' }
+CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBounds: aStagedBoundsBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
+	| isDragging dragStartEventPosition dragStartElementPosition originalBounds |
+	isDragging := false.
+	anInteractionElement
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				dragStartEventPosition := anEvent position.
+				dragStartElementPosition := self position.
+				originalBounds := aStagedBoundsBlock value.
+				isDragging := true.
+				aDragStartBlock value: anEvent value: originalBounds.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| proposedPosition delta |
+					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+					self relocate: proposedPosition.
+					delta := self position - dragStartElementPosition.
+					aDragBlock value: anEvent value: delta.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| proposedBounds delta |
+					isDragging := false.
+					delta := self position - dragStartElementPosition.
+					proposedBounds := self position extent: originalBounds extent.
+					aDragEndBlock value: anEvent value: proposedBounds value: delta.
+					anEvent consumed: true ] ])
+]

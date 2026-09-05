@@ -1562,128 +1562,103 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition draggedModelElement isDragging
-	  groupEntries groupMode groupPreviews internalBentEdges movedModelElements |
+	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements |
 	moveShapeOperationBlock ifNil: [ ^ self ].
-	isDragging := false.
 	groupMode := false.
 	groupEntries := #().
 	groupPreviews := IdentityDictionary new.
 	internalBentEdges := #().
 	movedModelElements := IdentitySet new.
-	anInteractionElement
-		addEventHandler: (BlEventHandler
-			on: BlDragStartEvent
-			do: [ :anEvent |
-				dragStartEventPosition := anEvent position.
-				dragStartElementPosition := aShapeElement position.
-				self clearInsertionTarget.
-				originalBounds := self stagedBoundsOf: aShape.
-				draggedModelElement := self stagedModelElementOf: aShape.
-				dragStartLabelPosition := (externalLabelElementsByModelElement
-					at: draggedModelElement
-					ifAbsent: [ nil ])
-					ifNotNil: [ :aLabel | aLabel position ].
-				groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
-				groupMode := moveShapesOperationBlock notNil and: [ groupEntries size > 1 ].
-				groupMode ifTrue: [
-					movedModelElements := IdentitySet new.
-					groupEntries do: [ :entry | movedModelElements add: entry second ].
-					internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
+	aShapeElement
+		installPositioningFrom: anInteractionElement
+		stagedBounds: [ self stagedBoundsOf: aShape ]
+		dragStarted: [ :anEvent :originalBounds |
+			self clearInsertionTarget.
+			draggedModelElement := self stagedModelElementOf: aShape.
+			dragStartLabelPosition := (externalLabelElementsByModelElement
+				at: draggedModelElement
+				ifAbsent: [ nil ])
+				ifNotNil: [ :aLabel | aLabel position ].
+			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
+			groupMode := moveShapesOperationBlock notNil and: [ groupEntries size > 1 ].
+			groupMode ifTrue: [
+				movedModelElements := IdentitySet new.
+				groupEntries do: [ :entry | movedModelElements add: entry second ].
+				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
+				internalBentEdges do: [ :anEdge |
+					(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+						do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ] ]
+		dragged: [ :anEvent :delta |
+			groupMode
+				ifTrue: [
+					groupEntries do: [ :entry |
+						| element bounds label |
+						element := entry third.
+						bounds := entry fourth.
+						label := entry fifth.
+						element relocate: bounds origin + delta.
+						label ifNotNil: [ label relocate: entry sixth + delta ].
+						element positionResizeHandle ].
+					self removeGroupMovePreviews: groupPreviews.
+					groupPreviews := IdentityDictionary new.
+					internalBentEdges do: [ :anEdge |
+						| proposed preview |
+						proposed := self translatedWaypointsOf: anEdge by: delta.
+						preview := self newGroupMovePreviewFor: anEdge waypoints: proposed.
+						groupPreviews at: anEdge put: preview ].
+					movedModelElements do: [ :modelElement |
+						self updateIncidentEdgeLabelsFor: modelElement.
+						self updateIncidentReconnectHandlesFor: modelElement ].
+					internalBentEdges do: [ :anEdge |
+						| proposed |
+						proposed := self translatedWaypointsOf: anEdge by: delta.
+						self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
+						self positionReconnectHandlesFor: anEdge usingWaypoints: proposed.
+						self positionBendpointHandlesFor: anEdge usingWaypoints: proposed ].
+					self bringReconnectHandlesToFront.
+					self bringBendpointHandlesToFront.
+					self bringResizeHandlesToFront ]
+				ifFalse: [
+					dragStartLabelPosition ifNotNil: [
+						(externalLabelElementsByModelElement at: draggedModelElement)
+							relocate: dragStartLabelPosition + delta ].
+					self updateIncidentEdgeLabelsFor: draggedModelElement.
+					self updateIncidentReconnectHandlesFor: draggedModelElement.
+					self insertionTargetEdge: (self
+						insertionEdgeAtGlobalPoint: anEvent position
+						for: draggedModelElement).
+					aShapeElement positionResizeHandle ] ]
+		dragEnded: [ :anEvent :proposedBounds :delta |
+			groupMode
+				ifTrue: [
+					| boundsByShape |
+					self removeGroupMovePreviews: groupPreviews.
+					groupPreviews := IdentityDictionary new.
 					internalBentEdges do: [ :anEdge |
 						(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
-							do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ].
-				isDragging := true.
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| proposedPosition delta |
-					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
-					delta := proposedPosition - dragStartElementPosition.
-					groupMode
-						ifTrue: [
-							groupEntries do: [ :entry |
-								| shape modelElement element bounds label |
-								shape := entry first.
-								modelElement := entry second.
-								element := entry third.
-								bounds := entry fourth.
-								label := entry fifth.
-								element relocate: bounds origin + delta.
-								label ifNotNil: [ label relocate: entry sixth + delta ].
-								element positionResizeHandle ].
-							self removeGroupMovePreviews: groupPreviews.
-							groupPreviews := IdentityDictionary new.
-							internalBentEdges do: [ :anEdge |
-								| proposed preview |
-								proposed := self translatedWaypointsOf: anEdge by: delta.
-								preview := self newGroupMovePreviewFor: anEdge waypoints: proposed.
-								groupPreviews at: anEdge put: preview ].
-							movedModelElements do: [ :modelElement |
-								self updateIncidentEdgeLabelsFor: modelElement.
-								self updateIncidentReconnectHandlesFor: modelElement ].
-							internalBentEdges do: [ :anEdge |
-								| proposed |
-								proposed := self translatedWaypointsOf: anEdge by: delta.
-								self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
-								self positionReconnectHandlesFor: anEdge usingWaypoints: proposed.
-								self positionBendpointHandlesFor: anEdge usingWaypoints: proposed ].
-							self bringReconnectHandlesToFront.
-							self bringBendpointHandlesToFront.
-							self bringResizeHandlesToFront ]
-						ifFalse: [
-							aShapeElement relocate: proposedPosition.
-							delta := aShapeElement position - dragStartElementPosition.
-							dragStartLabelPosition ifNotNil: [
-								(externalLabelElementsByModelElement at: draggedModelElement)
-									relocate: dragStartLabelPosition + delta ].
-							self updateIncidentEdgeLabelsFor: draggedModelElement.
-							self updateIncidentReconnectHandlesFor: draggedModelElement.
-							self insertionTargetEdge: (self
-								insertionEdgeAtGlobalPoint: anEvent position
-								for: draggedModelElement).
-							aShapeElement positionResizeHandle ].
-					anEvent consumed: true ] ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEndEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| proposedBounds insertionEdge delta boundsByShape |
-					isDragging := false.
-					groupMode
-						ifTrue: [
-							delta := aShapeElement position - dragStartElementPosition.
-							self removeGroupMovePreviews: groupPreviews.
-							groupPreviews := IdentityDictionary new.
-							internalBentEdges do: [ :anEdge |
-								(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
-									do: [ :aLine | aLine visibility: BlVisibility visible ] ].
-							boundsByShape := IdentityDictionary new.
-							groupEntries do: [ :entry |
-								boundsByShape
-									at: entry first
-									put: (entry fourth translateBy: delta) ].
-							anEvent consumed: true.
-							self moveShapesToBounds: boundsByShape ]
-						ifFalse: [
-							proposedBounds := aShapeElement position extent: originalBounds extent.
-							insertionEdge := self
-								insertionEdgeAtGlobalPoint: anEvent position
-								for: draggedModelElement.
-							self clearInsertionTarget.
-							anEvent consumed: true.
-							insertionEdge
-								ifNil: [
-									self moveShape: aShape toBounds: proposedBounds ]
-								ifNotNil: [
-									self
-										insertExistingFlowNode: draggedModelElement
-										shape: aShape
-										intoEdge: insertionEdge
-										atBounds: proposedBounds ] ] ] ])
+							do: [ :aLine | aLine visibility: BlVisibility visible ] ].
+					boundsByShape := IdentityDictionary new.
+					groupEntries do: [ :entry |
+						boundsByShape
+							at: entry first
+							put: (entry fourth translateBy: delta) ].
+					self moveShapesToBounds: boundsByShape ]
+				ifFalse: [
+					| insertionEdge |
+					insertionEdge := self
+						insertionEdgeAtGlobalPoint: anEvent position
+						for: draggedModelElement.
+					self clearInsertionTarget.
+					insertionEdge
+						ifNil: [ self moveShape: aShape toBounds: proposedBounds ]
+						ifNotNil: [
+							self
+								insertExistingFlowNode: draggedModelElement
+								shape: aShape
+								intoEdge: insertionEdge
+								atBounds: proposedBounds ] ] ]
 ]
+
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBackgroundColor [
 	^ self resolvedThemeColor: self theme surfaces cardTint
