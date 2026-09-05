@@ -1,0 +1,507 @@
+"I lock down the executable Process Atelier contract at the semantic-operation boundary.
+
+I exercise the production CPProcess / CPDiagram / CPShape / CPEdge model through CFMaMemento. Assessment must not mutate staged state. Applying an operation must stage the complete semantic and diagram change while leaving the committed model unchanged until commit. Reset must restore the model-backed state."
+Class {
+	#name : 'CPProcessAtelierExamples',
+	#superclass : 'Object',
+	#category : 'BVC-BPM-Atelier-Examples',
+	#package : 'BVC-BPM-Atelier',
+	#tag : 'Examples'
+}
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> fixture [
+	| process start task finish firstFlow secondFlow diagram startShape taskShape finishShape firstEdge secondEdge memento |
+	process := CPProcess new label: 'Atelier process'; yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	finish := CPNoneEndEvent new label: 'End'; yourself.
+
+	firstFlow := CPSequenceFlow new
+		label: 'start to review';
+		sourceRef: start;
+		targetRef: task;
+		yourself.
+	secondFlow := CPSequenceFlow new
+		label: 'review to end';
+		sourceRef: task;
+		targetRef: finish;
+		yourself.
+
+	process
+		addFlowElement: start;
+		addFlowElement: task;
+		addFlowElement: finish;
+		addFlowElement: firstFlow;
+		addFlowElement: secondFlow.
+
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	startShape := CPShape new modelElement: start; bounds: (100 @ 100 extent: 42 @ 42); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (220 @ 94 extent: 132 @ 54); yourself.
+	finishShape := CPShape new modelElement: finish; bounds: (430 @ 100 extent: 42 @ 42); yourself.
+	firstEdge := CPEdge new modelElement: firstFlow; yourself.
+	firstEdge addWaypoint: 142 @ 121; addWaypoint: 220 @ 121.
+	secondEdge := CPEdge new modelElement: secondFlow; yourself.
+	secondEdge addWaypoint: 352 @ 121; addWaypoint: 430 @ 121.
+	diagram
+		addElement: startShape;
+		addElement: taskShape;
+		addElement: finishShape;
+		addElement: firstEdge;
+		addElement: secondEdge.
+
+	memento := CFMaMemento model: process.
+	^ { process. memento. start. task. finish. firstFlow. secondFlow. diagram. startShape. taskShape. finishShape. firstEdge. secondEdge }
+]
+
+{ #category : 'private - accessing staged state' }
+CPProcessAtelierExamples >> descriptionFor: aSelector in: aMemento [
+	^ aMemento magritteDescription detect: [ :each | each handlesSelector: aSelector ]
+]
+
+{ #category : 'private - accessing staged state' }
+CPProcessAtelierExamples >> diagramMementoFor: aProcessMemento [
+	| diagramDescription diagram |
+	diagramDescription := self descriptionFor: #diagram in: aProcessMemento.
+	diagram := aProcessMemento readUsing: diagramDescription.
+	^ aProcessMemento childMementoFor: diagram inRelation: diagramDescription
+]
+
+{ #category : 'private - accessing staged state' }
+CPProcessAtelierExamples >> diagramElementsDescriptionIn: aDiagramMemento [
+	^ self descriptionFor: #elements in: aDiagramMemento
+]
+
+{ #category : 'private - accessing staged state' }
+CPProcessAtelierExamples >> stagedBoundsOf: aShape processMemento: aProcessMemento [
+	| diagramMemento elementsDescription shapeMemento boundsDescription |
+	diagramMemento := self diagramMementoFor: aProcessMemento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
+	boundsDescription := self descriptionFor: #bounds in: shapeMemento.
+	^ shapeMemento readUsing: boundsDescription
+]
+
+{ #category : 'private - accessing staged state' }
+CPProcessAtelierExamples >> stagedWaypointsOf: anEdge processMemento: aProcessMemento [
+	| diagramMemento elementsDescription edgeMemento waypointsDescription |
+	diagramMemento := self diagramMementoFor: aProcessMemento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
+	waypointsDescription := self descriptionFor: #waypoints in: edgeMemento.
+	^ edgeMemento readUsing: waypointsDescription
+]
+
+{ #category : 'examples - assessment' }
+CPProcessAtelierExamples >> moveShapeAssessmentDoesNotMutateStagedState [
+	<gtExample>
+	| fixture memento taskShape firstEdge secondEdge diagramDescription operation assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	secondEdge := fixture at: 13.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierMoveShape
+		shape: taskShape
+		bounds: (260 @ 124 extent: 132 @ 54)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation assess.
+
+	self assert: assessment isApplicable.
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: (220 @ 94 extent: 132 @ 54).
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 142 @ 121. 220 @ 121 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: secondEdge processMemento: memento) equals: ({ 352 @ 121. 430 @ 121 } asOrderedCollection).
+	^ assessment
+]
+
+{ #category : 'examples - diagram movement' }
+CPProcessAtelierExamples >> moveShapeStagesBoundsAndIncidentEdgeEndpoints [
+	<gtExample>
+	| fixture process memento taskShape firstEdge secondEdge diagramDescription operation assessment |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	secondEdge := fixture at: 13.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierMoveShape
+		shape: taskShape
+		bounds: (260 @ 124 extent: 132 @ 54)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: (260 @ 124 extent: 132 @ 54).
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 142 @ 121. 260 @ 151 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: secondEdge processMemento: memento) equals: ({ 392 @ 151. 430 @ 121 } asOrderedCollection).
+	self assert: taskShape bounds equals: (220 @ 94 extent: 132 @ 54).
+	self assert: firstEdge waypoints equals: ({ 142 @ 121. 220 @ 121 } asOrderedCollection).
+	self assert: process diagram == fixture eighth.
+	^ memento
+]
+
+{ #category : 'examples - diagram movement' }
+CPProcessAtelierExamples >> moveConnectedShapesTranslatesCompleteInternalEdgePath [
+	<gtExample>
+	| fixture memento startShape taskShape firstEdge diagramDescription boundsByShape operation assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	startShape := fixture at: 9.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	boundsByShape := IdentityDictionary new.
+	boundsByShape
+		at: startShape put: (130 @ 120 extent: 42 @ 42);
+		at: taskShape put: (250 @ 114 extent: 132 @ 54).
+	operation := CPAtelierMoveShapes
+		boundsByShape: boundsByShape
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment delta equals: 30 @ 20.
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 172 @ 141. 250 @ 141 } asOrderedCollection).
+	^ memento
+]
+
+{ #category : 'examples - diagram movement' }
+CPProcessAtelierExamples >> resizeShapeStagesBoundsAndMovesIncidentEndpointsByCenterDelta [
+	<gtExample>
+	| fixture memento taskShape firstEdge secondEdge diagramDescription operation assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	secondEdge := fixture at: 13.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierResizeShape
+		shape: taskShape
+		bounds: (220 @ 94 extent: 172 @ 74)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: (220 @ 94 extent: 172 @ 74).
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 142 @ 121. 240 @ 131 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: secondEdge processMemento: memento) equals: ({ 372 @ 131. 430 @ 121 } asOrderedCollection).
+	^ memento
+]
+
+{ #category : 'examples - routing' }
+CPProcessAtelierExamples >> setEdgeWaypointsStagesRoutingWithoutMutatingModel [
+	<gtExample>
+	| fixture memento firstEdge diagramDescription proposed operation assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	firstEdge := fixture at: 12.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	proposed := { 142 @ 121. 180 @ 170. 220 @ 121 } asOrderedCollection.
+	operation := CPAtelierSetEdgeWaypoints
+		edge: firstEdge
+		waypoints: proposed
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: proposed.
+	self assert: firstEdge waypoints equals: ({ 142 @ 121. 220 @ 121 } asOrderedCollection).
+	^ memento
+]
+
+{ #category : 'examples - labels' }
+CPProcessAtelierExamples >> setEdgeLabelPlacementStagesAllPlacementValues [
+	<gtExample>
+	| fixture memento firstEdge diagramDescription operation assessment diagramMemento elementsDescription edgeMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	firstEdge := fixture at: 12.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierSetEdgeLabelPlacement
+		edge: firstEdge
+		segmentIndex: 1
+		segmentPosition: 0.35
+		offset: 18
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	edgeMemento := diagramMemento childMementoFor: firstEdge inRelation: elementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (edgeMemento readUsing: (self descriptionFor: #labelSegmentIndex in: edgeMemento)) equals: 1.
+	self assert: (edgeMemento readUsing: (self descriptionFor: #labelSegmentPosition in: edgeMemento)) equals: 0.35.
+	self assert: (edgeMemento readUsing: (self descriptionFor: #labelOffset in: edgeMemento)) equals: 18.
+	self assert: firstEdge labelSegmentIndex isNil.
+	self assert: firstEdge labelSegmentPosition isNil.
+	self assert: firstEdge labelOffset isNil.
+	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> connectFlowNodesStagesSemanticFlowAndDiagramEdgeTogether [
+	<gtExample>
+	| fixture memento start finish flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements flowMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	finish := fixture fifth.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierConnectFlowNodes
+		source: start
+		target: finish
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+	flowMemento := memento childMementoFor: assessment sequenceFlow inRelation: flowElementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (stagedFlowElements identityIncludes: assessment sequenceFlow).
+	self assert: (stagedElements identityIncludes: assessment edge).
+	self assert: (flowMemento readUsing: (self descriptionFor: #sourceRef in: flowMemento)) == start.
+	self assert: (flowMemento readUsing: (self descriptionFor: #targetRef in: flowMemento)) == finish.
+	self assert: (assessment edge waypoints) equals: ({ (100 @ 100 extent: 42 @ 42) center. (430 @ 100 extent: 42 @ 42) center } asOrderedCollection).
+	self assert: fixture first flowElements size equals: 5.
+	self assert: fixture eighth elements size equals: 5.
+	^ memento
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> commitPersistsStagedMoveAndResetRestoresModelState [
+	<gtExample>
+	| fixture process memento taskShape diagramDescription operation |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	taskShape := fixture at: 10.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierMoveShape
+		shape: taskShape
+		bounds: (260 @ 124 extent: 132 @ 54)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	self assert: operation apply isApplicable.
+	self assert: taskShape bounds equals: (220 @ 94 extent: 132 @ 54).
+	memento reset.
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: (220 @ 94 extent: 132 @ 54).
+
+	operation := CPAtelierMoveShape
+		shape: taskShape
+		bounds: (260 @ 124 extent: 132 @ 54)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	self assert: operation apply isApplicable.
+	memento commit.
+	self assert: process diagram elements third == taskShape.
+	self assert: taskShape bounds equals: (260 @ 124 extent: 132 @ 54).
+	^ process
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> reconnectSequenceFlowPreservesFlowAndEdgeIdentity [
+	<gtExample>
+	| fixture memento start finish firstFlow firstEdge flowElementsDescription diagramDescription operation assessment flowMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	finish := fixture fifth.
+	firstFlow := fixture sixth.
+	firstEdge := fixture at: 12.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierReconnectSequenceFlow
+		sequenceFlow: firstFlow
+		source: start
+		target: finish
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	flowMemento := memento childMementoFor: firstFlow inRelation: flowElementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: ((memento readUsing: flowElementsDescription) identityIncludes: firstFlow).
+	self assert: (flowMemento readUsing: (self descriptionFor: #sourceRef in: flowMemento)) == start.
+	self assert: (flowMemento readUsing: (self descriptionFor: #targetRef in: flowMemento)) == finish.
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 121 @ 121. 451 @ 121 } asOrderedCollection).
+	self assert: firstFlow targetRef == fixture fourth.
+	self assert: fixture eighth elements fourth == firstEdge.
+	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> insertFlowNodeReplacesOneFlowWithTwoAsOneStagedOperation [
+	<gtExample>
+	| fixture memento firstFlow firstEdge inserted flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements |
+	fixture := self fixture.
+	memento := fixture second.
+	firstFlow := fixture sixth.
+	firstEdge := fixture at: 12.
+	inserted := CPManualTask new label: 'Check'; yourself.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierInsertFlowNode
+		sequenceFlow: firstFlow
+		flowNode: inserted
+		bounds: (170 @ 180 extent: 132 @ 54)
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: stagedFlowElements size equals: 7.
+	self assert: (stagedFlowElements identityIncludes: firstFlow) not.
+	self assert: (stagedFlowElements identityIncludes: inserted).
+	self assert: (stagedFlowElements identityIncludes: assessment firstSequenceFlow).
+	self assert: (stagedFlowElements identityIncludes: assessment secondSequenceFlow).
+	self assert: stagedElements size equals: 7.
+	self assert: (stagedElements identityIncludes: firstEdge) not.
+	self assert: (stagedElements identityIncludes: assessment shape).
+	self assert: (stagedElements identityIncludes: assessment firstEdge).
+	self assert: (stagedElements identityIncludes: assessment secondEdge).
+	self assert: fixture first flowElements size equals: 5.
+	self assert: fixture eighth elements size equals: 5.
+	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> removeSequenceFlowStagesSemanticAndDiagramRemovalTogether [
+	<gtExample>
+	| fixture memento start task firstFlow firstEdge flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements startMemento taskMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	task := fixture fourth.
+	firstFlow := fixture sixth.
+	firstEdge := fixture at: 12.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveSequenceFlow
+		sequenceFlow: firstFlow
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+	startMemento := memento childMementoFor: start inRelation: flowElementsDescription.
+	taskMemento := memento childMementoFor: task inRelation: flowElementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (stagedFlowElements identityIncludes: firstFlow) not.
+	self assert: (stagedElements identityIncludes: firstEdge) not.
+	self assert: (startMemento readUsing: (self descriptionFor: #outgoing in: startMemento)) isEmpty.
+	self assert: (taskMemento readUsing: (self descriptionFor: #incoming in: taskMemento)) isEmpty.
+	self assert: fixture first flowElements size equals: 5.
+	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> removeFlowNodeStagesIncidentFlowsAndDiagramElementsTogether [
+	<gtExample>
+	| fixture memento task flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveFlowNode
+		flowNode: task
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: stagedFlowElements size equals: 2.
+	self assert: (stagedFlowElements identityIncludes: fixture third).
+	self assert: (stagedFlowElements identityIncludes: fixture fifth).
+	self assert: stagedElements size equals: 2.
+	self assert: (stagedElements identityIncludes: (fixture at: 9)).
+	self assert: (stagedElements identityIncludes: (fixture at: 11)).
+	self assert: fixture first flowElements size equals: 5.
+	self assert: fixture eighth elements size equals: 5.
+	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> replaceFlowNodePreservesShapeAndIncidentFlowIdentity [
+	<gtExample>
+	| fixture memento task taskShape firstFlow secondFlow replacement flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription shapeMemento firstFlowMemento secondFlowMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	firstFlow := fixture sixth.
+	secondFlow := fixture seventh.
+	taskShape := fixture at: 10.
+	replacement := CPServiceTask new label: 'Temporary'; yourself.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierReplaceFlowNode
+		flowNode: task
+		with: replacement
+		bounds: (220 @ 94 extent: 132 @ 54)
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	shapeMemento := diagramMemento childMementoFor: taskShape inRelation: elementsDescription.
+	firstFlowMemento := memento childMementoFor: firstFlow inRelation: flowElementsDescription.
+	secondFlowMemento := memento childMementoFor: secondFlow inRelation: flowElementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: stagedFlowElements size equals: 5.
+	self assert: (stagedFlowElements identityIncludes: task) not.
+	self assert: (stagedFlowElements identityIncludes: replacement).
+	self assert: (stagedFlowElements identityIncludes: firstFlow).
+	self assert: (stagedFlowElements identityIncludes: secondFlow).
+	self assert: (shapeMemento readUsing: (self descriptionFor: #modelElement in: shapeMemento)) == replacement.
+	self assert: (firstFlowMemento readUsing: (self descriptionFor: #targetRef in: firstFlowMemento)) == replacement.
+	self assert: (secondFlowMemento readUsing: (self descriptionFor: #sourceRef in: secondFlowMemento)) == replacement.
+	self assert: ((memento childMementoFor: replacement inRelation: flowElementsDescription) readUsing: (self descriptionFor: #label in: (memento childMementoFor: replacement inRelation: flowElementsDescription))) equals: 'Review'.
+	self assert: replacement label equals: 'Temporary'.
+	self assert: fixture eighth elements third == taskShape.
+	^ memento
+]
