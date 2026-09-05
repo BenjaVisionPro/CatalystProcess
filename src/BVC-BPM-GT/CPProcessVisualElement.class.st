@@ -192,6 +192,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
+	self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
 	self
 		installResizeHandleFor: aShape
 		modelElement: modelElement
@@ -218,6 +219,21 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 				c frame horizontal alignLeft.
 				c frame vertical alignTop.
 				c margin: (BlInsets top: 6 left: 6) ] ]
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installIntermediateEventTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
+	aFlowNode isIntermediateEvent ifFalse: [ ^ self ].
+	self
+		installTypePopupOn: aShapeElement
+		for: aFlowNode
+		shape: aShape
+		selection: (CPIntermediateEventTypeSelection typeClass: aFlowNode class)
+		iconExtent: 22 @ 22
+		configure: [ :anElement |
+			anElement constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ] ]
 ]
 
 { #category : 'private - type selection' }

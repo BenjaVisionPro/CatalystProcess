@@ -14,3 +14,7 @@ CPIntermediateEvent >> isIntermediateEvent [
 CPIntermediateEvent class >> defaultIcon [
 	^ #intermediateEvent
 ]
+{ #category : 'event type' }
+CPIntermediateEvent class >> eventTypes [
+	^ { CPTimerIntermediateEvent. CPMessageCatchIntermediateEvent. CPMessageThrowIntermediateEvent. CPSignalIntermediateEvent. CPLinkIntermediateEvent }
+]
