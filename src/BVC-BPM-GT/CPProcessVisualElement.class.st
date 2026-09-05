@@ -1157,9 +1157,13 @@ CPProcessVisualElement >> bringResizeHandlesToFront [
 
 { #category : 'operations' }
 CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
-	| assessment |
+	| assessment modelElement constrainedBounds |
 	moveShapeOperationBlock ifNil: [ ^ nil ].
-	assessment := (moveShapeOperationBlock value: aShape value: aRectangle) apply.
+	modelElement := self stagedModelElementOf: aShape.
+	constrainedBounds := modelElement
+		ifNil: [ aRectangle ]
+		ifNotNil: [ self constrainedBounds: aRectangle forFlowElement: modelElement ].
+	assessment := (moveShapeOperationBlock value: aShape value: constrainedBounds) apply.
 	assessment isApplicable ifFalse: [ self refresh ].
 	^ assessment
 ]
@@ -1233,12 +1237,14 @@ CPProcessVisualElement >> distanceFrom: aPoint toRenderedEdge: anEdge [
 
 { #category : 'private - insertion' }
 CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEdge: anEdge atBounds: proposedBounds [
-	| assessment |
+	| assessment constrainedBounds flowContainer |
 	insertFlowNodeOperationBlock ifNil: [ ^ nil ].
+	flowContainer := self stagedFlowContainerContaining: anEdge modelElement.
+	constrainedBounds := self constrainedBounds: proposedBounds forFlowContainer: flowContainer.
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
 		value: aFlowNode
-		value: proposedBounds
+		value: constrainedBounds
 		value: (self stagedFlowContainerContaining: anEdge modelElement)) apply.
 	assessment isApplicable
 		ifTrue: [
@@ -1542,6 +1548,9 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 		((dropPoint x - (elementExtent x / 2)) max: 0)
 		@ ((dropPoint y - (elementExtent y / 2)) max: 0).
 	bounds := origin extent: elementExtent.
+	bounds := self
+		constrainedBounds: bounds
+		forFlowContainer: (self stagedFlowContainerContaining: anEdge modelElement).
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
 		value: candidate
@@ -1634,6 +1643,42 @@ CPProcessVisualElement >> segmentFrom: aStart to: anEnd intersectsRectangle: aRe
 		or: [ (segment intersectionWith: right) notNil
 		or: [ (segment intersectionWith: bottom) notNil
 		or: [ (segment intersectionWith: left) notNil ] ] ]
+]
+
+
+
+{ #category : 'private - containment geometry' }
+CPProcessVisualElement >> contentBoundsForFlowContainer: aFlowContainer [
+	| shape bounds |
+	aFlowContainer == memento model ifTrue: [ ^ nil ].
+	shape := self diagramShapeForModelElement: aFlowContainer.
+	shape ifNil: [ ^ nil ].
+	bounds := self stagedBoundsOf: shape.
+	bounds ifNil: [ ^ nil ].
+	^ (bounds left + 16 @ (bounds top + 32))
+		corner: (bounds right - 16 @ (bounds bottom - 16))
+]
+
+{ #category : 'private - containment geometry' }
+CPProcessVisualElement >> constrainedBounds: aRectangle forFlowContainer: aFlowContainer [
+	| contentBounds maximumX maximumY constrainedX constrainedY |
+	contentBounds := self contentBoundsForFlowContainer: aFlowContainer.
+	contentBounds ifNil: [ ^ aRectangle ].
+	maximumX := contentBounds right - aRectangle width.
+	maximumY := contentBounds bottom - aRectangle height.
+	constrainedX := (aRectangle left max: contentBounds left) min: maximumX.
+	constrainedY := (aRectangle top max: contentBounds top) min: maximumY.
+	^ constrainedX @ constrainedY extent: aRectangle extent
+]
+
+{ #category : 'private - containment geometry' }
+CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowElement [
+	| flowContainer |
+	flowContainer := self stagedFlowContainerContaining: aFlowElement.
+	flowContainer ifNil: [ ^ aRectangle ].
+	^ self
+		constrainedBounds: aRectangle
+		forFlowContainer: flowContainer
 ]
 
 { #category : 'private - creation' }
@@ -1736,6 +1781,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 		@ ((dropPoint y - (elementExtent y / 2)) max: 0).
 	bounds := origin extent: elementExtent.
 	flowContainer := self flowContainerAtLocalPoint: dropPoint.
+	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
 	assessment := (createFlowNodeOperationBlock
 		value: candidate
 		value: bounds
