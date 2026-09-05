@@ -461,9 +461,9 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 		relocate: 0 @ 0;
 		yourself.
 	nestedProcessVisual
-		hMatchParent;
-		vMatchParent;
 		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical matchParent.
 			c frame horizontal alignLeft.
 			c frame vertical alignTop ].
 	nestedProcessViewport addChild: nestedProcessVisual.
