@@ -34,6 +34,7 @@ Class {
 		'setEdgeWaypointsOperationBlock',
 		'setEdgeLabelPlacementOperationBlock',
 		'connectionSourceModelElement',
+		'connectionTargetModelElement',
 		'reconnectHandleElementsByEdge',
 		'bendpointHandleElementsByEdge',
 		'resizeHandleElementsByShape',
@@ -97,6 +98,7 @@ CPProcessVisualElement >> refresh [
 	resizeHandleElementsByShape removeAll.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
+	connectionTargetModelElement := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
@@ -1311,7 +1313,9 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 CPProcessVisualElement >> updateSelectionAppearance [
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
 		| isSelected |
-		isSelected := (selectedModelElements includes: aModelElement) or: [ aModelElement == connectionSourceModelElement ].
+		isSelected := (selectedModelElements includes: aModelElement)
+			or: [ aModelElement == connectionSourceModelElement
+			or: [ aModelElement == connectionTargetModelElement ] ].
 		anElement border: (BlBorder
 			paint: (isSelected
 				ifTrue: [ self selectionColor ]
@@ -1872,6 +1876,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 				isDragging := true.
 				didDrag := true.
 				connectionSourceModelElement := aFlowNode.
+				self clearConnectionTarget.
 				localPoint := self globalPointToLocal: anEvent position.
 				previewCursor := BlElement new
 					extent: 1 @ 1;
@@ -1900,6 +1905,9 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 			do: [ :anEvent |
 				isDragging ifTrue: [
 					previewCursor relocate: (self globalPointToLocal: anEvent position).
+					self connectionTargetModelElement: (self
+						validConnectionTargetAtGlobalPoint: anEvent position
+						from: aFlowNode).
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -1912,15 +1920,44 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 					previewLine := nil.
 					previewCursor := nil.
 					target := self
-						connectionTargetAtGlobalPoint: anEvent position
-						excluding: aFlowNode.
+						validConnectionTargetAtGlobalPoint: anEvent position
+						from: aFlowNode.
 					connectionSourceModelElement := nil.
+					self clearConnectionTarget.
 					target
 						ifNotNil: [ self connectFrom: aFlowNode to: target ]
 						ifNil: [ self updateSelectionAppearance ].
 					anEvent consumed: true ] ]).
 	connectionPortElementsByModelElement at: aFlowNode put: port.
 	aNodeElement addChild: port
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> validConnectionTargetAtGlobalPoint: aPoint from: aSource [
+	| candidate assessment |
+	candidate := self
+		connectionTargetAtGlobalPoint: aPoint
+		excluding: aSource.
+	candidate ifNil: [ ^ nil ].
+	connectFlowNodesOperationBlock ifNil: [ ^ nil ].
+	assessment := (connectFlowNodesOperationBlock
+		value: aSource
+		value: candidate) assess.
+	^ assessment isApplicable
+		ifTrue: [ candidate ]
+		ifFalse: [ nil ]
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> connectionTargetModelElement: aFlowNode [
+	connectionTargetModelElement == aFlowNode ifTrue: [ ^ self ].
+	connectionTargetModelElement := aFlowNode.
+	self updateSelectionAppearance
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> clearConnectionTarget [
+	self connectionTargetModelElement: nil
 ]
 
 { #category : 'private - connection' }
@@ -1964,6 +2001,7 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 	| source |
 	source := connectionSourceModelElement.
 	connectionSourceModelElement := nil.
+	self clearConnectionTarget.
 	self updateConnectionPortVisibility.
 	source ifNil: [ ^ self ].
 	source == aFlowNode ifTrue: [ self updateSelectionAppearance. ^ self ].
