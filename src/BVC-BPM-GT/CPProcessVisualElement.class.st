@@ -775,6 +775,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	selectionLine userData at: #processModelElement put: anEdge modelElement.
 	self installEdgeSelectionOn: selectionLine for: anEdge.
 	self installPaletteInsertionOn: selectionLine for: anEdge.
+	self installBendpointInsertionOn: selectionLine for: anEdge segmentIndex: 1.
 
 	line := BlLineElement new
 		fromAnchor: sourceAnchor;
@@ -868,7 +869,11 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		selectionLine userData at: #processDiagramElement put: anEdge.
 		selectionLine userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: selectionLine for: anEdge.
-	self installPaletteInsertionOn: selectionLine for: anEdge.
+		self installPaletteInsertionOn: selectionLine for: anEdge.
+		self
+			installBendpointInsertionOn: selectionLine
+			for: anEdge
+			segmentIndex: index.
 
 		line := BlLineElement new
 			fromAnchor: fromAnchor;
@@ -1583,29 +1588,87 @@ CPProcessVisualElement >> setWaypoints: somePoints forEdge: anEdge [
 ]
 
 { #category : 'private - bendpoints' }
+CPProcessVisualElement >> installBendpointInsertionOn: anEdgeElement for: anEdge segmentIndex: aSegmentIndex [
+	| isDragging dragStartEventPosition insertedPoint previewLines |
+	setEdgeWaypointsOperationBlock ifNil: [ ^ self ].
+	isDragging := false.
+	previewLines := #().
+
+	anEdgeElement
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isDragging := true.
+				dragStartEventPosition := anEvent position.
+				insertedPoint := self globalPointToLocal: anEvent position.
+				(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+					do: [ :aLine | aLine visibility: BlVisibility hidden ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| currentPoint proposed |
+					currentPoint := insertedPoint
+						+ (anEvent position - dragStartEventPosition).
+					proposed := self
+						waypointsFor: anEdge
+						inserting: currentPoint
+						afterSegment: aSegmentIndex.
+					previewLines do: [ :aLine | aLine removeFromParent ].
+					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
+					previewLines do: [ :aLine | self addChild: aLine ].
+					self
+						positionReconnectHandlesFor: anEdge
+						usingWaypoints: proposed.
+					self bringReconnectHandlesToFront.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					| currentPoint proposed |
+					isDragging := false.
+					currentPoint := insertedPoint
+						+ (anEvent position - dragStartEventPosition).
+					proposed := self
+						waypointsFor: anEdge
+						inserting: currentPoint
+						afterSegment: aSegmentIndex.
+					previewLines do: [ :aLine | aLine removeFromParent ].
+					previewLines := #().
+					(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+						do: [ :aLine | aLine visibility: BlVisibility visible ].
+					self setWaypoints: proposed forEdge: anEdge.
+					anEvent consumed: true ] ])
+]
+
+{ #category : 'private - bendpoints' }
+CPProcessVisualElement >> waypointsFor: anEdge inserting: aPoint afterSegment: aSegmentIndex [
+	| waypoints proposed insertionIndex |
+	waypoints := self stagedWaypointsOf: anEdge.
+	proposed := waypoints asOrderedCollection copy.
+	insertionIndex := aSegmentIndex + 1.
+	proposed add: aPoint beforeIndex: insertionIndex.
+	^ proposed
+]
+
+{ #category : 'private - bendpoints' }
 CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 	| waypoints handles |
 	setEdgeWaypointsOperationBlock ifNil: [ ^ self ].
 	waypoints := self stagedWaypointsOf: anEdge.
-	waypoints size < 2 ifTrue: [ ^ self ].
+	waypoints size < 3 ifTrue: [
+		bendpointHandleElementsByEdge at: anEdge put: #().
+		^ self ].
 	handles := OrderedCollection new.
 
-	"Existing intermediate waypoints are direct manipulation handles."
 	2 to: waypoints size - 1 do: [ :index |
 		handles add: (self
 			newBendpointHandleFor: anEdge
 			waypointIndex: index
 			at: (waypoints at: index)
 			inserting: false) ].
-
-	"Every segment gets a midpoint insertion handle. The insertion index is
-	the index the new waypoint will occupy."
-	1 to: waypoints size - 1 do: [ :index |
-		handles add: (self
-			newBendpointHandleFor: anEdge
-			waypointIndex: index + 1
-			at: ((waypoints at: index) + (waypoints at: index + 1)) / 2
-			inserting: true) ].
 
 	bendpointHandleElementsByEdge at: anEdge put: handles.
 	handles do: [ :aHandle | self addChild: aHandle ]
