@@ -431,7 +431,7 @@ CPProcessVisualElementExamples >> dragDestinationAt: aPoint id: anId in: aVisual
 		relocate: aPoint - (1 @ 1);
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
-	aVisualElement canvasElement addChild: marker.
+	aVisualElement addChild: marker.
 	^ marker
 ]
 
@@ -450,7 +450,7 @@ CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipel
 	shapeElement id: #processTaskShape.
 
 	delta := 40 @ 30.
-	destination := shapeElement position + (shapeElement extent / 2) + delta.
+	destination := taskShape bounds origin + (taskShape bounds extent / 2) + delta.
 	self dragDestinationAt: destination id: #shapeDragDestination in: visual.
 	expectedBounds := taskShape bounds translateBy: delta.
 
@@ -499,7 +499,7 @@ CPProcessVisualElementExamples >> draggingOneOfMultipleSelectedShapesStagesOneGr
 	self assert: visual selectedModelElements size equals: 2.
 
 	delta := 30 @ 20.
-	destination := taskElement position + (taskElement extent / 2) + delta.
+	destination := taskShape bounds origin + (taskShape bounds extent / 2) + delta.
 	self dragDestinationAt: destination id: #groupDragDestination in: visual.
 
 	scripter := BlScripter new.
