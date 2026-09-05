@@ -633,7 +633,7 @@ CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
 	self assert: assessment isApplicable.
 	self assert: assessment currentExpanded equals: false.
 	self assert: assessment proposedExpanded equals: true.
-	self assert: assessment currentBounds equals: (300 @ 220 extent: 132 @ 72).
+	self assert: assessment currentBounds equals: (180 @ 140 extent: 348 @ 168).
 	self assert: assessment proposedBounds extent equals: 360 @ 180.
 	self assert: assessment proposedBounds center equals: assessment currentBounds center.
 	self assert: (shapeMemento readUsing: boundsDescription) equals: assessment proposedBounds.
