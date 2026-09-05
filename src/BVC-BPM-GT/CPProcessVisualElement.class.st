@@ -16,7 +16,6 @@ Class {
 		'edgeHitElementsByEdge',
 		'edgeLabelElementsByEdge',
 		'externalLabelElementsByModelElement',
-		'connectionPortElementsByModelElement',
 		'hoveredModelElement',
 		'diagramElements',
 		'selectedModelElement',
@@ -56,7 +55,6 @@ CPProcessVisualElement >> initialize [
 	edgeHitElementsByEdge := IdentityDictionary new.
 	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
-	connectionPortElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
 	bendpointHandleElementsByEdge := IdentityDictionary new.
 	self
@@ -91,7 +89,6 @@ CPProcessVisualElement >> refresh [
 	edgeHitElementsByEdge removeAll.
 	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
-	connectionPortElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
 	bendpointHandleElementsByEdge removeAll.
 	hoveredModelElement := nil.
@@ -2167,98 +2164,67 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
-	| port isDragging didDrag previewLine previewCursor |
+	| previewLine previewCursor |
 	connectFlowNodesOperationBlock ifNil: [ ^ self ].
 	aFlowNode isEndEvent ifTrue: [ ^ self ].
-	isDragging := false.
-	didDrag := false.
-	port := BlElement new
-		extent: 12 @ 12;
-		geometry: BlCircleGeometry new;
-		background: self selectionColor;
-		border: (BlBorder paint: self shapeBorderColor width: 1.5);
-		visibility: BlVisibility hidden;
-		constraintsDo: [ :c | c frame horizontal alignRight. c frame vertical alignCenter ];
-		yourself.
-	port
-		addEventHandler: (BlEventHandler
-			on: BlClickEvent
-			do: [ :anEvent |
-				didDrag
-					ifTrue: [ didDrag := false ]
-					ifFalse: [ self beginConnectionFrom: aFlowNode ].
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragStartEvent
-			do: [ :anEvent |
-				| localPoint |
-				isDragging := true.
-				didDrag := true.
-				connectionSourceModelElement := aFlowNode.
-				self clearConnectionTarget.
-				localPoint := self globalPointToLocal: anEvent position.
-				previewCursor := BlElement new
-					extent: 1 @ 1;
-					background: Color transparent;
-					constraintsDo: [ :c | c ignoreByLayout ];
-					relocate: localPoint;
-					yourself.
-				previewLine := BlLineElement new
-					fromAnchor: ((self anchorClassFor: aFlowNode)
-						nearestTo: previewCursor
-						from: aNodeElement);
-					toAnchor: (BlNearestPositionBoundsAnchor
-						nearestTo: aNodeElement
-						from: previewCursor);
-					border: (BlBorder paint: self selectionColor width: 1.5);
-					constraintsDo: [ :c | c ignoreByLayout ];
-					yourself.
-				previewLine toHead: (BlArrowheadSimpleArrow new
-					border: (BlBorder paint: self selectionColor width: 1.5)).
-				self addChild: previewCursor.
-				self addChildFirst: previewLine.
-				self updateSelectionAppearance.
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| target |
-					previewCursor relocate: (self globalPointToLocal: anEvent position).
-					target := self
-						validConnectionTargetAtGlobalPoint: anEvent position
-						from: aFlowNode.
-					self connectionTargetModelElement: target.
-					self
-						updateConnectionPreviewLine: previewLine
-						cursor: previewCursor
-						source: aFlowNode
-						sourceElement: aNodeElement
-						target: target.
-					anEvent consumed: true ] ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEndEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| target |
-					isDragging := false.
-					previewLine ifNotNil: [ previewLine removeFromParent ].
-					previewCursor ifNotNil: [ previewCursor removeFromParent ].
-					previewLine := nil.
-					previewCursor := nil.
-					target := self
-						validConnectionTargetAtGlobalPoint: anEvent position
-						from: aFlowNode.
-					connectionSourceModelElement := nil.
-					self clearConnectionTarget.
-					target
-						ifNotNil: [ self connectFrom: aFlowNode to: target ]
-						ifNil: [ self updateSelectionAppearance ].
-					anEvent consumed: true ] ]).
-	connectionPortElementsByModelElement at: aFlowNode put: port.
-	aNodeElement addChild: port
+	aNodeElement
+		installConnectionPortSelectionColor: self selectionColor
+		borderColor: self shapeBorderColor
+		beginConnection: [ self beginConnectionFrom: aFlowNode ]
+		dragStarted: [ :anEvent |
+			| localPoint |
+			connectionSourceModelElement := aFlowNode.
+			self clearConnectionTarget.
+			localPoint := self globalPointToLocal: anEvent position.
+			previewCursor := BlElement new
+				extent: 1 @ 1;
+				background: Color transparent;
+				constraintsDo: [ :c | c ignoreByLayout ];
+				relocate: localPoint;
+				yourself.
+			previewLine := BlLineElement new
+				fromAnchor: ((self anchorClassFor: aFlowNode)
+					nearestTo: previewCursor
+					from: aNodeElement);
+				toAnchor: (BlNearestPositionBoundsAnchor
+					nearestTo: aNodeElement
+					from: previewCursor);
+				border: (BlBorder paint: self selectionColor width: 1.5);
+				constraintsDo: [ :c | c ignoreByLayout ];
+				yourself.
+			previewLine toHead: (BlArrowheadSimpleArrow new
+				border: (BlBorder paint: self selectionColor width: 1.5)).
+			self addChild: previewCursor.
+			self addChildFirst: previewLine.
+			self updateSelectionAppearance ]
+		dragged: [ :anEvent |
+			| target |
+			previewCursor relocate: (self globalPointToLocal: anEvent position).
+			target := self
+				validConnectionTargetAtGlobalPoint: anEvent position
+				from: aFlowNode.
+			self connectionTargetModelElement: target.
+			self
+				updateConnectionPreviewLine: previewLine
+				cursor: previewCursor
+				source: aFlowNode
+				sourceElement: aNodeElement
+				target: target ]
+		dragEnded: [ :anEvent |
+			| target |
+			previewLine ifNotNil: [ previewLine removeFromParent ].
+			previewCursor ifNotNil: [ previewCursor removeFromParent ].
+			previewLine := nil.
+			previewCursor := nil.
+			target := self
+				validConnectionTargetAtGlobalPoint: anEvent position
+				from: aFlowNode.
+			connectionSourceModelElement := nil.
+			self clearConnectionTarget.
+			target
+				ifNotNil: [ self connectFrom: aFlowNode to: target ]
+				ifNil: [ self updateSelectionAppearance ] ]
 ]
-
 { #category : 'private - connection' }
 CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
 	| assessment |
@@ -2316,12 +2282,11 @@ CPProcessVisualElement >> connectFrom: aSource to: aTarget [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> updateConnectionPortVisibility [
-	connectionPortElementsByModelElement keysAndValuesDo: [ :aFlowNode :aPort |
-		aPort visibility: ((aFlowNode == hoveredModelElement
-			or: [ aFlowNode == selectedModelElement
-			or: [ aFlowNode == connectionSourceModelElement ] ])
-			ifTrue: [ BlVisibility visible ]
-			ifFalse: [ BlVisibility hidden ]) ]
+	shapeElementsByModelElement keysAndValuesDo: [ :aFlowNode :aShapeElement |
+		aShapeElement connectionPortVisible:
+			(aFlowNode == hoveredModelElement
+				or: [ aFlowNode == selectedModelElement
+				or: [ aFlowNode == connectionSourceModelElement ] ]) ]
 ]
 
 { #category : 'private - connection' }

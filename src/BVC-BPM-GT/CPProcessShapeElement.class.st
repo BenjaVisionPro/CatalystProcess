@@ -9,7 +9,8 @@ Class {
 		'modelElement',
 		'labelElement',
 		'normalBorderColor',
-		'resizeHandle'
+		'resizeHandle',
+		'connectionPort'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -186,6 +187,66 @@ CPProcessShapeElement >> resizeHandle [
 CPProcessShapeElement >> resizeHandleVisible: aBoolean [
 	resizeHandle ifNil: [ ^ self ].
 	resizeHandle visibility: (aBoolean
+		ifTrue: [ BlVisibility visible ]
+		ifFalse: [ BlVisibility hidden ])
+]
+
+{ #category : 'connection' }
+CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor borderColor: aBorderColor beginConnection: aBeginBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
+	| isDragging didDrag |
+	isDragging := false.
+	didDrag := false.
+	connectionPort := BlElement new
+		extent: 12 @ 12;
+		geometry: BlCircleGeometry new;
+		background: aSelectionColor;
+		border: (BlBorder paint: aBorderColor width: 1.5);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c |
+			c frame horizontal alignRight.
+			c frame vertical alignCenter ];
+		yourself.
+	connectionPort
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				didDrag
+					ifTrue: [ didDrag := false ]
+					ifFalse: [ aBeginBlock value ].
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isDragging := true.
+				didDrag := true.
+				aDragStartBlock value: anEvent.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					aDragBlock value: anEvent.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					isDragging := false.
+					aDragEndBlock value: anEvent.
+					anEvent consumed: true ] ]).
+	self addChild: connectionPort.
+	^ connectionPort
+]
+
+{ #category : 'connection' }
+CPProcessShapeElement >> connectionPort [
+	^ connectionPort
+]
+
+{ #category : 'connection' }
+CPProcessShapeElement >> connectionPortVisible: aBoolean [
+	connectionPort ifNil: [ ^ self ].
+	connectionPort visibility: (aBoolean
 		ifTrue: [ BlVisibility visible ]
 		ifFalse: [ BlVisibility hidden ])
 ]
