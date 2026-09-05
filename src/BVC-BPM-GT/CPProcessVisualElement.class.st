@@ -23,6 +23,7 @@ Class {
 		'selectedModelElements',
 		'selectionChangedBlock',
 		'moveShapeOperationBlock',
+		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
@@ -1389,6 +1390,12 @@ CPProcessVisualElement >> moveShapeOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
+CPProcessVisualElement >> moveShapesOperationFor: aBlock [
+	moveShapesOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
 CPProcessVisualElement >> resizeShapeOperationFor: aBlock [
 	resizeShapeOperationBlock := aBlock
 ]
@@ -1498,6 +1505,16 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 	^ assessment
 ]
 
+{ #category : 'operations' }
+CPProcessVisualElement >> moveShapesToBounds: boundsByShape [
+	| assessment |
+	moveShapesOperationBlock ifNil: [ ^ nil ].
+	assessment := (moveShapesOperationBlock value: boundsByShape) apply.
+	self refresh.
+	^ assessment
+]
+
+
 { #category : 'private - insertion' }
 CPProcessVisualElement >> insertionTargetEdge: anEdge [
 	insertionTargetEdge == anEdge ifTrue: [ ^ self ].
@@ -1583,10 +1600,111 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 ]
 
 { #category : 'private - positioning' }
+CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedModelElement [
+	| entries |
+	(selectedModelElements includes: draggedModelElement) ifFalse: [ ^ #() ].
+	entries := OrderedCollection new.
+	shapeElementsByShape keysAndValuesDo: [ :aShape :anElement |
+		| modelElement |
+		modelElement := self stagedModelElementOf: aShape.
+		(selectedModelElements includes: modelElement) ifTrue: [
+			| label |
+			label := externalLabelElementsByModelElement
+				at: modelElement
+				ifAbsent: [ nil ].
+			entries add: {
+				aShape.
+				modelElement.
+				anElement.
+				self stagedBoundsOf: aShape.
+				label.
+				(label ifNotNil: [ label position ])
+			} ] ].
+	^ entries
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> internalBentEdgesForMovedModelElements: movedModelElements [
+	^ edgeElementsByEdge keys select: [ :anEdge |
+		| sequenceFlow |
+		sequenceFlow := anEdge modelElement.
+		(movedModelElements includes: (self stagedSourceOf: sequenceFlow))
+			and: [
+				(movedModelElements includes: (self stagedTargetOf: sequenceFlow))
+					and: [ (self stagedWaypointsOf: anEdge) size > 2 ] ] ]
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> translatedWaypointsOf: anEdge by: delta [
+	^ (self stagedWaypointsOf: anEdge) collect: [ :aPoint | aPoint + delta ]
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> newGroupMovePreviewFor: anEdge waypoints: someWaypoints [
+	| sequenceFlow source target sourceElement targetElement interiorPoints sourceReference targetReference lines pairCount references |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	interiorPoints := someWaypoints copyFrom: 2 to: someWaypoints size - 1.
+	sourceReference := self anchorReferenceElementAt: interiorPoints first.
+	targetReference := self anchorReferenceElementAt: interiorPoints last.
+	references := { sourceReference. targetReference }.
+	references do: [ :each | self addChild: each ].
+
+	lines := OrderedCollection new.
+	pairCount := interiorPoints size + 1.
+	1 to: pairCount do: [ :index |
+		| fromAnchor toAnchor line |
+		index = 1
+			ifTrue: [
+				fromAnchor := (self anchorClassFor: source)
+					nearestTo: sourceReference
+					from: sourceElement.
+				toAnchor := BlAbsolutePositionAnchor position: interiorPoints first ]
+			ifFalse: [
+				index = pairCount
+					ifTrue: [
+						fromAnchor := BlAbsolutePositionAnchor position: interiorPoints last.
+						toAnchor := (self anchorClassFor: target)
+							nearestTo: targetReference
+							from: targetElement ]
+					ifFalse: [
+						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
+						toAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index) ] ].
+		line := BlLineElement new
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor;
+			border: (BlBorder paint: self shapeBorderColor width: 1.5);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			yourself.
+		index = pairCount ifTrue: [
+			line toHead: (BlArrowheadSimpleArrow new
+				border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
+		lines add: line.
+		self addChild: line ].
+	^ { lines. references }
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> removeGroupMovePreviews: previews [
+	previews valuesDo: [ :preview |
+		preview first do: [ :aLine | aLine removeFromParent ].
+		preview second do: [ :aReference | aReference removeFromParent ] ]
+]
+
+{ #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition draggedModelElement isDragging |
+	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition draggedModelElement isDragging
+	  groupEntries groupMode groupPreviews internalBentEdges movedModelElements |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	isDragging := false.
+	groupMode := false.
+	groupEntries := #().
+	groupPreviews := IdentityDictionary new.
+	internalBentEdges := #().
+	movedModelElements := IdentitySet new.
 	anInteractionElement
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
@@ -1600,6 +1718,15 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					at: draggedModelElement
 					ifAbsent: [ nil ])
 					ifNotNil: [ :aLabel | aLabel position ].
+				groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
+				groupMode := moveShapesOperationBlock notNil and: [ groupEntries size > 1 ].
+				groupMode ifTrue: [
+					movedModelElements := IdentitySet new.
+					groupEntries do: [ :entry | movedModelElements add: entry second ].
+					internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
+					internalBentEdges do: [ :anEdge |
+						(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+							do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ].
 				isDragging := true.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -1608,48 +1735,97 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				isDragging ifTrue: [
 					| proposedPosition delta |
 					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
-					aShapeElement relocate: proposedPosition.
-					delta := aShapeElement position - dragStartElementPosition.
-					dragStartLabelPosition ifNotNil: [
-						(externalLabelElementsByModelElement at: draggedModelElement)
-							relocate: dragStartLabelPosition + delta ].
-					self updateIncidentEdgeLabelsFor: draggedModelElement.
-					self updateIncidentReconnectHandlesFor: draggedModelElement.
-					self insertionTargetEdge: (self
-						insertionEdgeAtGlobalPoint: anEvent position
-						for: draggedModelElement).
-					(resizeHandleElementsByShape
-						at: aShape
-						ifAbsent: [ nil ])
-						ifNotNil: [ :aResizeHandle |
-							self
-								positionResizeHandle: aResizeHandle
-								forShapeElement: aShapeElement
-								handleExtent: 9 @ 9 ].
+					delta := proposedPosition - dragStartElementPosition.
+					groupMode
+						ifTrue: [
+							groupEntries do: [ :entry |
+								| shape modelElement element bounds label |
+								shape := entry first.
+								modelElement := entry second.
+								element := entry third.
+								bounds := entry fourth.
+								label := entry fifth.
+								element relocate: bounds origin + delta.
+								label ifNotNil: [ label relocate: entry sixth + delta ].
+								(resizeHandleElementsByShape at: shape ifAbsent: [ nil ])
+									ifNotNil: [ :aResizeHandle |
+										self
+											positionResizeHandle: aResizeHandle
+											forShapeElement: element
+											handleExtent: 9 @ 9 ] ].
+							self removeGroupMovePreviews: groupPreviews.
+							groupPreviews := IdentityDictionary new.
+							internalBentEdges do: [ :anEdge |
+								| proposed preview |
+								proposed := self translatedWaypointsOf: anEdge by: delta.
+								preview := self newGroupMovePreviewFor: anEdge waypoints: proposed.
+								groupPreviews at: anEdge put: preview.
+								self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
+								self positionReconnectHandlesFor: anEdge usingWaypoints: proposed ].
+							movedModelElements do: [ :modelElement |
+								self updateIncidentEdgeLabelsFor: modelElement.
+								self updateIncidentReconnectHandlesFor: modelElement ].
+							self bringReconnectHandlesToFront.
+							self bringBendpointHandlesToFront.
+							self bringResizeHandlesToFront ]
+						ifFalse: [
+							aShapeElement relocate: proposedPosition.
+							delta := aShapeElement position - dragStartElementPosition.
+							dragStartLabelPosition ifNotNil: [
+								(externalLabelElementsByModelElement at: draggedModelElement)
+									relocate: dragStartLabelPosition + delta ].
+							self updateIncidentEdgeLabelsFor: draggedModelElement.
+							self updateIncidentReconnectHandlesFor: draggedModelElement.
+							self insertionTargetEdge: (self
+								insertionEdgeAtGlobalPoint: anEvent position
+								for: draggedModelElement).
+							(resizeHandleElementsByShape
+								at: aShape
+								ifAbsent: [ nil ])
+								ifNotNil: [ :aResizeHandle |
+									self
+										positionResizeHandle: aResizeHandle
+										forShapeElement: aShapeElement
+										handleExtent: 9 @ 9 ] ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| proposedBounds insertionEdge |
-					proposedBounds := aShapeElement position extent: originalBounds extent.
+					| proposedBounds insertionEdge delta boundsByShape |
 					isDragging := false.
-					insertionEdge := self
-						insertionEdgeAtGlobalPoint: anEvent position
-						for: draggedModelElement.
-					self clearInsertionTarget.
-					anEvent consumed: true.
-					insertionEdge
-						ifNil: [
-							self moveShape: aShape toBounds: proposedBounds ]
-						ifNotNil: [
-							self
-								insertExistingFlowNode: draggedModelElement
-								shape: aShape
-								intoEdge: insertionEdge
-								atBounds: proposedBounds ] ] ])
+					groupMode
+						ifTrue: [
+							delta := aShapeElement position - dragStartElementPosition.
+							self removeGroupMovePreviews: groupPreviews.
+							groupPreviews := IdentityDictionary new.
+							internalBentEdges do: [ :anEdge |
+								(edgeElementsByEdge at: anEdge ifAbsent: [ #() ])
+									do: [ :aLine | aLine visibility: BlVisibility visible ] ].
+							boundsByShape := IdentityDictionary new.
+							groupEntries do: [ :entry |
+								boundsByShape
+									at: entry first
+									put: (entry fourth translateBy: delta) ].
+							anEvent consumed: true.
+							self moveShapesToBounds: boundsByShape ]
+						ifFalse: [
+							proposedBounds := aShapeElement position extent: originalBounds extent.
+							insertionEdge := self
+								insertionEdgeAtGlobalPoint: anEvent position
+								for: draggedModelElement.
+							self clearInsertionTarget.
+							anEvent consumed: true.
+							insertionEdge
+								ifNil: [
+									self moveShape: aShape toBounds: proposedBounds ]
+								ifNotNil: [
+									self
+										insertExistingFlowNode: draggedModelElement
+										shape: aShape
+										intoEdge: insertionEdge
+										atBounds: proposedBounds ] ] ] ])
 ]
-
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBackgroundColor [
 	^ self resolvedThemeColor: self theme surfaces cardTint

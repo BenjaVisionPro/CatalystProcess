@@ -12,6 +12,7 @@ Class {
 		'workspaceElement',
 		'selectedModelElement',
 		'moveShapeOperationBlock',
+		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
@@ -36,6 +37,7 @@ CPProcessPresentation >> prepareHostElement [
 	diagramElement := CPProcessVisualElement new
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
+		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
 		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
@@ -181,10 +183,17 @@ CPProcessPresentation >> moveShapeOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
+CPProcessPresentation >> moveShapesOperationFor: aBlock [
+	moveShapesOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
 CPProcessPresentation >> synchronizeEditingConfiguration [
 	diagramElement ifNil: [ ^ self ].
 	diagramElement
 		moveShapeOperationFor: moveShapeOperationBlock;
+		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
 		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
