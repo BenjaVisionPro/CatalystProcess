@@ -449,7 +449,7 @@ CPProcessShapeElement >> subProcessExpansionMarker [
 
 
 { #category : 'subprocess' }
-CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual globalBounds: aRectangle [
+CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 	nestedProcessVisual := aProcessVisual.
 	nestedProcessViewport := BlElement new
 		extent: self extent;
@@ -461,8 +461,11 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual globalBounds: a
 		relocate: 0 @ 0;
 		yourself.
 	nestedProcessVisual
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ 0.
+		hMatchParent;
+		vMatchParent;
+		constraintsDo: [ :c |
+			c frame horizontal alignLeft.
+			c frame vertical alignTop ].
 	nestedProcessViewport addChild: nestedProcessVisual.
 	self addChildFirst: nestedProcessViewport
 ]

@@ -562,8 +562,12 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 	target := self stagedTargetOf: sequenceFlow.
 	useLiveBounds
 		ifTrue: [
-			sourceBounds := (shapeElementsByModelElement at: source) bounds inParent: self.
-			targetBounds := (shapeElementsByModelElement at: target) bounds inParent: self ]
+			| sourceElement targetElement |
+			sourceElement := self shapeElementForModelElement: source.
+			targetElement := self shapeElementForModelElement: target.
+			(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ someWaypoints ].
+			sourceBounds := sourceElement bounds inParent: self.
+			targetBounds := targetElement bounds inParent: self ]
 		ifFalse: [
 			sourceBounds := self stagedBoundsOf: (self shapeForModelElement: source).
 			targetBounds := self stagedBoundsOf: (self shapeForModelElement: target) ].
@@ -875,14 +879,28 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 	self installBendpointHandlesFor: anEdge
 ]
 
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> shapeElementForModelElement: aFlowNode [
+	| local nested |
+	local := shapeElementsByModelElement at: aFlowNode ifAbsent: [ nil ].
+	local ifNotNil: [ ^ local ].
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :aShapeElement |
+		(aModelElement isSubProcess and: [ aShapeElement nestedProcessVisual notNil ]) ifTrue: [
+			nested := aShapeElement nestedProcessVisual
+				shapeElementForModelElement: aFlowNode.
+			nested ifNotNil: [ ^ nested ] ] ].
+	^ nil
+]
+
 { #category : 'private - edges' }
 CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	| sequenceFlow sourceElement targetElement source target sourceAnchor targetAnchor edgeVisual |
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
-	sourceElement := shapeElementsByModelElement at: source.
-	targetElement := shapeElementsByModelElement at: target.
+	sourceElement := self shapeElementForModelElement: source.
+	targetElement := self shapeElementForModelElement: target.
+	(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ self ].
 	sourceAnchor := (self anchorClassFor: source)
 		nearestTo: targetElement
 		from: sourceElement.
@@ -946,8 +964,9 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
-	sourceElement := shapeElementsByModelElement at: source.
-	targetElement := shapeElementsByModelElement at: target.
+	sourceElement := self shapeElementForModelElement: source.
+	targetElement := self shapeElementForModelElement: target.
+	(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ self ].
 	interiorPoints := waypoints copyFrom: 2 to: waypoints size - 1.
 
 	sourceReference := self anchorReferenceElementAt: interiorPoints first.
@@ -1481,10 +1500,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| currentContainer targetVisual targetContainer targetBounds |
+							| currentContainer targetVisual targetContainer targetBounds globalCenter |
 							currentContainer := self stagedFlowContainerContaining: draggedModelElement.
+							globalCenter := aShapeElement
+								localPointToGlobal: (aShapeElement extent / 2).
 							targetVisual := self
-								targetProcessVisualAtGlobalPoint: anEvent position
+								targetProcessVisualAtGlobalPoint: globalCenter
 								excluding: draggedModelElement.
 							targetContainer := targetVisual flowContainer.
 							(currentContainer notNil
@@ -1492,7 +1513,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								and: [ transferFlowNodeOperationBlock notNil ] ])
 								ifTrue: [
 									targetBounds := targetVisual
-										boundsCenteredAtGlobalPoint: anEvent position
+										boundsCenteredAtGlobalPoint: globalCenter
 										extent: proposedBounds extent.
 									targetVisual
 										transferFlowNode: draggedModelElement
@@ -1866,7 +1887,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 		value: aFlowNode
 		value: candidate
 		value: proposedBounds
-		value: (self stagedFlowContainerContaining: anEdge modelElement)) assess.
+		value: (self stagedFlowContainerContaining: aFlowNode)) assess.
 	^ assessment isApplicable
 ]
 
@@ -3024,9 +3045,7 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 	nestedVisual
 		memento: memento
 		flowContainer: aSubProcess.
-	aShapeElement
-		hostNestedProcessVisual: nestedVisual
-		globalBounds: aRectangle
+	aShapeElement hostNestedProcessVisual: nestedVisual
 ]
 
 { #category : 'private - subprocess' }

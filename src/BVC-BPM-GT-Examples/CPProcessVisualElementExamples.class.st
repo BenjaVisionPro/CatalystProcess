@@ -1128,3 +1128,37 @@ CPProcessVisualElementExamples >> subProcessMoveLeavesNestedLocalBoundsUnchanged
 	self assert: (visual stagedBoundsOf: taskShape) equals: (80 @ 50 extent: 132 @ 54).
 	^ visual
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedProcessVisualIsHostedAsRealBlocChild [
+	<gtExample>
+	| visual subProcess shapeElement nestedVisual viewport |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+	viewport := shapeElement nestedProcessViewport.
+
+	self assert: nestedVisual parent == viewport.
+	self assert: viewport parent == shapeElement.
+	self assert: nestedVisual flowContainer == subProcess.
+	^ nestedVisual
+]
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> rootCanResolveNestedShapeForCrossProcessEdge [
+	<gtExample>
+	| visual subProcess nestedVisual nestedTask resolved |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	nestedVisual := (visual shapeElementsByModelElement at: subProcess) nestedProcessVisual.
+	nestedTask := nestedVisual shapeElementsByModelElement keys
+		detect: [ :each | each isTask ].
+	resolved := visual shapeElementForModelElement: nestedTask.
+
+	self assert: resolved == (nestedVisual shapeElementsByModelElement at: nestedTask).
+	^ resolved
+]
