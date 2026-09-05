@@ -7,4 +7,4 @@ Class {
 { #category : 'event type' }
 CPErrorEndEvent class >> eventTypeLabel [ ^ 'Error' ]
 { #category : 'event type' }
-CPErrorEndEvent class >> eventTypeIcon [ ^ #circleExclaimation ]
+CPErrorEndEvent class >> eventTypeIcon [ ^ #circleExclamation ]

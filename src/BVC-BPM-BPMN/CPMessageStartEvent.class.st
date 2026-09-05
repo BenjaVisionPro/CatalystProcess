@@ -7,4 +7,4 @@ Class {
 { #category : 'event type' }
 CPMessageStartEvent class >> eventTypeLabel [ ^ 'Message' ]
 { #category : 'event type' }
-CPMessageStartEvent class >> eventTypeIcon [ ^ #messageIcon ]
+CPMessageStartEvent class >> eventTypeIcon [ ^ #message ]

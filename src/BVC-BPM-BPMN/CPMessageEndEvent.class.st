@@ -7,4 +7,4 @@ Class {
 { #category : 'event type' }
 CPMessageEndEvent class >> eventTypeLabel [ ^ 'Message' ]
 { #category : 'event type' }
-CPMessageEndEvent class >> eventTypeIcon [ ^ #messageIcon ]
+CPMessageEndEvent class >> eventTypeIcon [ ^ #message ]
