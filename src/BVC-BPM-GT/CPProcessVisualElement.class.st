@@ -13,6 +13,7 @@ Class {
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'edgeElementsByEdge',
+		'edgeLabelElementsByEdge',
 		'externalLabelElementsByModelElement',
 		'connectionPortElementsByModelElement',
 		'hoveredModelElement',
@@ -48,6 +49,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
+	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	connectionPortElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
@@ -82,6 +84,7 @@ CPProcessVisualElement >> refresh [
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
 	edgeElementsByEdge removeAll.
+	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
 	connectionPortElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
@@ -405,6 +408,75 @@ CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
 ]
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
+	| labelHost label |
+	labelHost := BlElement new
+		clipChildren: false;
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c horizontal exact: 180.
+			c vertical fitContent.
+			c ignoreByLayout ];
+		yourself.
+	label := self newEditableLabelFor: anEdge modelElement.
+	label hFitContentLimited.
+	label vFitContent.
+	label constraintsDo: [ :c |
+		c maxWidth: 180.
+		c frame horizontal alignCenter.
+		c frame vertical alignCenter ].
+	labelHost addChild: label.
+	edgeLabelElementsByEdge at: anEdge put: labelHost.
+	self addChild: labelHost.
+	self installLabelEditingOn: labelHost label: label.
+	self installEdgeSelectionOn: labelHost for: anEdge.
+	self positionEdgeLabelFor: anEdge
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
+	| labelHost lines midpoint |
+	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	lines := edgeElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	lines ifEmpty: [ ^ self ].
+	midpoint := self midpointOfRenderedLines: lines.
+	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> midpointOfRenderedLines: someLines [
+	| segments totalLength halfway traversed |
+	segments := someLines collect: [ :aLine |
+		| start end |
+		start := aLine fromAnchor
+			positionForAnchoredElement: aLine
+			within: self.
+		end := aLine toAnchor
+			positionForAnchoredElement: aLine
+			within: self.
+		{ start. end. (end - start) r } ].
+	totalLength := segments sum: [ :each | each third ].
+	totalLength isZero ifTrue: [ ^ segments first first ].
+	halfway := totalLength / 2.
+	traversed := 0.
+	segments do: [ :each |
+		| segmentLength |
+		segmentLength := each third.
+		traversed + segmentLength >= halfway ifTrue: [
+			^ each first + ((each second - each first)
+				* ((halfway - traversed) / segmentLength)) ].
+		traversed := traversed + segmentLength ].
+	^ segments last second
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
+	edgeLabelElementsByEdge keysDo: [ :anEdge |
+		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+			self positionEdgeLabelFor: anEdge ] ]
+]
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
 	| labelHost label labelWidth |
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
@@ -495,6 +567,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 	waypoints size = 2
 		ifTrue: [ self addStraightEdgeFor: anEdge ]
 		ifFalse: [ self addEdgeFor: anEdge waypoints: waypoints ].
+	self addExternalLabelForEdge: anEdge.
 	self installReconnectHandlesFor: anEdge.
 	self installBendpointHandlesFor: anEdge
 ]
@@ -548,6 +621,9 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 		anElement removeFromParent.
 		self addChild: anElement ].
 	externalLabelElementsByModelElement valuesDo: [ :anElement |
+		anElement removeFromParent.
+		self addChild: anElement ].
+	edgeLabelElementsByEdge valuesDo: [ :anElement |
 		anElement removeFromParent.
 		self addChild: anElement ]
 ]
@@ -940,6 +1016,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					dragStartLabelPosition ifNotNil: [
 						(externalLabelElementsByModelElement at: draggedModelElement)
 							relocate: dragStartLabelPosition + delta ].
+					self updateIncidentEdgeLabelsFor: draggedModelElement.
 					(resizeHandleElementsByShape
 						at: aShape
 						ifAbsent: [ nil ])
