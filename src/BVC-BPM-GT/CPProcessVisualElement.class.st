@@ -2766,7 +2766,7 @@ CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint [
 		(modelElement notNil
 			and: [ modelElement isSubProcess
 			and: [ self stagedExpandedOf: aShape ] ]) ifTrue: [
-				bounds := aShapeElement bounds inParent: self.
+				bounds := (aShapeElement bounds inParent: self) asRectangle.
 				(bounds containsPoint: aPoint) ifTrue: [
 					candidates add: { modelElement. bounds } ] ] ].
 	candidates ifEmpty: [ ^ memento model ].
