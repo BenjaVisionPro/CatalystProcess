@@ -565,7 +565,79 @@ CPProcessVisualElement >> midpointOfRenderedLines: someLines [
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 	edgeLabelElementsByEdge keysDo: [ :anEdge |
 		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
-			self positionEdgeLabelFor: anEdge ] ]
+			self positionLiveEdgeLabelFor: anEdge ] ]
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
+	| labelHost midpoint |
+	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	midpoint := self liveMidpointForEdge: anEdge.
+	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> liveMidpointForEdge: anEdge [
+	| sequenceFlow source target sourceElement targetElement sourceBounds targetBounds waypoints points sourcePoint targetPoint |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	sourceBounds := sourceElement bounds inParent: self.
+	targetBounds := targetElement bounds inParent: self.
+	waypoints := self stagedWaypointsOf: anEdge.
+
+	waypoints size = 2 ifTrue: [
+		sourcePoint := self
+			dockingPointFor: source
+			bounds: sourceBounds
+			toward: targetBounds center.
+		targetPoint := self
+			dockingPointFor: target
+			bounds: targetBounds
+			toward: sourceBounds center.
+		^ (sourcePoint + targetPoint) / 2 ].
+
+	sourcePoint := self
+		dockingPointFor: source
+		bounds: sourceBounds
+		toward: (waypoints at: 2).
+	targetPoint := self
+		dockingPointFor: target
+		bounds: targetBounds
+		toward: (waypoints at: waypoints size - 1).
+
+	points := OrderedCollection new.
+	points add: sourcePoint.
+	2 to: waypoints size - 1 do: [ :index |
+		points add: (waypoints at: index) ].
+	points add: targetPoint.
+	^ self midpointOfPoints: points
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> midpointOfPoints: somePoints [
+	| segments totalLength halfway traversed |
+	segments := OrderedCollection new.
+	1 to: somePoints size - 1 do: [ :index |
+		| start end |
+		start := somePoints at: index.
+		end := somePoints at: index + 1.
+		segments add: { start. end. (end - start) r } ].
+	segments isEmpty ifTrue: [ ^ somePoints first ].
+	totalLength := segments sum: [ :each | each third ].
+	totalLength isZero ifTrue: [ ^ segments first first ].
+	halfway := totalLength / 2.
+	traversed := 0.
+	segments do: [ :each |
+		| segmentLength |
+		segmentLength := each third.
+		traversed + segmentLength >= halfway ifTrue: [
+			^ each first + ((each second - each first)
+				* ((halfway - traversed) / segmentLength)) ].
+		traversed := traversed + segmentLength ].
+	^ segments last second
 ]
 
 { #category : 'private - labels' }
