@@ -315,7 +315,7 @@ CPProcessAtelierExamples >> commitPersistsStagedMoveAndResetRestoresModelState [
 		diagramDescription: diagramDescription.
 	self assert: operation apply isApplicable.
 	memento commit.
-	self assert: process diagram elements third == taskShape.
+	self assert: process diagram elements second == taskShape.
 	self assert: taskShape bounds equals: (260 @ 124 extent: 132 @ 54).
 	^ process
 ]
@@ -502,6 +502,6 @@ CPProcessAtelierExamples >> replaceFlowNodePreservesShapeAndIncidentFlowIdentity
 	self assert: (secondFlowMemento readUsing: (self descriptionFor: #sourceRef in: secondFlowMemento)) == replacement.
 	self assert: ((memento childMementoFor: replacement inRelation: flowElementsDescription) readUsing: (self descriptionFor: #label in: (memento childMementoFor: replacement inRelation: flowElementsDescription))) equals: 'Review'.
 	self assert: replacement label equals: 'Temporary'.
-	self assert: fixture eighth elements third == taskShape.
+	self assert: fixture eighth elements second == taskShape.
 	^ memento
 ]

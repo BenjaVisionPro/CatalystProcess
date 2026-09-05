@@ -115,7 +115,7 @@ CPAtelierMoveShape >> translateEndpointOf: anEdge forMovedModelElement: aModelEl
 		detect: [ :each | each handlesSelector: #waypoints ].
 	waypoints := edgeMemento readUsing: waypointsDescription.
 	waypoints ifEmpty: [ ^ self ].
-	translated := waypoints asOrderedCollection.
+	translated := waypoints asOrderedCollection copy.
 	sequenceFlow := anEdge modelElement.
 	(self stagedSourceOf: sequenceFlow) == aModelElement ifTrue: [
 		translated at: 1 put: translated first + delta ].
