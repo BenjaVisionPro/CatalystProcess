@@ -638,7 +638,8 @@ CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
 CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
 	| fixture visual memento start finish startShape finishShape startElement finishElement
-	  scripter port stagedFlowElements diagramMemento elementsDescription stagedElements newFlow newEdge |
+	  scripter port stagedFlowElements diagramMemento elementsDescription stagedElements newFlow newEdge
+	  targetGlobalPoint targetLocalPoint |
 	fixture := self fixture.
 	memento := fixture second.
 	start := fixture third.
@@ -661,6 +662,19 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 	port := self visibleConnectionPortIn: startElement.
 	port id: #processConnectionPort.
 
+	targetGlobalPoint := finishElement geometryBoundsInSpace center.
+	self assert: (visual
+		connectionTargetAtGlobalPoint: targetGlobalPoint
+		excluding: start) == finish.
+	self assert: (visual
+		validConnectionTargetAtGlobalPoint: targetGlobalPoint
+		from: start) == finish.
+	targetLocalPoint := visual globalPointToLocal: targetGlobalPoint.
+	self
+		dragDestinationAt: targetLocalPoint
+		id: #processConnectionTargetPoint
+		in: visual.
+
 	(scripter mouseMoveOver)
 		label: 'Move pointer over source connection port';
 		id: #processConnectionPort;
@@ -669,8 +683,8 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 		label: 'Press connection port';
 		play.
 	(scripter mouseMoveOver)
-		label: 'Drag connection to finish event';
-		id: #processConnectionFinishShape;
+		label: 'Drag connection to exact accepted finish-event point';
+		id: #processConnectionTargetPoint;
 		play.
 	(scripter mouseUp)
 		label: 'Release connection on finish event';
@@ -698,7 +712,7 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExistingSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
 	| fixture visual memento finish finishShape finishElement firstFlow firstEdge
-	  flowMemento targetDescription scripter handles targetHandle |
+	  flowMemento targetDescription scripter handles targetHandle targetGlobalPoint targetLocalPoint |
 	fixture := self fixture.
 	memento := fixture second.
 	finish := fixture fifth.
@@ -716,6 +730,21 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 	self assert: handles size equals: 2.
 	targetHandle := handles last.
 	targetHandle id: #processTargetReconnectHandle.
+
+	targetGlobalPoint := finishElement geometryBoundsInSpace center.
+	self assert: (visual
+		connectionTargetAtGlobalPoint: targetGlobalPoint
+		excluding: nil) == finish.
+	self assert: (visual
+		validReconnectTargetAtGlobalPoint: targetGlobalPoint
+		for: firstFlow
+		movingSource: false) == finish.
+	targetLocalPoint := visual globalPointToLocal: targetGlobalPoint.
+	self
+		dragDestinationAt: targetLocalPoint
+		id: #processReconnectTargetPoint
+		in: visual.
+
 	(scripter mouseMoveOver)
 		label: 'Move pointer over target reconnect handle';
 		id: #processTargetReconnectHandle;
@@ -724,8 +753,8 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 		label: 'Press target reconnect handle';
 		play.
 	(scripter mouseMoveOver)
-		label: 'Drag sequence-flow target to finish event';
-		id: #processReconnectFinishShape;
+		label: 'Drag sequence-flow target to exact accepted finish-event point';
+		id: #processReconnectTargetPoint;
 		play.
 	(scripter mouseUp)
 		label: 'Release sequence-flow target on finish event';
