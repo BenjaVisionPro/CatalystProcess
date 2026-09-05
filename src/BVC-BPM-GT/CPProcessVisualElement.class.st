@@ -455,42 +455,39 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge [
-	| isDragging |
+	| isDragging lastPlacement |
 	setEdgeLabelPlacementOperationBlock ifNil: [ ^ self ].
 	isDragging := false.
+	lastPlacement := nil.
 	aLabelHost
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
 				isDragging := true.
+				lastPlacement := nil.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| placement |
-					placement := self
+					lastPlacement := self
 						nearestLabelPlacementFor: anEdge
 						to: (self globalPointToLocal: anEvent position)
 						waypoints: (self stagedWaypointsOf: anEdge).
 					self
 						positionEdgeLabelHost: aLabelHost
-						centeredAt: placement third.
+						centeredAt: lastPlacement third.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| placement |
 					isDragging := false.
-					placement := self
-						nearestLabelPlacementFor: anEdge
-						to: (self globalPointToLocal: anEvent position)
-						waypoints: (self stagedWaypointsOf: anEdge).
-					self
-						setLabelPathPosition: placement first
-						offset: placement second
-						forEdge: anEdge.
+					lastPlacement ifNotNil: [
+						self
+							setLabelPathPosition: lastPlacement first
+							offset: lastPlacement second
+							forEdge: anEdge ].
 					anEvent consumed: true ] ])
 ]
 
