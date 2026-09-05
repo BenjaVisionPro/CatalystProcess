@@ -1255,12 +1255,19 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 			on: BlMouseEnterEvent
 			do: [ :anEvent |
 				hoveredModelElement := aModelElement.
-				self updateConnectionPortVisibility ]);
+				connectionSourceModelElement
+					ifNotNil: [ :aSource |
+						(self isValidConnectionTarget: aModelElement from: aSource)
+							ifTrue: [ self connectionTargetModelElement: aModelElement ]
+							ifFalse: [ self clearConnectionTarget ] ]
+					ifNil: [ self updateConnectionPortVisibility ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
 			do: [ :anEvent |
 				hoveredModelElement == aModelElement ifTrue: [ hoveredModelElement := nil ].
-				self updateConnectionPortVisibility ])
+				connectionTargetModelElement == aModelElement
+					ifTrue: [ self clearConnectionTarget ]
+					ifFalse: [ self updateConnectionPortVisibility ] ])
 ]
 
 { #category : 'private - selection' }
@@ -1933,17 +1940,24 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 ]
 
 { #category : 'private - connection' }
+CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
+	| assessment |
+	connectFlowNodesOperationBlock ifNil: [ ^ false ].
+	aSource == aTarget ifTrue: [ ^ false ].
+	assessment := (connectFlowNodesOperationBlock
+		value: aSource
+		value: aTarget) assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - connection' }
 CPProcessVisualElement >> validConnectionTargetAtGlobalPoint: aPoint from: aSource [
-	| candidate assessment |
+	| candidate |
 	candidate := self
 		connectionTargetAtGlobalPoint: aPoint
 		excluding: aSource.
 	candidate ifNil: [ ^ nil ].
-	connectFlowNodesOperationBlock ifNil: [ ^ nil ].
-	assessment := (connectFlowNodesOperationBlock
-		value: aSource
-		value: candidate) assess.
-	^ assessment isApplicable
+	^ (self isValidConnectionTarget: candidate from: aSource)
 		ifTrue: [ candidate ]
 		ifFalse: [ nil ]
 ]
@@ -1993,6 +2007,7 @@ CPProcessVisualElement >> updateConnectionPortVisibility [
 { #category : 'private - connection' }
 CPProcessVisualElement >> beginConnectionFrom: aFlowNode [
 	connectionSourceModelElement := aFlowNode.
+	self clearConnectionTarget.
 	self updateSelectionAppearance
 ]
 
