@@ -696,7 +696,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 { #category : 'private - labels' }
 CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 	| flowMemento description label |
-	flowMemento := memento childMementoFor: aFlowElement inRelation: flowElementsDescription.
+	flowMemento := self flowElementMementoFor: aFlowElement.
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #label ].
 
@@ -1387,7 +1387,7 @@ CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := memento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := self flowElementMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
 	^ flowMemento readUsing: description
 ]
@@ -1395,7 +1395,7 @@ CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
 	| flowMemento description |
-	flowMemento := memento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
+	flowMemento := self flowElementMementoFor: aSequenceFlow.
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
 ]
@@ -2687,5 +2687,39 @@ CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlow
 				c frame horizontal alignCenter.
 				c frame vertical alignBottom.
 				c margin: (BlInsets bottom: 4 right: 34) ] ]
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> flowContainerMementoFor: aContainer [
+	| parentContainer parentMemento parentFlowElementsDescription |
+	aContainer == memento model ifTrue: [ ^ memento ].
+	aContainer isSubProcess ifFalse: [
+		self error: 'Unsupported Process flow-element container.' ].
+	parentContainer := aContainer container.
+	parentMemento := self flowContainerMementoFor: parentContainer.
+	parentFlowElementsDescription := parentMemento magritteDescription
+		detect: [ :each | each handlesSelector: #flowElements ].
+	^ parentMemento
+		childMementoFor: aContainer
+		inRelation: parentFlowElementsDescription
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> flowElementsDescriptionForContainer: aContainer [
+	^ (self flowContainerMementoFor: aContainer) magritteDescription
+		detect: [ :each | each handlesSelector: #flowElements ]
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> flowElementMementoFor: aFlowElement [
+	| container containerMemento containerFlowElementsDescription |
+	container := aFlowElement container.
+	container ifNil: [
+		self error: 'A Process flow element requires a semantic container.' ].
+	containerMemento := self flowContainerMementoFor: container.
+	containerFlowElementsDescription := self flowElementsDescriptionForContainer: container.
+	^ containerMemento
+		childMementoFor: aFlowElement
+		inRelation: containerFlowElementsDescription
 ]
 

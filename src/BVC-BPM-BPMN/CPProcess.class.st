@@ -81,3 +81,9 @@ CPProcess >> diagramDescription [
 CPProcess >> validationResult [
 	^ CPProcessValidator new validateProcess: self
 ]
+
+
+{ #category : 'testing' }
+CPProcess >> isSubProcess [
+	^ false
+]

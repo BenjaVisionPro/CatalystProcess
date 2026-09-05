@@ -731,3 +731,52 @@ CPProcessVisualElementExamples >> subProcessTypeSelectionDefinesRequestedTypes [
 	self assert: (selection typeIconFor: CPAdHocSubProcess) equals: #tilde.
 	^ selection
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedFlowElementsResolveThroughSubProcessMemento [
+	<gtExample>
+	| fixture memento flowElementsDescription subProcess start task nestedFlow subProcessMemento nestedDescription startMemento flowMemento visual labelDescription sourceDescription targetDescription |
+	fixture := self fixture.
+	memento := fixture second.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	start := CPNoneStartEvent new label: 'Inner start'; yourself.
+	task := CPUserTask new label: 'Inner task'; yourself.
+	nestedFlow := CPSequenceFlow new sourceRef: start; targetRef: task; yourself.
+	subProcess
+		addFlowElement: start;
+		addFlowElement: task;
+		addFlowElement: nestedFlow.
+
+	memento
+		write: ((memento readUsing: flowElementsDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: flowElementsDescription.
+	subProcessMemento := memento
+		childMementoFor: subProcess
+		inRelation: flowElementsDescription.
+	nestedDescription := self descriptionFor: #flowElements in: subProcessMemento.
+	subProcessMemento write: subProcess flowElements using: nestedDescription.
+
+	visual := CPProcessVisualElement new.
+	visual memento: memento.
+
+	startMemento := visual flowElementMementoFor: start.
+	labelDescription := self descriptionFor: #label in: startMemento.
+	startMemento write: 'Staged inner start' using: labelDescription.
+
+	flowMemento := visual flowElementMementoFor: nestedFlow.
+	sourceDescription := self descriptionFor: #sourceRef in: flowMemento.
+	targetDescription := self descriptionFor: #targetRef in: flowMemento.
+
+	self assert: (startMemento readUsing: labelDescription) equals: 'Staged inner start'.
+	self assert: start label equals: 'Inner start'.
+	self assert: (flowMemento readUsing: sourceDescription) == start.
+	self assert: (flowMemento readUsing: targetDescription) == task.
+	self assert: (visual stagedSourceOf: nestedFlow) == start.
+	self assert: (visual stagedTargetOf: nestedFlow) == task.
+	^ visual
+]
