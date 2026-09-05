@@ -431,7 +431,7 @@ CPProcessVisualElementExamples >> dragDestinationAt: aPoint id: anId in: aVisual
 		relocate: aPoint - (1 @ 1);
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
-	aVisualElement addChild: marker.
+	aVisualElement canvasElement addChild: marker.
 	^ marker
 ]
 
