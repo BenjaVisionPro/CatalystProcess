@@ -454,8 +454,6 @@ CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipel
 	self dragDestinationAt: destination id: #shapeDragDestination in: visual.
 	expectedBounds := taskShape bounds translateBy: delta.
 
-	scripter := BlScripter new.
-	scripter element: visual.
 	(scripter mouseMoveOver)
 		label: 'Move pointer over task shape';
 		id: #processTaskShape;
@@ -626,8 +624,8 @@ CPProcessVisualElementExamples >> visibleConnectionPortIn: aNodeElement [
 ]
 
 { #category : 'private - gestures' }
-CPProcessVisualElementExamples >> visibleReconnectHandlesIn: anEdgeElement [
-	^ (anEdgeElement children
+CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
+	^ (aVisualElement children
 		select: [ :each |
 			each extent = (10 @ 10)
 				and: [ each visibility = BlVisibility visible ] ])
@@ -687,8 +685,8 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 	newEdge := stagedElements detect: [ :each |
 		each isEdge and: [ each modelElement == newFlow ] ].
 
-	self assert: stagedFlowElements size equals: 6.
-	self assert: stagedElements size equals: 6.
+	self assert: stagedFlowElements size equals: 5.
+	self assert: stagedElements size equals: 5.
 	self assert: newEdge modelElement == newFlow.
 	self assert: (fixture first flowElements identityIncludes: newFlow) not.
 	self assert: (fixture eighth elements identityIncludes: newEdge) not.
@@ -698,7 +696,7 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 { #category : 'examples - gestures - reconnecting' }
 CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExistingSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
-	| fixture visual memento finish finishShape finishElement firstFlow firstEdge edgeElement
+	| fixture visual memento finish finishShape finishElement firstFlow firstEdge
 	  flowMemento targetDescription scripter handles targetHandle |
 	fixture := self fixture.
 	memento := fixture second.
@@ -709,10 +707,11 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 	visual := self visualElementForFixture: fixture.
 	finishElement := visual shapeElementFor: finishShape.
 	finishElement id: #processReconnectFinishShape.
-	edgeElement := visual edgeElementFor: firstEdge.
 
+	scripter := BlScripter new.
+	scripter element: visual.
 	visual selectOnly: firstFlow.
-	handles := self visibleReconnectHandlesIn: edgeElement.
+	handles := self visibleReconnectHandlesIn: visual.
 	self assert: handles size equals: 2.
 	targetHandle := handles last.
 	targetHandle id: #processTargetReconnectHandle.
