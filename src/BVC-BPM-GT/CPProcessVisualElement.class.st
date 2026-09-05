@@ -2760,14 +2760,14 @@ CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
 CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint [
 	| candidates |
 	candidates := OrderedCollection new.
-	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
+	shapeElementsByShape keysDo: [ :aShape |
 		| modelElement bounds |
 		modelElement := self stagedModelElementOf: aShape.
 		(modelElement notNil
 			and: [ modelElement isSubProcess
 			and: [ self stagedExpandedOf: aShape ] ]) ifTrue: [
-				bounds := (aShapeElement bounds inParent: self) asRectangle.
-				(bounds containsPoint: aPoint) ifTrue: [
+				bounds := self stagedBoundsOf: aShape.
+				(bounds notNil and: [ bounds containsPoint: aPoint ]) ifTrue: [
 					candidates add: { modelElement. bounds } ] ] ].
 	candidates ifEmpty: [ ^ memento model ].
 	^ (candidates
