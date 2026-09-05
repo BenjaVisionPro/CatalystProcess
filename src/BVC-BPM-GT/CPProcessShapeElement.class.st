@@ -1,6 +1,6 @@
-"I render the local visual representation of one CPShape.
+"I render and locally interact with one CPShape.
 
-The CPShape and its semantic flow node remain model objects. I own only their Bloc depiction: BPMN shape geometry, local label layout, event decoration, and selection border appearance. Diagram-level interaction and semantic editing remain coordinated by CPProcessVisualElement and Atelier operations."
+The CPShape and its semantic flow node remain model objects. I own their Bloc depiction and shape-local affordances: geometry, labels, decoration, selection appearance, resize, connection port, replacement/type UI, and local pointer mechanics. CPProcessVisualElement coordinates relationships between diagram objects and delegates semantic edits to Atelier operations."
 Class {
 	#name : 'CPProcessShapeElement',
 	#superclass : 'BlElement',
@@ -10,7 +10,8 @@ Class {
 		'labelElement',
 		'normalBorderColor',
 		'resizeHandle',
-		'connectionPort'
+		'connectionPort',
+		'externalLabelHost'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -23,6 +24,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	modelElement := aFlowNode.
 	labelElement := anEditableLabel.
 	normalBorderColor := aBorderColor.
+	externalLabelHost := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -322,4 +324,21 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 					proposedBounds := self position extent: originalBounds extent.
 					aDragEndBlock value: anEvent value: proposedBounds value: delta.
 					anEvent consumed: true ] ])
+]
+
+{ #category : 'external label' }
+CPProcessShapeElement >> externalLabelHost [
+	^ externalLabelHost
+]
+
+{ #category : 'external label' }
+CPProcessShapeElement >> externalLabelHost: anElement [
+	externalLabelHost := anElement
+]
+
+{ #category : 'external label' }
+CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
+	externalLabelHost ifNil: [ ^ self ].
+	externalLabelHost removeFromParent.
+	aParent addChild: externalLabelHost
 ]

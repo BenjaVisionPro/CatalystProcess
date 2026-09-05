@@ -1,6 +1,6 @@
-"I own the Bloc elements that together render one CPEdge.
+"I render and locally interact with one CPEdge.
 
-CPEdge remains the BPMN-DI model object. I group its visible path elements and wider interaction hit elements so CPProcessVisualElement can reason about one rendered edge as one presentation object without keeping parallel dictionaries."
+CPEdge remains the BPMN-DI model object. I own the visible path and hit surface, edge-label host, bendpoint and reconnect affordances, their appearance, and their local pointer mechanics. CPProcessVisualElement resolves relationships to other diagram objects, routing targets, staged BPMN-DI changes, and Atelier operations."
 Class {
 	#name : 'CPProcessEdgeVisual',
 	#superclass : 'Object',
