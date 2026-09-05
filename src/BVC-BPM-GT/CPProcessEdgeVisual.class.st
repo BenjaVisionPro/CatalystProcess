@@ -8,7 +8,8 @@ Class {
 		'diagramEdge',
 		'lineElements',
 		'hitElements',
-		'bendpointHandles'
+		'bendpointHandles',
+		'reconnectHandles'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -20,7 +21,8 @@ CPProcessEdgeVisual >> edge: anEdge [
 	diagramEdge := anEdge.
 	lineElements := OrderedCollection new.
 	hitElements := OrderedCollection new.
-	bendpointHandles := OrderedCollection new
+	bendpointHandles := OrderedCollection new.
+	reconnectHandles := OrderedCollection new
 ]
 
 { #category : 'rendering' }
@@ -132,3 +134,39 @@ CPProcessEdgeVisual >> bringBendpointHandlesToFrontIn: aParent [
 		aParent addChild: aHandle ]
 ]
 
+
+
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> reconnectHandles [
+	^ reconnectHandles
+]
+
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> reconnectHandles: someHandles [
+	reconnectHandles := someHandles asOrderedCollection
+]
+
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> reconnectHandlesVisible: aBoolean [
+	| visibility |
+	visibility := aBoolean
+		ifTrue: [ BlVisibility visible ]
+		ifFalse: [ BlVisibility hidden ].
+	reconnectHandles do: [ :aHandle | aHandle visibility: visibility ]
+]
+
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> positionReconnectHandlesAtSource: aSourcePoint target: aTargetPoint [
+	reconnectHandles size = 2 ifFalse: [ ^ self ].
+	reconnectHandles first
+		relocate: aSourcePoint - (reconnectHandles first extent / 2).
+	reconnectHandles last
+		relocate: aTargetPoint - (reconnectHandles last extent / 2)
+]
+
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> bringReconnectHandlesToFrontIn: aParent [
+	reconnectHandles do: [ :aHandle |
+		aHandle removeFromParent.
+		aParent addChild: aHandle ]
+]

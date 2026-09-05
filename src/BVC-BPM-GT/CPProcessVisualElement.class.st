@@ -34,7 +34,6 @@ Class {
 		'setEdgeLabelPlacementOperationBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
-		'reconnectHandleElementsByEdge',
 		'activePaletteDragItem',
 		'insertionTargetEdge'
 	],
@@ -52,7 +51,6 @@ CPProcessVisualElement >> initialize [
 	edgeVisualsByEdge := IdentityDictionary new.
 	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
-	reconnectHandleElementsByEdge := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -84,7 +82,6 @@ CPProcessVisualElement >> refresh [
 	edgeVisualsByEdge removeAll.
 	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
-	reconnectHandleElementsByEdge removeAll.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
 	connectionTargetModelElement := nil.
@@ -818,11 +815,12 @@ CPProcessVisualElement >> liveMidpointForEdge: anEdge waypoints: someWaypoints [
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> updateIncidentReconnectHandlesFor: aModelElement [
-	reconnectHandleElementsByEdge keysDo: [ :anEdge |
-		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		(anEdgeVisual reconnectHandles isEmpty not
+			and: [ self edge: anEdge isIncidentTo: aModelElement ]) ifTrue: [
 			self
 				positionReconnectHandlesFor: anEdge
-				fromLines: (self lineElementsForEdge: anEdge) ] ]
+				fromLines: anEdgeVisual lineElements ] ]
 ]
 
 { #category : 'private - labels' }
@@ -1042,10 +1040,8 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringReconnectHandlesToFront [
-	reconnectHandleElementsByEdge valuesDo: [ :someHandles |
-		someHandles do: [ :aHandle |
-			aHandle removeFromParent.
-			self addChild: aHandle ] ]
+	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
+		anEdgeVisual bringReconnectHandlesToFrontIn: self ]
 ]
 
 { #category : 'private - edges' }
@@ -1254,12 +1250,9 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			selectionColor: self selectionColor
 			normalColor: self shapeBorderColor ].
 	self updateReconnectHandlePositions.
-	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
-		| visibility |
-		visibility := anEdge modelElement == selectedModelElement
-			ifTrue: [ BlVisibility visible ]
-			ifFalse: [ BlVisibility hidden ].
-		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		anEdgeVisual reconnectHandlesVisible:
+			(anEdge modelElement == selectedModelElement) ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual bendpointHandlesVisible:
 			(anEdge modelElement == selectedModelElement) ].
@@ -2614,9 +2607,8 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 		owner: targetElement
 		other: sourceElement.
 
-	reconnectHandleElementsByEdge
-		at: anEdge
-		put: { sourceHandle. targetHandle }.
+	(edgeVisualsByEdge at: anEdge)
+		reconnectHandles: { sourceHandle. targetHandle }.
 	self addChild: sourceHandle.
 	self addChild: targetHandle
 ]
@@ -2847,18 +2839,19 @@ CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPr
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> updateReconnectHandlePositions [
-	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
-		self
-			positionReconnectHandlesFor: anEdge
-			fromLines: (self lineElementsForEdge: anEdge) ]
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		anEdgeVisual reconnectHandles isEmpty ifFalse: [
+			self
+				positionReconnectHandlesFor: anEdge
+				fromLines: anEdgeVisual lineElements ] ]
 ]
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLines [
-	| handles firstLine lastLine sourcePoint targetPoint |
+	| edgeVisual firstLine lastLine sourcePoint targetPoint |
 	someLines ifEmpty: [ ^ self ].
-	handles := reconnectHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	handles ifEmpty: [ ^ self ].
+	edgeVisual := edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
+	edgeVisual reconnectHandles isEmpty ifTrue: [ ^ self ].
 
 	firstLine := someLines first.
 	lastLine := someLines last.
@@ -2869,16 +2862,17 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLin
 		positionForAnchoredElement: lastLine
 		within: self.
 
-	self positionReconnectHandle: handles first at: sourcePoint.
-	self positionReconnectHandle: handles last at: targetPoint
+	edgeVisual
+		positionReconnectHandlesAtSource: sourcePoint
+		target: targetPoint
 ]
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: someWaypoints [
-	| handles sequenceFlow source target sourceElement targetElement interiorPoints sourcePoint targetPoint |
+	| edgeVisual sequenceFlow source target sourceElement targetElement interiorPoints sourcePoint targetPoint |
 	someWaypoints size < 3 ifTrue: [ ^ self ].
-	handles := reconnectHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	handles ifEmpty: [ ^ self ].
+	edgeVisual := edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
+	edgeVisual reconnectHandles isEmpty ifTrue: [ ^ self ].
 
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
@@ -2896,8 +2890,9 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: so
 		element: targetElement
 		toward: interiorPoints last.
 
-	self positionReconnectHandle: handles first at: sourcePoint.
-	self positionReconnectHandle: handles last at: targetPoint
+	edgeVisual
+		positionReconnectHandlesAtSource: sourcePoint
+		target: targetPoint
 ]
 
 { #category : 'private - reconnecting' }
