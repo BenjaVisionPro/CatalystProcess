@@ -435,12 +435,99 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
-	| labelHost lines midpoint |
+	| labelHost waypoints midpoint |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	lines := edgeElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	lines ifEmpty: [ ^ self ].
-	midpoint := self midpointOfRenderedLines: lines.
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size = 2
+		ifTrue: [ midpoint := self midpointForStraightEdge: anEdge ]
+		ifFalse: [
+			| lines |
+			lines := edgeElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+			lines ifEmpty: [ ^ self ].
+			midpoint := self midpointOfRenderedLines: lines ].
 	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> midpointForStraightEdge: anEdge [
+	| sequenceFlow source target sourceElement targetElement sourceCenter targetCenter sourcePoint targetPoint |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceElement := shapeElementsByModelElement at: source.
+	targetElement := shapeElementsByModelElement at: target.
+	sourceCenter := (sourceElement bounds inParent: self) center.
+	targetCenter := (targetElement bounds inParent: self) center.
+	sourcePoint := self
+		dockingPointFor: source
+		element: sourceElement
+		toward: targetCenter.
+	targetPoint := self
+		dockingPointFor: target
+		element: targetElement
+		toward: sourceCenter.
+	^ (sourcePoint + targetPoint) / 2
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement toward: aPoint [
+	aFlowNode isEvent ifTrue: [
+		^ self ellipseDockingPointFor: aNodeElement toward: aPoint ].
+	aFlowNode isGateway ifTrue: [
+		^ self diamondDockingPointFor: aNodeElement toward: aPoint ].
+	^ self boundsDockingPointFor: aNodeElement toward: aPoint
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> boundsDockingPointFor: aNodeElement toward: aPoint [
+	| bounds center direction scaleX scaleY scale |
+	bounds := aNodeElement bounds inParent: self.
+	center := bounds center.
+	direction := aPoint - center.
+	direction isZero ifTrue: [ ^ center ].
+
+	scaleX := direction x isZero
+		ifTrue: [ Float infinity ]
+		ifFalse: [ (bounds width / 2.0) / direction x abs ].
+	scaleY := direction y isZero
+		ifTrue: [ Float infinity ]
+		ifFalse: [ (bounds height / 2.0) / direction y abs ].
+	scale := scaleX min: scaleY.
+	^ center + (direction * scale)
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> ellipseDockingPointFor: aNodeElement toward: aPoint [
+	| bounds center direction major minor metric scale |
+	bounds := aNodeElement bounds inParent: self.
+	center := bounds center.
+	direction := aPoint - center.
+	direction isZero ifTrue: [ ^ center ].
+
+	major := bounds width / 2.0.
+	minor := bounds height / 2.0.
+	metric := ((major * major * direction y * direction y)
+		+ (minor * minor * direction x * direction x)) sqrt.
+	metric isZero ifTrue: [ ^ center ].
+	scale := (major * minor) / metric.
+	^ center + ((scale * direction x) @ (scale * direction y))
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> diamondDockingPointFor: aNodeElement toward: aPoint [
+	| bounds center direction halfWidth halfHeight denominator scale |
+	bounds := aNodeElement bounds inParent: self.
+	center := bounds center.
+	direction := aPoint - center.
+	direction isZero ifTrue: [ ^ center ].
+
+	halfWidth := bounds width / 2.0.
+	halfHeight := bounds height / 2.0.
+	denominator := (direction x abs / halfWidth)
+		+ (direction y abs / halfHeight).
+	denominator isZero ifTrue: [ ^ center ].
+	scale := 1.0 / denominator.
+	^ center + (direction * scale)
 ]
 
 { #category : 'private - labels' }
