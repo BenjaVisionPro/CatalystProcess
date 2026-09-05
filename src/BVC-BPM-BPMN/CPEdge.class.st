@@ -2,7 +2,8 @@ Class {
 	#name : 'CPEdge',
 	#superclass : 'CPDiagramElement',
 	#instVars : [
-		'waypoints'
+		'waypoints',
+		'labelBounds'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -51,6 +52,29 @@ CPEdge >> waypointsDescription [
 		classes: { Point };
 		label: 'Waypoints';
 		priority: 110;
+		group: 'Diagram';
+		yourself
+]
+
+
+{ #category : 'accessing' }
+CPEdge >> labelBounds [
+	^ labelBounds
+]
+
+{ #category : 'accessing' }
+CPEdge >> labelBounds: aRectangle [
+	labelBounds := aRectangle
+]
+
+{ #category : 'descriptions' }
+CPEdge >> labelBoundsDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #labelBounds;
+		classes: { Rectangle };
+		label: 'Label bounds';
+		priority: 120;
 		group: 'Diagram';
 		yourself
 ]

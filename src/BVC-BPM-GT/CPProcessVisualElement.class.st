@@ -31,6 +31,7 @@ Class {
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
 		'setEdgeWaypointsOperationBlock',
+		'setEdgeLabelBoundsOperationBlock',
 		'connectionSourceModelElement',
 		'reconnectHandleElementsByEdge',
 		'bendpointHandleElementsByEdge',
@@ -163,6 +164,15 @@ CPProcessVisualElement >> stagedWaypointsOf: anEdge [
 	description := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #waypoints ].
 	^ (edgeMemento readUsing: description) ifNil: [ #() ]
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedLabelBoundsOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #labelBounds ].
+	^ edgeMemento readUsing: description
 ]
 
 { #category : 'private - staged state' }
@@ -430,13 +440,62 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 	self addChild: labelHost.
 	self installLabelEditingOn: labelHost label: label.
 	self installEdgeSelectionOn: labelHost for: anEdge.
+	self installEdgeLabelPositioningOn: labelHost for: anEdge.
 	self positionEdgeLabelFor: anEdge
 ]
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge [
+	| isDragging dragStartEventPosition dragStartPosition |
+	setEdgeLabelBoundsOperationBlock ifNil: [ ^ self ].
+	isDragging := false.
+	aLabelHost
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isDragging := true.
+				dragStartEventPosition := anEvent position.
+				dragStartPosition := aLabelHost position.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					aLabelHost relocate:
+						dragStartPosition + anEvent position - dragStartEventPosition.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					isDragging := false.
+					self
+						setLabelBounds: (aLabelHost position extent: aLabelHost extent)
+						forEdge: anEdge.
+					anEvent consumed: true ] ])
+]
+
+{ #category : 'operations' }
+CPProcessVisualElement >> setLabelBounds: aRectangle forEdge: anEdge [
+	| assessment |
+	setEdgeLabelBoundsOperationBlock ifNil: [ ^ nil ].
+	assessment := (setEdgeLabelBoundsOperationBlock
+		value: anEdge
+		value: aRectangle) apply.
+	assessment isApplicable
+		ifTrue: [ self refresh ]
+		ifFalse: [ self updateSelectionAppearance ].
+	^ assessment
+]
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
-	| labelHost waypoints midpoint |
+	| labelHost labelBounds waypoints midpoint |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelBounds := self stagedLabelBoundsOf: anEdge.
+	labelBounds ifNotNil: [
+		labelHost relocate: labelBounds origin.
+		^ self ].
 	waypoints := self stagedWaypointsOf: anEdge.
 	waypoints size = 2
 		ifTrue: [ midpoint := self midpointForStraightEdge: anEdge ]
@@ -564,6 +623,7 @@ CPProcessVisualElement >> midpointOfRenderedLines: someLines [
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypoints [
 	| labelHost midpoint |
+	(self stagedLabelBoundsOf: anEdge) ifNotNil: [ ^ self ].
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
 	midpoint := self liveMidpointForEdge: anEdge waypoints: someWaypoints.
 	labelHost relocate: (midpoint x - 90) @ (midpoint y - 22)
@@ -611,7 +671,8 @@ CPProcessVisualElement >> liveMidpointForEdge: anEdge waypoints: someWaypoints [
 { #category : 'private - labels' }
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 	edgeLabelElementsByEdge keysDo: [ :anEdge |
-		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+		((self edge: anEdge isIncidentTo: aModelElement)
+			and: [ (self stagedLabelBoundsOf: anEdge) isNil ]) ifTrue: [
 			self positionLiveEdgeLabelFor: anEdge ] ]
 ]
 
@@ -1593,6 +1654,11 @@ CPProcessVisualElement >> reconnectSequenceFlowOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessVisualElement >> setEdgeWaypointsOperationFor: aBlock [
 	setEdgeWaypointsOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> setEdgeLabelBoundsOperationFor: aBlock [
+	setEdgeLabelBoundsOperationBlock := aBlock
 ]
 
 { #category : 'operations' }
