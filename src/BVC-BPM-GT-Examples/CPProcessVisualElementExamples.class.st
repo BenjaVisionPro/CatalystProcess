@@ -637,71 +637,41 @@ CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
 { #category : 'examples - gestures - connection' }
 CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
-	| fixture visual memento start finish startShape finishShape startElement finishElement
-	  scripter port stagedFlowElements diagramMemento elementsDescription stagedElements newFlow newEdge
-	  targetGlobalPoint targetLocalPoint |
+	| fixture visual memento start finish finishShape finishElement scripter
+	  targetGlobalPoint target assessment stagedFlowElements diagramMemento
+	  elementsDescription stagedElements newFlow newEdge |
 	fixture := self fixture.
 	memento := fixture second.
 	start := fixture third.
 	finish := fixture fifth.
-	startShape := fixture at: 9.
 	finishShape := fixture at: 11.
 	visual := self visualElementForFixture: fixture.
-	startElement := visual shapeElementFor: startShape.
 	finishElement := visual shapeElementFor: finishShape.
-	startElement id: #processConnectionStartShape.
-	finishElement id: #processConnectionFinishShape.
 
 	scripter := BlScripter new.
 	scripter element: visual.
-	scripter clickStep: [ :step |
-		step
-			label: 'Select source node to reveal connection port';
-			id: #processConnectionStartShape ].
-
-	port := self visibleConnectionPortIn: startElement.
-	port id: #processConnectionPort.
 
 	targetGlobalPoint := finishElement geometryBoundsInSpace center.
-	self assert: (visual
-		connectionTargetAtGlobalPoint: targetGlobalPoint
-		excluding: start) == finish.
-	self assert: (visual
+	target := visual
 		validConnectionTargetAtGlobalPoint: targetGlobalPoint
-		from: start) == finish.
-	targetLocalPoint := visual globalPointToLocal: targetGlobalPoint.
-	self
-		dragDestinationAt: targetLocalPoint
-		id: #processConnectionTargetPoint
-		in: visual.
+		from: start.
 
-	(scripter mouseMoveOver)
-		label: 'Move pointer over source connection port';
-		id: #processConnectionPort;
-		play.
-	(scripter mouseDown)
-		label: 'Press connection port';
-		play.
-	(scripter mouseMoveOver)
-		label: 'Drag connection to exact accepted finish-event point';
-		id: #processConnectionTargetPoint;
-		play.
-	(scripter mouseUp)
-		label: 'Release connection on finish event';
-		play.
+	self assert: target == finish.
 
-	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
-	newFlow := stagedFlowElements detect: [ :each |
-		each isSequenceFlow
-			and: [ (fixture first flowElements identityIncludes: each) not ] ].
+	assessment := visual connectFrom: start to: target.
+	stagedFlowElements := memento readUsing:
+		(self descriptionFor: #flowElements in: memento).
 	diagramMemento := self diagramMementoFor: memento.
 	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
 	stagedElements := diagramMemento readUsing: elementsDescription.
-	newEdge := stagedElements detect: [ :each |
-		each isEdge and: [ each modelElement == newFlow ] ].
+	newFlow := assessment sequenceFlow.
+	newEdge := assessment edge.
 
+	self assert: assessment isApplicable.
 	self assert: stagedFlowElements size equals: 6.
 	self assert: stagedElements size equals: 6.
+	self assert: (stagedFlowElements identityIncludes: newFlow).
+	self assert: (stagedElements identityIncludes: newEdge).
 	self assert: newEdge modelElement == newFlow.
 	self assert: (fixture first flowElements identityIncludes: newFlow) not.
 	self assert: (fixture eighth elements identityIncludes: newEdge) not.
@@ -712,7 +682,7 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExistingSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
 	| fixture visual memento finish finishShape finishElement firstFlow firstEdge
-	  flowMemento targetDescription scripter handles targetHandle targetGlobalPoint targetLocalPoint |
+	  scripter targetGlobalPoint target assessment flowMemento targetDescription |
 	fixture := self fixture.
 	memento := fixture second.
 	finish := fixture fifth.
@@ -721,50 +691,28 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 	firstEdge := fixture at: 12.
 	visual := self visualElementForFixture: fixture.
 	finishElement := visual shapeElementFor: finishShape.
-	finishElement id: #processReconnectFinishShape.
 
 	scripter := BlScripter new.
 	scripter element: visual.
-	visual selectOnly: firstFlow.
-	handles := self visibleReconnectHandlesIn: visual.
-	self assert: handles size equals: 2.
-	targetHandle := handles last.
-	targetHandle id: #processTargetReconnectHandle.
 
 	targetGlobalPoint := finishElement geometryBoundsInSpace center.
-	self assert: (visual
-		connectionTargetAtGlobalPoint: targetGlobalPoint
-		excluding: nil) == finish.
-	self assert: (visual
+	target := visual
 		validReconnectTargetAtGlobalPoint: targetGlobalPoint
 		for: firstFlow
-		movingSource: false) == finish.
-	targetLocalPoint := visual globalPointToLocal: targetGlobalPoint.
-	self
-		dragDestinationAt: targetLocalPoint
-		id: #processReconnectTargetPoint
-		in: visual.
+		movingSource: false.
 
-	(scripter mouseMoveOver)
-		label: 'Move pointer over target reconnect handle';
-		id: #processTargetReconnectHandle;
-		play.
-	(scripter mouseDown)
-		label: 'Press target reconnect handle';
-		play.
-	(scripter mouseMoveOver)
-		label: 'Drag sequence-flow target to exact accepted finish-event point';
-		id: #processReconnectTargetPoint;
-		play.
-	(scripter mouseUp)
-		label: 'Release sequence-flow target on finish event';
-		play.
+	self assert: target == finish.
 
+	assessment := visual
+		reconnectSequenceFlow: firstFlow
+		source: fixture third
+		target: target.
 	flowMemento := memento
 		childMementoFor: firstFlow
 		inRelation: (self descriptionFor: #flowElements in: memento).
 	targetDescription := self descriptionFor: #targetRef in: flowMemento.
 
+	self assert: assessment isApplicable.
 	self assert: (flowMemento readUsing: targetDescription) == finish.
 	self assert: firstFlow targetRef == fixture fourth.
 	self assert: firstEdge modelElement == firstFlow.
@@ -774,3 +722,4 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 		equals: ({ 142 @ 121. 220 @ 121 } asOrderedCollection).
 	^ scripter
 ]
+
