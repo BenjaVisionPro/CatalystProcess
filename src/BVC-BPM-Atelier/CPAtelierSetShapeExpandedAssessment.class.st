@@ -4,7 +4,9 @@ Class {
 	#instVars : [
 		'shape',
 		'currentExpanded',
-		'proposedExpanded'
+		'proposedExpanded',
+		'currentBounds',
+		'proposedBounds'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -12,20 +14,24 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierSetShapeExpandedAssessment class >> shape: aShape currentExpanded: currentExpanded proposedExpanded: proposedExpanded [
+CPAtelierSetShapeExpandedAssessment class >> shape: aShape currentExpanded: currentExpanded proposedExpanded: proposedExpanded currentBounds: currentBounds proposedBounds: proposedBounds [
 	^ self new
 		shape: aShape;
 		currentExpanded: currentExpanded;
 		proposedExpanded: proposedExpanded;
+		currentBounds: currentBounds;
+		proposedBounds: proposedBounds;
 		yourself
 ]
 
 { #category : 'instance creation' }
-CPAtelierSetShapeExpandedAssessment class >> shape: aShape currentExpanded: currentExpanded proposedExpanded: proposedExpanded rejectedBecause: aString [
+CPAtelierSetShapeExpandedAssessment class >> shape: aShape currentExpanded: currentExpanded proposedExpanded: proposedExpanded currentBounds: currentBounds proposedBounds: proposedBounds rejectedBecause: aString [
 	^ self new
 		shape: aShape;
 		currentExpanded: currentExpanded;
 		proposedExpanded: proposedExpanded;
+		currentBounds: currentBounds;
+		proposedBounds: proposedBounds;
 		rejectionMessage: aString;
 		yourself
 ]
@@ -47,3 +53,16 @@ CPAtelierSetShapeExpandedAssessment >> proposedExpanded [ ^ proposedExpanded ]
 
 { #category : 'accessing' }
 CPAtelierSetShapeExpandedAssessment >> proposedExpanded: aBoolean [ proposedExpanded := aBoolean ]
+
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpandedAssessment >> currentBounds [ ^ currentBounds ]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpandedAssessment >> currentBounds: aRectangle [ currentBounds := aRectangle ]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpandedAssessment >> proposedBounds [ ^ proposedBounds ]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpandedAssessment >> proposedBounds: aRectangle [ proposedBounds := aRectangle ]

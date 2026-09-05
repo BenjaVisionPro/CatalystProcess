@@ -606,7 +606,7 @@ CPProcessAtelierExamples >> createSubProcessStagesSemanticNodeAndShapeTogether [
 { #category : 'examples - subprocess' }
 CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
 	<gtExample>
-	| fixture memento diagramMemento elementsDescription subProcess shape elements operation assessment shapeMemento expandedDescription |
+	| fixture memento diagramMemento elementsDescription subProcess shape elements operation assessment shapeMemento expandedDescription boundsDescription |
 	fixture := self fixture.
 	memento := fixture second.
 	diagramMemento := self diagramMementoFor: memento.
@@ -628,10 +628,15 @@ CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
 	assessment := operation apply.
 	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
 	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
+	boundsDescription := self descriptionFor: #bounds in: shapeMemento.
 
 	self assert: assessment isApplicable.
 	self assert: assessment currentExpanded equals: false.
 	self assert: assessment proposedExpanded equals: true.
+	self assert: assessment currentBounds equals: (300 @ 220 extent: 132 @ 72).
+	self assert: assessment proposedBounds extent equals: 360 @ 180.
+	self assert: assessment proposedBounds center equals: assessment currentBounds center.
+	self assert: (shapeMemento readUsing: boundsDescription) equals: assessment proposedBounds.
 	self assert: (shapeMemento readUsing: expandedDescription).
 	self assert: shape isExpanded not.
 	^ assessment

@@ -976,7 +976,7 @@ CPProcessVisualElementExamples >> collapsedSubProcessExpansionAffordanceStagesEx
 	<gtExample>
 	| fixture memento rootFlowDescription diagramMemento elementsDescription
 	  subProcess subShape rootFlows diagramElements visual shapeElement
-	  shapeMemento expandedDescription assessment |
+	  shapeMemento expandedDescription boundsDescription assessment |
 
 	fixture := self fixture.
 	memento := fixture second.
@@ -1004,7 +1004,10 @@ CPProcessVisualElementExamples >> collapsedSubProcessExpansionAffordanceStagesEx
 	self assert: assessment isApplicable.
 	shapeMemento := diagramMemento childMementoFor: subShape inRelation: elementsDescription.
 	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
+	boundsDescription := self descriptionFor: #bounds in: shapeMemento.
 	self assert: (shapeMemento readUsing: expandedDescription).
+	self assert: (shapeMemento readUsing: boundsDescription) extent equals: 360 @ 180.
+	self assert: (shapeMemento readUsing: boundsDescription) center equals: (180 @ 180 extent: 360 @ 180) center.
 	self assert: subShape isExpanded not.
 	self assert: (visual shapeElementsByModelElement at: subProcess) subProcessExpansionMarker isNil.
 	^ visual
