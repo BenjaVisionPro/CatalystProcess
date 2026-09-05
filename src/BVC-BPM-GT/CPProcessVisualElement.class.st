@@ -1586,14 +1586,16 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdg
 
 { #category : 'private - insertion' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
-	| dragItem candidate elementExtent origin bounds assessment |
+	| dragItem candidate elementExtent dropPoint origin bounds assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	candidate := dragItem domainObject.
 	elementExtent := self extentForModelElement: candidate.
+	dropPoint := self globalPointToLocal:
+		(anEvent currentTarget localPointToGlobal: anEvent position).
 	origin :=
-		((anEvent position x - (elementExtent x / 2)) max: 0)
-		@ ((anEvent position y - (elementExtent y / 2)) max: 0).
+		((dropPoint x - (elementExtent x / 2)) max: 0)
+		@ ((dropPoint y - (elementExtent y / 2)) max: 0).
 	bounds := origin extent: elementExtent.
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
