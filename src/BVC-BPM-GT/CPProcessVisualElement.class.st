@@ -789,6 +789,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	line userData at: #processDiagramElement put: anEdge.
 	line userData at: #processModelElement put: anEdge modelElement.
 	self installEdgeSelectionOn: line for: anEdge.
+	self installBendpointInsertionOn: line for: anEdge segmentIndex: 1.
 	edgeElementsByEdge at: anEdge put: { line }.
 	self addChild: selectionLine.
 	self addChild: line
@@ -887,6 +888,10 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 		line userData at: #processDiagramElement put: anEdge.
 		line userData at: #processModelElement put: anEdge modelElement.
 		self installEdgeSelectionOn: line for: anEdge.
+		self
+			installBendpointInsertionOn: line
+			for: anEdge
+			segmentIndex: index.
 		lines add: line.
 		self addChild: selectionLine.
 		self addChild: line ].
