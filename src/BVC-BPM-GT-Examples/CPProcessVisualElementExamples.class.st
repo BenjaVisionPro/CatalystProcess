@@ -1009,6 +1009,33 @@ CPProcessVisualElementExamples >> collapsedSubProcessExpansionAffordanceStagesEx
 	self assert: (shapeMemento readUsing: boundsDescription) extent equals: 360 @ 180.
 	self assert: (shapeMemento readUsing: boundsDescription) center equals: (180 @ 180 extent: 360 @ 180) center.
 	self assert: subShape isExpanded not.
-	self assert: (visual shapeElementsByModelElement at: subProcess) subProcessExpansionMarker isNil.
+	self assert: (visual shapeElementsByModelElement at: subProcess) subProcessExpansionMarker notNil.
 	^ visual
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> expandedSubProcessKeepsToggleAndPositionsLabelAtTopLeft [
+	<gtExample>
+	| subProcess shape label element |
+	subProcess := CPNoneSubProcess new label: 'Expanded'; yourself.
+	shape := CPShape new
+		modelElement: subProcess;
+		bounds: (100 @ 100 extent: 360 @ 180);
+		isExpanded: true;
+		yourself.
+	label := BrLabel new text: 'Expanded'.
+	element := CPProcessShapeElement new.
+	element
+		shape: shape
+		modelElement: subProcess
+		bounds: shape bounds
+		background: Color transparent
+		borderColor: Color black
+		label: label
+		expanded: true.
+
+	self assert: element subProcessExpansionMarker notNil.
+	self assert: element children includes: label.
+	^ element
 ]

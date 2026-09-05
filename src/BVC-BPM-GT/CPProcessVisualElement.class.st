@@ -275,7 +275,11 @@ CPProcessVisualElement >> addShapeFor: aShape [
 		relocate: bounds origin.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
-	self installReplacementOnShape: element for: modelElement shape: aShape.
+	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ])
+		ifTrue: [
+			self installFlowContainerDropOn: element for: modelElement shape: aShape ]
+		ifFalse: [
+			self installReplacementOnShape: element for: modelElement shape: aShape ].
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
@@ -1683,6 +1687,70 @@ CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowEle
 		forFlowContainer: flowContainer
 ]
 
+
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> installFlowContainerDropOn: aShapeElement for: aFlowContainer shape: aShape [
+	createFlowNodeOperationBlock ifNil: [ ^ self ].
+	aShapeElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self
+				acceptsPaletteDragItem: aDragItem
+				intoFlowContainer: aFlowContainer ]
+		whenDroppedDo: [ :anEvent |
+			self
+				dropPaletteEvent: anEvent
+				intoFlowContainer: aFlowContainer
+				from: aShapeElement ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem intoFlowContainer: aFlowContainer [
+	| sourceElement candidate proposedBounds assessment |
+	createFlowNodeOperationBlock ifNil: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	proposedBounds := self
+		constrainedBounds: (0 @ 0 extent: (self extentForModelElement: candidate))
+		forFlowContainer: aFlowContainer.
+	assessment := (createFlowNodeOperationBlock
+		value: candidate
+		value: proposedBounds
+		value: aFlowContainer) assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> dropPaletteEvent: anEvent intoFlowContainer: aFlowContainer from: aDropElement [
+	| dragItem candidate elementExtent dropPoint origin bounds assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	candidate := dragItem domainObject.
+	elementExtent := self extentForModelElement: candidate.
+	dropPoint := self globalPointToLocal:
+		(aDropElement localPointToGlobal: anEvent position).
+	origin := dropPoint - (elementExtent / 2).
+	bounds := self
+		constrainedBounds: (origin extent: elementExtent)
+		forFlowContainer: aFlowContainer.
+	assessment := (createFlowNodeOperationBlock
+		value: candidate
+		value: bounds
+		value: aFlowContainer) apply.
+	assessment isApplicable ifTrue: [
+		selectedModelElements removeAll.
+		selectedModelElements add: candidate.
+		selectedModelElement := candidate.
+		self refresh.
+		self updateSelectionAppearance.
+		selectionChangedBlock ifNotNil: [ :aBlock |
+			aBlock value: candidate ] ].
+	^ assessment
+]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> addPaletteDropSurface [
 	| dropSurface isMarqueeDragging marqueeOrigin marqueeElement |
@@ -2935,9 +3003,8 @@ CPProcessVisualElement >> shapeElementsByModelElement [
 CPProcessVisualElement >> installSubProcessExpansionOn: aShapeElement for: aFlowNode shape: aShape [
 	aFlowNode isSubProcess ifFalse: [ ^ self ].
 	setShapeExpandedOperationBlock ifNil: [ ^ self ].
-	(self stagedExpandedOf: aShape) ifTrue: [ ^ self ].
-	aShapeElement installSubProcessExpansion: [
-		self setShape: aShape expanded: true ]
+	aShapeElement installSubProcessExpansion: [ :isExpanded |
+		self setShape: aShape expanded: isExpanded ]
 ]
 
 { #category : 'operations' }

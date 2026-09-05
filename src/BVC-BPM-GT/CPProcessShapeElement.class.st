@@ -94,10 +94,16 @@ CPProcessShapeElement >> addActivityLabelForBounds: aRectangle [
 		vFitContent;
 		constraintsDo: [ :c |
 			c maxWidth: (aRectangle width - 20 max: 1).
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter.
-			modelElement isSubProcess ifTrue: [
-				c margin: (BlInsets bottom: 4) ] ].
+			(modelElement isSubProcess and: [ isExpanded ])
+				ifTrue: [
+					c frame horizontal alignLeft.
+					c frame vertical alignTop.
+					c margin: (BlInsets top: 10 left: 12) ]
+				ifFalse: [
+					c frame horizontal alignCenter.
+					c frame vertical alignCenter.
+					modelElement isSubProcess ifTrue: [
+						c margin: (BlInsets bottom: 4) ] ] ].
 	self addChild: labelElement
 ]
 
@@ -408,8 +414,11 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
-	(modelElement isSubProcess and: [ isExpanded not ]) ifFalse: [ ^ self ].
-	subProcessExpansionMarker := (FontAwesomeIcons icon: #squarePlus)
+	modelElement isSubProcess ifFalse: [ ^ self ].
+	subProcessExpansionMarker := (FontAwesomeIcons
+		icon: (isExpanded
+			ifTrue: [ #squareMinus ]
+			ifFalse: [ #squarePlus ]))
 		size: 14 @ 14;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
@@ -427,7 +436,7 @@ CPProcessShapeElement >> installSubProcessExpansion: aBlock [
 		addEventHandler: (BlEventHandler
 			on: BlClickEvent
 			do: [ :anEvent |
-				aBlock value.
+				aBlock value: isExpanded not.
 				anEvent consumed: true ])
 ]
 
