@@ -871,7 +871,7 @@ CPProcessVisualElementExamples >> collapsedAndExpandedSubProcessControlNestedDia
 	<gtExample>
 	| fixture memento rootFlowDescription diagramMemento elementsDescription
 	  subProcess subProcessMemento nestedFlowDescription innerTask subShape innerShape
-	  rootFlows diagramElements shapeMemento expandedDescription visual |
+	  rootFlows diagramElements shapeMemento expandedDescription visual shapeElement nestedVisual |
 
 	fixture := self fixture.
 	memento := fixture second.
@@ -906,18 +906,22 @@ CPProcessVisualElementExamples >> collapsedAndExpandedSubProcessControlNestedDia
 	diagramMemento write: diagramElements using: elementsDescription.
 
 	visual := self visualElementForFixture: fixture.
-	self assert: (visual isFlowElementVisible: subProcess).
-	self assert: (visual isFlowElementVisible: innerTask) not.
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
 	self assert: (visual shapeElementsByModelElement includesKey: subProcess).
 	self assert: (visual shapeElementsByModelElement includesKey: innerTask) not.
+	self assert: shapeElement nestedProcessVisual isNil.
 
 	shapeMemento := diagramMemento childMementoFor: subShape inRelation: elementsDescription.
 	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
 	shapeMemento write: true using: expandedDescription.
 	visual refresh.
 
-	self assert: (visual isFlowElementVisible: innerTask).
-	self assert: (visual shapeElementsByModelElement includesKey: innerTask).
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+	self assert: nestedVisual notNil.
+	self assert: nestedVisual flowContainer == subProcess.
+	self assert: (visual shapeElementsByModelElement includesKey: innerTask) not.
+	self assert: (nestedVisual shapeElementsByModelElement includesKey: innerTask).
 	^ visual
 ]
 
