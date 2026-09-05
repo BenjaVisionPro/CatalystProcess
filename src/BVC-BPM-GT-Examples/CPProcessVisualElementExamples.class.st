@@ -329,8 +329,7 @@ CPProcessVisualElementExamples >> clickingShapeSelectsItsSemanticModelElement [
 
 	self assert: visual selectedModelElements size equals: 1.
 	self assert: (visual selectedModelElements identityIncludes: task).
-	self assert: visual selectedModelElements isEmpty.
-	self assert: visual selectedModelElement isNil.
+	self assert: visual selectedModelElement == task.
 	^ scripter
 ]
 
@@ -476,7 +475,8 @@ CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipel
 	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 142 @ 121. 260 @ 151 } asOrderedCollection).
 	self assert: (self stagedWaypointsOf: secondEdge processMemento: memento) equals: ({ 392 @ 151. 430 @ 121 } asOrderedCollection).
 	self assert: taskShape bounds equals: (220 @ 94 extent: 132 @ 54).
-	self assert: visual selectedModelElement == task.
+	self assert: visual selectedModelElements isEmpty.
+	self assert: visual selectedModelElement isNil.
 	^ scripter
 ]
 
