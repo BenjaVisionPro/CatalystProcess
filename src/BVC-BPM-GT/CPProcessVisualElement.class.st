@@ -13,6 +13,7 @@ Class {
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'edgeElementsByEdge',
+		'edgeHitElementsByEdge',
 		'edgeLabelElementsByEdge',
 		'externalLabelElementsByModelElement',
 		'connectionPortElementsByModelElement',
@@ -50,6 +51,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeElementsByEdge := IdentityDictionary new.
+	edgeHitElementsByEdge := IdentityDictionary new.
 	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	connectionPortElementsByModelElement := IdentityDictionary new.
@@ -85,6 +87,7 @@ CPProcessVisualElement >> refresh [
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
 	edgeElementsByEdge removeAll.
+	edgeHitElementsByEdge removeAll.
 	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
 	connectionPortElementsByModelElement removeAll.
@@ -1078,6 +1081,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 	self installPaletteInsertionOn: line for: anEdge.
 	self installBendpointInsertionOn: line for: anEdge segmentIndex: 1.
 	edgeElementsByEdge at: anEdge put: { line }.
+	edgeHitElementsByEdge at: anEdge put: { selectionLine }.
 	self addChild: selectionLine.
 	self addChild: line
 ]
@@ -1113,7 +1117,7 @@ CPProcessVisualElement >> anchorClassFor: aFlowNode [
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	| sequenceFlow source target sourceElement targetElement interiorPoints
-	  sourceReference targetReference pairCount lines |
+	  sourceReference targetReference pairCount lines hitLines |
 	waypoints size < 3 ifTrue: [ ^ self addStraightEdgeFor: anEdge ].
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
@@ -1128,6 +1132,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	self addChild: targetReference.
 
 	lines := OrderedCollection new.
+	hitLines := OrderedCollection new.
 	pairCount := interiorPoints size + 1.
 	1 to: pairCount do: [ :index |
 		| fromAnchor toAnchor line selectionLine |
@@ -1181,9 +1186,11 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 			for: anEdge
 			segmentIndex: index.
 		lines add: line.
+		hitLines add: selectionLine.
 		self addChild: selectionLine.
 		self addChild: line ].
-	edgeElementsByEdge at: anEdge put: lines
+	edgeElementsByEdge at: anEdge put: lines.
+	edgeHitElementsByEdge at: anEdge put: hitLines
 ]
 
 { #category : 'private - edges' }
@@ -1457,6 +1464,73 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 	^ assessment
 ]
 
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNode [
+	| candidates localPoint |
+	insertFlowNodeOperationBlock ifNil: [ ^ nil ].
+	candidates := OrderedCollection new.
+	edgeHitElementsByEdge keysAndValuesDo: [ :anEdge :someHitElements |
+		((self stagedSourceOf: anEdge modelElement) == aFlowNode
+			or: [ (self stagedTargetOf: anEdge modelElement) == aFlowNode ])
+			ifFalse: [
+				(someHitElements anySatisfy: [ :aHitElement |
+					aHitElement containsGlobalPoint: aGlobalPoint ])
+					ifTrue: [ candidates add: anEdge ] ] ].
+	candidates ifEmpty: [ ^ nil ].
+	candidates size = 1 ifTrue: [ ^ candidates first ].
+
+	localPoint := self globalPointToLocal: aGlobalPoint.
+	^ candidates
+		detectMin: [ :anEdge |
+			self distanceFrom: localPoint toRenderedEdge: anEdge ]
+]
+
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> distanceFrom: aPoint toRenderedEdge: anEdge [
+	| points bestDistance |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: (self stagedWaypointsOf: anEdge)
+		usingLiveBounds: true.
+	bestDistance := Float infinity.
+	1 to: points size - 1 do: [ :index |
+		| start finish vector lengthSquared parameter projected |
+		start := points at: index.
+		finish := points at: index + 1.
+		vector := finish - start.
+		lengthSquared := vector dotProduct: vector.
+		lengthSquared isZero
+			ifTrue: [
+				bestDistance := bestDistance min: (aPoint - start) r ]
+			ifFalse: [
+				parameter := ((aPoint - start) dotProduct: vector) / lengthSquared.
+				parameter := (parameter max: 0.0) min: 1.0.
+				projected := start + (vector * parameter).
+				bestDistance := bestDistance min: (aPoint - projected) r ] ].
+	^ bestDistance
+]
+
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEdge: anEdge atBounds: proposedBounds [
+	| assessment |
+	insertFlowNodeOperationBlock ifNil: [ ^ nil ].
+	assessment := (insertFlowNodeOperationBlock
+		value: anEdge modelElement
+		value: aFlowNode
+		value: proposedBounds) apply.
+	assessment isApplicable
+		ifTrue: [
+			selectedModelElements removeAll.
+			selectedModelElements add: aFlowNode.
+			selectedModelElement := aFlowNode.
+			self refresh.
+			self updateSelectionAppearance.
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aFlowNode ] ]
+		ifFalse: [
+			self moveShape: aShape toBounds: proposedBounds ].
+	^ assessment
+]
+
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 	self installPositioningFrom: anElement moving: anElement for: aShape
@@ -1506,11 +1580,22 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| proposedBounds |
+					| proposedBounds insertionEdge |
 					proposedBounds := aShapeElement position extent: originalBounds extent.
 					isDragging := false.
+					insertionEdge := self
+						insertionEdgeAtGlobalPoint: anEvent position
+						for: draggedModelElement.
 					anEvent consumed: true.
-					self moveShape: aShape toBounds: proposedBounds ] ])
+					insertionEdge
+						ifNil: [
+							self moveShape: aShape toBounds: proposedBounds ]
+						ifNotNil: [
+							self
+								insertExistingFlowNode: draggedModelElement
+								shape: aShape
+								intoEdge: insertionEdge
+								atBounds: proposedBounds ] ] ])
 ]
 
 { #category : 'private - theme' }

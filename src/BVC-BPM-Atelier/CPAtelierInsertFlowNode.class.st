@@ -1,6 +1,6 @@
-"I insert one fresh CPFlowNode into one staged CPSequenceFlow.
+"I insert one CPFlowNode into one staged CPSequenceFlow.
 
-I replace source->target with source->flowNode and flowNode->target as one Atelier operation. The old Sequence Flow and CPEdge are removed, a new CPShape is added at the proposed bounds, and both replacement Sequence Flows and CPEdges are staged together. Assessment validates both resulting connections against the staged Process topology before any mutation."
+I replace source->target with source->flowNode and flowNode->target as one Atelier operation. A fresh flow node receives a new CPShape; an already-staged flow node retains its existing CPShape and topology. The old Sequence Flow and CPEdge are removed and both replacement Sequence Flows and CPEdges are staged together. Assessment validates both resulting connections against the staged Process topology before any mutation."
 Class {
 	#name : 'CPAtelierInsertFlowNode',
 	#superclass : 'CFAtelierOperation',
@@ -35,7 +35,7 @@ CPAtelierInsertFlowNode >> assess [
 	  firstFlow secondFlow sourceDescription targetDescription
 	  diagram diagramMemento elementsDescription elements removedEdges removedEdge
 	  shape boundsDescription sourceShape targetShape sourceBounds targetBounds
-	  firstEdge secondEdge proposedFlowElements proposedElements |
+	  firstEdge secondEdge proposedFlowElements proposedElements flowNodeAlreadyPresent |
 
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
@@ -45,8 +45,7 @@ CPAtelierInsertFlowNode >> assess [
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: sequenceFlow) ifFalse: [
 		^ self rejectedBecause: 'The sequence flow does not belong to the staged process.' ].
-	(flowElements identityIncludes: flowNode) ifTrue: [
-		^ self rejectedBecause: 'The inserted flow node already belongs to the staged process.' ].
+	flowNodeAlreadyPresent := flowElements identityIncludes: flowNode.
 
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
@@ -54,7 +53,7 @@ CPAtelierInsertFlowNode >> assess [
 		^ self rejectedBecause: 'The sequence flow requires staged source and target nodes.' ].
 
 	topology := self stagedTopologyFrom: flowElements excluding: sequenceFlow.
-	topology addFlowElement: flowNode.
+	flowNodeAlreadyPresent ifFalse: [ topology addFlowElement: flowNode ].
 	rules := CPSequenceFlowConnectionRules new.
 	firstRule := rules assessConnectionFrom: source to: flowNode in: topology.
 	firstRule isAllowed ifFalse: [ ^ self rejectedBecause: firstRule message ].
@@ -111,7 +110,17 @@ CPAtelierInsertFlowNode >> assess [
 	(sourceBounds isNil or: [ targetBounds isNil ]) ifTrue: [
 		^ self rejectedBecause: 'Both endpoint shapes require staged bounds.' ].
 
-	shape := CPShape new modelElement: flowNode; bounds: bounds; yourself.
+	flowNodeAlreadyPresent
+		ifTrue: [
+			shape := self
+				shapeFor: flowNode
+				in: elements
+				diagramMemento: diagramMemento
+				elementsDescription: elementsDescription.
+			shape ifNil: [
+				^ self rejectedBecause: 'The staged flow node requires exactly one diagram shape.' ] ]
+		ifFalse: [
+			shape := CPShape new modelElement: flowNode; bounds: bounds; yourself ].
 	boundsDescription := shape magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ]
 		on: MAValidationError
@@ -128,8 +137,8 @@ CPAtelierInsertFlowNode >> assess [
 
 	proposedFlowElements := flowElements species withAll:
 		(flowElements reject: [ :each | each == sequenceFlow ]).
+	flowNodeAlreadyPresent ifFalse: [ proposedFlowElements add: flowNode ].
 	proposedFlowElements
-		add: flowNode;
 		add: firstFlow;
 		add: secondFlow.
 	[ flowElementsDescription validate: proposedFlowElements ]
@@ -138,8 +147,8 @@ CPAtelierInsertFlowNode >> assess [
 
 	proposedElements := elements species withAll:
 		(elements reject: [ :each | each == removedEdge ]).
+	flowNodeAlreadyPresent ifFalse: [ proposedElements add: shape ].
 	proposedElements
-		add: shape;
 		add: firstEdge;
 		add: secondEdge.
 	[ elementsDescription validate: proposedElements ]
@@ -161,11 +170,13 @@ CPAtelierInsertFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierInsertFlowNode >> applyAssessment: anAssessment [
-	| source target firstFlow secondFlow diagram diagramMemento elementsDescription |
+	| source target firstFlow secondFlow diagram diagramMemento elementsDescription flowNodeAlreadyPresent shapeMemento boundsDescription |
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 	firstFlow := anAssessment firstSequenceFlow.
 	secondFlow := anAssessment secondSequenceFlow.
+	flowNodeAlreadyPresent := (processMemento readUsing: flowElementsDescription)
+		identityIncludes: flowNode.
 
 	processMemento write: anAssessment proposedFlowElements using: flowElementsDescription.
 	self stageEndpointsOf: firstFlow source: source target: flowNode.
@@ -173,13 +184,26 @@ CPAtelierInsertFlowNode >> applyAssessment: anAssessment [
 
 	self stageOutgoingReplacing: sequenceFlow with: firstFlow for: source.
 	self stageIncomingReplacing: sequenceFlow with: secondFlow for: target.
-	self stageIncoming: { firstFlow } outgoing: { secondFlow } for: flowNode.
+	flowNodeAlreadyPresent
+		ifTrue: [
+			self
+				stageIncomingAdding: firstFlow
+				outgoingAdding: secondFlow
+				for: flowNode ]
+		ifFalse: [
+			self stageIncoming: { firstFlow } outgoing: { secondFlow } for: flowNode ].
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
+	shapeMemento := diagramMemento
+		childMementoFor: anAssessment shape
+		inRelation: elementsDescription.
+	boundsDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
+	shapeMemento write: bounds using: boundsDescription.
 
 	processMemento detachChildMementoFor: sequenceFlow inRelation: flowElementsDescription.
 	diagramMemento detachChildMementoFor: anAssessment removedEdge inRelation: elementsDescription
@@ -251,6 +275,24 @@ CPAtelierInsertFlowNode >> stageIncomingReplacing: oldFlow with: newFlow for: aF
 	proposed := current species withAll: (current collect: [ :each |
 		each == oldFlow ifTrue: [ newFlow ] ifFalse: [ each ] ]).
 	nodeMemento write: proposed using: description
+]
+
+{ #category : 'private - applying' }
+CPAtelierInsertFlowNode >> stageIncomingAdding: incomingFlow outgoingAdding: outgoingFlow for: aFlowNode [
+	| nodeMemento incomingDescription outgoingDescription currentIncoming currentOutgoing proposedIncoming proposedOutgoing |
+	nodeMemento := processMemento childMementoFor: aFlowNode inRelation: flowElementsDescription.
+	incomingDescription := nodeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #incoming ].
+	outgoingDescription := nodeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #outgoing ].
+	currentIncoming := nodeMemento readUsing: incomingDescription.
+	currentOutgoing := nodeMemento readUsing: outgoingDescription.
+	proposedIncoming := currentIncoming species withAll: currentIncoming.
+	proposedOutgoing := currentOutgoing species withAll: currentOutgoing.
+	proposedIncoming add: incomingFlow.
+	proposedOutgoing add: outgoingFlow.
+	nodeMemento write: proposedIncoming using: incomingDescription.
+	nodeMemento write: proposedOutgoing using: outgoingDescription
 ]
 
 { #category : 'private - applying' }
