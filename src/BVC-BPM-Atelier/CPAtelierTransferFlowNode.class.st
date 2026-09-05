@@ -1,6 +1,6 @@
 "I transfer one existing flow node between staged Process/Sub-Process flow containers and move its CPShape atomically.
 
-A single-node transfer is applicable only when the node has no staged incoming or outgoing Sequence Flows. Existing Sequence Flows cannot cross a flow-container boundary; moving connected topology requires an explicit topology-transfer intention."
+Sequence Flows may connect nodes owned by different Process/Sub-Process containers, so transferring a node preserves its staged incoming and outgoing relations. Semantic containment changes; connection topology does not."
 Class {
 	#name : 'CPAtelierTransferFlowNode',
 	#superclass : 'CFAtelierOperation',
@@ -64,8 +64,6 @@ CPAtelierTransferFlowNode >> assess [
 	outgoingDescription := sourceMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	incoming := sourceMemento readUsing: incomingDescription.
 	outgoing := sourceMemento readUsing: outgoingDescription.
-	(incoming isEmpty and: [ outgoing isEmpty ]) ifFalse: [
-		^ self rejectedBecause: 'A connected flow node requires topology transfer with its Sequence Flows.' ].
 
 	labelDescription := sourceMemento magritteDescription detect: [ :each | each handlesSelector: #label ].
 	stagedLabel := sourceMemento readUsing: labelDescription.
@@ -111,6 +109,8 @@ CPAtelierTransferFlowNode >> assess [
 		currentBounds: currentBounds
 		proposedBounds: proposedBounds
 		stagedLabel: stagedLabel
+		stagedIncoming: incoming
+		stagedOutgoing: outgoing
 		stagedNestedFlowElements: nestedElements
 ]
 
@@ -132,8 +132,8 @@ CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
 	outgoingDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	targetMemento write: anAssessment stagedLabel using: labelDescription.
 	targetMemento write: anAssessment targetContainer using: containerDescription.
-	targetMemento write: OrderedCollection new using: incomingDescription.
-	targetMemento write: OrderedCollection new using: outgoingDescription.
+	targetMemento write: anAssessment stagedIncoming using: incomingDescription.
+	targetMemento write: anAssessment stagedOutgoing using: outgoingDescription.
 	anAssessment stagedNestedFlowElements ifNotNil: [ :nested |
 		| nestedDescription |
 		nestedDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].

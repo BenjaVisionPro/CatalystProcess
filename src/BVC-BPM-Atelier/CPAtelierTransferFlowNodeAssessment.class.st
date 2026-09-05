@@ -11,6 +11,8 @@ Class {
 		'currentBounds',
 		'proposedBounds',
 		'stagedLabel',
+		'stagedIncoming',
+		'stagedOutgoing',
 		'stagedNestedFlowElements'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -19,7 +21,7 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierTransferFlowNodeAssessment class >> flowNode: aFlowNode shape: aShape sourceContainer: aSourceContainer targetContainer: aTargetContainer proposedSourceFlowElements: sourceElements proposedTargetFlowElements: targetElements currentBounds: currentBounds proposedBounds: proposedBounds stagedLabel: aLabel stagedNestedFlowElements: nestedElements [
+CPAtelierTransferFlowNodeAssessment class >> flowNode: aFlowNode shape: aShape sourceContainer: aSourceContainer targetContainer: aTargetContainer proposedSourceFlowElements: sourceElements proposedTargetFlowElements: targetElements currentBounds: currentBounds proposedBounds: proposedBounds stagedLabel: aLabel stagedIncoming: incoming stagedOutgoing: outgoing stagedNestedFlowElements: nestedElements [
 	^ self new
 		flowNode: aFlowNode;
 		shape: aShape;
@@ -30,6 +32,8 @@ CPAtelierTransferFlowNodeAssessment class >> flowNode: aFlowNode shape: aShape s
 		currentBounds: currentBounds;
 		proposedBounds: proposedBounds;
 		stagedLabel: aLabel;
+		stagedIncoming: incoming;
+		stagedOutgoing: outgoing;
 		stagedNestedFlowElements: nestedElements;
 		yourself
 ]
@@ -75,6 +79,16 @@ CPAtelierTransferFlowNodeAssessment >> proposedBounds: aRectangle [ proposedBoun
 CPAtelierTransferFlowNodeAssessment >> stagedLabel [ ^ stagedLabel ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNodeAssessment >> stagedLabel: anObject [ stagedLabel := anObject ]
+
+{ #category : 'accessing' }
+CPAtelierTransferFlowNodeAssessment >> stagedIncoming [ ^ stagedIncoming ]
+{ #category : 'accessing' }
+CPAtelierTransferFlowNodeAssessment >> stagedIncoming: aCollection [ stagedIncoming := aCollection ]
+{ #category : 'accessing' }
+CPAtelierTransferFlowNodeAssessment >> stagedOutgoing [ ^ stagedOutgoing ]
+{ #category : 'accessing' }
+CPAtelierTransferFlowNodeAssessment >> stagedOutgoing: aCollection [ stagedOutgoing := aCollection ]
+
 { #category : 'accessing' }
 CPAtelierTransferFlowNodeAssessment >> stagedNestedFlowElements [ ^ stagedNestedFlowElements ]
 { #category : 'accessing' }

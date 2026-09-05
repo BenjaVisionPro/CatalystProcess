@@ -1,6 +1,6 @@
-"I adapt Bloc drop handling for Process palette replacement targets.
+"I adapt Bloc drop handling for Process palette targets.
 
-BlDropHandler consumes every drag that crosses its target. Process nodes are themselves draggable, so I only enter the inherited drop protocol when the drag gesture originated from an Atelier palette source."
+BlDropHandler consumes every drag that crosses its target. Process nodes are themselves draggable, so I enter the inherited drop protocol only for drags originating from the single enclosing Atelier palette."
 Class {
 	#name : 'CPProcessPaletteDropHandler',
 	#superclass : 'BlDropHandler',

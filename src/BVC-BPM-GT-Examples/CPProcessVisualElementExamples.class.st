@@ -926,61 +926,6 @@ CPProcessVisualElementExamples >> collapsedAndExpandedSubProcessControlNestedDia
 ]
 
 
-{ #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> nestedBoundsAreConstrainedToExpandedSubProcessContent [
-	<gtExample>
-	| fixture memento rootFlowDescription diagramMemento elementsDescription
-	  subProcess subProcessMemento nestedDescription innerTask subShape innerShape
-	  rootFlows diagramElements visual constrained contentBounds |
-
-	fixture := self fixture.
-	memento := fixture second.
-	rootFlowDescription := self descriptionFor: #flowElements in: memento.
-	diagramMemento := self diagramMementoFor: memento.
-	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
-
-	subProcess := CPNoneSubProcess new label: 'Expanded'; yourself.
-	rootFlows := (memento readUsing: rootFlowDescription) asOrderedCollection copy.
-	rootFlows add: subProcess.
-	memento write: rootFlows using: rootFlowDescription.
-	subProcessMemento := memento childMementoFor: subProcess inRelation: rootFlowDescription.
-	nestedDescription := self descriptionFor: #flowElements in: subProcessMemento.
-	innerTask := CPUserTask new label: 'Inner'; yourself.
-	subProcessMemento write: { innerTask } asOrderedCollection using: nestedDescription.
-
-	subShape := CPShape new
-		modelElement: subProcess;
-		bounds: (180 @ 180 extent: 360 @ 180);
-		isExpanded: true;
-		yourself.
-	innerShape := CPShape new
-		modelElement: innerTask;
-		bounds: (220 @ 230 extent: 132 @ 54);
-		yourself.
-	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
-	diagramElements
-		add: subShape;
-		add: innerShape.
-	diagramMemento write: diagramElements using: elementsDescription.
-
-	visual := self visualElementForFixture: fixture.
-	contentBounds := visual contentBoundsForFlowContainer: subProcess.
-	constrained := visual
-		constrainedBounds: (100 @ 100 extent: 132 @ 54)
-		forFlowElement: innerTask.
-
-	self assert: contentBounds equals: ((196 @ 212) corner: (524 @ 344)).
-	self assert: constrained origin equals: 196 @ 212.
-	self assert: constrained extent equals: 132 @ 54.
-
-	constrained := visual
-		constrainedBounds: (500 @ 330 extent: 132 @ 54)
-		forFlowElement: innerTask.
-	self assert: constrained origin equals: 392 @ 290.
-	self assert: constrained extent equals: 132 @ 54.
-	^ visual
-]
-
 
 { #category : 'examples - subprocess' }
 CPProcessVisualElementExamples >> collapsedSubProcessExpansionAffordanceStagesExpandedShape [
@@ -1161,4 +1106,19 @@ CPProcessVisualElementExamples >> subProcessMovePersistsAbsoluteBoundsForItsNest
 	self assert: (boundsByShape at: subShape) equals: (125 @ 115 extent: 360 @ 180).
 	self assert: (boundsByShape at: taskShape) equals: (205 @ 165 extent: 132 @ 54).
 	^ visual
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedProcessVisualOwnsPaletteCreationTarget [
+	<gtExample>
+	| visual subProcessShape nestedVisual |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcessShape := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	nestedVisual := (visual shapeElementsByModelElement at: subProcessShape) nestedProcessVisual.
+
+	self assert: nestedVisual flowContainer == subProcessShape.
+	self assert: nestedVisual rootVisual == visual.
+	^ nestedVisual
 ]

@@ -834,7 +834,7 @@ CPProcessAtelierExamples >> sequenceFlowCannotCrossFlowContainerBoundary [
 
 
 { #category : 'examples - subprocess' }
-CPProcessAtelierExamples >> transferringUnconnectedNodeIntoSubProcessStagesContainmentAndBounds [
+CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBounds [
 	<gtExample>
 	| fixture memento rootDescription diagramDescription diagramMemento elementsDescription
 	  subProcess task rootElements subMemento subDescription shape diagramElements
@@ -888,5 +888,51 @@ CPProcessAtelierExamples >> transferringUnconnectedNodeIntoSubProcessStagesConta
 			readUsing: boundsDescription)
 		equals: (260 @ 240 extent: 132 @ 54).
 	self assert: task container isNil.
+	^ assessment
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> transferringConnectedNodePreservesSequenceFlowTopology [
+	<gtExample>
+	| fixture memento task firstFlow secondFlow rootDescription diagramDescription
+	  subProcess rootElements subMemento subDescription operation assessment
+	  targetMemento incomingDescription outgoingDescription |
+
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	firstFlow := fixture sixth.
+	secondFlow := fixture seventh.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	rootElements := (memento readUsing: rootDescription) asOrderedCollection copy.
+	rootElements add: subProcess.
+	memento write: rootElements using: rootDescription.
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: OrderedCollection new using: subDescription.
+
+	operation := CPAtelierTransferFlowNode
+		flowNode: task
+		targetContainer: subProcess
+		bounds: (260 @ 240 extent: 132 @ 54)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: ((memento readUsing: rootDescription) identityIncludes: task) not.
+	self assert: ((memento readUsing: rootDescription) identityIncludes: firstFlow).
+	self assert: ((memento readUsing: rootDescription) identityIncludes: secondFlow).
+	self assert: ((subMemento readUsing: subDescription) identityIncludes: task).
+
+	targetMemento := subMemento childMementoFor: task inRelation: subDescription.
+	incomingDescription := self descriptionFor: #incoming in: targetMemento.
+	outgoingDescription := self descriptionFor: #outgoing in: targetMemento.
+	self assert: ((targetMemento readUsing: incomingDescription) identityIncludes: firstFlow).
+	self assert: ((targetMemento readUsing: outgoingDescription) identityIncludes: secondFlow).
 	^ assessment
 ]

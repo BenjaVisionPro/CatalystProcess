@@ -9,6 +9,7 @@ Class {
 	#instVars : [
 		'memento',
 		'flowContainer',
+		'rootVisual',
 		'diagramDescription',
 		'flowElementsDescription',
 		'diagramMemento',
@@ -52,6 +53,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
+	rootVisual := self.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -80,6 +82,21 @@ CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 { #category : 'accessing' }
 CPProcessVisualElement >> flowContainer [
 	^ flowContainer
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> rootVisual [
+	^ rootVisual
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> rootVisual: aProcessVisual [
+	rootVisual := aProcessVisual
+]
+
+{ #category : 'updating' }
+CPProcessVisualElement >> refreshEditor [
+	rootVisual refresh
 ]
 
 { #category : 'accessing' }
@@ -1508,20 +1525,24 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| currentContainer targetContainer |
+							| currentContainer targetVisual targetContainer targetBounds |
 							currentContainer := self stagedFlowContainerContaining: draggedModelElement.
-							targetContainer := self
-								flowContainerAtLocalPoint: proposedBounds center
+							targetVisual := self
+								targetProcessVisualAtGlobalPoint: anEvent position
 								excluding: draggedModelElement.
+							targetContainer := targetVisual flowContainer.
 							(currentContainer notNil
 								and: [ targetContainer ~~ currentContainer
 								and: [ transferFlowNodeOperationBlock notNil ] ])
 								ifTrue: [
-									self
+									targetBounds := targetVisual
+										boundsCenteredAtGlobalPoint: anEvent position
+										extent: proposedBounds extent.
+									targetVisual
 										transferFlowNode: draggedModelElement
 										shape: aShape
 										toContainer: targetContainer
-										bounds: proposedBounds ]
+										bounds: targetBounds ]
 								ifFalse: [
 									self
 										moveShapeOrSubProcess: aShape
@@ -1613,7 +1634,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdg
 		value: anEdge modelElement
 		value: candidate
 		value: proposedBounds
-		value: (self stagedFlowContainerContaining: aFlowNode)) assess.
+		value: (self stagedFlowContainerContaining: anEdge modelElement)) assess.
 	^ assessment isApplicable
 ]
 
@@ -1730,102 +1751,16 @@ CPProcessVisualElement >> segmentFrom: aStart to: anEnd intersectsRectangle: aRe
 
 
 { #category : 'private - containment geometry' }
-CPProcessVisualElement >> contentBoundsForFlowContainer: aFlowContainer [
-	| shape bounds |
-	aFlowContainer == flowContainer ifTrue: [ ^ nil ].
-	shape := self diagramShapeForModelElement: aFlowContainer.
-	shape ifNil: [ ^ nil ].
-	bounds := self stagedBoundsOf: shape.
-	bounds ifNil: [ ^ nil ].
-	^ (bounds left + 16 @ (bounds top + 32))
-		corner: (bounds right - 16 @ (bounds bottom - 16))
-]
-
-{ #category : 'private - containment geometry' }
 CPProcessVisualElement >> constrainedBounds: aRectangle forFlowContainer: aFlowContainer [
-	| contentBounds maximumX maximumY constrainedX constrainedY |
-	contentBounds := self contentBoundsForFlowContainer: aFlowContainer.
-	contentBounds ifNil: [ ^ aRectangle ].
-	maximumX := contentBounds right - aRectangle width.
-	maximumY := contentBounds bottom - aRectangle height.
-	constrainedX := (aRectangle left max: contentBounds left) min: maximumX.
-	constrainedY := (aRectangle top max: contentBounds top) min: maximumY.
-	^ constrainedX @ constrainedY extent: aRectangle extent
+	^ aRectangle
 ]
 
 { #category : 'private - containment geometry' }
 CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowElement [
-	| flowContainer |
-	flowContainer := self stagedFlowContainerContaining: aFlowElement.
-	flowContainer ifNil: [ ^ aRectangle ].
-	^ self
-		constrainedBounds: aRectangle
-		forFlowContainer: flowContainer
+	^ aRectangle
 ]
 
 
-
-{ #category : 'private - creation' }
-CPProcessVisualElement >> installFlowContainerDropOn: aShapeElement for: aFlowContainer shape: aShape [
-	createFlowNodeOperationBlock ifNil: [ ^ self ].
-	aShapeElement addEventHandler: (CPProcessPaletteDropHandler new
-		acceptItemsSuchThat: [ :aDragItem :aDropArea |
-			self
-				acceptsPaletteDragItem: aDragItem
-				intoFlowContainer: aFlowContainer ];
-		whenDroppedDo: [ :anEvent |
-			self
-				dropPaletteEvent: anEvent
-				intoFlowContainer: aFlowContainer
-				from: aShapeElement ];
-		yourself)
-]
-
-{ #category : 'private - creation' }
-CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem intoFlowContainer: aFlowContainer [
-	| sourceElement candidate proposedBounds assessment |
-	createFlowNodeOperationBlock ifNil: [ ^ false ].
-	sourceElement := aDragItem sourceElement.
-	sourceElement ifNil: [ ^ false ].
-	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
-	candidate := aDragItem domainObject.
-	proposedBounds := self
-		constrainedBounds: (0 @ 0 extent: (self extentForModelElement: candidate))
-		forFlowContainer: aFlowContainer.
-	assessment := (createFlowNodeOperationBlock
-		value: candidate
-		value: proposedBounds
-		value: aFlowContainer) assess.
-	^ assessment isApplicable
-]
-
-{ #category : 'private - creation' }
-CPProcessVisualElement >> dropPaletteEvent: anEvent intoFlowContainer: aFlowContainer from: aDropElement [
-	| dragItem candidate elementExtent dropPoint origin bounds assessment |
-	anEvent items size = 1 ifFalse: [ ^ self ].
-	dragItem := anEvent items first.
-	candidate := dragItem domainObject.
-	elementExtent := self extentForModelElement: candidate.
-	dropPoint := self globalPointToLocal:
-		(aDropElement localPointToGlobal: anEvent position).
-	origin := dropPoint - (elementExtent / 2).
-	bounds := self
-		constrainedBounds: (origin extent: elementExtent)
-		forFlowContainer: aFlowContainer.
-	assessment := (createFlowNodeOperationBlock
-		value: candidate
-		value: bounds
-		value: aFlowContainer) apply.
-	assessment isApplicable ifTrue: [
-		selectedModelElements removeAll.
-		selectedModelElements add: candidate.
-		selectedModelElement := candidate.
-		self refresh.
-		self updateSelectionAppearance.
-		selectionChangedBlock ifNotNil: [ :aBlock |
-			aBlock value: candidate ] ].
-	^ assessment
-]
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> addPaletteDropSurface [
@@ -1916,26 +1851,40 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
-	| dragItem candidate elementExtent dropPoint origin bounds flowContainer assessment |
+	| dragItem globalPoint targetVisual |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
-	candidate := dragItem domainObject.
+	globalPoint := anEvent currentTarget
+		localPointToGlobal: anEvent position.
+	targetVisual := self
+		targetProcessVisualAtGlobalPoint: globalPoint
+		excluding: nil.
+	^ targetVisual
+		createPaletteItem: dragItem
+		atGlobalPoint: globalPoint
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> createPaletteItem: aDragItem atGlobalPoint: aGlobalPoint [
+	| candidate elementExtent bounds assessment |
+	candidate := aDragItem domainObject.
 	elementExtent := self extentForModelElement: candidate.
-	dropPoint := anEvent position.
-	origin :=
-		((dropPoint x - (elementExtent x / 2)) max: 0)
-		@ ((dropPoint y - (elementExtent y / 2)) max: 0).
-	bounds := origin extent: elementExtent.
-	flowContainer := self flowContainerAtLocalPoint: dropPoint.
+	bounds := self
+		boundsCenteredAtGlobalPoint: aGlobalPoint
+		extent: elementExtent.
 	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
 	assessment := (createFlowNodeOperationBlock
 		value: candidate
 		value: bounds
 		value: flowContainer) apply.
-	assessment isApplicable ifTrue: [ self refresh ].
+	assessment isApplicable ifTrue: [
+		selectedModelElements removeAll.
+		selectedModelElements add: candidate.
+		selectedModelElement := candidate.
+		self refreshEditor.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
 	^ assessment
 ]
-
 { #category : 'private - replacement' }
 CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNode shape: aShape [
 	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
@@ -1961,7 +1910,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 		value: aFlowNode
 		value: candidate
 		value: proposedBounds
-		value: (self stagedFlowContainerContaining: aFlowNode)) assess.
+		value: (self stagedFlowContainerContaining: anEdge modelElement)) assess.
 	^ assessment isApplicable
 ]
 
@@ -3059,34 +3008,39 @@ CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
 	^ context ifNotNil: [ context container ]
 ]
 
-{ #category : 'private - creation' }
-CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint [
-	^ self flowContainerAtLocalPoint: aPoint excluding: nil
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> processVisualAtGlobalPoint: aGlobalPoint excluding: anExcludedFlowElement [
+	| nestedCandidate |
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :aShapeElement |
+		(aModelElement isSubProcess
+			and: [ aModelElement ~~ anExcludedFlowElement
+			and: [ aShapeElement nestedProcessVisual notNil ] ]) ifTrue: [
+				| viewport localPoint |
+				viewport := aShapeElement nestedProcessViewport.
+				localPoint := viewport globalPointToLocal: aGlobalPoint.
+				((0 @ 0 extent: viewport extent) containsPoint: localPoint) ifTrue: [
+					nestedCandidate := aShapeElement nestedProcessVisual
+						processVisualAtGlobalPoint: aGlobalPoint
+						excluding: anExcludedFlowElement.
+					nestedCandidate ifNotNil: [ ^ nestedCandidate ] ] ] ].
+	^ self
 ]
 
-{ #category : 'private - creation' }
-CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint excluding: anExcludedFlowElement [
-	| candidates |
-	candidates := OrderedCollection new.
-	shapeElementsByShape keysDo: [ :aShape |
-		| modelElement bounds |
-		modelElement := self stagedModelElementOf: aShape.
-		(modelElement notNil
-			and: [ modelElement ~~ anExcludedFlowElement
-			and: [ modelElement isSubProcess
-			and: [ self stagedExpandedOf: aShape ] ] ]) ifTrue: [
-				bounds := self stagedBoundsOf: aShape.
-				(bounds notNil and: [ bounds containsPoint: aPoint ]) ifTrue: [
-					candidates add: { modelElement. bounds } ] ] ].
-	candidates ifEmpty: [ ^ flowContainer ].
-	^ (candidates
-		inject: candidates first
-		into: [ :smallest :each |
-			(each second width * each second height)
-				< (smallest second width * smallest second height)
-					ifTrue: [ each ]
-					ifFalse: [ smallest ] ]) first
+{ #category : 'private - containment' }
+CPProcessVisualElement >> targetProcessVisualAtGlobalPoint: aGlobalPoint excluding: anExcludedFlowElement [
+	^ rootVisual
+		processVisualAtGlobalPoint: aGlobalPoint
+		excluding: anExcludedFlowElement
 ]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> boundsCenteredAtGlobalPoint: aGlobalPoint extent: anExtent [
+	| localCenter |
+	localCenter := self globalPointToLocal: aGlobalPoint.
+	^ (localCenter - (anExtent / 2)) extent: anExtent
+]
+
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedExpandedOf: aShape [
@@ -3122,6 +3076,7 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 { #category : 'private - subprocess' }
 CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 	aVisual
+		rootVisual: rootVisual;
 		selectionChangedDo: selectionChangedBlock;
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
@@ -3177,6 +3132,8 @@ CPProcessVisualElement >> transferFlowNode: aFlowNode shape: aShape toContainer:
 		value: aFlowNode
 		value: aFlowContainer
 		value: constrainedBounds) apply.
-	self refresh.
+	assessment isApplicable
+		ifTrue: [ self refreshEditor ]
+		ifFalse: [ self refresh ].
 	^ assessment
 ]
