@@ -1767,7 +1767,8 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								| proposed |
 								proposed := self translatedWaypointsOf: anEdge by: delta.
 								self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
-								self positionReconnectHandlesFor: anEdge usingWaypoints: proposed ].
+								self positionReconnectHandlesFor: anEdge usingWaypoints: proposed.
+								self positionBendpointHandlesFor: anEdge usingWaypoints: proposed ].
 							self bringReconnectHandlesToFront.
 							self bringBendpointHandlesToFront.
 							self bringResizeHandlesToFront ]
@@ -2661,6 +2662,18 @@ CPProcessVisualElement >> waypointsFor: anEdge inserting: aPoint afterSegment: a
 	insertionIndex := aSegmentIndex + 1.
 	proposed add: aPoint beforeIndex: insertionIndex.
 	^ proposed
+]
+
+{ #category : 'private - bendpoints' }
+CPProcessVisualElement >> positionBendpointHandlesFor: anEdge usingWaypoints: someWaypoints [
+	| handles |
+	handles := bendpointHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	handles size = (someWaypoints size - 2) ifFalse: [ ^ self ].
+	1 to: handles size do: [ :index |
+		| handle point |
+		handle := handles at: index.
+		point := someWaypoints at: index + 1.
+		handle relocate: point - (handle extent / 2) ]
 ]
 
 { #category : 'private - bendpoints' }
