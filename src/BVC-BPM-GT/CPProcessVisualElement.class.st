@@ -227,8 +227,7 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 	aVisibleIcon
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
-			c frame vertical alignCenter ];
-		beMouseTransparent.
+			c frame vertical alignCenter ].
 
 	aShapeElement addChild: (BlElement new
 		extent: 24 @ 24;
