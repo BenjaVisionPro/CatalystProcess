@@ -3,9 +3,11 @@ Class {
 	#superclass : 'CFAtelierAssessment',
 	#instVars : [
 		'edge',
-		'currentPathPosition',
+		'currentSegmentIndex',
+		'currentSegmentPosition',
 		'currentOffset',
-		'proposedPathPosition',
+		'proposedSegmentIndex',
+		'proposedSegmentPosition',
 		'proposedOffset'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
@@ -14,23 +16,27 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierSetEdgeLabelPlacementAssessment class >> edge: anEdge currentPathPosition: currentPathPosition currentOffset: currentOffset proposedPathPosition: proposedPathPosition proposedOffset: proposedOffset [
+CPAtelierSetEdgeLabelPlacementAssessment class >> edge: anEdge currentSegmentIndex: currentSegmentIndex currentSegmentPosition: currentSegmentPosition currentOffset: currentOffset proposedSegmentIndex: proposedSegmentIndex proposedSegmentPosition: proposedSegmentPosition proposedOffset: proposedOffset [
 	^ self new
 		edge: anEdge;
-		currentPathPosition: currentPathPosition;
+		currentSegmentIndex: currentSegmentIndex;
+		currentSegmentPosition: currentSegmentPosition;
 		currentOffset: currentOffset;
-		proposedPathPosition: proposedPathPosition;
+		proposedSegmentIndex: proposedSegmentIndex;
+		proposedSegmentPosition: proposedSegmentPosition;
 		proposedOffset: proposedOffset;
 		yourself
 ]
 
 { #category : 'instance creation' }
-CPAtelierSetEdgeLabelPlacementAssessment class >> edge: anEdge currentPathPosition: currentPathPosition currentOffset: currentOffset proposedPathPosition: proposedPathPosition proposedOffset: proposedOffset rejectedBecause: aString [
+CPAtelierSetEdgeLabelPlacementAssessment class >> edge: anEdge currentSegmentIndex: currentSegmentIndex currentSegmentPosition: currentSegmentPosition currentOffset: currentOffset proposedSegmentIndex: proposedSegmentIndex proposedSegmentPosition: proposedSegmentPosition proposedOffset: proposedOffset rejectedBecause: aString [
 	^ self new
 		edge: anEdge;
-		currentPathPosition: currentPathPosition;
+		currentSegmentIndex: currentSegmentIndex;
+		currentSegmentPosition: currentSegmentPosition;
 		currentOffset: currentOffset;
-		proposedPathPosition: proposedPathPosition;
+		proposedSegmentIndex: proposedSegmentIndex;
+		proposedSegmentPosition: proposedSegmentPosition;
 		proposedOffset: proposedOffset;
 		rejectionMessage: aString;
 		yourself
@@ -41,17 +47,25 @@ CPAtelierSetEdgeLabelPlacementAssessment >> edge [ ^ edge ]
 { #category : 'accessing' }
 CPAtelierSetEdgeLabelPlacementAssessment >> edge: anEdge [ edge := anEdge ]
 { #category : 'accessing' }
-CPAtelierSetEdgeLabelPlacementAssessment >> currentPathPosition [ ^ currentPathPosition ]
+CPAtelierSetEdgeLabelPlacementAssessment >> currentSegmentIndex [ ^ currentSegmentIndex ]
 { #category : 'accessing' }
-CPAtelierSetEdgeLabelPlacementAssessment >> currentPathPosition: aNumber [ currentPathPosition := aNumber ]
+CPAtelierSetEdgeLabelPlacementAssessment >> currentSegmentIndex: anInteger [ currentSegmentIndex := anInteger ]
+{ #category : 'accessing' }
+CPAtelierSetEdgeLabelPlacementAssessment >> currentSegmentPosition [ ^ currentSegmentPosition ]
+{ #category : 'accessing' }
+CPAtelierSetEdgeLabelPlacementAssessment >> currentSegmentPosition: aNumber [ currentSegmentPosition := aNumber ]
 { #category : 'accessing' }
 CPAtelierSetEdgeLabelPlacementAssessment >> currentOffset [ ^ currentOffset ]
 { #category : 'accessing' }
 CPAtelierSetEdgeLabelPlacementAssessment >> currentOffset: aNumber [ currentOffset := aNumber ]
 { #category : 'accessing' }
-CPAtelierSetEdgeLabelPlacementAssessment >> proposedPathPosition [ ^ proposedPathPosition ]
+CPAtelierSetEdgeLabelPlacementAssessment >> proposedSegmentIndex [ ^ proposedSegmentIndex ]
 { #category : 'accessing' }
-CPAtelierSetEdgeLabelPlacementAssessment >> proposedPathPosition: aNumber [ proposedPathPosition := aNumber ]
+CPAtelierSetEdgeLabelPlacementAssessment >> proposedSegmentIndex: anInteger [ proposedSegmentIndex := anInteger ]
+{ #category : 'accessing' }
+CPAtelierSetEdgeLabelPlacementAssessment >> proposedSegmentPosition [ ^ proposedSegmentPosition ]
+{ #category : 'accessing' }
+CPAtelierSetEdgeLabelPlacementAssessment >> proposedSegmentPosition: aNumber [ proposedSegmentPosition := aNumber ]
 { #category : 'accessing' }
 CPAtelierSetEdgeLabelPlacementAssessment >> proposedOffset [ ^ proposedOffset ]
 { #category : 'accessing' }

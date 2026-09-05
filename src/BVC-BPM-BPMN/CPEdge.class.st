@@ -3,7 +3,8 @@ Class {
 	#superclass : 'CPDiagramElement',
 	#instVars : [
 		'waypoints',
-		'labelPathPosition',
+		'labelSegmentIndex',
+		'labelSegmentPosition',
 		'labelOffset'
 	],
 	#category : 'BVC-BPM-BPMN',
@@ -60,14 +61,48 @@ CPEdge >> waypointsDescription [
 
 
 
+
+
 { #category : 'accessing' }
-CPEdge >> labelPathPosition [
-	^ labelPathPosition
+CPEdge >> labelSegmentIndex [
+	^ labelSegmentIndex
 ]
 
 { #category : 'accessing' }
-CPEdge >> labelPathPosition: aNumber [
-	labelPathPosition := aNumber
+CPEdge >> labelSegmentIndex: anInteger [
+	labelSegmentIndex := anInteger
+]
+
+{ #category : 'accessing' }
+CPEdge >> labelSegmentPosition [
+	^ labelSegmentPosition
+]
+
+{ #category : 'accessing' }
+CPEdge >> labelSegmentPosition: aNumber [
+	labelSegmentPosition := aNumber
+]
+
+{ #category : 'descriptions' }
+CPEdge >> labelSegmentIndexDescription [
+	<magritteDescription>
+	^ MANumberDescription new
+		accessor: #labelSegmentIndex;
+		label: 'Label segment';
+		priority: 120;
+		group: 'Diagram';
+		yourself
+]
+
+{ #category : 'descriptions' }
+CPEdge >> labelSegmentPositionDescription [
+	<magritteDescription>
+	^ MANumberDescription new
+		accessor: #labelSegmentPosition;
+		label: 'Label segment position';
+		priority: 130;
+		group: 'Diagram';
+		yourself
 ]
 
 { #category : 'accessing' }
@@ -80,16 +115,6 @@ CPEdge >> labelOffset: aNumber [
 	labelOffset := aNumber
 ]
 
-{ #category : 'descriptions' }
-CPEdge >> labelPathPositionDescription [
-	<magritteDescription>
-	^ MANumberDescription new
-		accessor: #labelPathPosition;
-		label: 'Label path position';
-		priority: 120;
-		group: 'Diagram';
-		yourself
-]
 
 { #category : 'descriptions' }
 CPEdge >> labelOffsetDescription [
@@ -97,7 +122,7 @@ CPEdge >> labelOffsetDescription [
 	^ MANumberDescription new
 		accessor: #labelOffset;
 		label: 'Label offset';
-		priority: 130;
+		priority: 140;
 		group: 'Diagram';
 		yourself
 ]

@@ -167,11 +167,20 @@ CPProcessVisualElement >> stagedWaypointsOf: anEdge [
 ]
 
 { #category : 'private - staged state' }
-CPProcessVisualElement >> stagedLabelPathPositionOf: anEdge [
+CPProcessVisualElement >> stagedLabelSegmentIndexOf: anEdge [
 	| edgeMemento description |
 	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
 	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #labelPathPosition ].
+		detect: [ :each | each handlesSelector: #labelSegmentIndex ].
+	^ edgeMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedLabelSegmentPositionOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #labelSegmentPosition ].
 	^ edgeMemento readUsing: description
 ]
 
@@ -476,7 +485,7 @@ CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge 
 						waypoints: (self stagedWaypointsOf: anEdge).
 					self
 						positionEdgeLabelHost: aLabelHost
-						centeredAt: lastPlacement third.
+						centeredAt: lastPlacement fourth.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -485,19 +494,21 @@ CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge 
 					isDragging := false.
 					lastPlacement ifNotNil: [
 						self
-							setLabelPathPosition: lastPlacement first
-							offset: lastPlacement second
+							setLabelSegmentIndex: lastPlacement first
+							segmentPosition: lastPlacement second
+							offset: lastPlacement third
 							forEdge: anEdge ].
 					anEvent consumed: true ] ])
 ]
 
 { #category : 'operations' }
-CPProcessVisualElement >> setLabelPathPosition: aPathPosition offset: anOffset forEdge: anEdge [
+CPProcessVisualElement >> setLabelSegmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset forEdge: anEdge [
 	| assessment |
 	setEdgeLabelPlacementOperationBlock ifNil: [ ^ nil ].
 	assessment := (setEdgeLabelPlacementOperationBlock
 		value: anEdge
-		value: aPathPosition
+		value: aSegmentIndex
+		value: aSegmentPosition
 		value: anOffset) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
@@ -506,73 +517,75 @@ CPProcessVisualElement >> setLabelPathPosition: aPathPosition offset: anOffset f
 ]
 
 { #category : 'private - labels' }
-CPProcessVisualElement >> labelPlacementFor: anEdge pathPosition: aPathPosition offset: anOffset waypoints: someWaypoints usingLiveBounds: useLiveBounds [
-	| points pathPoint tangent normal |
+CPProcessVisualElement >> defaultLabelSegmentIndexForWaypoints: someWaypoints [
+	^ ((someWaypoints size - 1) / 2.0) ceiling
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> labelPlacementFor: anEdge segmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset waypoints: someWaypoints usingLiveBounds: useLiveBounds [
+	| points effectiveIndex start finish vector length tangent normal point |
 	points := self
 		renderedPathPointsFor: anEdge
 		waypoints: someWaypoints
 		usingLiveBounds: useLiveBounds.
-	pathPoint := self
-		pointAndTangentAlong: points
-		atFraction: aPathPosition.
-	tangent := pathPoint second.
+	effectiveIndex := (aSegmentIndex max: 1) min: points size - 1.
+	start := points at: effectiveIndex.
+	finish := points at: effectiveIndex + 1.
+	vector := finish - start.
+	length := vector r.
+	length isZero
+		ifTrue: [ tangent := 1.0 @ 0.0 ]
+		ifFalse: [ tangent := vector / length ].
 	normal := tangent y negated @ tangent x.
+	point := start + (vector * ((aSegmentPosition max: 0.0) min: 1.0)).
 	^ {
-		pathPoint first + (normal * anOffset).
+		point + (normal * anOffset).
 		tangent
 	}
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> nearestLabelPlacementFor: anEdge to: aPoint waypoints: someWaypoints [
-	| points segments totalLength bestDistance bestPathDistance bestPoint bestTangent traversed maximumOffset rawOffset clampedOffset normal |
+	| points bestDistance bestSegment bestPosition bestPoint bestTangent maximumOffset rawOffset clampedOffset normal |
 	points := self
 		renderedPathPointsFor: anEdge
 		waypoints: someWaypoints
 		usingLiveBounds: true.
-	segments := OrderedCollection new.
-	totalLength := 0.0.
-	1 to: points size - 1 do: [ :index |
-		| start finish length |
-		start := points at: index.
-		finish := points at: index + 1.
-		length := (finish - start) r.
-		segments add: { start. finish. length }.
-		totalLength := totalLength + length ].
 
 	bestDistance := Float infinity.
-	bestPathDistance := 0.0.
+	bestSegment := 1.
+	bestPosition := 0.5.
 	bestPoint := points first.
 	bestTangent := 1.0 @ 0.0.
-	traversed := 0.0.
-	segments do: [ :segment |
-		| start finish length vector parameter projected distance tangent |
-		start := segment first.
-		finish := segment second.
-		length := segment third.
-		length isZero
+
+	1 to: points size - 1 do: [ :index |
+		| start finish vector lengthSquared length parameter projected distance tangent |
+		start := points at: index.
+		finish := points at: index + 1.
+		vector := finish - start.
+		lengthSquared := vector dotProduct: vector.
+		lengthSquared isZero
 			ifFalse: [
-				vector := finish - start.
-				parameter := ((aPoint - start) dotProduct: vector) / (length * length).
+				parameter := ((aPoint - start) dotProduct: vector) / lengthSquared.
 				parameter := (parameter max: 0.0) min: 1.0.
 				projected := start + (vector * parameter).
 				distance := (aPoint - projected) r.
 				distance < bestDistance ifTrue: [
 					bestDistance := distance.
-					bestPathDistance := traversed + (length * parameter).
+					bestSegment := index.
+					bestPosition := parameter.
 					bestPoint := projected.
+					length := lengthSquared sqrt.
 					tangent := vector / length.
-					bestTangent := tangent ] ].
-		traversed := traversed + length ].
+					bestTangent := tangent ] ] ].
 
 	normal := bestTangent y negated @ bestTangent x.
 	rawOffset := (aPoint - bestPoint) dotProduct: normal.
 	maximumOffset := 40.0.
 	clampedOffset := (rawOffset max: maximumOffset negated) min: maximumOffset.
 	^ {
-		totalLength isZero
-			ifTrue: [ 0.5 ]
-			ifFalse: [ bestPathDistance / totalLength ].
+		bestSegment.
+		bestPosition.
 		clampedOffset.
 		bestPoint + (normal * clampedOffset)
 	}
@@ -662,15 +675,19 @@ CPProcessVisualElement >> positionEdgeLabelHost: aLabelHost centeredAt: aPoint [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
-	| labelHost pathPosition offset placement |
+	| labelHost waypoints segmentIndex segmentPosition offset placement |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	pathPosition := (self stagedLabelPathPositionOf: anEdge) ifNil: [ 0.5 ].
+	waypoints := self stagedWaypointsOf: anEdge.
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+		ifNil: [ self defaultLabelSegmentIndexForWaypoints: waypoints ].
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
 	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
 	placement := self
 		labelPlacementFor: anEdge
-		pathPosition: pathPosition
+		segmentIndex: segmentIndex
+		segmentPosition: segmentPosition
 		offset: offset
-		waypoints: (self stagedWaypointsOf: anEdge)
+		waypoints: waypoints
 		usingLiveBounds: false.
 	self
 		positionEdgeLabelHost: labelHost
@@ -792,13 +809,17 @@ CPProcessVisualElement >> midpointOfRenderedLines: someLines [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypoints [
-	| labelHost pathPosition offset placement |
+	| labelHost segmentIndex segmentPosition offset placement |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	pathPosition := (self stagedLabelPathPositionOf: anEdge) ifNil: [ 0.5 ].
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+		ifNil: [ self defaultLabelSegmentIndexForWaypoints: someWaypoints ].
+	segmentIndex := segmentIndex min: someWaypoints size - 1.
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
 	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
 	placement := self
 		labelPlacementFor: anEdge
-		pathPosition: pathPosition
+		segmentIndex: segmentIndex
+		segmentPosition: segmentPosition
 		offset: offset
 		waypoints: someWaypoints
 		usingLiveBounds: true.
@@ -855,15 +876,19 @@ CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
-	| labelHost pathPosition offset placement |
+	| labelHost waypoints segmentIndex segmentPosition offset placement |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	pathPosition := (self stagedLabelPathPositionOf: anEdge) ifNil: [ 0.5 ].
+	waypoints := self stagedWaypointsOf: anEdge.
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+		ifNil: [ self defaultLabelSegmentIndexForWaypoints: waypoints ].
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
 	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
 	placement := self
 		labelPlacementFor: anEdge
-		pathPosition: pathPosition
+		segmentIndex: segmentIndex
+		segmentPosition: segmentPosition
 		offset: offset
-		waypoints: (self stagedWaypointsOf: anEdge)
+		waypoints: waypoints
 		usingLiveBounds: true.
 	self
 		positionEdgeLabelHost: labelHost
