@@ -420,3 +420,110 @@ CPProcessVisualElementExamples >> escapeKeyClearsSelectionThroughVisualCancellat
 	self assert: visual selectedModelElement isNil.
 	^ scripter
 ]
+
+
+{ #category : 'private - gestures' }
+CPProcessVisualElementExamples >> dragDestinationAt: aPoint id: anId in: aVisualElement [
+	| marker |
+	marker := BlElement new
+		id: anId;
+		extent: 2 @ 2;
+		relocate: aPoint - (1 @ 1);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	aVisualElement addChild: marker.
+	^ marker
+]
+
+{ #category : 'examples - gestures - dragging' }
+CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipeline [
+	<gtExample>
+	| fixture visual memento task taskShape firstEdge secondEdge shapeElement destination scripter delta expectedBounds |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	secondEdge := fixture at: 13.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementFor: taskShape.
+	shapeElement id: #processTaskShape.
+
+	delta := 40 @ 30.
+	destination := shapeElement position + (shapeElement extent / 2) + delta.
+	self dragDestinationAt: destination id: #shapeDragDestination in: visual.
+	expectedBounds := taskShape bounds translateBy: delta.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	(scripter mouseMoveOver)
+		label: 'Move pointer over task shape';
+		id: #processTaskShape;
+		play.
+	(scripter mouseDown)
+		label: 'Press task shape';
+		play.
+	(scripter mouseMoveOver)
+		label: 'Drag task shape to destination';
+		id: #shapeDragDestination;
+		play.
+	(scripter mouseUp)
+		label: 'Release task shape';
+		play.
+
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: expectedBounds.
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 142 @ 121. 260 @ 151 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: secondEdge processMemento: memento) equals: ({ 392 @ 151. 430 @ 121 } asOrderedCollection).
+	self assert: taskShape bounds equals: (220 @ 94 extent: 132 @ 54).
+	self assert: visual selectedModelElement == task.
+	^ scripter
+]
+
+{ #category : 'examples - gestures - dragging' }
+CPProcessVisualElementExamples >> draggingOneOfMultipleSelectedShapesStagesOneGroupMove [
+	<gtExample>
+	| fixture visual memento start task startShape taskShape firstEdge taskElement destination scripter delta |
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	task := fixture fourth.
+	startShape := fixture at: 9.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	visual := self visualElementForFixture: fixture.
+	taskElement := visual shapeElementFor: taskShape.
+	taskElement id: #processTaskShape.
+
+	visual selectOnly: start.
+	visual toggleSelectionOf: task.
+	self assert: visual selectedModelElements size equals: 2.
+
+	delta := 30 @ 20.
+	destination := taskElement position + (taskElement extent / 2) + delta.
+	self dragDestinationAt: destination id: #groupDragDestination in: visual.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	(scripter mouseMoveOver)
+		label: 'Move pointer over selected task shape';
+		id: #processTaskShape;
+		play.
+	(scripter mouseDown)
+		label: 'Press selected task shape';
+		play.
+	(scripter mouseMoveOver)
+		label: 'Drag selected shapes as one group';
+		id: #groupDragDestination;
+		play.
+	(scripter mouseUp)
+		label: 'Release selected group';
+		play.
+
+	self assert: (self stagedBoundsOf: startShape processMemento: memento) equals: (130 @ 120 extent: 42 @ 42).
+	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: (250 @ 114 extent: 132 @ 54).
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 172 @ 141. 250 @ 141 } asOrderedCollection).
+	self assert: visual selectedModelElements size equals: 2.
+	self assert: (visual selectedModelElements identityIncludes: start).
+	self assert: (visual selectedModelElements identityIncludes: task).
+	^ scripter
+]
