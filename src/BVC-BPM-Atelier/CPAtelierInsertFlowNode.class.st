@@ -135,8 +135,7 @@ CPAtelierInsertFlowNode >> assess [
 		addWaypoint: bounds center;
 		addWaypoint: targetBounds center.
 
-	proposedFlowElements := flowElements species withAll:
-		(flowElements reject: [ :each | each == sequenceFlow ]).
+	proposedFlowElements := (flowElements reject: [ :each | each == sequenceFlow ]) asOrderedCollection.
 	flowNodeAlreadyPresent ifFalse: [ proposedFlowElements add: flowNode ].
 	proposedFlowElements
 		add: firstFlow;
@@ -145,8 +144,7 @@ CPAtelierInsertFlowNode >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	proposedElements := elements species withAll:
-		(elements reject: [ :each | each == removedEdge ]).
+	proposedElements := (elements reject: [ :each | each == removedEdge ]) asOrderedCollection.
 	flowNodeAlreadyPresent ifFalse: [ proposedElements add: shape ].
 	proposedElements
 		add: firstEdge;
@@ -287,8 +285,8 @@ CPAtelierInsertFlowNode >> stageIncomingAdding: incomingFlow outgoingAdding: out
 		detect: [ :each | each handlesSelector: #outgoing ].
 	currentIncoming := nodeMemento readUsing: incomingDescription.
 	currentOutgoing := nodeMemento readUsing: outgoingDescription.
-	proposedIncoming := currentIncoming species withAll: currentIncoming.
-	proposedOutgoing := currentOutgoing species withAll: currentOutgoing.
+	proposedIncoming := currentIncoming asOrderedCollection copy.
+	proposedOutgoing := currentOutgoing asOrderedCollection copy.
 	proposedIncoming add: incomingFlow.
 	proposedOutgoing add: outgoingFlow.
 	nodeMemento write: proposedIncoming using: incomingDescription.

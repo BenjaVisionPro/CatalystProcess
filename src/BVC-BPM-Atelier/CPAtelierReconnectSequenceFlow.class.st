@@ -221,7 +221,7 @@ CPAtelierReconnectSequenceFlow >> stageIncomingIncluding: aSequenceFlow for: aFl
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
 	current := nodeMemento readUsing: description.
 	(current identityIncludes: aSequenceFlow) ifTrue: [ ^ self ].
-	proposed := current species withAll: current.
+	proposed := current asOrderedCollection copy.
 	proposed add: aSequenceFlow.
 	nodeMemento write: proposed using: description
 ]
@@ -245,7 +245,7 @@ CPAtelierReconnectSequenceFlow >> stageOutgoingIncluding: aSequenceFlow for: aFl
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	current := nodeMemento readUsing: description.
 	(current identityIncludes: aSequenceFlow) ifTrue: [ ^ self ].
-	proposed := current species withAll: current.
+	proposed := current asOrderedCollection copy.
 	proposed add: aSequenceFlow.
 	nodeMemento write: proposed using: description
 ]

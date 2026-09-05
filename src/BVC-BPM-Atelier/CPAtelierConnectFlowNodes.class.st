@@ -60,10 +60,10 @@ CPAtelierConnectFlowNodes >> assess [
 	edge
 		addWaypoint: (self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) center;
 		addWaypoint: (self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) center.
-	proposedFlowElements := flowElements species withAll: flowElements.
+	proposedFlowElements := flowElements asOrderedCollection copy.
 	proposedFlowElements add: sequenceFlow.
 	[ flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
-	proposedElements := elements species withAll: elements.
+	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: edge.
 	[ elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -94,7 +94,7 @@ CPAtelierConnectFlowNodes >> stageIncomingIncluding: aSequenceFlow for: aFlowNod
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
 	current := nodeMemento readUsing: description.
 	(current identityIncludes: aSequenceFlow) ifTrue: [ ^ self ].
-	proposed := current species withAll: current.
+	proposed := current asOrderedCollection copy.
 	proposed add: aSequenceFlow.
 	nodeMemento write: proposed using: description
 ]
@@ -106,7 +106,7 @@ CPAtelierConnectFlowNodes >> stageOutgoingIncluding: aSequenceFlow for: aFlowNod
 	description := nodeMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	current := nodeMemento readUsing: description.
 	(current identityIncludes: aSequenceFlow) ifTrue: [ ^ self ].
-	proposed := current species withAll: current.
+	proposed := current asOrderedCollection copy.
 	proposed add: aSequenceFlow.
 	nodeMemento write: proposed using: description
 ]

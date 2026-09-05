@@ -47,11 +47,11 @@ CPAtelierCreateFlowNode >> assess [
 	boundsDescription := shape magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	proposedFlowElements := flowElements species withAll: flowElements.
+	proposedFlowElements := flowElements asOrderedCollection copy.
 	proposedFlowElements add: flowNode.
 	[ flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	proposedElements := elements species withAll: elements.
+	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
 	[ elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
