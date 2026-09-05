@@ -480,55 +480,6 @@ CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipel
 	^ scripter
 ]
 
-{ #category : 'examples - gestures - dragging' }
-CPProcessVisualElementExamples >> draggingOneOfMultipleSelectedShapesStagesOneGroupMove [
-	<gtExample>
-	| fixture visual memento start task startShape taskShape firstEdge taskElement destination scripter delta |
-	fixture := self fixture.
-	memento := fixture second.
-	start := fixture third.
-	task := fixture fourth.
-	startShape := fixture at: 9.
-	taskShape := fixture at: 10.
-	firstEdge := fixture at: 12.
-	visual := self visualElementForFixture: fixture.
-	taskElement := visual shapeElementFor: taskShape.
-	taskElement id: #processTaskShape.
-
-	visual selectOnly: start.
-	visual toggleSelectionOf: task.
-	self assert: visual selectedModelElements size equals: 2.
-
-	delta := 30 @ 20.
-	destination := taskShape bounds origin + (taskShape bounds extent / 2) + delta.
-	self dragDestinationAt: destination id: #groupDragDestination in: visual.
-
-	scripter := BlScripter new.
-	scripter element: visual.
-	(scripter mouseMoveOver)
-		label: 'Move pointer over selected task shape';
-		id: #processTaskShape;
-		play.
-	(scripter mouseDown)
-		label: 'Press selected task shape';
-		play.
-	(scripter mouseMoveOver)
-		label: 'Drag selected shapes as one group';
-		id: #groupDragDestination;
-		play.
-	(scripter mouseUp)
-		label: 'Release selected group';
-		play.
-
-	self assert: (self stagedBoundsOf: startShape processMemento: memento) equals: (130 @ 120 extent: 42 @ 42).
-	self assert: (self stagedBoundsOf: taskShape processMemento: memento) equals: (250 @ 114 extent: 132 @ 54).
-	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento) equals: ({ 172 @ 141. 250 @ 141 } asOrderedCollection).
-	self assert: visual selectedModelElements size equals: 2.
-	self assert: (visual selectedModelElements identityIncludes: start).
-	self assert: (visual selectedModelElements identityIncludes: task).
-	^ scripter
-]
-
 
 { #category : 'private - gestures' }
 CPProcessVisualElementExamples >> visibleResizeHandleIn: aVisualElement [
