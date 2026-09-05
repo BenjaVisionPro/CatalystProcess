@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'diagramEdge',
 		'lineElements',
-		'hitElements'
+		'hitElements',
+		'bendpointHandles'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -18,7 +19,8 @@ Class {
 CPProcessEdgeVisual >> edge: anEdge [
 	diagramEdge := anEdge.
 	lineElements := OrderedCollection new.
-	hitElements := OrderedCollection new
+	hitElements := OrderedCollection new.
+	bendpointHandles := OrderedCollection new
 ]
 
 { #category : 'rendering' }
@@ -93,3 +95,40 @@ CPProcessEdgeVisual >> selected: isSelected insertionTarget: isInsertionTarget s
 			paint: (isEmphasized ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
 			width: (isEmphasized ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ]
 ]
+
+{ #category : 'bendpoint handles' }
+CPProcessEdgeVisual >> bendpointHandles [
+	^ bendpointHandles
+]
+
+{ #category : 'bendpoint handles' }
+CPProcessEdgeVisual >> bendpointHandles: someHandles [
+	bendpointHandles := someHandles asOrderedCollection
+]
+
+{ #category : 'bendpoint handles' }
+CPProcessEdgeVisual >> positionBendpointHandlesUsingWaypoints: someWaypoints [
+	bendpointHandles size = (someWaypoints size - 2) ifFalse: [ ^ self ].
+	1 to: bendpointHandles size do: [ :index |
+		| handle point |
+		handle := bendpointHandles at: index.
+		point := someWaypoints at: index + 1.
+		handle relocate: point - (handle extent / 2) ]
+]
+
+{ #category : 'bendpoint handles' }
+CPProcessEdgeVisual >> bendpointHandlesVisible: aBoolean [
+	| visibility |
+	visibility := aBoolean
+		ifTrue: [ BlVisibility visible ]
+		ifFalse: [ BlVisibility hidden ].
+	bendpointHandles do: [ :aHandle | aHandle visibility: visibility ]
+]
+
+{ #category : 'bendpoint handles' }
+CPProcessEdgeVisual >> bringBendpointHandlesToFrontIn: aParent [
+	bendpointHandles do: [ :aHandle |
+		aHandle removeFromParent.
+		aParent addChild: aHandle ]
+]
+

@@ -35,7 +35,6 @@ Class {
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
 		'reconnectHandleElementsByEdge',
-		'bendpointHandleElementsByEdge',
 		'activePaletteDragItem',
 		'insertionTargetEdge'
 	],
@@ -54,7 +53,6 @@ CPProcessVisualElement >> initialize [
 	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	reconnectHandleElementsByEdge := IdentityDictionary new.
-	bendpointHandleElementsByEdge := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -87,7 +85,6 @@ CPProcessVisualElement >> refresh [
 	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
 	reconnectHandleElementsByEdge removeAll.
-	bendpointHandleElementsByEdge removeAll.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
 	connectionTargetModelElement := nil.
@@ -1263,12 +1260,9 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			ifTrue: [ BlVisibility visible ]
 			ifFalse: [ BlVisibility hidden ].
 		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
-	bendpointHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
-		| visibility |
-		visibility := anEdge modelElement == selectedModelElement
-			ifTrue: [ BlVisibility visible ]
-			ifFalse: [ BlVisibility hidden ].
-		someHandles do: [ :aHandle | aHandle visibility: visibility ] ].
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		anEdgeVisual bendpointHandlesVisible:
+			(anEdge modelElement == selectedModelElement) ].
 	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
 		aShapeElement resizeHandleVisible:
 			((self stagedModelElementOf: aShape) == selectedModelElement) ].
@@ -2424,14 +2418,9 @@ CPProcessVisualElement >> waypointsFor: anEdge inserting: aPoint afterSegment: a
 
 { #category : 'private - bendpoints' }
 CPProcessVisualElement >> positionBendpointHandlesFor: anEdge usingWaypoints: someWaypoints [
-	| handles |
-	handles := bendpointHandleElementsByEdge at: anEdge ifAbsent: [ ^ self ].
-	handles size = (someWaypoints size - 2) ifFalse: [ ^ self ].
-	1 to: handles size do: [ :index |
-		| handle point |
-		handle := handles at: index.
-		point := someWaypoints at: index + 1.
-		handle relocate: point - (handle extent / 2) ]
+	| edgeVisual |
+	edgeVisual := edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
+	edgeVisual positionBendpointHandlesUsingWaypoints: someWaypoints
 ]
 
 { #category : 'private - bendpoints' }
@@ -2440,7 +2429,8 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 	setEdgeWaypointsOperationBlock ifNil: [ ^ self ].
 	waypoints := self stagedWaypointsOf: anEdge.
 	waypoints size < 3 ifTrue: [
-		bendpointHandleElementsByEdge at: anEdge put: #().
+		(edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ])
+			bendpointHandles: #().
 		^ self ].
 	handles := OrderedCollection new.
 
@@ -2450,7 +2440,8 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 			waypointIndex: index
 			at: (waypoints at: index)) ].
 
-	bendpointHandleElementsByEdge at: anEdge put: handles.
+	(edgeVisualsByEdge at: anEdge)
+		bendpointHandles: handles.
 	handles do: [ :aHandle | self addChild: aHandle ]
 ]
 
@@ -2593,10 +2584,8 @@ CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringBendpointHandlesToFront [
-	bendpointHandleElementsByEdge valuesDo: [ :someHandles |
-		someHandles do: [ :aHandle |
-			aHandle removeFromParent.
-			self addChild: aHandle ] ]
+	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
+		anEdgeVisual bringBendpointHandlesToFrontIn: self ]
 ]
 
 { #category : 'private - reconnecting' }
