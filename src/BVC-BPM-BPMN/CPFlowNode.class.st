@@ -114,7 +114,3 @@ CPFlowNode >> isIntermediateEvent [
 ]
 
 
-{ #category : 'testing' }
-CPFlowNode >> isSubProcess [
-	^ false
-]

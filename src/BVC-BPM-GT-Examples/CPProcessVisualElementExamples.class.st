@@ -807,3 +807,15 @@ CPProcessVisualElementExamples >> freshlyStagedSubProcessResolvesWithoutCommitte
 	self assert: resolved model == subProcess.
 	^ resolved
 ]
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> flowElementSubProcessProtocolCoversSequenceFlows [
+	<gtExample>
+	| sequenceFlow subProcess |
+	sequenceFlow := CPSequenceFlow new.
+	subProcess := CPNoneSubProcess new.
+
+	self assert: sequenceFlow isSubProcess not.
+	self assert: subProcess isSubProcess.
+	^ sequenceFlow
+]

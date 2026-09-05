@@ -45,3 +45,8 @@ CPFlowElement >> isSequenceFlow [
 CPFlowElement >> isTask [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPFlowElement >> isSubProcess [
+	^ false
+]
