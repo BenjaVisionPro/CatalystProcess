@@ -392,7 +392,7 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
 	| marker |
 	(modelElement isSubProcess and: [ diagramShape isExpanded not ]) ifFalse: [ ^ self ].
-	marker := FontAwesomeIcons squarePlus asElement
+	marker := (FontAwesomeIcons icon: #squarePlus)
 		size: 14 @ 14;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
