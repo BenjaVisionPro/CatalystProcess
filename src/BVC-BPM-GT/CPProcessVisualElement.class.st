@@ -219,7 +219,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 		relocate: bounds origin.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
-	self installReplacementOn: element for: modelElement shape: aShape.
+	self installReplacementOnShape: element for: modelElement shape: aShape.
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
@@ -314,7 +314,7 @@ CPProcessVisualElement >> installGatewayTypePopupOn: aShapeElement for: aFlowNod
 
 { #category : 'private - type selection' }
 CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape: aShape selection: aSelection iconExtent: anExtent configure: aConfigureBlock [
-	| aSelectionMemento aDescription aPresentation aPopup anIconBlock aVisibleIcon aVisibleHost |
+	| aSelectionMemento aDescription aPresentation aPopup anIconBlock aVisibleIcon |
 	aSelectionMemento := CFMaMemento model: aSelection.
 	aDescription := aSelectionMemento magritteDescription
 		detect: [ :each | each handlesSelector: #typeClass ].
@@ -328,35 +328,18 @@ CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape
 		values: aDescription options
 		display: [ :aClass | aSelection typeLabelFor: aClass ]
 		icon: anIconBlock.
-
 	aVisibleIcon := anIconBlock value: aFlowNode class.
-	aVisibleIcon constraintsDo: [ :c |
-		c frame horizontal alignCenter.
-		c frame vertical alignCenter ].
-	aVisibleHost := BlElement new
-		extent: anExtent;
-		layout: BlFrameLayout new;
-		addChild: aVisibleIcon;
-		yourself.
-	aConfigureBlock value: aVisibleHost.
-	aShapeElement addChild: aVisibleHost.
-
-	aPopup
-		opacity: 0.0;
-		extent: anExtent.
-	aConfigureBlock value: aPopup.
-	aPopup
-		when: BrDropdownIsHidden
-		do: [ :anEvent |
-			| selectedClass |
-			selectedClass := aSelectionMemento readUsing: aDescription.
-			selectedClass == aFlowNode class ifFalse: [
-				aShapeElement enqueueTask: (BlTaskAction new action: [
-					self
-						replaceFlowNode: aFlowNode
-						withClass: selectedClass
-						shape: aShape ]) ] ].
-	aShapeElement addChild: aPopup
+	aShapeElement
+		installTypePopup: aPopup
+		visibleIcon: aVisibleIcon
+		iconExtent: anExtent
+		configure: aConfigureBlock
+		selectedClass: [ aSelectionMemento readUsing: aDescription ]
+		replacementSelected: [ :selectedClass |
+			self
+				replaceFlowNode: aFlowNode
+				withClass: selectedClass
+				shape: aShape ]
 ]
 
 { #category : 'private - type selection' }
@@ -1987,14 +1970,13 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 ]
 
 { #category : 'private - replacement' }
-CPProcessVisualElement >> installReplacementOn: aNodeElement for: aFlowNode shape: aShape [
+CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNode shape: aShape [
 	replaceFlowNodeOperationBlock ifNil: [ ^ self ].
-	aNodeElement addEventHandler: (CPProcessPaletteDropHandler new
-		acceptItemsSuchThat: [ :aDragItem :aDropArea |
-			self acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape ];
-		whenDroppedDo: [ :anEvent |
-			self dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape ];
-		yourself)
+	aShapeElement
+		installPaletteReplacementAccepting: [ :aDragItem |
+			self acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape ]
+		dropped: [ :anEvent |
+			self dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape ]
 ]
 
 { #category : 'private - replacement' }

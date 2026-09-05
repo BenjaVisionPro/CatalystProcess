@@ -251,3 +251,39 @@ CPProcessShapeElement >> connectionPortVisible: aBoolean [
 		ifFalse: [ BlVisibility hidden ])
 ]
 
+{ #category : 'replacement' }
+CPProcessShapeElement >> installPaletteReplacementAccepting: anAcceptBlock dropped: aDropBlock [
+	self addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea | anAcceptBlock value: aDragItem ];
+		whenDroppedDo: [ :anEvent | aDropBlock value: anEvent ];
+		yourself)
+]
+
+{ #category : 'type selection' }
+CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon iconExtent: anExtent configure: aConfigureBlock selectedClass: aSelectedClassBlock replacementSelected: aReplacementBlock [
+	| visibleHost |
+	aVisibleIcon constraintsDo: [ :c |
+		c frame horizontal alignCenter.
+		c frame vertical alignCenter ].
+	visibleHost := BlElement new
+		extent: anExtent;
+		layout: BlFrameLayout new;
+		addChild: aVisibleIcon;
+		yourself.
+	aConfigureBlock value: visibleHost.
+	self addChild: visibleHost.
+
+	aPopup
+		opacity: 0.0;
+		extent: anExtent.
+	aConfigureBlock value: aPopup.
+	aPopup
+		when: BrDropdownIsHidden
+		do: [ :anEvent |
+			| selectedClass |
+			selectedClass := aSelectedClassBlock value.
+			selectedClass == modelElement class ifFalse: [
+				self enqueueTask: (BlTaskAction new action: [
+					aReplacementBlock value: selectedClass ]) ] ].
+	self addChild: aPopup
+]
