@@ -34,7 +34,8 @@ CPProcessAtelierConfiguration class >> processPalette [
 		add: (CFAtelierPaletteItem label: 'Start event' icon: CPStartEvent icon provider: (CFAtelierFactoryProvider factory: [ CPStartEvent new label: 'Start'; yourself ]));
 		add: (CFAtelierPaletteItem label: 'End event' icon: CPEndEvent icon provider: (CFAtelierFactoryProvider factory: [ CPEndEvent new label: 'End'; yourself ]));
 		add: (CFAtelierPaletteItem label: 'User task' icon: CPUserTask icon provider: (CFAtelierFactoryProvider factory: [ CPUserTask new label: 'Task'; yourself ]));
-		add: (CFAtelierPaletteItem label: 'Service task' icon: CPServiceTask icon provider: (CFAtelierFactoryProvider factory: [ CPServiceTask new label: 'Service'; yourself ])).
+		add: (CFAtelierPaletteItem label: 'Service task' icon: CPServiceTask icon provider: (CFAtelierFactoryProvider factory: [ CPServiceTask new label: 'Service'; yourself ]));
+		add: (CFAtelierPaletteItem label: 'Exclusive gateway' icon: CPExclusiveGateway icon provider: (CFAtelierFactoryProvider factory: [ CPExclusiveGateway new label: 'Gateway'; yourself ])).
 	^ palette
 ]
 

@@ -16,7 +16,8 @@ CPBpmnIcons class >> availableIconsForStyleNamed: aStyleName [
 		#endEvent -> (self icon: #endEvent styleName: aStyleName).
 		#userTask -> (self icon: #userTask styleName: aStyleName).
 		#serviceTask -> (self icon: #serviceTask styleName: aStyleName).
-		#sequenceFlow -> (self icon: #sequenceFlow styleName: aStyleName)
+		#sequenceFlow -> (self icon: #sequenceFlow styleName: aStyleName).
+		#exclusiveGateway -> (self icon: #exclusiveGateway styleName: aStyleName)
 	}
 ]
 
@@ -32,6 +33,7 @@ CPBpmnIcons class >> icon: aSelectorSymbol styleName: aStyleName [
 	aSelectorSymbol = #userTask ifTrue: [ ^ self userTask ].
 	aSelectorSymbol = #serviceTask ifTrue: [ ^ self serviceTask ].
 	aSelectorSymbol = #sequenceFlow ifTrue: [ ^ self sequenceFlow ].
+	aSelectorSymbol = #exclusiveGateway ifTrue: [ ^ self exclusiveGateway ].
 	self error: 'Unknown Catalyst Process icon: ', aSelectorSymbol asString
 ]
 
@@ -106,5 +108,19 @@ CPBpmnIcons class >> sequenceFlow [
 		pathSpecs: {
 			Dictionary new
 				at: #path put: 'M40 240h336v-72l112 88-112 88v-72H40z';
+				yourself }
+]
+
+{ #category : 'icons' }
+CPBpmnIcons class >> exclusiveGateway [
+	^ self
+		iconNamed: #exclusiveGateway
+		label: 'Exclusive gateway'
+		pathSpecs: {
+			Dictionary new
+				at: #path put: 'M256 24L488 256 256 488 24 256 256 24zm0 56L80 256l176 176 176-176L256 80z';
+				yourself.
+			Dictionary new
+				at: #path put: 'M169 145l87 87 87-87 24 24-87 87 87 87-24 24-87-87-87 87-24-24 87-87-87-87z';
 				yourself }
 ]

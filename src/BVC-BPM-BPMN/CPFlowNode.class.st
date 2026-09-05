@@ -97,3 +97,8 @@ CPFlowNode >> isEndEvent [
 
 { #category : 'testing' }
 CPFlowNode >> isStartEvent [ ^ false ]
+
+{ #category : 'testing' }
+CPFlowNode >> isGateway [
+	^ false
+]

@@ -304,6 +304,21 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 			c frame vertical alignCenter ].
 		element addChild: label.
 		self installLabelEditingOn: element label: label ].
+
+	aFlowNode isGateway ifTrue: [
+		| marker |
+		marker := BlElement new
+			size: 22 @ 22;
+			geometry: (BlSvgPath new
+				svg: 'M3 1 L11 9 L19 1 L21 3 L13 11 L21 19 L19 21 L11 13 L3 21 L1 19 L9 11 L1 3 Z'
+				viewbox: (0 @ 0 extent: 22 @ 22));
+			background: self shapeBorderColor;
+			constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ];
+			preventMeAndChildrenMouseEvents;
+			yourself.
+		element addChild: marker ].
 	^ element
 ]
 
@@ -311,13 +326,19 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
 	aFlowNode isEvent ifTrue: [ ^ BlCircleGeometry new ].
 	aFlowNode isActivity ifTrue: [ ^ BlRoundedRectangleGeometry cornerRadius: 8 ].
+	aFlowNode isGateway ifTrue: [
+		^ BlPolygonGeometry vertices: {
+			bounds width / 2 @ 0.
+			bounds width @ (bounds height / 2).
+			bounds width / 2 @ bounds height.
+			0 @ (bounds height / 2) } ].
 	^ BlRectangleGeometry new
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
 	| labelHost label labelWidth |
-	aFlowNode isEvent ifFalse: [ ^ self ].
+	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
 	labelWidth := 180.
 	labelHost := BlElement new
 		clipChildren: false;
@@ -472,9 +493,9 @@ CPProcessVisualElement >> bringReconnectHandlesToFront [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> anchorClassFor: aFlowNode [
-	^ aFlowNode isEvent
-		ifTrue: [ BlNearestPositionEllipseAnchor ]
-		ifFalse: [ BlNearestPositionBoundsAnchor ]
+	aFlowNode isEvent ifTrue: [ ^ BlNearestPositionEllipseAnchor ].
+	aFlowNode isGateway ifTrue: [ ^ CPNearestPositionDiamondAnchor ].
+	^ BlNearestPositionBoundsAnchor
 ]
 
 { #category : 'private - edges' }
@@ -1081,6 +1102,7 @@ CPProcessVisualElement >> replacementBoundsFor: aFlowNode shape: aShape [
 CPProcessVisualElement >> extentForModelElement: aFlowNode [
 	aFlowNode isEvent ifTrue: [ ^ 42 @ 42 ].
 	aFlowNode isActivity ifTrue: [ ^ 132 @ 54 ].
+	aFlowNode isGateway ifTrue: [ ^ 54 @ 54 ].
 	^ 54 @ 54
 ]
 
