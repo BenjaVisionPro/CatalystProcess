@@ -9,3 +9,13 @@ Class {
 CPExclusiveGateway class >> defaultIcon [
 	^ #exclusiveGateway
 ]
+
+{ #category : 'gateway type' }
+CPExclusiveGateway class >> gatewayTypeLabel [
+	^ 'Exclusive'
+]
+
+{ #category : 'gateway type' }
+CPExclusiveGateway class >> gatewayTypeIcon [
+	^ #xmark
+]

@@ -1,47 +1,27 @@
 Class {
 	#name : 'CPTaskTypeSelection',
-	#superclass : 'Object',
-	#instVars : [
-		'taskClass'
-	],
+	#superclass : 'CPFlowNodeTypeSelection',
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
 }
 
-{ #category : 'instance creation' }
-CPTaskTypeSelection class >> taskClass: aTaskClass [
-	^ self new
-		taskClass: aTaskClass;
-		yourself
+{ #category : 'type protocol' }
+CPTaskTypeSelection >> typeClasses [
+	^ CPTask taskTypes
 ]
 
-{ #category : 'accessing' }
-CPTaskTypeSelection >> taskClass [
-	^ taskClass
+{ #category : 'type protocol' }
+CPTaskTypeSelection >> typeDescriptionLabel [
+	^ 'Task type'
 ]
 
-{ #category : 'accessing' }
-CPTaskTypeSelection >> taskClass: aTaskClass [
-	taskClass := aTaskClass
+{ #category : 'type protocol' }
+CPTaskTypeSelection >> typeLabelFor: aClass [
+	^ aClass taskTypeLabel
 ]
 
-
-{ #category : 'descriptions' }
-CPTaskTypeSelection >> taskClassDescription [
-	<magritteDescription>
-	^ MASingleOptionDescription new
-		accessor: #taskClass;
-		label: 'Task type';
-		options: CPTask taskTypes;
-		autoAccept: true;
-		fieldConfigure: [ :field |
-			field bePopup
-				displayBlock: [ :aTaskClass | aTaskClass taskTypeLabel ] ];
-		blocOptionIconStencil: [ :aTaskClass |
-			(FontAwesomeIcons defaultStyle icon: aTaskClass taskTypeIcon)
-				size: 16 @ 16;
-				yourself ];
-		beRequired;
-		yourself
+{ #category : 'type protocol' }
+CPTaskTypeSelection >> typeIconFor: aClass [
+	^ aClass taskTypeIcon
 ]

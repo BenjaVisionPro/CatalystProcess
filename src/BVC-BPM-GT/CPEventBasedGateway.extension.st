@@ -1,6 +1,6 @@
-Extension { #name : 'CPExclusiveGateway' }
+Extension { #name : 'CPEventBasedGateway' }
 
 { #category : '*BVC-BPM-GT' }
-CPExclusiveGateway class >> icon [
+CPEventBasedGateway class >> icon [
 	^ [ (FontAwesomeIcons icon: self gatewayTypeIcon) height: 20 ] asStencil
 ]

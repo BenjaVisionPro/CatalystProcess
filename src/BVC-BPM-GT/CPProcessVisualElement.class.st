@@ -191,6 +191,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installReplacementOn: element for: modelElement shape: aShape.
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
+	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
 	self
 		installResizeHandleFor: aShape
 		modelElement: modelElement
@@ -203,15 +204,43 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self updateSelectionAppearance
 ]
 
-{ #category : 'private - task type' }
+{ #category : 'private - type selection' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
-	| aSelection aSelectionMemento aDescription aPresentation aPopup anIconBlock aVisibleIcon |
 	aFlowNode isActivity ifFalse: [ ^ self ].
+	self
+		installTypePopupOn: aShapeElement
+		for: aFlowNode
+		shape: aShape
+		selection: (CPTaskTypeSelection typeClass: aFlowNode class)
+		iconExtent: 24 @ 24
+		configure: [ :anElement |
+			anElement constraintsDo: [ :c |
+				c frame horizontal alignLeft.
+				c frame vertical alignTop.
+				c margin: (BlInsets top: 6 left: 6) ] ]
+]
 
-	aSelection := CPTaskTypeSelection taskClass: aFlowNode class.
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installGatewayTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
+	aFlowNode isGateway ifFalse: [ ^ self ].
+	self
+		installTypePopupOn: aShapeElement
+		for: aFlowNode
+		shape: aShape
+		selection: (CPGatewayTypeSelection typeClass: aFlowNode class)
+		iconExtent: 28 @ 28
+		configure: [ :anElement |
+			anElement constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ] ]
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape: aShape selection: aSelection iconExtent: anExtent configure: aConfigureBlock [
+	| aSelectionMemento aDescription aPresentation aPopup anIconBlock aVisibleIcon aVisibleHost |
 	aSelectionMemento := CFMaMemento model: aSelection.
 	aDescription := aSelectionMemento magritteDescription
-		detect: [ :each | each handlesSelector: #taskClass ].
+		detect: [ :each | each handlesSelector: #typeClass ].
 	aPresentation := CFMaDetailPresentation new
 		memento: aSelectionMemento;
 		form: aShapeElement;
@@ -220,54 +249,48 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 	aPopup := aPresentation
 		newPopupUsing: aDescription
 		values: aDescription options
-		display: [ :aTaskClass | aTaskClass taskTypeLabel ]
+		display: [ :aClass | aSelection typeLabelFor: aClass ]
 		icon: anIconBlock.
 
 	aVisibleIcon := anIconBlock value: aFlowNode class.
-	aVisibleIcon
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ].
-
-	aShapeElement addChild: (BlElement new
-		extent: 24 @ 24;
+	aVisibleIcon constraintsDo: [ :c |
+		c frame horizontal alignCenter.
+		c frame vertical alignCenter ].
+	aVisibleHost := BlElement new
+		extent: anExtent;
 		layout: BlFrameLayout new;
-		constraintsDo: [ :c |
-			c frame horizontal alignLeft.
-			c frame vertical alignTop.
-			c margin: (BlInsets top: 6 left: 6) ];
 		addChild: aVisibleIcon;
-		yourself).
+		yourself.
+	aConfigureBlock value: aVisibleHost.
+	aShapeElement addChild: aVisibleHost.
 
 	aPopup
 		opacity: 0.0;
-		extent: 24 @ 24;
-		constraintsDo: [ :c |
-			c frame horizontal alignLeft.
-			c frame vertical alignTop.
-			c margin: (BlInsets top: 6 left: 6) ];
+		extent: anExtent.
+	aConfigureBlock value: aPopup.
+	aPopup
 		when: BrDropdownIsHidden
 		do: [ :anEvent |
-			| selectedTaskClass |
-			selectedTaskClass := aSelectionMemento readUsing: aDescription.
-			selectedTaskClass == aFlowNode class ifFalse: [
+			| selectedClass |
+			selectedClass := aSelectionMemento readUsing: aDescription.
+			selectedClass == aFlowNode class ifFalse: [
 				aShapeElement enqueueTask: (BlTaskAction new action: [
 					self
-						replaceTask: aFlowNode
-						withClass: selectedTaskClass
+						replaceFlowNode: aFlowNode
+						withClass: selectedClass
 						shape: aShape ]) ] ].
 	aShapeElement addChild: aPopup
 ]
 
-{ #category : 'private - task type' }
-CPProcessVisualElement >> replaceTask: aTask withClass: aTaskClass shape: aShape [
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass shape: aShape [
 	| replacement proposedBounds assessment |
 	replaceFlowNodeOperationBlock ifNil: [ ^ nil ].
-	replacement := aTaskClass new.
+	replacement := aFlowNodeClass new.
 	proposedBounds := self stagedBoundsOf: aShape.
 
 	assessment := (replaceFlowNodeOperationBlock
-		value: aTask
+		value: aFlowNode
 		value: replacement
 		value: proposedBounds) apply.
 
@@ -305,20 +328,6 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 		element addChild: label.
 		self installLabelEditingOn: element label: label ].
 
-	aFlowNode isGateway ifTrue: [
-		| marker |
-		marker := BlElement new
-			size: 22 @ 22;
-			geometry: (BlSvgPath new
-				svg: 'M3 1 L11 9 L19 1 L21 3 L13 11 L21 19 L19 21 L11 13 L3 21 L1 19 L9 11 L1 3 Z'
-				viewbox: (0 @ 0 extent: 22 @ 22));
-			background: self shapeBorderColor;
-			constraintsDo: [ :c |
-				c frame horizontal alignCenter.
-				c frame vertical alignCenter ];
-			preventMeAndChildrenMouseEvents;
-			yourself.
-		element addChild: marker ].
 	^ element
 ]
 

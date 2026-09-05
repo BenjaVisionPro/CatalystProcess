@@ -17,7 +17,8 @@ CPBpmnIcons class >> availableIconsForStyleNamed: aStyleName [
 		#userTask -> (self icon: #userTask styleName: aStyleName).
 		#serviceTask -> (self icon: #serviceTask styleName: aStyleName).
 		#sequenceFlow -> (self icon: #sequenceFlow styleName: aStyleName).
-		#exclusiveGateway -> (self icon: #exclusiveGateway styleName: aStyleName)
+		#exclusiveGateway -> (self icon: #exclusiveGateway styleName: aStyleName).
+		#parallelGateway -> (self icon: #parallelGateway styleName: aStyleName)
 	}
 ]
 
@@ -34,6 +35,7 @@ CPBpmnIcons class >> icon: aSelectorSymbol styleName: aStyleName [
 	aSelectorSymbol = #serviceTask ifTrue: [ ^ self serviceTask ].
 	aSelectorSymbol = #sequenceFlow ifTrue: [ ^ self sequenceFlow ].
 	aSelectorSymbol = #exclusiveGateway ifTrue: [ ^ self exclusiveGateway ].
+	aSelectorSymbol = #parallelGateway ifTrue: [ ^ self parallelGateway ].
 	self error: 'Unknown Catalyst Process icon: ', aSelectorSymbol asString
 ]
 
@@ -122,5 +124,19 @@ CPBpmnIcons class >> exclusiveGateway [
 				yourself.
 			Dictionary new
 				at: #path put: 'M169 145l87 87 87-87 24 24-87 87 87 87-24 24-87-87-87 87-24-24 87-87-87-87z';
+				yourself }
+]
+
+{ #category : 'icons' }
+CPBpmnIcons class >> parallelGateway [
+	^ self
+		iconNamed: #parallelGateway
+		label: 'Parallel gateway'
+		pathSpecs: {
+			Dictionary new
+				at: #path put: 'M256 24L488 256 256 488 24 256 256 24zm0 56L80 256l176 176 176-176L256 80z';
+				yourself.
+			Dictionary new
+				at: #path put: 'M236 132h40v104h104v40H276v104h-40V276H132v-40h104V132z';
 				yourself }
 ]

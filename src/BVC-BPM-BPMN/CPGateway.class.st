@@ -9,3 +9,14 @@ Class {
 CPGateway >> isGateway [
 	^ true
 ]
+
+{ #category : 'gateway type' }
+CPGateway class >> gatewayTypes [
+	^ {
+		CPExclusiveGateway.
+		CPParallelGateway.
+		CPInclusiveGateway.
+		CPEventBasedGateway.
+		CPComplexGateway
+	}
+]

@@ -1,6 +1,6 @@
-Extension { #name : 'CPExclusiveGateway' }
+Extension { #name : 'CPParallelGateway' }
 
 { #category : '*BVC-BPM-GT' }
-CPExclusiveGateway class >> icon [
+CPParallelGateway class >> icon [
 	^ [ (FontAwesomeIcons icon: self gatewayTypeIcon) height: 20 ] asStencil
 ]
