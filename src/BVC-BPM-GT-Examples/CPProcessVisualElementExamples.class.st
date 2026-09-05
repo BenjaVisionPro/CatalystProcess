@@ -680,7 +680,6 @@ CPProcessVisualElementExamples >> collapsedSubProcessUsesActivityGeometryWithCol
 	self assert: element normalBorderWidth equals: 1.5.
 	self assert: element selectedBorderWidth equals: 3.
 	self assert: element children size equals: 1.
-	self assert: element children first children size equals: 2.
 	^ element
 ]
 
@@ -718,10 +717,13 @@ CPProcessVisualElementExamples >> subProcessTypeSelectionDefinesRequestedTypes [
 	selection := CPSubProcessTypeSelection typeClass: CPLoopSubProcess.
 
 	self assert: selection typeClasses equals: {
+		CPNoneSubProcess.
 		CPLoopSubProcess.
 		CPMultiInstanceSubProcess.
 		CPCompensationSubProcess.
 		CPAdHocSubProcess }.
+	self assert: (selection typeLabelFor: CPNoneSubProcess) equals: 'None'.
+	self assert: (selection typeIconFor: CPNoneSubProcess) equals: #circle.
 	self assert: (selection typeLabelFor: CPLoopSubProcess) equals: 'Loop'.
 	self assert: (selection typeIconFor: CPLoopSubProcess) equals: #arrowRotateLeft.
 	self assert: (selection typeIconFor: CPMultiInstanceSubProcess) equals: #bars.

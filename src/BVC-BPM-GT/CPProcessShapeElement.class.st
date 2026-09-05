@@ -390,40 +390,15 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
-	| marker horizontalBar verticalBar markerExtent |
+	| marker |
 	(modelElement isSubProcess and: [ diagramShape isExpanded not ]) ifFalse: [ ^ self ].
-	markerExtent := 14 @ 14.
-	marker := BlElement new
-		extent: markerExtent;
-		geometry: BlRectangleGeometry new;
-		background: Color transparent;
-		border: (BlBorder paint: self normalBorderColor width: 1.5);
-		layout: BlFrameLayout new;
+	marker := FontAwesomeIcons squarePlus asElement
+		size: 14 @ 14;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignBottom.
 			c margin: (BlInsets bottom: 4) ];
 		preventMeAndChildrenMouseEvents;
 		yourself.
-	horizontalBar := BlElement new
-		extent: 8 @ 1.5;
-		background: self normalBorderColor;
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ];
-		preventMeAndChildrenMouseEvents;
-		yourself.
-	verticalBar := BlElement new
-		extent: 1.5 @ 8;
-		background: self normalBorderColor;
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ];
-		preventMeAndChildrenMouseEvents;
-		yourself.
-	marker
-		addChild: horizontalBar;
-		addChild: verticalBar.
 	self addChild: marker
 ]
-

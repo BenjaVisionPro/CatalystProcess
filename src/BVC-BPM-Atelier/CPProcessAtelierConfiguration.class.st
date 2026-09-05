@@ -60,7 +60,7 @@ CPProcessAtelierConfiguration class >> processPalette [
 			label: 'Sub-process'
 			icon: CPSubProcess icon
 			provider: (CFAtelierFactoryProvider factory: [
-				CPLoopSubProcess new label: 'Sub-process'; yourself ]));
+				CPNoneSubProcess new label: 'Sub-process'; yourself ]));
 		add: (CFAtelierPaletteItem
 			label: 'Gateway'
 			icon: CPExclusiveGateway icon

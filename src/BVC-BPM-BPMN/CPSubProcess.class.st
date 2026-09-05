@@ -70,6 +70,7 @@ CPSubProcess >> isSubProcess [
 { #category : 'sub-process type' }
 CPSubProcess class >> subProcessTypes [
 	^ {
+		CPNoneSubProcess.
 		CPLoopSubProcess.
 		CPMultiInstanceSubProcess.
 		CPCompensationSubProcess.
