@@ -19,6 +19,7 @@ Class {
 		'selectedModelElements',
 		'selectionChangedBlock',
 		'moveShapeOperationBlock',
+		'transferFlowNodeOperationBlock',
 		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
@@ -1451,7 +1452,22 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						for: draggedModelElement.
 					self clearInsertionTarget.
 					insertionEdge
-						ifNil: [ self moveShape: aShape toBounds: proposedBounds ]
+						ifNil: [
+							| currentContainer targetContainer |
+							currentContainer := self stagedFlowContainerContaining: draggedModelElement.
+							targetContainer := self
+								flowContainerAtLocalPoint: proposedBounds center
+								excluding: draggedModelElement.
+							(currentContainer notNil
+								and: [ targetContainer ~~ currentContainer
+								and: [ transferFlowNodeOperationBlock notNil ] ])
+								ifTrue: [
+									self
+										transferFlowNode: draggedModelElement
+										shape: aShape
+										toContainer: targetContainer
+										bounds: proposedBounds ]
+								ifFalse: [ self moveShape: aShape toBounds: proposedBounds ] ]
 						ifNotNil: [
 							self
 								insertExistingFlowNode: draggedModelElement
@@ -2141,11 +2157,34 @@ CPProcessVisualElement >> clearConnectionTarget [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> connectionTargetAtGlobalPoint: aPoint excluding: aFlowNode [
+	| candidates |
+	candidates := OrderedCollection new.
 	shapeElementsByModelElement keysAndValuesDo: [ :aCandidate :anElement |
 		aCandidate == aFlowNode ifFalse: [
-			(anElement geometryBoundsInSpace containsPoint: aPoint)
-				ifTrue: [ ^ aCandidate ] ] ].
-	^ nil
+			(anElement geometryBoundsInSpace containsPoint: aPoint) ifTrue: [
+				| shape bounds |
+				shape := anElement diagramShape.
+				bounds := self stagedBoundsOf: shape.
+				candidates add: {
+					aCandidate.
+					(self nestingDepthOfDiagramShape: shape).
+					bounds } ] ] ].
+	candidates ifEmpty: [ ^ nil ].
+	^ self preferredConnectionTargetFrom: candidates
+]
+
+{ #category : 'private - connection' }
+CPProcessVisualElement >> preferredConnectionTargetFrom: candidates [
+	^ (candidates
+		inject: candidates first
+		into: [ :best :each |
+			each second > best second
+				ifTrue: [ each ]
+				ifFalse: [
+					each second = best second
+						and: [ (each third width * each third height) < (best third width * best third height) ]
+							ifTrue: [ each ]
+							ifFalse: [ best ] ] ]) first
 ]
 
 { #category : 'private - connection' }
@@ -2962,14 +3001,20 @@ CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint [
+	^ self flowContainerAtLocalPoint: aPoint excluding: nil
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> flowContainerAtLocalPoint: aPoint excluding: anExcludedFlowElement [
 	| candidates |
 	candidates := OrderedCollection new.
 	shapeElementsByShape keysDo: [ :aShape |
 		| modelElement bounds |
 		modelElement := self stagedModelElementOf: aShape.
 		(modelElement notNil
+			and: [ modelElement ~~ anExcludedFlowElement
 			and: [ modelElement isSubProcess
-			and: [ self stagedExpandedOf: aShape ] ]) ifTrue: [
+			and: [ self stagedExpandedOf: aShape ] ] ]) ifTrue: [
 				bounds := self stagedBoundsOf: aShape.
 				(bounds notNil and: [ bounds containsPoint: aPoint ]) ifTrue: [
 					candidates add: { modelElement. bounds } ] ] ].
@@ -3020,3 +3065,23 @@ CPProcessVisualElement >> setShape: aShape expanded: aBoolean [
 	^ assessment
 ]
 
+
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> transferFlowNodeOperationFor: aBlock [
+	transferFlowNodeOperationBlock := aBlock
+]
+
+
+{ #category : 'operations' }
+CPProcessVisualElement >> transferFlowNode: aFlowNode shape: aShape toContainer: aFlowContainer bounds: aRectangle [
+	| assessment constrainedBounds |
+	transferFlowNodeOperationBlock ifNil: [ ^ nil ].
+	constrainedBounds := self constrainedBounds: aRectangle forFlowContainer: aFlowContainer.
+	assessment := (transferFlowNodeOperationBlock
+		value: aFlowNode
+		value: aFlowContainer
+		value: constrainedBounds) apply.
+	self refresh.
+	^ assessment
+]

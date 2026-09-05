@@ -91,19 +91,27 @@ CPAtelierMoveShape >> edge: anEdge isIncidentTo: aModelElement [
 
 { #category : 'private - staged state' }
 CPAtelierMoveShape >> stagedSourceOf: aSequenceFlow [
-	| flowElementsDescription flowMemento description |
-	flowElementsDescription := processMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
-	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
+	| context flowMemento description |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aSequenceFlow
+		inRootMemento: processMemento.
+	context ifNil: [ ^ nil ].
+	flowMemento := context childMementoFor: aSequenceFlow.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #sourceRef ].
 	^ flowMemento readUsing: description
 ]
 
 { #category : 'private - staged state' }
 CPAtelierMoveShape >> stagedTargetOf: aSequenceFlow [
-	| flowElementsDescription flowMemento description |
-	flowElementsDescription := processMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
-	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
+	| context flowMemento description |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aSequenceFlow
+		inRootMemento: processMemento.
+	context ifNil: [ ^ nil ].
+	flowMemento := context childMementoFor: aSequenceFlow.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
 ]
 

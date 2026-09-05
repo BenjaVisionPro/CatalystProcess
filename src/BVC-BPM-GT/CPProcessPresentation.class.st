@@ -12,6 +12,7 @@ Class {
 		'workspaceElement',
 		'selectedModelElement',
 		'moveShapeOperationBlock',
+		'transferFlowNodeOperationBlock',
 		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
@@ -38,6 +39,7 @@ CPProcessPresentation >> prepareHostElement [
 	diagramElement := CPProcessVisualElement new
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
+		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
 		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
@@ -218,6 +220,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 	diagramElement ifNil: [ ^ self ].
 	diagramElement
 		moveShapeOperationFor: moveShapeOperationBlock;
+		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
 		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
@@ -280,4 +283,10 @@ CPProcessPresentation >> setEdgeLabelPlacementOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessPresentation >> setShapeExpandedOperationFor: aBlock [
 	setShapeExpandedOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessPresentation >> transferFlowNodeOperationFor: aBlock [
+	transferFlowNodeOperationBlock := aBlock
 ]

@@ -831,3 +831,62 @@ CPProcessAtelierExamples >> sequenceFlowCannotCrossFlowContainerBoundary [
 	self assert: rootShape notNil.
 	^ assessment
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> transferringUnconnectedNodeIntoSubProcessStagesContainmentAndBounds [
+	<gtExample>
+	| fixture memento rootDescription diagramDescription diagramMemento elementsDescription
+	  subProcess task rootElements subMemento subDescription shape diagramElements
+	  operation assessment targetMemento containerDescription boundsDescription |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	task := CPUserTask new label: 'Move me'; yourself.
+	rootElements := (memento readUsing: rootDescription) asOrderedCollection copy.
+	rootElements
+		add: subProcess;
+		add: task.
+	memento write: rootElements using: rootDescription.
+
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: OrderedCollection new using: subDescription.
+
+	shape := CPShape new
+		modelElement: task;
+		bounds: (80 @ 80 extent: 132 @ 54);
+		yourself.
+	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements add: shape.
+	diagramMemento write: diagramElements using: elementsDescription.
+
+	operation := CPAtelierTransferFlowNode
+		flowNode: task
+		targetContainer: subProcess
+		bounds: (260 @ 240 extent: 132 @ 54)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: ((memento readUsing: rootDescription) identityIncludes: task) not.
+	self assert: ((subMemento readUsing: subDescription) identityIncludes: task).
+	targetMemento := subMemento childMementoFor: task inRelation: subDescription.
+	containerDescription := self descriptionFor: #container in: targetMemento.
+	self assert: (targetMemento readUsing: containerDescription) == subProcess.
+	boundsDescription := self descriptionFor: #bounds in:
+		(diagramMemento childMementoFor: shape inRelation: elementsDescription).
+	self assert:
+		((diagramMemento childMementoFor: shape inRelation: elementsDescription)
+			readUsing: boundsDescription)
+		equals: (260 @ 240 extent: 132 @ 54).
+	self assert: task container isNil.
+	^ assessment
+]

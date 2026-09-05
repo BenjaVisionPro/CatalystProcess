@@ -25,6 +25,13 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				bounds: proposedBounds
 				processMemento: memento
 				diagramDescription: diagramDescription ];
+		transferFlowNodeOperationFor: [ :aFlowNode :aFlowContainer :proposedBounds |
+			CPAtelierTransferFlowNode
+				flowNode: aFlowNode
+				targetContainer: aFlowContainer
+				bounds: proposedBounds
+				processMemento: memento
+				diagramDescription: diagramDescription ];
 		moveShapesOperationFor: [ :boundsByShape |
 			CPAtelierMoveShapes
 				boundsByShape: boundsByShape
@@ -1038,4 +1045,21 @@ CPProcessVisualElementExamples >> expandedSubProcessKeepsToggleAndPositionsLabel
 	self assert: element subProcessExpansionMarker notNil.
 	self assert: (element children includes: label).
 	^ element
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedConnectionTargetWinsOverExpandedContainer [
+	<gtExample>
+	| visual outerContainer innerTask chosen |
+	visual := CPProcessVisualElement new.
+	outerContainer := CPNoneSubProcess new label: 'Container'; yourself.
+	innerTask := CPUserTask new label: 'Inner'; yourself.
+
+	chosen := visual preferredConnectionTargetFrom: {
+		{ outerContainer. 0. (100 @ 100 extent: 360 @ 180) }.
+		{ innerTask. 1. (220 @ 220 extent: 132 @ 54) } }.
+
+	self assert: chosen == innerTask.
+	^ chosen
 ]
