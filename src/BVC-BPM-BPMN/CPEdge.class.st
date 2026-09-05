@@ -119,8 +119,9 @@ CPEdge >> labelOffset: aNumber [
 { #category : 'descriptions' }
 CPEdge >> labelOffsetDescription [
 	<magritteDescription>
-	^ MANumberDescription new
+	^ MAToOneRelationDescription new
 		accessor: #labelOffset;
+		classes: { Point };
 		label: 'Label offset';
 		priority: 140;
 		group: 'Diagram';
