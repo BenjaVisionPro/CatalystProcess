@@ -219,12 +219,10 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	bounds ifNil: [ ^ self ].
 	modelElement := self stagedModelElementOf: aShape.
 	modelElement ifNil: [ ^ self ].
-	element := self newShapeElementFor: modelElement bounds: bounds.
+	element := self newShapeElementFor: modelElement shape: aShape bounds: bounds.
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: bounds origin.
-	element userData at: #processDiagramElement put: aShape.
-	element userData at: #processModelElement put: modelElement.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
 	self installReplacementOn: element for: modelElement shape: aShape.
@@ -390,57 +388,21 @@ CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass s
 ]
 
 { #category : 'private - shapes' }
-CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
+CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bounds [
 	| element label |
-	element := BlElement new
-		extent: bounds extent;
-		geometry: (self geometryFor: aFlowNode bounds: bounds);
-		background: self shapeBackgroundColor;
-		border: (BlBorder
-			paint: self shapeBorderColor
-			width: (aFlowNode isEndEvent ifTrue: [ 3 ] ifFalse: [ 1.5 ]));
-		layout: BlFrameLayout new;
-		yourself.
-
-	aFlowNode isActivity ifTrue: [
-		label := self newEditableLabelFor: aFlowNode.
-		label hFitContentLimited.
-		label vFitContent.
-		label constraintsDo: [ :c |
-			c maxWidth: (bounds width - 20 max: 1).
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ].
-		element addChild: label.
-		self installLabelEditingOn: element label: label ].
-
-	aFlowNode isIntermediateEvent ifTrue: [
-		| innerRing |
-		innerRing := BlElement new
-			extent: bounds extent - (8 @ 8);
-			geometry: BlCircleGeometry new;
-			background: Color transparent;
-			border: (BlBorder paint: self shapeBorderColor width: 1.5);
-			constraintsDo: [ :c |
-				c frame horizontal alignCenter.
-				c frame vertical alignCenter ];
-			preventMeAndChildrenMouseEvents;
-			yourself.
-		element addChild: innerRing ].
-
+	label := aFlowNode isActivity
+		ifTrue: [ self newEditableLabelFor: aFlowNode ]
+		ifFalse: [ nil ].
+	element := CPProcessShapeElement new.
+	element
+		shape: aShape
+		modelElement: aFlowNode
+		bounds: bounds
+		background: self shapeBackgroundColor
+		borderColor: self shapeBorderColor
+		label: label.
+	label ifNotNil: [ self installLabelEditingOn: element label: label ].
 	^ element
-]
-
-{ #category : 'private - shapes' }
-CPProcessVisualElement >> geometryFor: aFlowNode bounds: bounds [
-	aFlowNode isEvent ifTrue: [ ^ BlCircleGeometry new ].
-	aFlowNode isActivity ifTrue: [ ^ BlRoundedRectangleGeometry cornerRadius: 8 ].
-	aFlowNode isGateway ifTrue: [
-		^ BlPolygonGeometry vertices: {
-			bounds width / 2 @ 0.
-			bounds width @ (bounds height / 2).
-			bounds width / 2 @ bounds height.
-			0 @ (bounds height / 2) } ].
-	^ BlRectangleGeometry new
 ]
 
 { #category : 'private - labels' }
@@ -1341,11 +1303,10 @@ CPProcessVisualElement >> updateSelectionAppearance [
 		isSelected := (selectedModelElements includes: aModelElement)
 			or: [ aModelElement == connectionSourceModelElement
 			or: [ aModelElement == connectionTargetModelElement ] ].
-		anElement border: (BlBorder
-			paint: (isSelected
-				ifTrue: [ self selectionColor ]
-				ifFalse: [ self shapeBorderColor ])
-			width: (self borderWidthFor: aModelElement selected: isSelected)) ].
+		anElement
+			selected: isSelected
+			selectionColor: self selectionColor
+			normalColor: self shapeBorderColor ].
 	edgeElementsByEdge keysAndValuesDo: [ :anEdge :someLines |
 		| isSelected isInsertionTarget isEmphasized |
 		isSelected := selectedModelElements includes: anEdge modelElement.
@@ -1375,12 +1336,6 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			ifTrue: [ BlVisibility visible ]
 			ifFalse: [ BlVisibility hidden ]) ].
 	self updateConnectionPortVisibility
-]
-
-{ #category : 'private - selection' }
-CPProcessVisualElement >> borderWidthFor: aModelElement selected: isSelected [
-	isSelected ifTrue: [ ^ aModelElement isEndEvent ifTrue: [ 4.5 ] ifFalse: [ 3 ] ].
-	^ aModelElement isEndEvent ifTrue: [ 3 ] ifFalse: [ 1.5 ]
 ]
 
 { #category : 'configuration' }
