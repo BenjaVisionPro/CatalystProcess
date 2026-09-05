@@ -697,6 +697,8 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 	| flowMemento description label |
 	flowMemento := self flowElementMementoFor: aFlowElement.
+	flowMemento ifNil: [
+		self error: 'Flow element is not present in the staged Process/Sub-Process hierarchy.' ].
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #label ].
 
@@ -1388,6 +1390,8 @@ CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
 CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
 	| flowMemento description |
 	flowMemento := self flowElementMementoFor: aSequenceFlow.
+	flowMemento ifNil: [
+		self error: 'Sequence flow is not present in the staged Process/Sub-Process hierarchy.' ].
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
 	^ flowMemento readUsing: description
 ]
@@ -1396,6 +1400,8 @@ CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
 CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
 	| flowMemento description |
 	flowMemento := self flowElementMementoFor: aSequenceFlow.
+	flowMemento ifNil: [
+		self error: 'Sequence flow is not present in the staged Process/Sub-Process hierarchy.' ].
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
 ]
@@ -2690,36 +2696,35 @@ CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlow
 ]
 
 { #category : 'private - staged state' }
-CPProcessVisualElement >> flowContainerMementoFor: aContainer [
-	| parentContainer parentMemento parentFlowElementsDescription |
-	aContainer == memento model ifTrue: [ ^ memento ].
-	aContainer isSubProcess ifFalse: [
-		self error: 'Unsupported Process flow-element container.' ].
-	parentContainer := aContainer container.
-	parentMemento := self flowContainerMementoFor: parentContainer.
-	parentFlowElementsDescription := parentMemento magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ].
-	^ parentMemento
-		childMementoFor: aContainer
-		inRelation: parentFlowElementsDescription
-]
-
-{ #category : 'private - staged state' }
-CPProcessVisualElement >> flowElementsDescriptionForContainer: aContainer [
-	^ (self flowContainerMementoFor: aContainer) magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ]
-]
-
-{ #category : 'private - staged state' }
 CPProcessVisualElement >> flowElementMementoFor: aFlowElement [
-	| container containerMemento containerFlowElementsDescription |
-	container := aFlowElement container.
-	container ifNil: [
-		self error: 'A Process flow element requires a semantic container.' ].
-	containerMemento := self flowContainerMementoFor: container.
-	containerFlowElementsDescription := self flowElementsDescriptionForContainer: container.
-	^ containerMemento
-		childMementoFor: aFlowElement
-		inRelation: containerFlowElementsDescription
+	^ self
+		flowElementMementoFor: aFlowElement
+		inContainerMemento: memento
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> flowElementMementoFor: aFlowElement inContainerMemento: aContainerMemento [
+	| relationDescription stagedFlowElements |
+	relationDescription := aContainerMemento magritteDescription
+		detect: [ :each | each handlesSelector: #flowElements ].
+	stagedFlowElements := aContainerMemento readUsing: relationDescription.
+
+	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [
+		^ aContainerMemento
+			childMementoFor: aFlowElement
+			inRelation: relationDescription ].
+
+	stagedFlowElements do: [ :each |
+		each isSubProcess ifTrue: [
+			| subProcessMemento nestedMemento |
+			subProcessMemento := aContainerMemento
+				childMementoFor: each
+				inRelation: relationDescription.
+			nestedMemento := self
+				flowElementMementoFor: aFlowElement
+				inContainerMemento: subProcessMemento.
+			nestedMemento ifNotNil: [ ^ nestedMemento ] ] ].
+
+	^ nil
 ]
 

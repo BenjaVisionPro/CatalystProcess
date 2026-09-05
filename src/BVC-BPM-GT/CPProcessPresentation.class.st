@@ -117,17 +117,40 @@ CPProcessPresentation >> selectModelElement: aModelElement [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> mementoForModelElement: aModelElement [
-	| flowElementsDescription flowElements |
+	| selectedMemento |
 	aModelElement == self memento model ifTrue: [ ^ self memento ].
+	selectedMemento := self
+		mementoForFlowElement: aModelElement
+		inContainerMemento: self memento.
+	selectedMemento ifNil: [
+		self error: 'Selected model element is not part of the staged Process/Sub-Process hierarchy.' ].
+	^ selectedMemento
+]
 
-	flowElementsDescription := self memento magritteDescription
+{ #category : 'private - selection' }
+CPProcessPresentation >> mementoForFlowElement: aFlowElement inContainerMemento: aContainerMemento [
+	| relationDescription stagedFlowElements |
+	relationDescription := aContainerMemento magritteDescription
 		detect: [ :each | each handlesSelector: #flowElements ].
-	flowElements := self memento readUsing: flowElementsDescription.
-	(flowElements identityIncludes: aModelElement) ifFalse: [
-		self error: 'Selected model element is not part of the staged process flowElements relation' ].
-	^ self memento
-		childMementoFor: aModelElement
-		inRelation: flowElementsDescription
+	stagedFlowElements := aContainerMemento readUsing: relationDescription.
+
+	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [
+		^ aContainerMemento
+			childMementoFor: aFlowElement
+			inRelation: relationDescription ].
+
+	stagedFlowElements do: [ :each |
+		each isSubProcess ifTrue: [
+			| subProcessMemento nestedMemento |
+			subProcessMemento := aContainerMemento
+				childMementoFor: each
+				inRelation: relationDescription.
+			nestedMemento := self
+				mementoForFlowElement: aFlowElement
+				inContainerMemento: subProcessMemento.
+			nestedMemento ifNotNil: [ ^ nestedMemento ] ] ].
+
+	^ nil
 ]
 
 { #category : 'private - selection' }

@@ -755,6 +755,7 @@ CPProcessVisualElementExamples >> nestedFlowElementsResolveThroughSubProcessMeme
 			add: subProcess;
 			yourself)
 		using: flowElementsDescription.
+	self assert: subProcess container isNil.
 	subProcessMemento := memento
 		childMementoFor: subProcess
 		inRelation: flowElementsDescription.
@@ -779,4 +780,30 @@ CPProcessVisualElementExamples >> nestedFlowElementsResolveThroughSubProcessMeme
 	self assert: (visual stagedSourceOf: nestedFlow) == start.
 	self assert: (visual stagedTargetOf: nestedFlow) == task.
 	^ visual
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> freshlyStagedSubProcessResolvesWithoutCommittedContainer [
+	<gtExample>
+	| fixture memento flowElementsDescription subProcess visual resolved |
+	fixture := self fixture.
+	memento := fixture second.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	subProcess := CPNoneSubProcess new label: 'Fresh nested'; yourself.
+
+	memento
+		write: ((memento readUsing: flowElementsDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: flowElementsDescription.
+
+	self assert: subProcess container isNil.
+	visual := CPProcessVisualElement new.
+	visual memento: memento.
+	resolved := visual flowElementMementoFor: subProcess.
+
+	self assert: resolved notNil.
+	self assert: resolved model == subProcess.
+	^ resolved
 ]
