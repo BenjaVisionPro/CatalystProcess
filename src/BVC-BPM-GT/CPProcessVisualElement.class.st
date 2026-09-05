@@ -852,7 +852,7 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition isDragging |
+	| dragStartEventPosition dragStartElementPosition originalBounds dragStartLabelPosition draggedModelElement isDragging |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	isDragging := false.
 	anInteractionElement
@@ -862,8 +862,9 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				dragStartEventPosition := anEvent position.
 				dragStartElementPosition := aShapeElement position.
 				originalBounds := self stagedBoundsOf: aShape.
+				draggedModelElement := self stagedModelElementOf: aShape.
 				dragStartLabelPosition := (externalLabelElementsByModelElement
-					at: aShape modelElement
+					at: draggedModelElement
 					ifAbsent: [ nil ])
 					ifNotNil: [ :aLabel | aLabel position ].
 				isDragging := true.
@@ -877,7 +878,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					aShapeElement relocate: proposedPosition.
 					delta := aShapeElement position - dragStartElementPosition.
 					dragStartLabelPosition ifNotNil: [
-						(externalLabelElementsByModelElement at: aShape modelElement)
+						(externalLabelElementsByModelElement at: draggedModelElement)
 							relocate: dragStartLabelPosition + delta ].
 					(resizeHandleElementsByShape
 						at: aShape
