@@ -999,7 +999,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addStraightEdgeFor: anEdge [
-	| sequenceFlow sourceElement targetElement line selectionLine source target sourceAnchor targetAnchor |
+	| sequenceFlow sourceElement targetElement source target sourceAnchor targetAnchor edgeVisual |
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
@@ -1012,38 +1012,22 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 		nearestTo: sourceElement
 		from: targetElement.
 
-	selectionLine := BlLineElement new
-		fromAnchor: sourceAnchor;
-		toAnchor: targetAnchor;
-		border: (BlBorder paint: Color transparent width: 8);
-		constraintsDo: [ :c | c ignoreByLayout ];
-		yourself.
-	selectionLine userData at: #processDiagramElement put: anEdge.
-	selectionLine userData at: #processModelElement put: anEdge modelElement.
-	self installEdgeSelectionOn: selectionLine for: anEdge.
-	self installPaletteInsertionOn: selectionLine for: anEdge.
-	self installBendpointInsertionOn: selectionLine for: anEdge segmentIndex: 1.
-
-	line := BlLineElement new
-		fromAnchor: sourceAnchor;
-		toAnchor: targetAnchor;
-		border: (BlBorder paint: self shapeBorderColor width: 1.5);
-		constraintsDo: [ :c | c ignoreByLayout ];
-		yourself.
-	line toHead: (BlArrowheadSimpleArrow new
-		border: (BlBorder paint: self shapeBorderColor width: 1.5);
-		yourself).
-	line userData at: #processDiagramElement put: anEdge.
-	line userData at: #processModelElement put: anEdge modelElement.
-	self installEdgeSelectionOn: line for: anEdge.
-	self installPaletteInsertionOn: line for: anEdge.
-	self installBendpointInsertionOn: line for: anEdge segmentIndex: 1.
-	edgeVisualsByEdge at: anEdge put: (CPProcessEdgeVisual new
-		edge: anEdge
-		lineElements: { line }
-		hitElements: { selectionLine }).
-	self addChild: selectionLine.
-	self addChild: line
+	edgeVisual := CPProcessEdgeVisual new edge: anEdge.
+	edgeVisual
+		addSegmentFrom: sourceAnchor
+		to: targetAnchor
+		arrowhead: true
+		color: self shapeBorderColor
+		segmentIndex: 1
+		installInteraction: [ :anElement :aSegmentIndex |
+			self installEdgeSelectionOn: anElement for: anEdge.
+			self installPaletteInsertionOn: anElement for: anEdge.
+			self
+				installBendpointInsertionOn: anElement
+				for: anEdge
+				segmentIndex: aSegmentIndex ]
+		addTo: self.
+	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
 
 { #category : 'private - layout' }
@@ -1083,7 +1067,7 @@ CPProcessVisualElement >> anchorClassFor: aFlowNode [
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	| sequenceFlow source target sourceElement targetElement interiorPoints
-	  sourceReference targetReference pairCount lines hitLines |
+	  sourceReference targetReference pairCount edgeVisual |
 	waypoints size < 3 ifTrue: [ ^ self addStraightEdgeFor: anEdge ].
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
@@ -1097,11 +1081,10 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	self addChild: sourceReference.
 	self addChild: targetReference.
 
-	lines := OrderedCollection new.
-	hitLines := OrderedCollection new.
+	edgeVisual := CPProcessEdgeVisual new edge: anEdge.
 	pairCount := interiorPoints size + 1.
 	1 to: pairCount do: [ :index |
-		| fromAnchor toAnchor line selectionLine |
+		| fromAnchor toAnchor |
 		index = 1
 			ifTrue: [
 				fromAnchor := (self anchorClassFor: source)
@@ -1119,46 +1102,21 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 						fromAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index - 1).
 						toAnchor := BlAbsolutePositionAnchor position: (interiorPoints at: index) ] ].
 
-		selectionLine := BlLineElement new
-			fromAnchor: fromAnchor;
-			toAnchor: toAnchor;
-			border: (BlBorder paint: Color transparent width: 8);
-			constraintsDo: [ :c | c ignoreByLayout ];
-			yourself.
-		selectionLine userData at: #processDiagramElement put: anEdge.
-		selectionLine userData at: #processModelElement put: anEdge modelElement.
-		self installEdgeSelectionOn: selectionLine for: anEdge.
-		self installPaletteInsertionOn: selectionLine for: anEdge.
-		self
-			installBendpointInsertionOn: selectionLine
-			for: anEdge
-			segmentIndex: index.
-
-		line := BlLineElement new
-			fromAnchor: fromAnchor;
-			toAnchor: toAnchor;
-			border: (BlBorder paint: self shapeBorderColor width: 1.5);
-			constraintsDo: [ :c | c ignoreByLayout ];
-			yourself.
-		index = pairCount ifTrue: [
-			line toHead: (BlArrowheadSimpleArrow new
-				border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
-		line userData at: #processDiagramElement put: anEdge.
-		line userData at: #processModelElement put: anEdge modelElement.
-		self installEdgeSelectionOn: line for: anEdge.
-		self installPaletteInsertionOn: line for: anEdge.
-		self
-			installBendpointInsertionOn: line
-			for: anEdge
-			segmentIndex: index.
-		lines add: line.
-		hitLines add: selectionLine.
-		self addChild: selectionLine.
-		self addChild: line ].
-	edgeVisualsByEdge at: anEdge put: (CPProcessEdgeVisual new
-		edge: anEdge
-		lineElements: lines
-		hitElements: hitLines)
+		edgeVisual
+			addSegmentFrom: fromAnchor
+			to: toAnchor
+			arrowhead: index = pairCount
+			color: self shapeBorderColor
+			segmentIndex: index
+			installInteraction: [ :anElement :aSegmentIndex |
+				self installEdgeSelectionOn: anElement for: anEdge.
+				self installPaletteInsertionOn: anElement for: anEdge.
+				self
+					installBendpointInsertionOn: anElement
+					for: anEdge
+					segmentIndex: aSegmentIndex ]
+			addTo: self ].
+	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
 
 { #category : 'private - edges' }

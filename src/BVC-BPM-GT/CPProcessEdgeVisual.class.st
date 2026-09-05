@@ -15,10 +15,46 @@ Class {
 }
 
 { #category : 'initialization' }
-CPProcessEdgeVisual >> edge: anEdge lineElements: someLines hitElements: someHitElements [
+CPProcessEdgeVisual >> edge: anEdge [
 	diagramEdge := anEdge.
-	lineElements := someLines.
-	hitElements := someHitElements
+	lineElements := OrderedCollection new.
+	hitElements := OrderedCollection new
+]
+
+{ #category : 'rendering' }
+CPProcessEdgeVisual >> addSegmentFrom: aFromAnchor to: aToAnchor arrowhead: hasArrowhead color: aColor segmentIndex: aSegmentIndex installInteraction: anInteractionBlock addTo: aParent [
+	| line hitLine |
+	hitLine := BlLineElement new
+		fromAnchor: aFromAnchor;
+		toAnchor: aToAnchor;
+		border: (BlBorder paint: Color transparent width: 8);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	self identify: hitLine.
+	anInteractionBlock value: hitLine value: aSegmentIndex.
+
+	line := BlLineElement new
+		fromAnchor: aFromAnchor;
+		toAnchor: aToAnchor;
+		border: (BlBorder paint: aColor width: 1.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+	hasArrowhead ifTrue: [
+		line toHead: (BlArrowheadSimpleArrow new
+			border: (BlBorder paint: aColor width: 1.5)) ].
+	self identify: line.
+	anInteractionBlock value: line value: aSegmentIndex.
+
+	hitElements add: hitLine.
+	lineElements add: line.
+	aParent addChild: hitLine.
+	aParent addChild: line
+]
+
+{ #category : 'private' }
+CPProcessEdgeVisual >> identify: anElement [
+	anElement userData at: #processDiagramElement put: diagramEdge.
+	anElement userData at: #processModelElement put: diagramEdge modelElement
 ]
 
 { #category : 'accessing' }
