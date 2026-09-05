@@ -132,11 +132,12 @@ CPAtelierReplaceFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
-	| incoming outgoing preservedLabel diagram diagramMemento elementsDescription shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription |
+	| incoming outgoing preservedLabel preservedNestedFlowElements diagram diagramMemento elementsDescription shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription |
 
 	incoming := OrderedCollection new.
 	outgoing := OrderedCollection new.
 	preservedLabel := self stagedLabelOf: flowNode.
+	preservedNestedFlowElements := self stagedNestedFlowElementsOf: flowNode.
 	anAssessment incidentSequenceFlows do: [ :aSequenceFlow |
 		| currentSource currentTarget flowMemento sourceDescription targetDescription |
 		currentSource := self stagedSourceOf: aSequenceFlow.
@@ -169,6 +170,11 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 	replacementMemento write: preservedLabel using: labelDescription.
 	replacementMemento write: incoming using: incomingDescription.
 	replacementMemento write: outgoing using: outgoingDescription.
+	preservedNestedFlowElements ifNotNil: [
+		| nestedDescription |
+		nestedDescription := replacementMemento magritteDescription
+			detect: [ :each | each handlesSelector: #flowElements ].
+		replacementMemento write: preservedNestedFlowElements using: nestedDescription ].
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramMemento := processMemento
@@ -282,3 +288,16 @@ CPAtelierReplaceFlowNode >> diagramDescription: aDescription [ diagramDescriptio
 
 { #category : 'accessing' }
 CPAtelierReplaceFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
+
+{ #category : 'private - staged state' }
+CPAtelierReplaceFlowNode >> stagedNestedFlowElementsOf: aFlowNode [
+	| nodeMemento description |
+	aFlowNode isSubProcess ifFalse: [ ^ nil ].
+	nodeMemento := processMemento
+		childMementoFor: aFlowNode
+		inRelation: flowElementsDescription.
+	description := nodeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #flowElements ].
+	^ nodeMemento readUsing: description
+]
+

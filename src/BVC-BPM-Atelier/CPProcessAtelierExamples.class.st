@@ -601,3 +601,89 @@ CPProcessAtelierExamples >> createSubProcessStagesSemanticNodeAndShapeTogether [
 	self assert: (process flowElements identityIncludes: subProcess) not.
 	^ assessment
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
+	<gtExample>
+	| fixture memento diagramMemento elementsDescription subProcess shape elements operation assessment shapeMemento expandedDescription |
+	fixture := self fixture.
+	memento := fixture second.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
+	shape := CPShape new
+		modelElement: subProcess;
+		bounds: (180 @ 140 extent: 348 @ 168);
+		yourself.
+	elements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	elements add: shape.
+	diagramMemento write: elements using: elementsDescription.
+
+	operation := CPAtelierSetShapeExpanded
+		shape: shape
+		expanded: true
+		processMemento: memento
+		diagramDescription: (self descriptionFor: #diagram in: memento).
+	assessment := operation apply.
+	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
+
+	self assert: assessment isApplicable.
+	self assert: assessment currentExpanded equals: false.
+	self assert: assessment proposedExpanded equals: true.
+	self assert: (shapeMemento readUsing: expandedDescription).
+	self assert: shape isExpanded not.
+	^ assessment
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessAtelierExamples >> replacingSubProcessTypePreservesNestedFlowElements [
+	<gtExample>
+	| fixture memento flowElementsDescription diagramDescription loopSubProcess start task nestedFlow createAssessment replaceAssessment replacement replacementMemento nestedDescription stagedNested |
+	fixture := self fixture.
+	memento := fixture second.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+
+	loopSubProcess := CPLoopSubProcess new label: 'Fulfil order'; yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Pick'; yourself.
+	nestedFlow := CPSequenceFlow new sourceRef: start; targetRef: task; yourself.
+	loopSubProcess
+		addFlowElement: start;
+		addFlowElement: task;
+		addFlowElement: nestedFlow.
+
+	createAssessment := (CPAtelierCreateFlowNode
+		flowNode: loopSubProcess
+		bounds: (300 @ 220 extent: 132 @ 72)
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription) apply.
+	self assert: createAssessment isApplicable.
+
+	replacement := CPMultiInstanceSubProcess new.
+	replaceAssessment := (CPAtelierReplaceFlowNode
+		flowNode: loopSubProcess
+		with: replacement
+		bounds: createAssessment shape bounds
+		processMemento: memento
+		flowElementsDescription: flowElementsDescription
+		diagramDescription: diagramDescription) apply.
+
+	replacementMemento := memento
+		childMementoFor: replacement
+		inRelation: flowElementsDescription.
+	nestedDescription := self descriptionFor: #flowElements in: replacementMemento.
+	stagedNested := replacementMemento readUsing: nestedDescription.
+
+	self assert: replaceAssessment isApplicable.
+	self assert: stagedNested size equals: 3.
+	self assert: (stagedNested identityIncludes: start).
+	self assert: (stagedNested identityIncludes: task).
+	self assert: (stagedNested identityIncludes: nestedFlow).
+	self assert: replacement label equals: nil.
+	^ replaceAssessment
+]

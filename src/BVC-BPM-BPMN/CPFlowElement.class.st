@@ -23,7 +23,7 @@ CPFlowElement >> containerDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #container;
-		classes: { CPProcess };
+		classes: { CPProcess. CPSubProcess };
 		reference: CPProcess new labelDescription;
 		label: 'Container';
 		priority: 100;

@@ -683,3 +683,49 @@ CPProcessVisualElementExamples >> collapsedSubProcessUsesActivityGeometryWithCol
 	self assert: element children first children size equals: 2.
 	^ element
 ]
+
+
+{ #category : 'examples - depiction' }
+CPProcessVisualElementExamples >> expandedSubProcessOmitsCollapsedMarker [
+	<gtExample>
+	| subProcess shape element |
+	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
+	shape := CPShape new
+		modelElement: subProcess;
+		bounds: (100 @ 100 extent: 348 @ 168);
+		isExpanded: true;
+		yourself.
+	element := CPProcessShapeElement new.
+	element
+		shape: shape
+		modelElement: subProcess
+		bounds: shape bounds
+		background: Color transparent
+		borderColor: Color black
+		label: nil.
+
+	self assert: shape isExpanded.
+	self assert: element normalBorderWidth equals: 1.5.
+	self assert: element children isEmpty.
+	^ element
+]
+
+
+{ #category : 'examples - type selection' }
+CPProcessVisualElementExamples >> subProcessTypeSelectionDefinesRequestedTypes [
+	<gtExample>
+	| selection |
+	selection := CPSubProcessTypeSelection typeClass: CPLoopSubProcess.
+
+	self assert: selection typeClasses equals: {
+		CPLoopSubProcess.
+		CPMultiInstanceSubProcess.
+		CPCompensationSubProcess.
+		CPAdHocSubProcess }.
+	self assert: (selection typeLabelFor: CPLoopSubProcess) equals: 'Loop'.
+	self assert: (selection typeIconFor: CPLoopSubProcess) equals: #arrowRotateLeft.
+	self assert: (selection typeIconFor: CPMultiInstanceSubProcess) equals: #bars.
+	self assert: (selection typeIconFor: CPCompensationSubProcess) equals: #anglesLeft.
+	self assert: (selection typeIconFor: CPAdHocSubProcess) equals: #tilde.
+	^ selection
+]

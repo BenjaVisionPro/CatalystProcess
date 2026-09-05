@@ -391,7 +391,7 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
 	| marker horizontalBar verticalBar markerExtent |
-	modelElement isSubProcess ifFalse: [ ^ self ].
+	(modelElement isSubProcess and: [ diagramShape isExpanded not ]) ifFalse: [ ^ self ].
 	markerExtent := 14 @ 14.
 	marker := BlElement new
 		extent: markerExtent;

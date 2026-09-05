@@ -2,11 +2,19 @@ Class {
 	#name : 'CPShape',
 	#superclass : 'CPDiagramElement',
 	#instVars : [
-		'bounds'
+		'bounds',
+		'isExpanded'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
+
+
+{ #category : 'initialization' }
+CPShape >> initialize [
+	super initialize.
+	isExpanded := false
+]
 
 { #category : 'accessing' }
 CPShape >> bounds [
@@ -48,4 +56,26 @@ CPShape >> boundsDescription [
 { #category : 'testing' }
 CPShape >> isShape [
 	^ true
+]
+
+
+{ #category : 'accessing' }
+CPShape >> isExpanded [
+	^ isExpanded
+]
+
+{ #category : 'accessing' }
+CPShape >> isExpanded: aBoolean [
+	isExpanded := aBoolean
+]
+
+{ #category : 'descriptions' }
+CPShape >> isExpandedDescription [
+	<magritteDescription>
+	^ MABooleanDescription new
+		accessor: #isExpanded;
+		label: 'Expanded';
+		priority: 120;
+		group: 'Diagram';
+		yourself
 ]

@@ -65,3 +65,14 @@ CPSubProcess >> flowElementsDescription [
 CPSubProcess >> isSubProcess [
 	^ true
 ]
+
+
+{ #category : 'sub-process type' }
+CPSubProcess class >> subProcessTypes [
+	^ {
+		CPLoopSubProcess.
+		CPMultiInstanceSubProcess.
+		CPCompensationSubProcess.
+		CPAdHocSubProcess
+	}
+]

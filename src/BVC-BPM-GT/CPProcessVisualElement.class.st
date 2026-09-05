@@ -29,6 +29,7 @@ Class {
 		'removeSequenceFlowOperationBlock',
 		'reconnectSequenceFlowOperationBlock',
 		'setEdgeWaypointsOperationBlock',
+		'setShapeExpandedOperationBlock',
 		'setEdgeLabelPlacementOperationBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
@@ -197,6 +198,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installReplacementOnShape: element for: modelElement shape: aShape.
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
+	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
 	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
 	self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
 	self installStartEventTypePopupOn: element for: modelElement shape: aShape.
@@ -2661,5 +2663,29 @@ CPProcessVisualElement >> edgeLabelHostFor: anEdge ifAbsent: aBlock [
 	| edgeVisual |
 	edgeVisual := edgeVisualsByEdge at: anEdge ifAbsent: [ ^ aBlock value ].
 	^ edgeVisual labelHost ifNil: [ aBlock value ]
+]
+
+
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> setShapeExpandedOperationFor: aBlock [
+	setShapeExpandedOperationBlock := aBlock
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
+	aFlowNode isSubProcess ifFalse: [ ^ self ].
+	aShape isExpanded ifTrue: [ ^ self ].
+	self
+		installTypePopupOn: aShapeElement
+		for: aFlowNode
+		shape: aShape
+		selection: (CPSubProcessTypeSelection typeClass: aFlowNode class)
+		iconExtent: 18 @ 18
+		configure: [ :anElement |
+			anElement constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignBottom.
+				c margin: (BlInsets bottom: 2 right: 38) ] ]
 ]
 

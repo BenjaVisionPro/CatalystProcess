@@ -60,7 +60,7 @@ CPProcessAtelierConfiguration class >> processPalette [
 			label: 'Sub-process'
 			icon: CPSubProcess icon
 			provider: (CFAtelierFactoryProvider factory: [
-				CPSubProcess new label: 'Sub-process'; yourself ]));
+				CPLoopSubProcess new label: 'Sub-process'; yourself ]));
 		add: (CFAtelierPaletteItem
 			label: 'Gateway'
 			icon: CPExclusiveGateway icon
@@ -111,6 +111,12 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					target: aTarget
 					processMemento: aPresentation memento
 					flowElementsDescription: flowElementsDescription
+					diagramDescription: diagramDescription ];
+			setShapeExpandedOperationFor: [ :aShape :isExpanded |
+				CPAtelierSetShapeExpanded
+					shape: aShape
+					expanded: isExpanded
+					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
 			setEdgeWaypointsOperationFor: [ :anEdge :someWaypoints |
 				CPAtelierSetEdgeWaypoints

@@ -1,0 +1,99 @@
+"I stage the BPMN DI expanded/collapsed depiction state of one CPShape.
+
+Expansion is diagram state. The semantic CPSubProcess remains the same object with the same contained flow elements."
+Class {
+	#name : 'CPAtelierSetShapeExpanded',
+	#superclass : 'CFAtelierOperation',
+	#instVars : [
+		'shape',
+		'expanded',
+		'processMemento',
+		'diagramDescription'
+	],
+	#category : 'BVC-BPM-Atelier-Diagram',
+	#package : 'BVC-BPM-Atelier',
+	#tag : 'Diagram'
+}
+
+{ #category : 'instance creation' }
+CPAtelierSetShapeExpanded class >> shape: aShape expanded: aBoolean processMemento: aMemento diagramDescription: aDiagramDescription [
+	^ self new
+		shape: aShape;
+		expanded: aBoolean;
+		processMemento: aMemento;
+		diagramDescription: aDiagramDescription;
+		yourself
+]
+
+{ #category : 'assessing' }
+CPAtelierSetShapeExpanded >> assess [
+	| diagram diagramMemento elementsDescription elements shapeMemento expandedDescription modelDescription modelElement currentExpanded |
+	shape ifNil: [ ^ self rejectedWithCurrentExpanded: nil because: 'A diagram shape is required.' ].
+	(expanded == true or: [ expanded == false ]) ifFalse: [
+		^ self rejectedWithCurrentExpanded: nil because: 'Expanded state must be Boolean.' ].
+
+	diagram := processMemento readUsing: diagramDescription.
+	diagram ifNil: [ ^ self rejectedWithCurrentExpanded: nil because: 'The process has no staged diagram.' ].
+	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
+	elementsDescription := diagramMemento magritteDescription
+		detect: [ :each | each handlesSelector: #elements ].
+	elements := diagramMemento readUsing: elementsDescription.
+	(elements identityIncludes: shape) ifFalse: [
+		^ self rejectedWithCurrentExpanded: nil because: 'The shape does not belong to the staged diagram.' ].
+
+	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	modelDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	modelElement := shapeMemento readUsing: modelDescription.
+	(modelElement isSubProcess or: [ modelElement isCallActivity ]) ifFalse: [
+		^ self rejectedWithCurrentExpanded: nil because: 'Only expandable BPMN activities can carry expanded depiction state.' ].
+
+	expandedDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isExpanded ].
+	currentExpanded := shapeMemento readUsing: expandedDescription.
+	currentExpanded = expanded ifTrue: [
+		^ self rejectedWithCurrentExpanded: currentExpanded because: 'The shape already has the requested expanded state.' ].
+	[ expandedDescription validate: expanded ]
+		on: MAValidationError
+		do: [ :anException |
+			^ self rejectedWithCurrentExpanded: currentExpanded because: anException printString ].
+
+	^ CPAtelierSetShapeExpandedAssessment
+		shape: shape
+		currentExpanded: currentExpanded
+		proposedExpanded: expanded
+]
+
+{ #category : 'applying' }
+CPAtelierSetShapeExpanded >> applyAssessment: anAssessment [
+	| diagram diagramMemento elementsDescription shapeMemento expandedDescription |
+	diagram := processMemento readUsing: diagramDescription.
+	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
+	elementsDescription := diagramMemento magritteDescription
+		detect: [ :each | each handlesSelector: #elements ].
+	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	expandedDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isExpanded ].
+	shapeMemento write: anAssessment proposedExpanded using: expandedDescription
+]
+
+{ #category : 'private' }
+CPAtelierSetShapeExpanded >> rejectedWithCurrentExpanded: currentExpanded because: aString [
+	^ CPAtelierSetShapeExpandedAssessment
+		shape: shape
+		currentExpanded: currentExpanded
+		proposedExpanded: expanded
+		rejectedBecause: aString
+]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpanded >> shape: anObject [ shape := anObject ]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpanded >> expanded: aBoolean [ expanded := aBoolean ]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpanded >> processMemento: aMemento [ processMemento := aMemento ]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpanded >> diagramDescription: aDescription [ diagramDescription := aDescription ]
