@@ -626,8 +626,8 @@ CPProcessVisualElementExamples >> visibleConnectionPortIn: aNodeElement [
 ]
 
 { #category : 'private - gestures' }
-CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
-	^ (aVisualElement children
+CPProcessVisualElementExamples >> visibleReconnectHandlesIn: anEdgeElement [
+	^ (anEdgeElement children
 		select: [ :each |
 			each extent = (10 @ 10)
 				and: [ each visibility = BlVisibility visible ] ])
@@ -637,18 +637,18 @@ CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
 { #category : 'examples - gestures - connection' }
 CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
-	| fixture visual memento start finish startShape finishShape startElement finishElement
+	| fixture visual memento task finish taskShape finishShape taskElement finishElement
 	  scripter port stagedFlowElements diagramMemento elementsDescription stagedElements newFlow newEdge |
 	fixture := self fixture.
 	memento := fixture second.
-	start := fixture third.
+	task := fixture fourth.
 	finish := fixture fifth.
-	startShape := fixture at: 9.
+	taskShape := fixture at: 10.
 	finishShape := fixture at: 11.
 	visual := self visualElementForFixture: fixture.
-	startElement := visual shapeElementFor: startShape.
+	taskElement := visual shapeElementFor: taskShape.
 	finishElement := visual shapeElementFor: finishShape.
-	startElement id: #processConnectionStartShape.
+	taskElement id: #processConnectionTaskShape.
 	finishElement id: #processConnectionFinishShape.
 
 	scripter := BlScripter new.
@@ -656,9 +656,9 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 	scripter clickStep: [ :step |
 		step
 			label: 'Select source node to reveal connection port';
-			id: #processConnectionStartShape ].
+			id: #processConnectionTaskShape ].
 
-	port := self visibleConnectionPortIn: startElement.
+	port := self visibleConnectionPortIn: taskElement.
 	port id: #processConnectionPort.
 
 	(scripter mouseMoveOver)
@@ -679,7 +679,7 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
 	newFlow := stagedFlowElements detect: [ :each |
 		each isSequenceFlow
-			and: [ each sourceRef == start
+			and: [ each sourceRef == task
 			and: [ each targetRef == finish ] ] ].
 	diagramMemento := self diagramMementoFor: memento.
 	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
@@ -698,7 +698,7 @@ CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThrou
 { #category : 'examples - gestures - reconnecting' }
 CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExistingSequenceFlowThroughBlocGesturePipeline [
 	<gtExample>
-	| fixture visual memento finish finishShape finishElement firstFlow firstEdge
+	| fixture visual memento finish finishShape finishElement firstFlow firstEdge edgeElement
 	  flowMemento targetDescription scripter handles targetHandle |
 	fixture := self fixture.
 	memento := fixture second.
@@ -709,9 +709,10 @@ CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExisting
 	visual := self visualElementForFixture: fixture.
 	finishElement := visual shapeElementFor: finishShape.
 	finishElement id: #processReconnectFinishShape.
+	edgeElement := visual edgeElementFor: firstEdge.
 
 	visual selectOnly: firstFlow.
-	handles := self visibleReconnectHandlesIn: visual.
+	handles := self visibleReconnectHandlesIn: edgeElement.
 	self assert: handles size equals: 2.
 	targetHandle := handles last.
 	targetHandle id: #processTargetReconnectHandle.
