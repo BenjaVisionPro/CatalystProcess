@@ -1750,10 +1750,17 @@ CPProcessVisualElement >> addPaletteDropSurface [
 			c vertical matchParent ];
 		relocate: 0 @ 0;
 		yourself.
-	dropSurface addEventHandler: (BlDropHandler new
-		acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
-		whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
-		yourself).
+	dropSurface
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				self clearInteractionAndSelection.
+				self requestFocus.
+				anEvent consumed: true ]);
+		addEventHandler: (BlDropHandler new
+			acceptItemsSuchThat: [ :aDragItem :aDropArea | self acceptsPaletteDragItem: aDragItem ];
+			whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
+			yourself).
 	self addChild: dropSurface
 ]
 
@@ -2727,18 +2734,30 @@ CPProcessVisualElement >> removeSelection [
 	selectedModelElements removeAll.
 	selectedModelElement := nil.
 	connectionSourceModelElement := nil.
+	connectionTargetModelElement := nil.
+	insertionTargetEdge := nil.
 	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
 	self refresh
+]
+
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> clearInteractionAndSelection [
+	connectionSourceModelElement := nil.
+	connectionTargetModelElement := nil.
+	insertionTargetEdge := nil.
+	selectedModelElements removeAll.
+	selectedModelElement := nil.
+	self updateSelectionAppearance.
+	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ]
 ]
 
 { #category : 'private - interaction' }
 CPProcessVisualElement >> cancelInteraction [
 	connectionSourceModelElement ifNotNil: [
 		connectionSourceModelElement := nil.
+		connectionTargetModelElement := nil.
+		insertionTargetEdge := nil.
 		self updateSelectionAppearance.
 		^ self ].
-	selectedModelElements removeAll.
-	selectedModelElement := nil.
-	self updateSelectionAppearance.
-	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ]
+	self clearInteractionAndSelection
 ]
