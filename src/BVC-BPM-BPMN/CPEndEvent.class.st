@@ -15,3 +15,8 @@ CPEndEvent >> isEndEvent [
 CPEndEvent class >> defaultIcon [
 	^ #endEvent
 ]
+
+{ #category : 'event type' }
+CPEndEvent class >> endEventTypes [
+	^ { CPNoneEndEvent . CPMessageEndEvent . CPErrorEndEvent . CPTerminateEndEvent . CPSignalEndEvent }
+]

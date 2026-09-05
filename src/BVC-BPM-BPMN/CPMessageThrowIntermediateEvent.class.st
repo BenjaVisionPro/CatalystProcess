@@ -7,4 +7,4 @@ Class {
 { #category : 'event type' }
 CPMessageThrowIntermediateEvent class >> eventTypeLabel [ ^ 'Message Throw' ]
 { #category : 'event type' }
-CPMessageThrowIntermediateEvent class >> eventTypeIcon [ ^ #commentArrowUp ]
+CPMessageThrowIntermediateEvent class >> eventTypeIcon [ ^ #messageArrowUp ]

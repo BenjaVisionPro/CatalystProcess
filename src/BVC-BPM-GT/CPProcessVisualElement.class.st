@@ -193,6 +193,8 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
 	self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
+	self installStartEventTypePopupOn: element for: modelElement shape: aShape.
+	self installEndEventTypePopupOn: element for: modelElement shape: aShape.
 	self
 		installResizeHandleFor: aShape
 		modelElement: modelElement
@@ -219,6 +221,34 @@ CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode s
 				c frame horizontal alignLeft.
 				c frame vertical alignTop.
 				c margin: (BlInsets top: 6 left: 6) ] ]
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installStartEventTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
+	aFlowNode isStartEvent ifFalse: [ ^ self ].
+	self
+		installTypePopupOn: aShapeElement
+		for: aFlowNode
+		shape: aShape
+		selection: (CPStartEventTypeSelection typeClass: aFlowNode class)
+		iconExtent: 22 @ 22
+		configure: [ :anElement | anElement constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ] ]
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installEndEventTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
+	aFlowNode isEndEvent ifFalse: [ ^ self ].
+	self
+		installTypePopupOn: aShapeElement
+		for: aFlowNode
+		shape: aShape
+		selection: (CPEndEventTypeSelection typeClass: aFlowNode class)
+		iconExtent: 22 @ 22
+		configure: [ :anElement | anElement constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ] ]
 ]
 
 { #category : 'private - type selection' }

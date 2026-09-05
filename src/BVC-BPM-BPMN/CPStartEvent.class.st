@@ -13,3 +13,8 @@ CPStartEvent >> isStartEvent [ ^ true ]
 CPStartEvent class >> defaultIcon [
 	^ #startEvent
 ]
+
+{ #category : 'event type' }
+CPStartEvent class >> startEventTypes [
+	^ { CPNoneStartEvent . CPMessageStartEvent . CPTimerStartEvent . CPSignalStartEvent . CPConditionalStartEvent }
+]

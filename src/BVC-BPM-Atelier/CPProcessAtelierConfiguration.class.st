@@ -33,14 +33,14 @@ CPProcessAtelierConfiguration class >> processPalette [
 	palette
 		add: (CFAtelierPaletteItem
 			label: 'Start event'
-			icon: CPStartEvent icon
+			icon: CPNoneStartEvent icon
 			provider: (CFAtelierFactoryProvider factory: [
-				CPStartEvent new label: 'Start'; yourself ]));
+				CPNoneStartEvent new label: 'Start'; yourself ]));
 		add: (CFAtelierPaletteItem
 			label: 'End event'
-			icon: CPEndEvent icon
+			icon: CPNoneEndEvent icon
 			provider: (CFAtelierFactoryProvider factory: [
-				CPEndEvent new label: 'End'; yourself ]));
+				CPNoneEndEvent new label: 'End'; yourself ]));
 		add: (CFAtelierPaletteItem
 			label: 'Intermediate event'
 			icon: CPTimerIntermediateEvent icon
