@@ -36,8 +36,16 @@ CPAtelierConnectFlowNodes >> assess [
 	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
-	sourceShape := self shapeFor: source in: elements.
-	targetShape := self shapeFor: target in: elements.
+	sourceShape := self
+		shapeFor: source
+		in: elements
+		diagramMemento: diagramMemento
+		elementsDescription: elementsDescription.
+	targetShape := self
+		shapeFor: target
+		in: elements
+		diagramMemento: diagramMemento
+		elementsDescription: elementsDescription.
 	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ self rejectedBecause: 'Both connection endpoints require diagram shapes.' ].
 	((self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) isNil
 		or: [ (self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) isNil ]) ifTrue: [
@@ -143,10 +151,24 @@ CPAtelierConnectFlowNodes >> stagedBoundsOf: aShape in: diagramMemento elementsD
 ]
 
 { #category : 'private' }
-CPAtelierConnectFlowNodes >> shapeFor: aFlowNode in: elements [
+CPAtelierConnectFlowNodes >> shapeFor: aFlowNode in: elements diagramMemento: aDiagramMemento elementsDescription: anElementsDescription [
 	| matches |
-	matches := elements select: [ :each | each isShape and: [ each modelElement == aFlowNode ] ].
+	matches := elements select: [ :each |
+		each isShape and: [
+			(self
+				stagedModelElementOf: each
+				in: aDiagramMemento
+				elementsDescription: anElementsDescription) == aFlowNode ] ].
 	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
+]
+
+{ #category : 'private - staged state' }
+CPAtelierConnectFlowNodes >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
+	| shapeMemento description |
+	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	^ shapeMemento readUsing: description
 ]
 { #category : 'private' }
 CPAtelierConnectFlowNodes >> rejectedBecause: aString [ ^ CPAtelierConnectFlowNodesAssessment source: source target: target rejectedBecause: aString ]
