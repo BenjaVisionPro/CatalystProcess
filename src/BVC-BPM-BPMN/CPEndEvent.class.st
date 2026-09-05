@@ -20,3 +20,13 @@ CPEndEvent class >> defaultIcon [
 CPEndEvent class >> endEventTypes [
 	^ { CPNoneEndEvent . CPMessageEndEvent . CPErrorEndEvent . CPTerminateEndEvent . CPSignalEndEvent }
 ]
+
+{ #category : 'event type' }
+CPEndEvent class >> eventTypeLabel [
+	^ 'None'
+]
+
+{ #category : 'event type' }
+CPEndEvent class >> eventTypeIcon [
+	^ #circle
+]

@@ -18,3 +18,13 @@ CPStartEvent class >> defaultIcon [
 CPStartEvent class >> startEventTypes [
 	^ { CPNoneStartEvent . CPMessageStartEvent . CPTimerStartEvent . CPSignalStartEvent . CPConditionalStartEvent }
 ]
+
+{ #category : 'event type' }
+CPStartEvent class >> eventTypeLabel [
+	^ 'None'
+]
+
+{ #category : 'event type' }
+CPStartEvent class >> eventTypeIcon [
+	^ #circle
+]
