@@ -37,7 +37,8 @@ Class {
 		'reconnectHandleElementsByEdge',
 		'bendpointHandleElementsByEdge',
 		'resizeHandleElementsByShape',
-		'activePaletteDragItem'
+		'activePaletteDragItem',
+		'insertionTargetEdge'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -95,6 +96,7 @@ CPProcessVisualElement >> refresh [
 	bendpointHandleElementsByEdge removeAll.
 	resizeHandleElementsByShape removeAll.
 	hoveredModelElement := nil.
+	insertionTargetEdge := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
@@ -1316,12 +1318,14 @@ CPProcessVisualElement >> updateSelectionAppearance [
 				ifFalse: [ self shapeBorderColor ])
 			width: (self borderWidthFor: aModelElement selected: isSelected)) ].
 	edgeElementsByEdge keysAndValuesDo: [ :anEdge :someLines |
-		| isSelected |
+		| isSelected isInsertionTarget isEmphasized |
 		isSelected := selectedModelElements includes: anEdge modelElement.
+		isInsertionTarget := anEdge == insertionTargetEdge.
+		isEmphasized := isSelected or: [ isInsertionTarget ].
 		someLines do: [ :aLine |
 			aLine border: (BlBorder
-				paint: (isSelected ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
-				width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
+				paint: (isEmphasized ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
+				width: (isEmphasized ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
 	self updateReconnectHandlePositions.
 	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
 		| visibility |
@@ -1465,6 +1469,18 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 ]
 
 { #category : 'private - insertion' }
+CPProcessVisualElement >> insertionTargetEdge: anEdge [
+	insertionTargetEdge == anEdge ifTrue: [ ^ self ].
+	insertionTargetEdge := anEdge.
+	self updateSelectionAppearance
+]
+
+{ #category : 'private - insertion' }
+CPProcessVisualElement >> clearInsertionTarget [
+	self insertionTargetEdge: nil
+]
+
+{ #category : 'private - insertion' }
 CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNode [
 	| candidates localPoint |
 	insertFlowNodeOperationBlock ifNil: [ ^ nil ].
@@ -1547,6 +1563,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 			do: [ :anEvent |
 				dragStartEventPosition := anEvent position.
 				dragStartElementPosition := aShapeElement position.
+				self clearInsertionTarget.
 				originalBounds := self stagedBoundsOf: aShape.
 				draggedModelElement := self stagedModelElementOf: aShape.
 				dragStartLabelPosition := (externalLabelElementsByModelElement
@@ -1567,6 +1584,9 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						(externalLabelElementsByModelElement at: draggedModelElement)
 							relocate: dragStartLabelPosition + delta ].
 					self updateIncidentEdgeLabelsFor: draggedModelElement.
+					self insertionTargetEdge: (self
+						insertionEdgeAtGlobalPoint: anEvent position
+						for: draggedModelElement).
 					(resizeHandleElementsByShape
 						at: aShape
 						ifAbsent: [ nil ])
@@ -1586,6 +1606,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					insertionEdge := self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement.
+					self clearInsertionTarget.
 					anEvent consumed: true.
 					insertionEdge
 						ifNil: [
@@ -1648,7 +1669,12 @@ CPProcessVisualElement >> installPaletteInsertionOn: anEdgeElement for: anEdge [
 	anEdgeElement addEventHandler: (CPProcessPaletteDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			self acceptsPaletteDragItem: aDragItem insertingInto: anEdge ];
+		whenDragEnteredDo: [ :anEvent |
+			self insertionTargetEdge: anEdge ];
+		whenDragLeftDo: [ :anEvent |
+			anEdge == insertionTargetEdge ifTrue: [ self clearInsertionTarget ] ];
 		whenDroppedDo: [ :anEvent |
+			self clearInsertionTarget.
 			self dropPaletteEvent: anEvent insertingInto: anEdge ];
 		yourself)
 ]
