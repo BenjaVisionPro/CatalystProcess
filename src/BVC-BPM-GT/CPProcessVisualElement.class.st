@@ -13,7 +13,6 @@ Class {
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'edgeVisualsByEdge',
-		'edgeLabelElementsByEdge',
 		'externalLabelElementsByModelElement',
 		'hoveredModelElement',
 		'diagramElements',
@@ -49,7 +48,6 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
-	edgeLabelElementsByEdge := IdentityDictionary new.
 	externalLabelElementsByModelElement := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
@@ -80,7 +78,6 @@ CPProcessVisualElement >> refresh [
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
 	edgeVisualsByEdge removeAll.
-	edgeLabelElementsByEdge removeAll.
 	externalLabelElementsByModelElement removeAll.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
@@ -392,7 +389,7 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
-	edgeLabelElementsByEdge at: anEdge put: labelHost.
+	(edgeVisualsByEdge at: anEdge) labelHost: labelHost.
 	self addChild: labelHost.
 	self installLabelEditingOn: labelHost label: label.
 	self installEdgeSelectionOn: labelHost for: anEdge.
@@ -422,7 +419,7 @@ CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge 
 						to: (self globalPointToLocal: anEvent position)
 						waypoints: (self stagedWaypointsOf: anEdge).
 					self
-						positionEdgeLabelHost: aLabelHost
+						positionEdgeLabelFor: anEdge
 						centeredAt: lastPlacement fourth.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
@@ -613,16 +610,16 @@ CPProcessVisualElement >> pointAndTangentAlong: somePoints atFraction: aFraction
 ]
 
 { #category : 'private - labels' }
-CPProcessVisualElement >> positionEdgeLabelHost: aLabelHost centeredAt: aPoint [
-	"Edge label hosts are defined with an exact width of 180. Position from that
-	known geometry so refresh-time placement does not depend on a pre-layout extent."
-	aLabelHost relocate: (aPoint x - 90) @ (aPoint y - 22)
+CPProcessVisualElement >> positionEdgeLabelFor: anEdge centeredAt: aPoint [
+	| edgeVisual |
+	edgeVisual := edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
+	edgeVisual positionLabelCenteredAt: aPoint
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
 	| labelHost waypoints segmentIndex segmentPosition offset placement |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	waypoints := self stagedWaypointsOf: anEdge.
 	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
 		ifNil: [ self defaultLabelSegmentIndexForWaypoints: waypoints ].
@@ -636,7 +633,7 @@ CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
 		waypoints: waypoints
 		usingLiveBounds: false.
 	self
-		positionEdgeLabelHost: labelHost
+		positionEdgeLabelFor: anEdge
 		centeredAt: placement first
 ]
 
@@ -756,7 +753,7 @@ CPProcessVisualElement >> midpointOfRenderedLines: someLines [
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypoints [
 	| labelHost segmentIndex segmentPosition offset placement |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
 		ifNil: [ self defaultLabelSegmentIndexForWaypoints: someWaypoints ].
 	segmentIndex := segmentIndex min: someWaypoints size - 1.
@@ -770,7 +767,7 @@ CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypo
 		waypoints: someWaypoints
 		usingLiveBounds: true.
 	self
-		positionEdgeLabelHost: labelHost
+		positionEdgeLabelFor: anEdge
 		centeredAt: placement first
 ]
 
@@ -825,15 +822,16 @@ CPProcessVisualElement >> updateIncidentReconnectHandlesFor: aModelElement [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
-	edgeLabelElementsByEdge keysDo: [ :anEdge |
-		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		(anEdgeVisual hasLabelHost
+			and: [ self edge: anEdge isIncidentTo: aModelElement ]) ifTrue: [
 			self positionLiveEdgeLabelFor: anEdge ] ]
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 	| labelHost waypoints segmentIndex segmentPosition offset placement |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	waypoints := self stagedWaypointsOf: anEdge.
 	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
 		ifNil: [ self defaultLabelSegmentIndexForWaypoints: waypoints ].
@@ -847,7 +845,7 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 		waypoints: waypoints
 		usingLiveBounds: true.
 	self
-		positionEdgeLabelHost: labelHost
+		positionEdgeLabelFor: anEdge
 		centeredAt: placement first
 ]
 
@@ -974,7 +972,7 @@ CPProcessVisualElement >> beginEditingLabel: anEditableLabel [
 { #category : 'private - labels' }
 CPProcessVisualElement >> beginEditingLabelForEdge: anEdge [
 	| labelHost label |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	labelHost children isEmpty ifTrue: [ ^ self ].
 	label := labelHost children first.
 	self beginEditingLabel: label
@@ -1033,9 +1031,8 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 	externalLabelElementsByModelElement valuesDo: [ :anElement |
 		anElement removeFromParent.
 		self addChild: anElement ].
-	edgeLabelElementsByEdge valuesDo: [ :anElement |
-		anElement removeFromParent.
-		self addChild: anElement ]
+	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
+		anEdgeVisual bringLabelToFrontIn: self ]
 ]
 
 { #category : 'private - layout' }
@@ -2287,7 +2284,7 @@ CPProcessVisualElement >> segmentPlacementFor: anEdge pathFraction: aPathFractio
 { #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge pathFraction: aPathFraction waypoints: someWaypoints [
 	| labelHost offset segmentPlacement placement |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
 	segmentPlacement := self
 		segmentPlacementFor: anEdge
@@ -2301,7 +2298,7 @@ CPProcessVisualElement >> positionEdgeLabelFor: anEdge pathFraction: aPathFracti
 		waypoints: someWaypoints
 		usingLiveBounds: true.
 	self
-		positionEdgeLabelHost: labelHost
+		positionEdgeLabelFor: anEdge
 		centeredAt: placement first
 ]
 
@@ -2803,7 +2800,7 @@ CPProcessVisualElement >> positionReconnectHandle: aHandle fromPreviewLine: aPre
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPreviewLine movingSource: movesSource [
 	| labelHost waypoints points endpoint segmentIndex segmentPosition offset placement |
-	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	waypoints := self stagedWaypointsOf: anEdge.
 	points := (self
 		renderedPathPointsFor: anEdge
@@ -2833,7 +2830,7 @@ CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPr
 		segmentPosition: segmentPosition
 		offset: offset.
 	self
-		positionEdgeLabelHost: labelHost
+		positionEdgeLabelFor: anEdge
 		centeredAt: placement first
 ]
 
@@ -3056,3 +3053,11 @@ CPProcessVisualElement >> cancelInteraction [
 		^ self ].
 	self clearInteractionAndSelection
 ]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> edgeLabelHostFor: anEdge ifAbsent: aBlock [
+	| edgeVisual |
+	edgeVisual := edgeVisualsByEdge at: anEdge ifAbsent: [ ^ aBlock value ].
+	^ edgeVisual labelHost ifNil: [ aBlock value ]
+]
+

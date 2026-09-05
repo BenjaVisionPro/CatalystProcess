@@ -9,7 +9,8 @@ Class {
 		'lineElements',
 		'hitElements',
 		'bendpointHandles',
-		'reconnectHandles'
+		'reconnectHandles',
+		'labelHost'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -22,7 +23,8 @@ CPProcessEdgeVisual >> edge: anEdge [
 	lineElements := OrderedCollection new.
 	hitElements := OrderedCollection new.
 	bendpointHandles := OrderedCollection new.
-	reconnectHandles := OrderedCollection new
+	reconnectHandles := OrderedCollection new.
+	labelHost := nil
 ]
 
 { #category : 'rendering' }
@@ -169,4 +171,33 @@ CPProcessEdgeVisual >> bringReconnectHandlesToFrontIn: aParent [
 	reconnectHandles do: [ :aHandle |
 		aHandle removeFromParent.
 		aParent addChild: aHandle ]
+]
+
+
+{ #category : 'label' }
+CPProcessEdgeVisual >> labelHost [
+	^ labelHost
+]
+
+{ #category : 'label' }
+CPProcessEdgeVisual >> labelHost: anElement [
+	labelHost := anElement
+]
+
+{ #category : 'label' }
+CPProcessEdgeVisual >> hasLabelHost [
+	^ labelHost notNil
+]
+
+{ #category : 'label' }
+CPProcessEdgeVisual >> positionLabelCenteredAt: aPoint [
+	labelHost ifNil: [ ^ self ].
+	labelHost relocate: (aPoint x - 90) @ (aPoint y - 22)
+]
+
+{ #category : 'label' }
+CPProcessEdgeVisual >> bringLabelToFrontIn: aParent [
+	labelHost ifNil: [ ^ self ].
+	labelHost removeFromParent.
+	aParent addChild: labelHost
 ]
