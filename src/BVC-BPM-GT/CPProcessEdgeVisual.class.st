@@ -269,3 +269,57 @@ CPProcessEdgeVisual >> newBendpointHandleAt: aPoint waypointIndex: waypointIndex
 	^ handle
 ]
 
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> newReconnectHandleMovingSource: movesSource selectionColor: aSelectionColor dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
+	| handle isDragging |
+	isDragging := false.
+	handle := BlElement new
+		extent: 10 @ 10;
+		geometry: BlCircleGeometry new;
+		background: Color white;
+		border: (BlBorder paint: aSelectionColor width: 2);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		yourself.
+
+	handle
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				isDragging := true.
+				aDragStartBlock value: anEvent value: handle.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					aDragBlock value: anEvent value: handle.
+					anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				isDragging ifTrue: [
+					isDragging := false.
+					aDragEndBlock value: anEvent value: handle.
+					anEvent consumed: true ] ]).
+	^ handle
+]
+
+{ #category : 'reconnect handles' }
+CPProcessEdgeVisual >> positionReconnectHandle: aHandle fromPreviewLine: aPreviewLine movingSource: movesSource within: aParent [
+	| endpoint |
+	endpoint := movesSource
+		ifTrue: [
+			aPreviewLine fromAnchor
+				positionForAnchoredElement: aPreviewLine
+					within: aParent ]
+		ifFalse: [
+			aPreviewLine toAnchor
+				positionForAnchoredElement: aPreviewLine
+					within: aParent ].
+	aHandle relocate: endpoint - (aHandle extent / 2)
+]
+

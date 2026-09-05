@@ -2607,158 +2607,114 @@ CPProcessVisualElement >> validReconnectTargetAtGlobalPoint: aPoint for: aSequen
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: movesSource owner: ownerElement other: otherElement [
-	| handle isDragging previewLine previewCursor adjacentReference hiddenTerminalLine reconnectEdge |
-	isDragging := false.
-	handle := BlElement new
-		extent: 10 @ 10;
-		geometry: BlCircleGeometry new;
-		background: Color white;
-		border: (BlBorder paint: self selectionColor width: 2);
-		visibility: BlVisibility hidden;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		yourself.
-
-	handle
-		addEventHandler: (BlEventHandler
-			on: BlClickEvent
-			do: [ :anEvent | anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragStartEvent
-			do: [ :anEvent |
-				| source target localPoint waypoints lines adjacentPoint |
-				isDragging := true.
-				self clearConnectionTarget.
-				source := self stagedSourceOf: aSequenceFlow.
-				target := self stagedTargetOf: aSequenceFlow.
-				adjacentReference := nil.
-				hiddenTerminalLine := nil.
-				reconnectEdge := self
-					edgeForSequenceFlow: aSequenceFlow
-					ifFound: [ :anEdge | anEdge ]
-					ifNone: [ nil ].
-				waypoints := reconnectEdge
-					ifNil: [ #() ]
-					ifNotNil: [ self stagedWaypointsOf: reconnectEdge ].
-				waypoints size >= 3 ifTrue: [
-					adjacentPoint := movesSource
-						ifTrue: [ waypoints second ]
-						ifFalse: [ waypoints at: waypoints size - 1 ].
-					adjacentReference := self anchorReferenceElementAt: adjacentPoint.
-					self addChild: adjacentReference.
-					lines := self lineElementsForEdge: reconnectEdge.
-					lines ifNotEmpty: [
-						hiddenTerminalLine := movesSource
-							ifTrue: [ lines first ]
-							ifFalse: [ lines last ].
-						hiddenTerminalLine visibility: BlVisibility hidden ] ].
-				localPoint := self globalPointToLocal: anEvent position.
-				previewCursor := BlElement new
-					extent: 1 @ 1;
-					background: Color transparent;
-					constraintsDo: [ :c | c ignoreByLayout ];
-					relocate: localPoint;
-					yourself.
-				previewLine := BlLineElement new
-					border: (BlBorder paint: self selectionColor width: 1.5);
-					constraintsDo: [ :c | c ignoreByLayout ];
-					yourself.
-				self
-					updateReconnectPreviewLine: previewLine
-					cursor: previewCursor
-					sequenceFlow: aSequenceFlow
-					movingSource: movesSource
-					target: nil
-					adjacentReference: adjacentReference.
-				movesSource ifFalse: [
-					previewLine toHead: (BlArrowheadSimpleArrow new
-						border: (BlBorder paint: self selectionColor width: 1.5)) ].
-				self addChild: previewCursor.
-				self addChildFirst: previewLine.
-				anEvent consumed: true ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| candidate |
-					previewCursor relocate: (self globalPointToLocal: anEvent position).
-					candidate := self
-						validReconnectTargetAtGlobalPoint: anEvent position
-						for: aSequenceFlow
-						movingSource: movesSource.
-					self connectionTargetModelElement: candidate.
+	| edgeVisual previewLine previewCursor adjacentReference hiddenTerminalLine reconnectEdge |
+	edgeVisual := self
+		edgeForSequenceFlow: aSequenceFlow
+		ifFound: [ :anEdge | edgeVisualsByEdge at: anEdge ]
+		ifNone: [ ^ nil ].
+	^ edgeVisual
+		newReconnectHandleMovingSource: movesSource
+		selectionColor: self selectionColor
+		dragStarted: [ :anEvent :handle |
+			| localPoint waypoints lines adjacentPoint |
+			self clearConnectionTarget.
+			adjacentReference := nil.
+			hiddenTerminalLine := nil.
+			reconnectEdge := edgeVisual diagramEdge.
+			waypoints := self stagedWaypointsOf: reconnectEdge.
+			waypoints size >= 3 ifTrue: [
+				adjacentPoint := movesSource
+					ifTrue: [ waypoints second ]
+					ifFalse: [ waypoints at: waypoints size - 1 ].
+				adjacentReference := self anchorReferenceElementAt: adjacentPoint.
+				self addChild: adjacentReference.
+				lines := edgeVisual lineElements.
+				lines ifNotEmpty: [
+					hiddenTerminalLine := movesSource
+						ifTrue: [ lines first ]
+						ifFalse: [ lines last ].
+					hiddenTerminalLine visibility: BlVisibility hidden ] ].
+			localPoint := self globalPointToLocal: anEvent position.
+			previewCursor := BlElement new
+				extent: 1 @ 1;
+				background: Color transparent;
+				constraintsDo: [ :c | c ignoreByLayout ];
+				relocate: localPoint;
+				yourself.
+			previewLine := BlLineElement new
+				border: (BlBorder paint: self selectionColor width: 1.5);
+				constraintsDo: [ :c | c ignoreByLayout ];
+				yourself.
+			self
+				updateReconnectPreviewLine: previewLine
+				cursor: previewCursor
+				sequenceFlow: aSequenceFlow
+				movingSource: movesSource
+				target: nil
+				adjacentReference: adjacentReference.
+			movesSource ifFalse: [
+				previewLine toHead: (BlArrowheadSimpleArrow new
+					border: (BlBorder paint: self selectionColor width: 1.5)) ].
+			self addChild: previewCursor.
+			self addChildFirst: previewLine ]
+		dragged: [ :anEvent :handle |
+			| candidate |
+			previewCursor relocate: (self globalPointToLocal: anEvent position).
+			candidate := self
+				validReconnectTargetAtGlobalPoint: anEvent position
+				for: aSequenceFlow
+				movingSource: movesSource.
+			self connectionTargetModelElement: candidate.
+			self
+				updateReconnectPreviewLine: previewLine
+				cursor: previewCursor
+				sequenceFlow: aSequenceFlow
+				movingSource: movesSource
+				target: candidate
+				adjacentReference: adjacentReference.
+			edgeVisual
+				positionReconnectHandle: handle
+				fromPreviewLine: previewLine
+				movingSource: movesSource
+				within: self.
+			self
+				positionEdgeLabelForReconnectPreview: reconnectEdge
+				line: previewLine
+				movingSource: movesSource ]
+		dragEnded: [ :anEvent :handle |
+			| candidate source target |
+			previewLine ifNotNil: [ previewLine removeFromParent ].
+			previewCursor ifNotNil: [ previewCursor removeFromParent ].
+			adjacentReference ifNotNil: [ adjacentReference removeFromParent ].
+			hiddenTerminalLine ifNotNil: [
+				hiddenTerminalLine visibility: BlVisibility visible ].
+			previewLine := nil.
+			previewCursor := nil.
+			adjacentReference := nil.
+			hiddenTerminalLine := nil.
+			self positionEdgeLabelFor: reconnectEdge.
+			candidate := self
+				validReconnectTargetAtGlobalPoint: anEvent position
+				for: aSequenceFlow
+				movingSource: movesSource.
+			self clearConnectionTarget.
+			candidate
+				ifNotNil: [
+					source := self stagedSourceOf: aSequenceFlow.
+					target := self stagedTargetOf: aSequenceFlow.
+					movesSource
+						ifTrue: [ source := candidate ]
+						ifFalse: [ target := candidate ].
 					self
-						updateReconnectPreviewLine: previewLine
-						cursor: previewCursor
-						sequenceFlow: aSequenceFlow
-						movingSource: movesSource
-						target: candidate
-						adjacentReference: adjacentReference.
+						reconnectSequenceFlow: aSequenceFlow
+						source: source
+						target: target ]
+				ifNil: [
 					self
-						positionReconnectHandle: handle
-						fromPreviewLine: previewLine
-						movingSource: movesSource.
-					reconnectEdge ifNotNil: [
-						self
-							positionEdgeLabelForReconnectPreview: reconnectEdge
-							line: previewLine
-							movingSource: movesSource ].
-					anEvent consumed: true ] ]);
-		addEventHandler: (BlEventHandler
-			on: BlDragEndEvent
-			do: [ :anEvent |
-				isDragging ifTrue: [
-					| candidate source target |
-					isDragging := false.
-					previewLine ifNotNil: [ previewLine removeFromParent ].
-					previewCursor ifNotNil: [ previewCursor removeFromParent ].
-					adjacentReference ifNotNil: [ adjacentReference removeFromParent ].
-					hiddenTerminalLine ifNotNil: [
-						hiddenTerminalLine visibility: BlVisibility visible ].
-					previewLine := nil.
-					previewCursor := nil.
-					adjacentReference := nil.
-					hiddenTerminalLine := nil.
-					reconnectEdge ifNotNil: [
-						self positionEdgeLabelFor: reconnectEdge ].
-					candidate := self
-						validReconnectTargetAtGlobalPoint: anEvent position
-						for: aSequenceFlow
-						movingSource: movesSource.
-					self clearConnectionTarget.
-					candidate
-						ifNotNil: [
-							source := self stagedSourceOf: aSequenceFlow.
-							target := self stagedTargetOf: aSequenceFlow.
-							movesSource
-								ifTrue: [ source := candidate ]
-								ifFalse: [ target := candidate ].
-							self
-								reconnectSequenceFlow: aSequenceFlow
-								source: source
-								target: target ]
-						ifNil: [
-							reconnectEdge ifNotNil: [
-								self
-									positionReconnectHandlesFor: reconnectEdge
-									fromLines: (self lineElementsForEdge: reconnectEdge) ] ].
-					anEvent consumed: true ] ]).
-	^ handle
+						positionReconnectHandlesFor: reconnectEdge
+						fromLines: edgeVisual lineElements ] ]
 ]
 
-{ #category : 'private - reconnecting' }
-CPProcessVisualElement >> positionReconnectHandle: aHandle fromPreviewLine: aPreviewLine movingSource: movesSource [
-	| endpoint |
-	endpoint := movesSource
-		ifTrue: [
-			aPreviewLine fromAnchor
-				positionForAnchoredElement: aPreviewLine
-				within: self ]
-		ifFalse: [
-			aPreviewLine toAnchor
-				positionForAnchoredElement: aPreviewLine
-				within: self ].
-	self positionReconnectHandle: aHandle at: endpoint
-]
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPreviewLine movingSource: movesSource [
@@ -2898,10 +2854,6 @@ CPProcessVisualElement >> ellipseDockingPointFor: aNodeElement toward: aPoint [
 	^ center + intersection
 ]
 
-{ #category : 'private - reconnecting' }
-CPProcessVisualElement >> positionReconnectHandle: aHandle at: anEndpoint [
-	aHandle relocate: anEndpoint - (aHandle extent / 2)
-]
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget [
