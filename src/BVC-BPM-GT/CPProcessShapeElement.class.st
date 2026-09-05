@@ -11,7 +11,9 @@ Class {
 		'normalBorderColor',
 		'resizeHandle',
 		'connectionPort',
-		'externalLabelHost'
+		'externalLabelHost',
+		'isExpanded',
+		'subProcessExpansionMarker'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -20,11 +22,25 @@ Class {
 
 { #category : 'initialization' }
 CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangle background: aBackground borderColor: aBorderColor label: anEditableLabel [
+	^ self
+		shape: aShape
+		modelElement: aFlowNode
+		bounds: aRectangle
+		background: aBackground
+		borderColor: aBorderColor
+		label: anEditableLabel
+		expanded: aShape isExpanded
+]
+
+{ #category : 'initialization' }
+CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangle background: aBackground borderColor: aBorderColor label: anEditableLabel expanded: aBoolean [
 	diagramShape := aShape.
 	modelElement := aFlowNode.
 	labelElement := anEditableLabel.
 	normalBorderColor := aBorderColor.
 	externalLabelHost := nil.
+	isExpanded := aBoolean.
+	subProcessExpansionMarker := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -392,15 +408,30 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
-	| marker |
-	(modelElement isSubProcess and: [ diagramShape isExpanded not ]) ifFalse: [ ^ self ].
-	marker := (FontAwesomeIcons icon: #squarePlus)
+	(modelElement isSubProcess and: [ isExpanded not ]) ifFalse: [ ^ self ].
+	subProcessExpansionMarker := (FontAwesomeIcons icon: #squarePlus)
 		size: 14 @ 14;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignBottom.
 			c margin: (BlInsets bottom: 4) ];
-		preventMeAndChildrenMouseEvents;
+		allowMeAndChildrenMouseEvents;
 		yourself.
-	self addChild: marker
+	self addChild: subProcessExpansionMarker
+]
+
+{ #category : 'interaction - subprocess' }
+CPProcessShapeElement >> installSubProcessExpansion: aBlock [
+	subProcessExpansionMarker ifNil: [ ^ self ].
+	subProcessExpansionMarker
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				aBlock value.
+				anEvent consumed: true ])
+]
+
+{ #category : 'accessing - testing' }
+CPProcessShapeElement >> subProcessExpansionMarker [
+	^ subProcessExpansionMarker
 ]

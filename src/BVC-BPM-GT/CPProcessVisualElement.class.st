@@ -279,6 +279,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
+	self installSubProcessExpansionOn: element for: modelElement shape: aShape.
 	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
 	self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
 	self installStartEventTypePopupOn: element for: modelElement shape: aShape.
@@ -435,7 +436,8 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		bounds: bounds
 		background: self shapeBackgroundColor
 		borderColor: self shapeBorderColor
-		label: label.
+		label: label
+		expanded: (self stagedExpandedOf: aShape).
 	label ifNotNil: [ self installLabelEditingOn: element label: label ].
 	^ element
 ]
@@ -2834,7 +2836,7 @@ CPProcessVisualElement >> setShapeExpandedOperationFor: aBlock [
 { #category : 'private - type selection' }
 CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
 	aFlowNode isSubProcess ifFalse: [ ^ self ].
-	aShape isExpanded ifTrue: [ ^ self ].
+	(self stagedExpandedOf: aShape) ifTrue: [ ^ self ].
 	self
 		installTypePopupOn: aShapeElement
 		for: aFlowNode
@@ -2928,3 +2930,26 @@ CPProcessVisualElement >> stagedExpandedOf: aShape [
 CPProcessVisualElement >> shapeElementsByModelElement [
 	^ shapeElementsByModelElement
 ]
+
+{ #category : 'private - subprocess' }
+CPProcessVisualElement >> installSubProcessExpansionOn: aShapeElement for: aFlowNode shape: aShape [
+	aFlowNode isSubProcess ifFalse: [ ^ self ].
+	setShapeExpandedOperationBlock ifNil: [ ^ self ].
+	(self stagedExpandedOf: aShape) ifTrue: [ ^ self ].
+	aShapeElement installSubProcessExpansion: [
+		self setShape: aShape expanded: true ]
+]
+
+{ #category : 'operations' }
+CPProcessVisualElement >> setShape: aShape expanded: aBoolean [
+	| assessment |
+	setShapeExpandedOperationBlock ifNil: [ ^ nil ].
+	assessment := (setShapeExpandedOperationBlock
+		value: aShape
+		value: aBoolean) apply.
+	assessment isApplicable
+		ifTrue: [ self refresh ]
+		ifFalse: [ self updateSelectionAppearance ].
+	^ assessment
+]
+

@@ -963,3 +963,43 @@ CPProcessVisualElementExamples >> nestedBoundsAreConstrainedToExpandedSubProcess
 	self assert: constrained extent equals: 132 @ 54.
 	^ visual
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> collapsedSubProcessExpansionAffordanceStagesExpandedShape [
+	<gtExample>
+	| fixture memento rootFlowDescription diagramMemento elementsDescription
+	  subProcess subShape rootFlows diagramElements visual shapeElement
+	  shapeMemento expandedDescription assessment |
+
+	fixture := self fixture.
+	memento := fixture second.
+	rootFlowDescription := self descriptionFor: #flowElements in: memento.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	rootFlows := (memento readUsing: rootFlowDescription) asOrderedCollection copy.
+	rootFlows add: subProcess.
+	memento write: rootFlows using: rootFlowDescription.
+	subShape := CPShape new
+		modelElement: subProcess;
+		bounds: (180 @ 180 extent: 360 @ 180);
+		yourself.
+	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements add: subShape.
+	diagramMemento write: diagramElements using: elementsDescription.
+
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	self assert: shapeElement subProcessExpansionMarker notNil.
+
+	assessment := visual setShape: subShape expanded: true.
+	self assert: assessment isApplicable.
+	shapeMemento := diagramMemento childMementoFor: subShape inRelation: elementsDescription.
+	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
+	self assert: (shapeMemento readUsing: expandedDescription).
+	self assert: subShape isExpanded not.
+	self assert: (visual shapeElementsByModelElement at: subProcess) subProcessExpansionMarker isNil.
+	^ visual
+]
