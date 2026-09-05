@@ -1072,10 +1072,6 @@ CPProcessVisualElement >> lineElementsForEdge: anEdge [
 	^ (edgeVisualsByEdge at: anEdge ifAbsent: [ ^ #() ]) lineElements
 ]
 
-{ #category : 'private - edges' }
-CPProcessVisualElement >> hitElementsForEdge: anEdge [
-	^ (edgeVisualsByEdge at: anEdge ifAbsent: [ ^ #() ]) hitElements
-]
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> anchorClassFor: aFlowNode [
@@ -1297,15 +1293,11 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			selectionColor: self selectionColor
 			normalColor: self shapeBorderColor ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
-		| someLines isSelected isInsertionTarget isEmphasized |
-		someLines := anEdgeVisual lineElements.
-		isSelected := selectedModelElements includes: anEdge modelElement.
-		isInsertionTarget := anEdge == insertionTargetEdge.
-		isEmphasized := isSelected or: [ isInsertionTarget ].
-		someLines do: [ :aLine |
-			aLine border: (BlBorder
-				paint: (isEmphasized ifTrue: [ self selectionColor ] ifFalse: [ self shapeBorderColor ])
-				width: (isEmphasized ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ] ].
+		anEdgeVisual
+			selected: (selectedModelElements includes: anEdge modelElement)
+			insertionTarget: anEdge == insertionTargetEdge
+			selectionColor: self selectionColor
+			normalColor: self shapeBorderColor ].
 	self updateReconnectHandlePositions.
 	reconnectHandleElementsByEdge keysAndValuesDo: [ :anEdge :someHandles |
 		| visibility |
@@ -1412,13 +1404,10 @@ CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNod
 	insertFlowNodeOperationBlock ifNil: [ ^ nil ].
 	candidates := OrderedCollection new.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
-		| someHitElements |
-		someHitElements := anEdgeVisual hitElements.
 		((self stagedSourceOf: anEdge modelElement) == aFlowNode
 			or: [ (self stagedTargetOf: anEdge modelElement) == aFlowNode ])
 			ifFalse: [
-				(someHitElements anySatisfy: [ :aHitElement |
-					aHitElement containsGlobalPoint: aGlobalPoint ])
+				(anEdgeVisual containsGlobalPoint: aGlobalPoint)
 					ifTrue: [ candidates add: anEdge ] ] ].
 	candidates ifEmpty: [ ^ nil ].
 	candidates size = 1 ifTrue: [ ^ candidates first ].
