@@ -2667,6 +2667,10 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 						movingSource: movesSource
 						target: candidate
 						adjacentReference: adjacentReference.
+					self
+						positionReconnectHandle: handle
+						fromPreviewLine: previewLine
+						movingSource: movesSource.
 					reconnectEdge ifNotNil: [
 						self
 							positionEdgeLabelForReconnectPreview: reconnectEdge
@@ -2695,18 +2699,41 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 						for: aSequenceFlow
 						movingSource: movesSource.
 					self clearConnectionTarget.
-					candidate ifNotNil: [
-						source := self stagedSourceOf: aSequenceFlow.
-						target := self stagedTargetOf: aSequenceFlow.
-						movesSource
-							ifTrue: [ source := candidate ]
-							ifFalse: [ target := candidate ].
-						self
-							reconnectSequenceFlow: aSequenceFlow
-							source: source
-							target: target ].
+					candidate
+						ifNotNil: [
+							source := self stagedSourceOf: aSequenceFlow.
+							target := self stagedTargetOf: aSequenceFlow.
+							movesSource
+								ifTrue: [ source := candidate ]
+								ifFalse: [ target := candidate ].
+							self
+								reconnectSequenceFlow: aSequenceFlow
+								source: source
+								target: target ]
+						ifNil: [
+							reconnectEdge ifNotNil: [
+								self
+									positionReconnectHandlesFor: reconnectEdge
+									fromLines: (edgeElementsByEdge
+										at: reconnectEdge
+										ifAbsent: [ #() ]) ] ].
 					anEvent consumed: true ] ]).
 	^ handle
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> positionReconnectHandle: aHandle fromPreviewLine: aPreviewLine movingSource: movesSource [
+	| endpoint |
+	endpoint := movesSource
+		ifTrue: [
+			aPreviewLine fromAnchor
+				positionForAnchoredElement: aPreviewLine
+				within: self ]
+		ifFalse: [
+			aPreviewLine toAnchor
+				positionForAnchoredElement: aPreviewLine
+				within: self ].
+	self positionReconnectHandle: aHandle at: endpoint
 ]
 
 { #category : 'private - reconnecting' }
