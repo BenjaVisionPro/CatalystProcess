@@ -205,31 +205,58 @@ CPProcessVisualElement >> addShapeFor: aShape [
 
 { #category : 'private - task type' }
 CPProcessVisualElement >> installTaskTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
-	| aSelection aSelectionMemento aDescription aPopup |
+	| aSelection aSelectionMemento aDescription aPresentation aPopup anIconBlock aVisibleIcon |
 	aFlowNode isActivity ifFalse: [ ^ self ].
 
 	aSelection := CPTaskTypeSelection taskClass: aFlowNode class.
 	aSelectionMemento := CFMaMemento model: aSelection.
 	aDescription := aSelectionMemento magritteDescription
 		detect: [ :each | each handlesSelector: #taskClass ].
-	aPopup := CFMaDetailPresentation
-		singleOptionPopupElementForMemento: aSelectionMemento
-		description: aDescription
-		in: aShapeElement.
-	aPopup
-		popupOpenChangedDo: [ :isOpen |
-			| selectedTaskClass |
-			isOpen ifFalse: [
-				selectedTaskClass := aSelectionMemento readUsing: aDescription.
-				selectedTaskClass == aFlowNode class ifFalse: [
-					self
-						replaceTask: aFlowNode
-						withClass: selectedTaskClass
-						shape: aShape ] ] ];
+	aPresentation := CFMaDetailPresentation new
+		memento: aSelectionMemento;
+		form: aShapeElement;
+		yourself.
+	anIconBlock := aDescription blocOptionIconStencil.
+	aPopup := aPresentation
+		newPopupUsing: aDescription
+		values: aDescription options
+		display: [ :aTaskClass | aTaskClass taskTypeLabel ]
+		icon: anIconBlock.
+
+	aVisibleIcon := anIconBlock value: aFlowNode class.
+	aVisibleIcon
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		beMouseTransparent.
+
+	aShapeElement addChild: (BlElement new
+		extent: 24 @ 24;
+		layout: BlFrameLayout new;
 		constraintsDo: [ :c |
 			c frame horizontal alignLeft.
 			c frame vertical alignTop.
-			c margin: (BlInsets top: 6 left: 6) ].
+			c margin: (BlInsets top: 6 left: 6) ];
+		addChild: aVisibleIcon;
+		yourself).
+
+	aPopup
+		opacity: 0.0;
+		extent: 24 @ 24;
+		constraintsDo: [ :c |
+			c frame horizontal alignLeft.
+			c frame vertical alignTop.
+			c margin: (BlInsets top: 6 left: 6) ];
+		when: BrDropdownIsHidden
+		do: [ :anEvent |
+			| selectedTaskClass |
+			selectedTaskClass := aSelectionMemento readUsing: aDescription.
+			selectedTaskClass == aFlowNode class ifFalse: [
+				aShapeElement enqueueTask: (BlTaskAction new action: [
+					self
+						replaceTask: aFlowNode
+						withClass: selectedTaskClass
+						shape: aShape ]) ] ].
 	aShapeElement addChild: aPopup
 ]
 

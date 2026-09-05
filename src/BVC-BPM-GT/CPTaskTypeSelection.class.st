@@ -37,7 +37,6 @@ CPTaskTypeSelection >> taskClassDescription [
 		autoAccept: true;
 		fieldConfigure: [ :field |
 			field bePopup
-				beIconOnly;
 				displayBlock: [ :aTaskClass | aTaskClass taskTypeLabel ] ];
 		blocOptionIconStencil: [ :aTaskClass |
 			(FontAwesomeIcons defaultStyle icon: aTaskClass taskTypeIcon)
