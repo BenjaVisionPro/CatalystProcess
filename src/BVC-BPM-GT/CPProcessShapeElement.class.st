@@ -79,7 +79,9 @@ CPProcessShapeElement >> addActivityLabelForBounds: aRectangle [
 		constraintsDo: [ :c |
 			c maxWidth: (aRectangle width - 20 max: 1).
 			c frame horizontal alignCenter.
-			c frame vertical alignCenter ].
+			c frame vertical alignCenter.
+			modelElement isSubProcess ifTrue: [
+				c margin: (BlInsets bottom: 4) ] ].
 	self addChild: labelElement
 ]
 
