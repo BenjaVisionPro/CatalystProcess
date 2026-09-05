@@ -45,9 +45,18 @@ CPAtelierRemoveFlowNode >> assess [
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	removedDiagramElements := elements select: [ :each |
-		(each isShape and: [ each modelElement == flowNode ])
+		(each isShape and: [
+			(self
+				stagedModelElementOf: each
+				in: diagramMemento
+				elementsDescription: elementsDescription) == flowNode ])
 			or: [ each isEdge and: [ incidentFlows identityIncludes: each modelElement ] ] ].
-	(removedDiagramElements anySatisfy: [ :each | each isShape and: [ each modelElement == flowNode ] ])
+	(removedDiagramElements anySatisfy: [ :each |
+		each isShape and: [
+			(self
+				stagedModelElementOf: each
+				in: diagramMemento
+				elementsDescription: elementsDescription) == flowNode ] ])
 		ifFalse: [ ^ self rejectedBecause: 'The flow node has no staged diagram shape.' ].
 	proposedElements := elements species withAll: (elements reject: [ :each | removedDiagramElements identityIncludes: each ]).
 
@@ -128,6 +137,15 @@ CPAtelierRemoveFlowNode >> stagedTargetOf: aSequenceFlow [
 	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
 	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
 	^ flowMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPAtelierRemoveFlowNode >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
+	| shapeMemento description |
+	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	^ shapeMemento readUsing: description
 ]
 
 { #category : 'private' }

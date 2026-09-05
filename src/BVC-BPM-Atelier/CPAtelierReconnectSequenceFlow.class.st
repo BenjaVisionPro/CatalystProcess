@@ -70,8 +70,16 @@ CPAtelierReconnectSequenceFlow >> assess [
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
-	sourceShape := self shapeFor: proposedSource in: elements.
-	targetShape := self shapeFor: proposedTarget in: elements.
+	sourceShape := self
+		shapeFor: proposedSource
+		in: elements
+		diagramMemento: diagramMemento
+		elementsDescription: elementsDescription.
+	targetShape := self
+		shapeFor: proposedTarget
+		in: elements
+		diagramMemento: diagramMemento
+		elementsDescription: elementsDescription.
 	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [
 		^ self rejectedBecause: 'Both connection endpoints require diagram shapes.' ].
 
@@ -130,8 +138,16 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 
 	edge := (elements select: [
 		:each | each isEdge and: [ each modelElement == sequenceFlow ] ]) first.
-	sourceShape := self shapeFor: anAssessment proposedSource in: elements.
-	targetShape := self shapeFor: anAssessment proposedTarget in: elements.
+	sourceShape := self
+		shapeFor: anAssessment proposedSource
+		in: elements
+		diagramMemento: diagramMemento
+		elementsDescription: elementsDescription.
+	targetShape := self
+		shapeFor: anAssessment proposedTarget
+		in: elements
+		diagramMemento: diagramMemento
+		elementsDescription: elementsDescription.
 	sourceBounds := self
 		stagedBoundsOf: sourceShape
 		in: diagramMemento
@@ -249,13 +265,26 @@ CPAtelierReconnectSequenceFlow >> stagedBoundsOf: aShape in: diagramMemento elem
 ]
 
 { #category : 'private' }
-CPAtelierReconnectSequenceFlow >> shapeFor: aFlowNode in: elements [
+CPAtelierReconnectSequenceFlow >> shapeFor: aFlowNode in: elements diagramMemento: aDiagramMemento elementsDescription: anElementsDescription [
 	| matches |
-	matches := elements select: [
-		:each | each isShape and: [ each modelElement == aFlowNode ] ].
+	matches := elements select: [ :each |
+		each isShape and: [
+			(self
+				stagedModelElementOf: each
+				in: aDiagramMemento
+				elementsDescription: anElementsDescription) == aFlowNode ] ].
 	^ matches size = 1
 		ifTrue: [ matches first ]
 		ifFalse: [ nil ]
+]
+
+{ #category : 'private - staged state' }
+CPAtelierReconnectSequenceFlow >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
+	| shapeMemento description |
+	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	^ shapeMemento readUsing: description
 ]
 
 { #category : 'private' }
