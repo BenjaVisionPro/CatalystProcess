@@ -42,6 +42,11 @@ CPProcessAtelierConfiguration class >> processPalette [
 			provider: (CFAtelierFactoryProvider factory: [
 				CPEndEvent new label: 'End'; yourself ]));
 		add: (CFAtelierPaletteItem
+			label: 'Intermediate event'
+			icon: CPIntermediateEvent icon
+			provider: (CFAtelierFactoryProvider factory: [
+				CPIntermediateEvent new label: 'Event'; yourself ]));
+		add: (CFAtelierPaletteItem
 			label: 'Task'
 			icon: CPUserTask icon
 			provider: (CFAtelierFactoryProvider factory: [

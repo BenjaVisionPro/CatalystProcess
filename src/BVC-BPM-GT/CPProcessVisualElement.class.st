@@ -328,6 +328,20 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode bounds: bounds [
 		element addChild: label.
 		self installLabelEditingOn: element label: label ].
 
+	aFlowNode isIntermediateEvent ifTrue: [
+		| innerRing |
+		innerRing := BlElement new
+			extent: bounds extent - (8 @ 8);
+			geometry: BlCircleGeometry new;
+			background: Color transparent;
+			border: (BlBorder paint: self shapeBorderColor width: 1.5);
+			constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ];
+			preventMeAndChildrenMouseEvents;
+			yourself.
+		element addChild: innerRing ].
+
 	^ element
 ]
 
