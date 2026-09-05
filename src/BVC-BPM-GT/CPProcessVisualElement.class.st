@@ -473,8 +473,9 @@ CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge 
 						nearestLabelPlacementFor: anEdge
 						to: (self globalPointToLocal: anEvent position)
 						waypoints: (self stagedWaypointsOf: anEdge).
-					aLabelHost relocate:
-						placement third - (aLabelHost extent / 2).
+					self
+						positionEdgeLabelHost: aLabelHost
+						centeredAt: placement third.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -656,6 +657,13 @@ CPProcessVisualElement >> pointAndTangentAlong: somePoints atFraction: aFraction
 ]
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> positionEdgeLabelHost: aLabelHost centeredAt: aPoint [
+	"Edge label hosts are defined with an exact width of 180. Position from that
+	known geometry so refresh-time placement does not depend on a pre-layout extent."
+	aLabelHost relocate: (aPoint x - 90) @ (aPoint y - 22)
+]
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
 	| labelHost pathPosition offset placement |
 	labelHost := edgeLabelElementsByEdge at: anEdge ifAbsent: [ ^ self ].
@@ -667,8 +675,9 @@ CPProcessVisualElement >> positionEdgeLabelFor: anEdge [
 		offset: offset
 		waypoints: (self stagedWaypointsOf: anEdge)
 		usingLiveBounds: false.
-	labelHost relocate:
-		placement first - (labelHost extent / 2)
+	self
+		positionEdgeLabelHost: labelHost
+		centeredAt: placement first
 ]
 
 { #category : 'private - labels' }
@@ -796,8 +805,9 @@ CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypo
 		offset: offset
 		waypoints: someWaypoints
 		usingLiveBounds: true.
-	labelHost relocate:
-		placement first - (labelHost extent / 2)
+	self
+		positionEdgeLabelHost: labelHost
+		centeredAt: placement first
 ]
 
 { #category : 'private - labels' }
@@ -858,8 +868,9 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 		offset: offset
 		waypoints: (self stagedWaypointsOf: anEdge)
 		usingLiveBounds: true.
-	labelHost relocate:
-		placement first - (labelHost extent / 2)
+	self
+		positionEdgeLabelHost: labelHost
+		centeredAt: placement first
 ]
 
 { #category : 'private - labels' }
