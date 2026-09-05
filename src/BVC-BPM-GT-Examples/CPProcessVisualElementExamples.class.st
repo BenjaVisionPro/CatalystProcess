@@ -615,3 +615,135 @@ CPProcessVisualElementExamples >> draggingVisibleResizeHandleStagesResizeThrough
 	self assert: shapeElement extent equals: (172 @ 74).
 	^ scripter
 ]
+
+
+{ #category : 'private - gestures' }
+CPProcessVisualElementExamples >> visibleConnectionPortIn: aNodeElement [
+	^ aNodeElement children
+		detect: [ :each |
+			each extent = (12 @ 12)
+				and: [ each visibility = BlVisibility visible ] ]
+]
+
+{ #category : 'private - gestures' }
+CPProcessVisualElementExamples >> visibleReconnectHandlesIn: aVisualElement [
+	^ (aVisualElement children
+		select: [ :each |
+			each extent = (10 @ 10)
+				and: [ each visibility = BlVisibility visible ] ])
+		asSortedCollection: [ :a :b | a position x < b position x ]
+]
+
+{ #category : 'examples - gestures - connection' }
+CPProcessVisualElementExamples >> draggingConnectionPortCreatesSequenceFlowThroughBlocGesturePipeline [
+	<gtExample>
+	| fixture visual memento start finish startShape finishShape startElement finishElement
+	  scripter port stagedFlowElements diagramMemento elementsDescription stagedElements newFlow newEdge |
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	finish := fixture fifth.
+	startShape := fixture at: 9.
+	finishShape := fixture at: 11.
+	visual := self visualElementForFixture: fixture.
+	startElement := visual shapeElementFor: startShape.
+	finishElement := visual shapeElementFor: finishShape.
+	startElement id: #processConnectionStartShape.
+	finishElement id: #processConnectionFinishShape.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	scripter clickStep: [ :step |
+		step
+			label: 'Select source node to reveal connection port';
+			id: #processConnectionStartShape ].
+
+	port := self visibleConnectionPortIn: startElement.
+	port id: #processConnectionPort.
+
+	(scripter mouseMoveOver)
+		label: 'Move pointer over source connection port';
+		id: #processConnectionPort;
+		play.
+	(scripter mouseDown)
+		label: 'Press connection port';
+		play.
+	(scripter mouseMoveOver)
+		label: 'Drag connection to finish event';
+		id: #processConnectionFinishShape;
+		play.
+	(scripter mouseUp)
+		label: 'Release connection on finish event';
+		play.
+
+	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
+	newFlow := stagedFlowElements detect: [ :each |
+		each isSequenceFlow
+			and: [ each sourceRef == start
+			and: [ each targetRef == finish ] ] ].
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+	newEdge := stagedElements detect: [ :each |
+		each isEdge and: [ each modelElement == newFlow ] ].
+
+	self assert: stagedFlowElements size equals: 6.
+	self assert: stagedElements size equals: 6.
+	self assert: newEdge modelElement == newFlow.
+	self assert: (fixture first flowElements identityIncludes: newFlow) not.
+	self assert: (fixture eighth elements identityIncludes: newEdge) not.
+	^ scripter
+]
+
+{ #category : 'examples - gestures - reconnecting' }
+CPProcessVisualElementExamples >> draggingTargetReconnectHandleRetargetsExistingSequenceFlowThroughBlocGesturePipeline [
+	<gtExample>
+	| fixture visual memento finish finishShape finishElement firstFlow firstEdge
+	  flowMemento targetDescription scripter handles targetHandle |
+	fixture := self fixture.
+	memento := fixture second.
+	finish := fixture fifth.
+	finishShape := fixture at: 11.
+	firstFlow := fixture sixth.
+	firstEdge := fixture at: 12.
+	visual := self visualElementForFixture: fixture.
+	finishElement := visual shapeElementFor: finishShape.
+	finishElement id: #processReconnectFinishShape.
+
+	visual selectOnly: firstFlow.
+	handles := self visibleReconnectHandlesIn: visual.
+	self assert: handles size equals: 2.
+	targetHandle := handles last.
+	targetHandle id: #processTargetReconnectHandle.
+
+	scripter := BlScripter new.
+	scripter element: visual.
+	(scripter mouseMoveOver)
+		label: 'Move pointer over target reconnect handle';
+		id: #processTargetReconnectHandle;
+		play.
+	(scripter mouseDown)
+		label: 'Press target reconnect handle';
+		play.
+	(scripter mouseMoveOver)
+		label: 'Drag sequence-flow target to finish event';
+		id: #processReconnectFinishShape;
+		play.
+	(scripter mouseUp)
+		label: 'Release sequence-flow target on finish event';
+		play.
+
+	flowMemento := memento
+		childMementoFor: firstFlow
+		inRelation: (self descriptionFor: #flowElements in: memento).
+	targetDescription := self descriptionFor: #targetRef in: flowMemento.
+
+	self assert: (flowMemento readUsing: targetDescription) == finish.
+	self assert: firstFlow targetRef == fixture fourth.
+	self assert: firstEdge modelElement == firstFlow.
+	self assert: (self stagedWaypointsOf: firstEdge processMemento: memento)
+		equals: ({ 121 @ 121. 451 @ 121 } asOrderedCollection).
+	self assert: firstEdge waypoints
+		equals: ({ 142 @ 121. 220 @ 121 } asOrderedCollection).
+	^ scripter
+]
