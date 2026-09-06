@@ -45,8 +45,8 @@ Class {
 		'collaborationHosted',
 		'collaborationVisual',
 		'collaborationChangedBlock',
-		'canvasExtent',
-		'diagramPanHost'
+		'scrollContentElement',
+		'canvasExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -65,8 +65,8 @@ CPProcessVisualElement >> initialize [
 	hostShape := nil.
 	collaborationHosted := false.
 	collaborationVisual := nil.
+	scrollContentElement := nil.
 	canvasExtent := 640 @ 260.
-	diagramPanHost := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -122,10 +122,10 @@ CPProcessVisualElement >> canvasExtent [
 ]
 
 { #category : 'configuration' }
-CPProcessVisualElement >> diagramPanHost: aPanHost [
-	diagramPanHost := aPanHost.
-	diagramPanHost ifNotNil: [
-		diagramPanHost diagramExtent: canvasExtent ]
+CPProcessVisualElement >> scrollContentElement: anElement [
+	scrollContentElement := anElement.
+	scrollContentElement ifNotNil: [
+		scrollContentElement diagramExtent: canvasExtent ]
 ]
 
 { #category : 'accessing' }
@@ -207,8 +207,8 @@ CPProcessVisualElement >> refresh [
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
 	contentExtent := self canvasExtentFor: shapes.
 	canvasExtent := contentExtent.
-	diagramPanHost ifNotNil: [
-		diagramPanHost diagramExtent: canvasExtent ].
+	scrollContentElement ifNotNil: [
+		scrollContentElement diagramExtent: canvasExtent ].
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.

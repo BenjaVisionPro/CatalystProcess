@@ -1837,25 +1837,26 @@ CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomai
 ]
 
 
-{ #category : 'examples - viewport pan' }
-CPProcessVisualElementExamples >> diagramPanOffsetDoesNotChangeBpmnDiagramCoordinates [
+{ #category : 'examples - scrolling' }
+CPProcessVisualElementExamples >> scrollWorkspaceAddsNativeScrollableMarginWithoutChangingDiagramCoordinates [
 	<gtExample>
-	| fixture visual shapeElement shape originalBounds pan |
+	| fixture visual shape originalBounds scrollContent |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
-	shapeElement := visual shapeElementsByModelElement values anyOne.
-	shape := shapeElement diagramShape.
+	shape := visual shapeElementsByModelElement values anyOne diagramShape.
 	originalBounds := visual stagedBoundsOf: shape.
 
-	pan := CPDiagramPanElement new.
-	visual diagramPanHost: pan.
-	pan
+	scrollContent := CPDiagramScrollContentElement new.
+	visual scrollContentElement: scrollContent.
+	scrollContent
 		diagramElement: visual
 		extent: visual canvasExtent.
-	pan panOffset: 240 @ 180.
 
-	self assert: pan diagramElement == visual.
-	self assert: pan panOffset equals: 240 @ 180.
+	self assert: scrollContent diagramElement == visual.
+	self assert: scrollContent workspaceMargin equals: 320 @ 220.
+	self assert: scrollContent diagramExtent equals: visual canvasExtent.
+	self assert: scrollContent extent
+		equals: visual canvasExtent + (scrollContent workspaceMargin * 2).
 	self assert: (visual stagedBoundsOf: shape) equals: originalBounds.
-	^ pan
+	^ scrollContent
 ]

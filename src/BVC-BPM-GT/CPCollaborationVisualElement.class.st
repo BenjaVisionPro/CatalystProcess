@@ -21,8 +21,8 @@ Class {
 		'connectMessageFlowOperationBlock',
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
-		'canvasExtent',
-		'diagramPanHost'
+		'scrollContentElement',
+		'canvasExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -36,8 +36,8 @@ CPCollaborationVisualElement >> initialize [
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
+	scrollContentElement := nil.
 	canvasExtent := 720 @ 360.
-	diagramPanHost := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false.
@@ -99,8 +99,8 @@ CPCollaborationVisualElement >> refresh [
 		canvasExtentForShapes: participantShapes
 		edges: messageFlowEdges.
 	canvasExtent := contentExtent.
-	diagramPanHost ifNotNil: [
-		diagramPanHost diagramExtent: canvasExtent ].
+	scrollContentElement ifNotNil: [
+		scrollContentElement diagramExtent: canvasExtent ].
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
@@ -539,10 +539,10 @@ CPCollaborationVisualElement >> canvasExtent [
 ]
 
 { #category : 'configuration' }
-CPCollaborationVisualElement >> diagramPanHost: aPanHost [
-	diagramPanHost := aPanHost.
-	diagramPanHost ifNotNil: [
-		diagramPanHost diagramExtent: canvasExtent ]
+CPCollaborationVisualElement >> scrollContentElement: anElement [
+	scrollContentElement := anElement.
+	scrollContentElement ifNotNil: [
+		scrollContentElement diagramExtent: canvasExtent ]
 ]
 
 { #category : 'accessing - testing' }

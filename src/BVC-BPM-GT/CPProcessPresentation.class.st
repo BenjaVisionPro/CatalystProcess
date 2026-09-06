@@ -9,7 +9,7 @@ Class {
 		'collaborationDiagramElement',
 		'processDiagramElement',
 		'diagramScrollElement',
-		'diagramPanElement',
+		'diagramScrollContentElement',
 		'detailHostElement',
 		'detailScrollElement',
 		'workspaceElement',
@@ -81,9 +81,9 @@ CPProcessPresentation >> prepareHostElement [
 				yourself.
 			collaborationDiagramElement ].
 
-	diagramPanElement := CPDiagramPanElement new.
-	diagramElement diagramPanHost: diagramPanElement.
-	diagramPanElement
+	diagramScrollContentElement := CPDiagramScrollContentElement new.
+	diagramElement scrollContentElement: diagramScrollContentElement.
+	diagramScrollContentElement
 		diagramElement: diagramElement
 		extent: diagramElement canvasExtent.
 
@@ -95,7 +95,7 @@ CPProcessPresentation >> prepareHostElement [
 			+ BrGlamorousWithVerticalScrollbarAptitude;
 		hMatchParent;
 		vMatchParent;
-		content: diagramPanElement;
+		content: diagramScrollContentElement;
 		yourself.
 
 	detailHostElement := BrVerticalPane new
@@ -141,7 +141,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
-		processDiagramElement diagramPanHost: nil.
+		processDiagramElement scrollContentElement: nil.
 		collaborationDiagramElement := CPCollaborationVisualElement new
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 			createParticipantOperationFor: createParticipantOperationBlock;
@@ -149,8 +149,8 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			processVisual: processDiagramElement;
 			yourself.
 		diagramElement := collaborationDiagramElement.
-		diagramElement diagramPanHost: diagramPanElement.
-		diagramPanElement
+		diagramElement scrollContentElement: diagramScrollContentElement.
+		diagramScrollContentElement
 			diagramElement: diagramElement
 			extent: diagramElement canvasExtent.
 		^ self ].
@@ -268,8 +268,8 @@ CPProcessPresentation >> diagramElement [
 ]
 
 { #category : 'accessing - testing' }
-CPProcessPresentation >> diagramPanElement [
-	^ diagramPanElement
+CPProcessPresentation >> diagramScrollContentElement [
+	^ diagramScrollContentElement
 ]
 
 { #category : 'accessing - testing' }
