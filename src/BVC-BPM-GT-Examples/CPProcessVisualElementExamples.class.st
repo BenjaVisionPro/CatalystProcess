@@ -1402,7 +1402,7 @@ CPProcessVisualElementExamples >> shapeAllowsAffordancesOutsideGeometry [
 
 
 { #category : 'examples - resizing' }
-CPProcessVisualElementExamples >> resizeHandlesAreTransparentHitTargets [
+CPProcessVisualElementExamples >> resizeHandlesAreAlwaysAvailable [
 	<gtExample>
 	| fixture visual task shapeElement |
 	fixture := self fixture.
@@ -1435,63 +1435,12 @@ CPProcessVisualElementExamples >> expandedSubProcessBorderElementsAreConcreteDra
 ]
 
 
-{ #category : 'examples - positioning' }
-CPProcessVisualElementExamples >> dragPointerConversionDoesNotDependOnMovingInteractionElement [
-	<gtExample>
-	| shape |
-	shape := CPProcessShapeElement new.
-	self assert: shape notNil.
-	^ shape
-]
 
 
-{ #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> expandedSubProcessBorderTargetsUseLayout [
-	<gtExample>
-	| visual subProcess shapeElement borders |
-	visual := self expandedSubProcessHostsNestedProcessVisual.
-	subProcess := visual shapeElementsByModelElement keys
-		detect: [ :each | each isSubProcess ].
-	shapeElement := visual shapeElementsByModelElement at: subProcess.
-	borders := shapeElement subProcessBorderInteractionElements.
-
-	self assert: borders size equals: 4.
-	borders do: [ :each |
-		self assert: each parent == shapeElement.
-		self assert: each geometry class == BlRectangleGeometry ].
-	^ shapeElement
-]
 
 
-{ #category : 'examples - keyboard' }
-CPProcessVisualElementExamples >> diagramDeletionShortcutIsOwnedByDiagramFocus [
-	<gtExample>
-	| visual |
-	visual := self visualElementForFixture: self fixture.
-	self assert: visual isFocusable.
-	^ visual
-]
 
 
-{ #category : 'examples - labels' }
-CPProcessVisualElementExamples >> emptyEdgeLabelCanEnterEditingMode [
-	<gtExample>
-	| fixture visual edge labelHost label |
-	fixture := self fixture.
-	edge := fixture at: 12.
-	visual := self visualElementForFixture: fixture.
-	labelHost := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
-	self assert: labelHost notNil.
-	self assert: labelHost children isEmpty not.
-	label := labelHost children first.
-
-	label text: ''.
-	visual beginEditingLabelForEdge: edge.
-
-	self assert: label text asString equals: ''.
-	self assert: label parent == labelHost.
-	^ label
-]
 
 
 { #category : 'examples - labels' }

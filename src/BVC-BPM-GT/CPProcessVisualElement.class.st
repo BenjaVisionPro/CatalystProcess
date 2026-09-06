@@ -13,7 +13,6 @@ Class {
 		'parentProcessVisual',
 		'hostShape',
 		'diagramDescription',
-		'flowElementsDescription',
 		'diagramMemento',
 		'elementsDescription',
 		'shapeElementsByShape',
@@ -40,7 +39,6 @@ Class {
 		'setEdgeLabelPlacementOperationBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
-		'activePaletteDragItem',
 		'insertionTargetEdge'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -80,8 +78,6 @@ CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 	flowContainer := aFlowContainer.
 	diagramDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #diagram ].
-	flowElementsDescription := memento magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ].
 	self refresh
 ]
 
@@ -100,20 +96,12 @@ CPProcessVisualElement >> rootVisual: aProcessVisual [
 	rootVisual := aProcessVisual
 ]
 
-{ #category : 'accessing' }
-CPProcessVisualElement >> parentProcessVisual [
-	^ parentProcessVisual
-]
 
 { #category : 'accessing' }
 CPProcessVisualElement >> parentProcessVisual: aProcessVisual [
 	parentProcessVisual := aProcessVisual
 ]
 
-{ #category : 'accessing' }
-CPProcessVisualElement >> hostShape [
-	^ hostShape
-]
 
 { #category : 'accessing' }
 CPProcessVisualElement >> hostShape: aShape [
@@ -1227,7 +1215,6 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 	aModelElement isActivity ifFalse: [ ^ self ].
 	handles := aShapeElement
 		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)
-		selectionColor: self selectionColor
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds | self resizeShape: aShape toBounds: proposedBounds ]
 		geometryChanged: [
@@ -3032,35 +3019,11 @@ CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlow
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> flowElementMementoFor: aFlowElement [
-	^ self
-		flowElementMementoFor: aFlowElement
-		inContainerMemento: memento
-]
-
-{ #category : 'private - staged state' }
-CPProcessVisualElement >> flowElementMementoFor: aFlowElement inContainerMemento: aContainerMemento [
-	| relationDescription stagedFlowElements |
-	relationDescription := aContainerMemento magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ].
-	stagedFlowElements := aContainerMemento readUsing: relationDescription.
-
-	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [
-		^ aContainerMemento
-			childMementoFor: aFlowElement
-			inRelation: relationDescription ].
-
-	stagedFlowElements do: [ :each |
-		each isSubProcess ifTrue: [
-			| subProcessMemento nestedMemento |
-			subProcessMemento := aContainerMemento
-				childMementoFor: each
-				inRelation: relationDescription.
-			nestedMemento := self
-				flowElementMementoFor: aFlowElement
-				inContainerMemento: subProcessMemento.
-			nestedMemento ifNotNil: [ ^ nestedMemento ] ] ].
-
-	^ nil
+	| context |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aFlowElement
+		inRootMemento: memento.
+	^ context ifNotNil: [ context childMementoFor: aFlowElement ]
 ]
 
 { #category : 'private - staged state' }

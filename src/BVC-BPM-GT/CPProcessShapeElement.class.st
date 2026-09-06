@@ -269,45 +269,57 @@ CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor no
 ]
 
 { #category : 'resizing' }
-CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent selectionColor: aSelectionColor stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
+CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
 	resizeHandles := {
 		self
-			newResizeHandleAt: #topLeft
-			cursor: BlCursor resizeTopLeft
-			minimumExtent: aMinimumExtent
-			selectionColor: aSelectionColor
+			newResizeHandleCursor: BlCursor resizeTopLeft
+			constraints: [ :c :halfWidth :halfHeight |
+				c frame horizontal alignLeft.
+				c frame vertical alignTop.
+				c margin: (BlInsets top: halfHeight negated right: 0 bottom: 0 left: halfWidth negated) ]
 			stagedBounds: aStagedBoundsBlock
+			proposedBounds: [ :originalBounds :delta |
+				self topLeftBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent ]
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock.
 		self
-			newResizeHandleAt: #topRight
-			cursor: BlCursor resizeTopRight
-			minimumExtent: aMinimumExtent
-			selectionColor: aSelectionColor
+			newResizeHandleCursor: BlCursor resizeTopRight
+			constraints: [ :c :halfWidth :halfHeight |
+				c frame horizontal alignRight.
+				c frame vertical alignTop.
+				c margin: (BlInsets top: halfHeight negated right: halfWidth negated bottom: 0 left: 0) ]
 			stagedBounds: aStagedBoundsBlock
+			proposedBounds: [ :originalBounds :delta |
+				self topRightBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent ]
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock.
 		self
-			newResizeHandleAt: #bottomLeft
-			cursor: BlCursor resizeBottomLeft
-			minimumExtent: aMinimumExtent
-			selectionColor: aSelectionColor
+			newResizeHandleCursor: BlCursor resizeBottomLeft
+			constraints: [ :c :halfWidth :halfHeight |
+				c frame horizontal alignLeft.
+				c frame vertical alignBottom.
+				c margin: (BlInsets top: 0 right: 0 bottom: halfHeight negated left: halfWidth negated) ]
 			stagedBounds: aStagedBoundsBlock
+			proposedBounds: [ :originalBounds :delta |
+				self bottomLeftBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent ]
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock.
 		self
-			newResizeHandleAt: #bottomRight
-			cursor: BlCursor resizeBottomRight
-			minimumExtent: aMinimumExtent
-			selectionColor: aSelectionColor
+			newResizeHandleCursor: BlCursor resizeBottomRight
+			constraints: [ :c :halfWidth :halfHeight |
+				c frame horizontal alignRight.
+				c frame vertical alignBottom.
+				c margin: (BlInsets top: 0 right: halfWidth negated bottom: halfHeight negated left: 0) ]
 			stagedBounds: aStagedBoundsBlock
+			proposedBounds: [ :originalBounds :delta |
+				self bottomRightBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent ]
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock }.
 	^ resizeHandles
 ]
 
 { #category : 'private - resizing' }
-CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExtent: aMinimumExtent selectionColor: aSelectionColor stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
+CPProcessShapeElement >> newResizeHandleCursor: aCursor constraints: aConstraintsBlock stagedBounds: aStagedBoundsBlock proposedBounds: aProposedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
 	| handle handleExtent isDragging dragStartEventPosition originalBounds |
 	handleExtent := 14 @ 14.
 	isDragging := false.
@@ -318,25 +330,7 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 		border: BlBorder empty;
 		visibility: BlVisibility visible;
 		constraintsDo: [ :c |
-			| halfWidth halfHeight |
-			halfWidth := handleExtent x / 2.
-			halfHeight := handleExtent y / 2.
-			aCorner = #topLeft ifTrue: [
-				c frame horizontal alignLeft.
-				c frame vertical alignTop.
-				c margin: (BlInsets top: halfHeight negated right: 0 bottom: 0 left: halfWidth negated) ].
-			aCorner = #topRight ifTrue: [
-				c frame horizontal alignRight.
-				c frame vertical alignTop.
-				c margin: (BlInsets top: halfHeight negated right: halfWidth negated bottom: 0 left: 0) ].
-			aCorner = #bottomLeft ifTrue: [
-				c frame horizontal alignLeft.
-				c frame vertical alignBottom.
-				c margin: (BlInsets top: 0 right: 0 bottom: halfHeight negated left: halfWidth negated) ].
-			aCorner = #bottomRight ifTrue: [
-				c frame horizontal alignRight.
-				c frame vertical alignBottom.
-				c margin: (BlInsets top: 0 right: halfWidth negated bottom: halfHeight negated left: 0) ] ];
+			aConstraintsBlock value: c value: handleExtent x / 2 value: handleExtent y / 2 ];
 		yourself.
 	self installCursor: aCursor leaving: self bodyCursor on: handle.
 	handle
@@ -354,13 +348,10 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| delta proposedBounds |
-					delta := anEvent position - dragStartEventPosition.
-					proposedBounds := self
-						resizedBoundsFrom: originalBounds
-						corner: aCorner
-						delta: delta
-						minimumExtent: aMinimumExtent.
+					| proposedBounds |
+					proposedBounds := aProposedBoundsBlock
+						value: originalBounds
+						value: anEvent position - dragStartEventPosition.
 					self relocate: proposedBounds origin; extent: proposedBounds extent.
 					aGeometryChangedBlock ifNotNil: [ aGeometryChangedBlock value ].
 					anEvent consumed: true ] ]);
@@ -368,42 +359,46 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| delta proposedBounds |
+					| proposedBounds |
 					isDragging := false.
-					delta := anEvent position - dragStartEventPosition.
-					proposedBounds := self
-						resizedBoundsFrom: originalBounds
-						corner: aCorner
-						delta: delta
-						minimumExtent: aMinimumExtent.
+					proposedBounds := aProposedBoundsBlock
+						value: originalBounds
+						value: anEvent position - dragStartEventPosition.
 					aResizeBlock value: proposedBounds.
 					anEvent consumed: true ] ]).
 	^ handle
 ]
 
 { #category : 'private - resizing' }
-CPProcessShapeElement >> resizedBoundsFrom: originalBounds corner: aCorner delta: delta minimumExtent: aMinimumExtent [
-	| left top right bottom minimumWidth minimumHeight |
-	left := originalBounds left.
-	top := originalBounds top.
-	right := originalBounds right.
-	bottom := originalBounds bottom.
-	minimumWidth := aMinimumExtent x.
-	minimumHeight := aMinimumExtent y.
+CPProcessShapeElement >> topLeftBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent [
+	| left top |
+	left := (originalBounds left + delta x) min: originalBounds right - aMinimumExtent x.
+	top := (originalBounds top + delta y) min: originalBounds bottom - aMinimumExtent y.
+	^ left @ top corner: originalBounds bottomRight
+]
 
-	aCorner = #topLeft ifTrue: [
-		left := (left + delta x) min: right - minimumWidth.
-		top := (top + delta y) min: bottom - minimumHeight ].
-	aCorner = #topRight ifTrue: [
-		right := (right + delta x) max: left + minimumWidth.
-		top := (top + delta y) min: bottom - minimumHeight ].
-	aCorner = #bottomLeft ifTrue: [
-		left := (left + delta x) min: right - minimumWidth.
-		bottom := (bottom + delta y) max: top + minimumHeight ].
-	aCorner = #bottomRight ifTrue: [
-		right := (right + delta x) max: left + minimumWidth.
-		bottom := (bottom + delta y) max: top + minimumHeight ].
-	^ (left @ top) corner: (right @ bottom)
+{ #category : 'private - resizing' }
+CPProcessShapeElement >> topRightBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent [
+	| top right |
+	top := (originalBounds top + delta y) min: originalBounds bottom - aMinimumExtent y.
+	right := (originalBounds right + delta x) max: originalBounds left + aMinimumExtent x.
+	^ originalBounds left @ top corner: right @ originalBounds bottom
+]
+
+{ #category : 'private - resizing' }
+CPProcessShapeElement >> bottomLeftBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent [
+	| left bottom |
+	left := (originalBounds left + delta x) min: originalBounds right - aMinimumExtent x.
+	bottom := (originalBounds bottom + delta y) max: originalBounds top + aMinimumExtent y.
+	^ left @ originalBounds top corner: originalBounds right @ bottom
+]
+
+{ #category : 'private - resizing' }
+CPProcessShapeElement >> bottomRightBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent [
+	| right bottom |
+	right := (originalBounds right + delta x) max: originalBounds left + aMinimumExtent x.
+	bottom := (originalBounds bottom + delta y) max: originalBounds top + aMinimumExtent y.
+	^ originalBounds topLeft corner: right @ bottom
 ]
 
 
@@ -420,13 +415,6 @@ CPProcessShapeElement >> bringResizeHandlesToFront [
 			self addChild: aHandle ] ]
 ]
 
-{ #category : 'resizing' }
-CPProcessShapeElement >> resizeHandleVisible: aBoolean [
-	self resizeHandles do: [ :aHandle |
-		aHandle visibility: (aBoolean
-			ifTrue: [ BlVisibility visible ]
-			ifFalse: [ BlVisibility hidden ]) ]
-]
 
 
 { #category : 'connection' }
