@@ -1047,3 +1047,130 @@ CPProcessAtelierExamples >> transferringOpenTopologyRejectsBoundarySequenceFlow 
 	self assert: (subMemento readUsing: subDescription) isEmpty.
 	^ assessment
 ]
+
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> collaborationFixture [
+	| process localTask collaboration localParticipant externalParticipant processDiagram taskShape collaborationDiagram localPool externalPool memento |
+	process := CPProcess new label: 'Seller'; yourself.
+	localTask := CPUserTask new label: 'Send order'; yourself.
+	process addFlowElement: localTask.
+	processDiagram := CPDiagram new.
+	process diagram: processDiagram.
+	taskShape := CPShape new
+		modelElement: localTask;
+		bounds: (120 @ 80 extent: 132 @ 54);
+		yourself.
+	processDiagram addElement: taskShape.
+
+	collaboration := CPCollaboration new label: 'Order collaboration'; yourself.
+	localParticipant := CPParticipant new
+		label: 'Seller';
+		processRef: process;
+		yourself.
+	externalParticipant := CPParticipant new
+		label: 'Buyer';
+		yourself.
+	collaboration
+		addParticipant: localParticipant;
+		addParticipant: externalParticipant.
+	collaborationDiagram := CPDiagram new.
+	collaboration diagram: collaborationDiagram.
+	localPool := CPShape new
+		modelElement: localParticipant;
+		bounds: (40 @ 40 extent: 620 @ 230);
+		yourself.
+	externalPool := CPShape new
+		modelElement: externalParticipant;
+		bounds: (40 @ 320 extent: 620 @ 100);
+		yourself.
+	collaborationDiagram
+		addElement: localPool;
+		addElement: externalPool.
+	process definitionalCollaborationRef: collaboration.
+	memento := CFMaMemento model: process.
+	^ {
+		process.
+		memento.
+		localTask.
+		collaboration.
+		localParticipant.
+		externalParticipant.
+		collaborationDiagram.
+		localPool.
+		externalPool
+	}
+]
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> connectMessageFlowAssessmentDoesNotMutateStagedState [
+	<gtExample>
+	| fixture memento collaboration operation assessment context |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	collaboration := fixture at: 4.
+	operation := CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento.
+
+	assessment := operation assess.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: context messageFlows isEmpty.
+	self assert: context elements size equals: 2.
+	self assert: collaboration messageFlows isEmpty.
+	self assert: collaboration diagram elements size equals: 2.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> connectMessageFlowStagesSemanticAndDiagramStateTogether [
+	<gtExample>
+	| fixture memento collaboration operation assessment context messageFlow edge |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	collaboration := fixture at: 4.
+	operation := CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento.
+
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+	messageFlow := assessment messageFlow.
+	edge := assessment edge.
+
+	self assert: assessment isApplicable.
+	self assert: context messageFlows size equals: 1.
+	self assert: context messageFlows first == messageFlow.
+	self assert: context elements size equals: 3.
+	self assert: (context elements identityIncludes: edge).
+	self assert: edge modelElement == messageFlow.
+	self assert: edge waypoints equals: ({ 250 @ 270. 250 @ 320 } asOrderedCollection).
+	self assert: collaboration messageFlows isEmpty.
+	self assert: collaboration diagram elements size equals: 2.
+	^ memento
+]
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> connectMessageFlowRejectsEndpointsInsideSameParticipant [
+	<gtExample>
+	| fixture operation assessment |
+	fixture := self collaborationFixture.
+	operation := CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 5)
+		waypoints: { 250 @ 100. 350 @ 100 }
+		processMemento: (fixture at: 2).
+
+	assessment := operation assess.
+
+	self assert: assessment isApplicable not.
+	self assert: assessment rejectionMessage
+		equals: 'A MessageFlow must connect two separate Participants.'.
+	^ assessment
+]
