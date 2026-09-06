@@ -1458,8 +1458,8 @@ CPProcessVisualElementExamples >> endingLabelEditingPreservesSelection [
 { #category : 'examples - subprocess interaction' }
 CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipped [
 	<gtExample>
-	| visual subProcess shapeElement nestedVisual nestedShapeElement
-	  viewport originalParent presentation draggedGlobalOrigin |
+	| visual subProcess shapeElement nestedVisual nestedShapeElement nestedShape
+	  viewport originalParent presentation sourceBounds expectedRootPosition |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
@@ -1467,21 +1467,27 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	nestedVisual := shapeElement nestedProcessVisual.
 	viewport := shapeElement nestedProcessViewport.
 	nestedShapeElement := nestedVisual shapeElementsByModelElement values anyOne.
+	nestedShape := nestedShapeElement diagramShape.
 	originalParent := nestedShapeElement parent.
+	sourceBounds := nestedVisual stagedBoundsOf: nestedShape.
+	expectedRootPosition := nestedVisual
+		rootDiagramPointForLocalPoint: sourceBounds origin.
 
 	presentation := (CPProcessDragPresentation shapeElement: nestedShapeElement)
-		liftTo: visual.
+		liftFrom: nestedVisual
+		toRoot: visual
+		shapeAt: expectedRootPosition
+		labelAt: nil.
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == visual.
+	self assert: nestedShapeElement position equals: expectedRootPosition.
 
-	nestedShapeElement relocate: presentation dragShapePosition + (20 @ 15).
-	draggedGlobalOrigin := nestedShapeElement localPointToGlobal: 0 @ 0.
+	nestedShapeElement relocate: expectedRootPosition + (20 @ 15).
 	presentation restore.
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
-	self assert: (nestedShapeElement localPointToGlobal: 0 @ 0)
-		equals: draggedGlobalOrigin.
+	self assert: nestedShapeElement position equals: sourceBounds origin + (20 @ 15).
 	^ presentation
 ]

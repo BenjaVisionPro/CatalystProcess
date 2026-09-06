@@ -1478,9 +1478,18 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				ifFalse: [ { aShapeElement } ].
 			dragPresentations := IdentityDictionary new.
 			elementsToLift do: [ :anElement |
-				| presentation |
+				| presentation entry localShapePosition localLabelPosition rootShapePosition rootLabelPosition |
+				entry := groupEntries detect: [ :each | each third == anElement ].
+				localShapePosition := entry fourth origin.
+				localLabelPosition := entry sixth.
+				rootShapePosition := self rootDiagramPointForLocalPoint: localShapePosition.
+				rootLabelPosition := localLabelPosition ifNotNil: [
+					self rootDiagramPointForLocalPoint: localLabelPosition ].
 				presentation := (CPProcessDragPresentation shapeElement: anElement)
-					liftTo: rootVisual.
+					liftFrom: self
+					toRoot: rootVisual
+					shapeAt: rootShapePosition
+					labelAt: rootLabelPosition.
 				dragPresentations at: anElement put: presentation ].
 			dragStartLabelPosition := aShapeElement externalLabelHost
 				ifNotNil: [ :aLabel |
