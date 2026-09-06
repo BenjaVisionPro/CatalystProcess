@@ -874,8 +874,7 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 	label
 		when: BrEditorAcceptWish
 		do: [ :aWish |
-			label preventMeAndChildrenMouseEvents.
-			label loseFocus ];
+			self finishEditingLabel: label ];
 		when: BrEditorCancelWish
 		do: [ :aWish |
 			GtMagritteBuilderUtility
@@ -883,11 +882,18 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 				using: description
 				memento: flowMemento
 				element: label.
-			label preventMeAndChildrenMouseEvents.
-			label loseFocus ].
+			self finishEditingLabel: label ].
 
 	label preventMeAndChildrenMouseEvents.
 	^ label
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> finishEditingLabel: anEditableLabel [
+	anEditableLabel preventMeAndChildrenMouseEvents.
+	anEditableLabel loseFocus.
+	self enqueueTask: (BlTaskAction new action: [
+		self requestFocus ])
 ]
 
 { #category : 'private - labels' }
@@ -903,7 +909,8 @@ CPProcessVisualElement >> installLabelEditingOn: anInteractionElement label: anE
 CPProcessVisualElement >> beginEditingLabel: anEditableLabel [
 	anEditableLabel allowMeAndChildrenMouseEvents.
 	anEditableLabel switchToEditor.
-	anEditableLabel requestFocus
+	anEditableLabel enqueueTask: (BlTaskAction new action: [
+		anEditableLabel requestFocus ])
 ]
 
 { #category : 'private - labels' }

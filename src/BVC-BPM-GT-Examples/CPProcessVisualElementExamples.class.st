@@ -1471,3 +1471,42 @@ CPProcessVisualElementExamples >> diagramDeletionShortcutIsOwnedByDiagramFocus [
 	self assert: visual isFocusable.
 	^ visual
 ]
+
+
+{ #category : 'examples - labels' }
+CPProcessVisualElementExamples >> emptyEdgeLabelCanEnterEditingMode [
+	<gtExample>
+	| fixture visual edge edgeVisual label |
+	fixture := self fixture.
+	edge := fixture at: 12.
+	visual := self visualElementForFixture: fixture.
+	edgeVisual := visual edgeVisualsByEdge at: edge.
+	label := edgeVisual labelHost children first.
+
+	label text: ''.
+	visual beginEditingLabelForEdge: edge.
+
+	self assert: label text asString equals: ''.
+	self assert: label parent == edgeVisual labelHost.
+	^ label
+]
+
+
+{ #category : 'examples - labels' }
+CPProcessVisualElementExamples >> endingLabelEditingPreservesSelection [
+	<gtExample>
+	| fixture visual task shapeElement label |
+	fixture := self fixture.
+	task := fixture fourth.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: task.
+	label := shapeElement labelElement.
+
+	visual selectOnly: task.
+	visual beginEditingLabel: label.
+	visual finishEditingLabel: label.
+
+	self assert: visual selectedModelElement == task.
+	self assert: (visual selectedModelElements includes: task).
+	^ visual
+]
