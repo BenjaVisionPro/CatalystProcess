@@ -9,7 +9,6 @@ Class {
 		'collaborationDiagramElement',
 		'processDiagramElement',
 		'diagramScrollElement',
-		'diagramCameraElement',
 		'detailHostElement',
 		'detailScrollElement',
 		'workspaceElement',
@@ -68,18 +67,6 @@ CPProcessPresentation >> prepareHostElement [
 				yourself.
 			collaborationDiagramElement ].
 
-	diagramCameraElement := BlElement new
-		layout: BlFrameLayout new;
-		clipChildren: false;
-		constraintsDo: [ :c |
-			c horizontal exact: diagramElement canvasExtent x.
-			c vertical exact: diagramElement canvasExtent y ];
-		yourself.
-	diagramElement
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ 0.
-	diagramCameraElement addChild: diagramElement.
-
 	diagramScrollElement := BrScrollPane new
 		background: surfaceColor;
 		allowMeAndChildrenMouseEvents;
@@ -88,7 +75,7 @@ CPProcessPresentation >> prepareHostElement [
 			+ BrGlamorousWithVerticalScrollbarAptitude;
 		hMatchParent;
 		vMatchParent;
-		content: diagramCameraElement;
+		content: diagramElement;
 		yourself.
 	diagramScrollElement addEventHandler: (BlEventHandler
 		on: BlElementExtentChangedEvent
@@ -163,9 +150,6 @@ CPProcessPresentation >> updateDiagramViewportExtent [
 	diagramElement ifNil: [ ^ self ].
 	viewport := diagramScrollElement extent.
 	diagramElement viewportExtent: viewport.
-	diagramCameraElement constraintsDo: [ :c |
-		c horizontal exact: diagramElement canvasExtent x.
-		c vertical exact: diagramElement canvasExtent y ].
 	(diagramCameraInitialized not and: [ viewport x > 1 and: [ viewport y > 1 ] ]) ifTrue: [
 		diagramCameraInitialized := true.
 		diagramScrollElement enqueueTask: (BlTaskAction new action: [
@@ -174,26 +158,25 @@ CPProcessPresentation >> updateDiagramViewportExtent [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> ensureCollaborationDiagramPresentation [
-	| collaboration collaborationDiagram previousGraphGlobalOrigin viewport newGraphGlobalOrigin |
+	| collaboration collaborationDiagram scrollable previousGraphViewportOrigin viewport newGraphContentOrigin targetScrollPosition scrollDelta |
 	collaboration := self stagedDefinitionalCollaboration.
 	collaboration ifNil: [ ^ self ].
 	collaborationDiagram := self stagedDiagramOfDefinitionalCollaboration: collaboration.
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
-		"Process -> Collaboration is a change of rendered topology, not a change
-		to the user's camera. The BrScrollPane therefore keeps one permanent
-		camera-content element for the lifetime of this presentation. Only that
-		element's child changes here.
+		"The first Pool changes presentation topology but must not change the
+		user's camera. Work in BlScrollableElement coordinates and establish the
+		target scrollPosition before Bloc's normal layout phase.
 
-		Replacing BrScrollPane content was the source of the repeated bottom/right
-		jump: BlScrollableElement performs gap/clamp layout against the newly
-		installed child before our preservation code runs."
-		previousGraphGlobalOrigin := processDiagramElement diagramExtent = (0 @ 0)
+		Do not force a synchronous layout here. Bloc's documented production
+		lifecycle defers layout to the frame. BlScrollableElement>>onLayout: then
+		owns gap fixing and clamping against the newly measured content."
+		scrollable := diagramScrollElement childNamed: #scrollable.
+		previousGraphViewportOrigin := processDiagramElement diagramExtent = (0 @ 0)
 			ifTrue: [ nil ]
 			ifFalse: [
-				processDiagramElement globalPointForDiagramPoint:
-					processDiagramElement diagramBounds origin ].
+				scrollable scrollPosition + processDiagramElement cameraSlack ].
 		viewport := diagramScrollElement extent max: 1 @ 1.
 
 		processDiagramElement := self
@@ -210,30 +193,25 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 		collaborationDiagramElement viewportExtent: viewport.
 		diagramElement := collaborationDiagramElement.
 
-		"Swap only the diagram inside the stable camera content."
-		diagramCameraElement removeChildren.
-		diagramElement
-			constraintsDo: [ :c | c ignoreByLayout ];
-			relocate: 0 @ 0.
-		diagramCameraElement
-			constraintsDo: [ :c |
-				c horizontal exact: diagramElement canvasExtent x.
-				c vertical exact: diagramElement canvasExtent y ];
-			addChild: diagramElement.
-
+		"BrScrollPane content replacement requests layout but does not reset the
+		native scrollPosition. Install the desired native camera position now;
+		the normal Bloc layout will measure the new content and retain it when it
+		is within the new scroll bounds."
 		diagramCameraInitialized := true.
-		diagramScrollElement forceLayout.
+		diagramScrollElement content: diagramElement.
 
-		"With the native scroll content unchanged, preserve the exact rendered
-		position of the same authored Process point. This correction now accounts
-		only for the Process-vs-Pool internal geometry; it no longer fights a
-		content replacement performed by Brick."
-		previousGraphGlobalOrigin ifNotNil: [
-			newGraphGlobalOrigin :=
-				processDiagramElement globalPointForDiagramPoint:
-					processDiagramElement diagramBounds origin.
-			diagramScrollElement scrollBy:
-				newGraphGlobalOrigin - previousGraphGlobalOrigin ].
+		previousGraphViewportOrigin ifNotNil: [
+			newGraphContentOrigin :=
+				collaborationDiagramElement cameraSlack
+					- collaborationDiagramElement diagramBounds origin
+					+ (collaborationDiagramElement
+						collaborationPointForProcessRootPoint:
+							processDiagramElement diagramBounds origin).
+			targetScrollPosition :=
+				previousGraphViewportOrigin - newGraphContentOrigin.
+			scrollDelta := targetScrollPosition - scrollable scrollPosition.
+			scrollable scrollHorizontallyBy: scrollDelta x.
+			scrollable scrollVerticallyBy: scrollDelta y ].
 		^ self ].
 	collaborationDiagramElement refresh
 ]
