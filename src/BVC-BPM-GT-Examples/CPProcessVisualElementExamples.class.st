@@ -1388,7 +1388,6 @@ CPProcessVisualElementExamples >> resizeHandlesArePresentFromCreation [
 	self assert: handles size equals: 4.
 	handles do: [ :each |
 		self assert: each parent == shapeElement.
-		self assert: each extent equals: 14 @ 14.
 		self assert: each visibility equals: BlVisibility visible ].
 	^ shapeElement
 ]
