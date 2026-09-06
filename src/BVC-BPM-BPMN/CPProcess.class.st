@@ -3,7 +3,8 @@ Class {
 	#superclass : 'CFLabelledObject',
 	#instVars : [
 		'flowElements',
-		'diagram'
+		'diagram',
+		'definitionalCollaborationRef'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -74,6 +75,30 @@ CPProcess >> diagramDescription [
 		label: 'Diagram';
 		priority: 110;
 		group: 'Diagram';
+		yourself
+]
+
+
+{ #category : 'accessing' }
+CPProcess >> definitionalCollaborationRef [
+	^ definitionalCollaborationRef
+]
+
+{ #category : 'accessing' }
+CPProcess >> definitionalCollaborationRef: aCollaboration [
+	definitionalCollaborationRef := aCollaboration
+]
+
+{ #category : 'descriptions' }
+CPProcess >> definitionalCollaborationRefDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #definitionalCollaborationRef;
+		classes: { CPCollaboration };
+		reference: CPCollaboration new labelDescription;
+		label: 'Definitional collaboration';
+		priority: 120;
+		group: 'Relations';
 		yourself
 ]
 

@@ -9,3 +9,9 @@ Class {
 CPEvent >> isEvent [
 	^ true
 ]
+
+
+{ #category : 'message flow' }
+CPEvent >> canBeMessageFlowEndpoint [
+	^ true
+]

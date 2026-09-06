@@ -50,3 +50,22 @@ CPFlowElement >> isTask [
 CPFlowElement >> isSubProcess [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPFlowElement >> isParticipant [
+	^ false
+]
+
+{ #category : 'message flow' }
+CPFlowElement >> canBeMessageFlowEndpoint [
+	^ false
+]
+
+{ #category : 'containment' }
+CPFlowElement >> owningProcess [
+	container ifNil: [ ^ nil ].
+	^ container isSubProcess
+		ifTrue: [ container owningProcess ]
+		ifFalse: [ container ]
+]

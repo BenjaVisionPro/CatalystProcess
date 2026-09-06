@@ -9,3 +9,9 @@ Class {
 CPActivity >> isActivity [
 	^ true
 ]
+
+
+{ #category : 'message flow' }
+CPActivity >> canBeMessageFlowEndpoint [
+	^ true
+]

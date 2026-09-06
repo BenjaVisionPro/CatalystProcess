@@ -197,3 +197,150 @@ CPProcessExamples >> multipleOutgoingTaskSequenceFlowsAreAllowed [
 	self assert: result isAllowed.
 	^ result
 ]
+
+
+{ #category : 'examples - collaboration' }
+CPProcessExamples >> definitionalCollaborationReferencesProcessAndParticipants [
+	<gtExample>
+	| process collaboration localParticipant externalParticipant |
+	process := CPProcess new label: 'Order handling'; yourself.
+	collaboration := CPCollaboration new label: 'Order collaboration'; yourself.
+	localParticipant := CPParticipant new
+		label: 'Seller';
+		processRef: process;
+		yourself.
+	externalParticipant := CPParticipant new
+		label: 'Buyer';
+		yourself.
+	collaboration
+		addParticipant: localParticipant;
+		addParticipant: externalParticipant.
+	process definitionalCollaborationRef: collaboration.
+
+	self assert: process definitionalCollaborationRef == collaboration.
+	self assert: collaboration participants size equals: 2.
+	self assert: localParticipant processRef == process.
+	self assert: externalParticipant processRef isNil.
+	^ collaboration
+]
+
+
+{ #category : 'examples - collaboration' }
+CPProcessExamples >> messageFlowBetweenSeparateParticipantsIsAllowed [
+	<gtExample>
+	| process collaboration localParticipant externalParticipant task result |
+	process := CPProcess new label: 'Seller process'; yourself.
+	task := CPUserTask new label: 'Send quote'; yourself.
+	process addFlowElement: task.
+	localParticipant := CPParticipant new label: 'Seller'; processRef: process; yourself.
+	externalParticipant := CPParticipant new label: 'Buyer'; yourself.
+	collaboration := CPCollaboration new label: 'Sale'; yourself.
+	collaboration
+		addParticipant: localParticipant;
+		addParticipant: externalParticipant.
+
+	result := CPMessageFlowConnectionRules new
+		assessConnectionFrom: task
+		to: externalParticipant
+		in: collaboration.
+
+	self assert: result isAllowed.
+	self assert: (collaboration participantForEndpoint: task) == localParticipant.
+	self assert: (collaboration participantForEndpoint: externalParticipant) == externalParticipant.
+	^ result
+]
+
+
+{ #category : 'examples - collaboration' }
+CPProcessExamples >> messageFlowInsideSameParticipantIsRejected [
+	<gtExample>
+	| process collaboration participant sender receiver result |
+	process := CPProcess new label: 'Seller process'; yourself.
+	sender := CPUserTask new label: 'Prepare quote'; yourself.
+	receiver := CPUserTask new label: 'Send quote'; yourself.
+	process
+		addFlowElement: sender;
+		addFlowElement: receiver.
+	participant := CPParticipant new label: 'Seller'; processRef: process; yourself.
+	collaboration := CPCollaboration new.
+	collaboration addParticipant: participant.
+
+	result := CPMessageFlowConnectionRules new
+		assessConnectionFrom: sender
+		to: receiver
+		in: collaboration.
+
+	self assert: result isAllowed not.
+	^ result
+]
+
+
+{ #category : 'examples - collaboration' }
+CPProcessExamples >> nestedFlowNodeResolvesToOwningParticipant [
+	<gtExample>
+	| process subProcess nestedTask collaboration participant |
+	process := CPProcess new label: 'Seller process'; yourself.
+	subProcess := CPNoneSubProcess new label: 'Fulfil'; yourself.
+	nestedTask := CPUserTask new label: 'Pack'; yourself.
+	process addFlowElement: subProcess.
+	subProcess addFlowElement: nestedTask.
+	participant := CPParticipant new label: 'Seller'; processRef: process; yourself.
+	collaboration := CPCollaboration new.
+	collaboration addParticipant: participant.
+
+	self assert: nestedTask owningProcess == process.
+	self assert: (collaboration participantForEndpoint: nestedTask) == participant.
+	^ participant
+]
+
+
+{ #category : 'examples - collaboration' }
+CPProcessExamples >> gatewayCannotBeMessageFlowEndpoint [
+	<gtExample>
+	| firstProcess secondProcess collaboration firstParticipant secondParticipant gateway task result |
+	firstProcess := CPProcess new.
+	secondProcess := CPProcess new.
+	gateway := CPExclusiveGateway new.
+	task := CPUserTask new.
+	firstProcess addFlowElement: gateway.
+	secondProcess addFlowElement: task.
+	firstParticipant := CPParticipant new processRef: firstProcess; yourself.
+	secondParticipant := CPParticipant new processRef: secondProcess; yourself.
+	collaboration := CPCollaboration new.
+	collaboration
+		addParticipant: firstParticipant;
+		addParticipant: secondParticipant.
+
+	result := CPMessageFlowConnectionRules new
+		assessConnectionFrom: gateway
+		to: task
+		in: collaboration.
+
+	self assert: result isAllowed not.
+	^ result
+]
+
+
+{ #category : 'examples - collaboration' }
+CPProcessExamples >> collaborationOwnsMessageFlowSemanticRelationship [
+	<gtExample>
+	| firstParticipant secondParticipant collaboration flow |
+	firstParticipant := CPParticipant new label: 'Buyer'; yourself.
+	secondParticipant := CPParticipant new label: 'Seller'; yourself.
+	collaboration := CPCollaboration new label: 'Purchase'; yourself.
+	collaboration
+		addParticipant: firstParticipant;
+		addParticipant: secondParticipant.
+	flow := CPMessageFlow new
+		label: 'Order';
+		sourceRef: firstParticipant;
+		targetRef: secondParticipant;
+		yourself.
+	collaboration addMessageFlow: flow.
+
+	self assert: collaboration messageFlows size equals: 1.
+	self assert: collaboration messageFlows first == flow.
+	self assert: flow sourceRef == firstParticipant.
+	self assert: flow targetRef == secondParticipant.
+	^ collaboration
+]
