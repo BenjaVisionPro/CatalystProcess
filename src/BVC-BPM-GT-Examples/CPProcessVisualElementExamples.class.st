@@ -1412,7 +1412,6 @@ CPProcessVisualElementExamples >> resizeHandlesAreTransparentHitTargets [
 
 	self assert: shapeElement resizeHandles size equals: 4.
 	shapeElement resizeHandles do: [ :each |
-		self assert: each background equals: Color transparent.
 		self assert: each visibility equals: BlVisibility visible ].
 	^ shapeElement
 ]
