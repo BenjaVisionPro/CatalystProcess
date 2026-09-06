@@ -13,6 +13,7 @@ Class {
 		'selectedModelElement',
 		'moveShapeOperationBlock',
 		'transferFlowNodeOperationBlock',
+		'transferFlowNodesOperationBlock',
 		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
@@ -40,6 +41,7 @@ CPProcessPresentation >> prepareHostElement [
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
+		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
 		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
@@ -221,6 +223,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 	diagramElement
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
+		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
 		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
@@ -289,4 +292,9 @@ CPProcessPresentation >> setShapeExpandedOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessPresentation >> transferFlowNodeOperationFor: aBlock [
 	transferFlowNodeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> transferFlowNodesOperationFor: aBlock [
+	transferFlowNodesOperationBlock := aBlock
 ]

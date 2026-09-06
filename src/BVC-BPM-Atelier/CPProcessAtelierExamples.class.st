@@ -893,17 +893,14 @@ CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBo
 
 
 { #category : 'examples - subprocess' }
-CPProcessAtelierExamples >> transferringConnectedNodePreservesSequenceFlowTopology [
+CPProcessAtelierExamples >> transferringConnectedNodeRejectsCrossScopeSequenceFlow [
 	<gtExample>
-	| fixture memento task firstFlow secondFlow rootDescription diagramDescription
-	  subProcess rootElements subMemento subDescription operation assessment
-	  targetMemento incomingDescription outgoingDescription |
+	| fixture memento task rootDescription diagramDescription subProcess rootElements
+	  subMemento subDescription operation assessment |
 
 	fixture := self fixture.
 	memento := fixture second.
 	task := fixture fourth.
-	firstFlow := fixture sixth.
-	secondFlow := fixture seventh.
 	rootDescription := self descriptionFor: #flowElements in: memento.
 	diagramDescription := self descriptionFor: #diagram in: memento.
 
@@ -923,16 +920,130 @@ CPProcessAtelierExamples >> transferringConnectedNodePreservesSequenceFlowTopolo
 		diagramDescription: diagramDescription.
 	assessment := operation apply.
 
-	self assert: assessment isApplicable.
-	self assert: ((memento readUsing: rootDescription) identityIncludes: task) not.
-	self assert: ((memento readUsing: rootDescription) identityIncludes: firstFlow).
-	self assert: ((memento readUsing: rootDescription) identityIncludes: secondFlow).
-	self assert: ((subMemento readUsing: subDescription) identityIncludes: task).
+	self assert: assessment isApplicable not.
+	self assert: ((memento readUsing: rootDescription) identityIncludes: task).
+	self assert: ((memento readUsing: rootDescription) identityIncludes: fixture sixth).
+	self assert: ((memento readUsing: rootDescription) identityIncludes: fixture seventh).
+	self assert: ((subMemento readUsing: subDescription) identityIncludes: task) not.
+	^ assessment
+]
 
-	targetMemento := subMemento childMementoFor: task inRelation: subDescription.
-	incomingDescription := self descriptionFor: #incoming in: targetMemento.
-	outgoingDescription := self descriptionFor: #outgoing in: targetMemento.
-	self assert: ((targetMemento readUsing: incomingDescription) identityIncludes: firstFlow).
-	self assert: ((targetMemento readUsing: outgoingDescription) identityIncludes: secondFlow).
+
+{ #category : 'examples - nested containers' }
+CPProcessAtelierExamples >> transferringClosedTopologyIntoSubProcessMovesNodesFlowsAndDiagramGeometry [
+	<gtExample>
+	| fixture memento start task finish firstFlow secondFlow rootDescription diagramDescription
+	  subProcess rootElements subMemento subDescription boundsByNode waypointsByFlow
+	  operation assessment nestedElements targetTaskMemento containerDescription |
+
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	task := fixture fourth.
+	finish := fixture fifth.
+	firstFlow := fixture sixth.
+	secondFlow := fixture seventh.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	rootElements := (memento readUsing: rootDescription) asOrderedCollection copy.
+	rootElements add: subProcess.
+	memento write: rootElements using: rootDescription.
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: OrderedCollection new using: subDescription.
+
+	boundsByNode := IdentityDictionary new.
+	boundsByNode
+		at: start put: (40 @ 60 extent: 42 @ 42);
+		at: task put: (140 @ 54 extent: 132 @ 54);
+		at: finish put: (330 @ 60 extent: 42 @ 42).
+	waypointsByFlow := IdentityDictionary new.
+	waypointsByFlow
+		at: firstFlow put: ({ 82 @ 81. 140 @ 81 } asOrderedCollection);
+		at: secondFlow put: ({ 272 @ 81. 330 @ 81 } asOrderedCollection).
+
+	operation := CPAtelierTransferFlowNodes
+		flowNodes: { start. task. finish }
+		targetContainer: subProcess
+		boundsByFlowNode: boundsByNode
+		waypointsBySequenceFlow: waypointsByFlow
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: rootDescription) size equals: 1.
+	self assert: ((memento readUsing: rootDescription) identityIncludes: subProcess).
+	nestedElements := subMemento readUsing: subDescription.
+	self assert: nestedElements size equals: 5.
+	self assert: (nestedElements identityIncludes: start).
+	self assert: (nestedElements identityIncludes: task).
+	self assert: (nestedElements identityIncludes: finish).
+	self assert: (nestedElements identityIncludes: firstFlow).
+	self assert: (nestedElements identityIncludes: secondFlow).
+
+	targetTaskMemento := subMemento childMementoFor: task inRelation: subDescription.
+	containerDescription := self descriptionFor: #container in: targetTaskMemento.
+	self assert: (targetTaskMemento readUsing: containerDescription) == subProcess.
+	self assert: (self stagedBoundsOf: (fixture at: 9) processMemento: memento)
+		equals: (40 @ 60 extent: 42 @ 42).
+	self assert: (self stagedBoundsOf: (fixture at: 10) processMemento: memento)
+		equals: (140 @ 54 extent: 132 @ 54).
+	self assert: (self stagedBoundsOf: (fixture at: 11) processMemento: memento)
+		equals: (330 @ 60 extent: 42 @ 42).
+	self assert: (self stagedWaypointsOf: (fixture at: 12) processMemento: memento)
+		equals: ({ 82 @ 81. 140 @ 81 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: (fixture at: 13) processMemento: memento)
+		equals: ({ 272 @ 81. 330 @ 81 } asOrderedCollection).
+	^ assessment
+]
+
+
+{ #category : 'examples - nested containers' }
+CPProcessAtelierExamples >> transferringOpenTopologyRejectsBoundarySequenceFlow [
+	<gtExample>
+	| fixture memento start task firstFlow rootDescription diagramDescription subProcess rootElements
+	  subMemento subDescription boundsByNode waypointsByFlow operation assessment |
+
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	task := fixture fourth.
+	firstFlow := fixture sixth.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	rootElements := (memento readUsing: rootDescription) asOrderedCollection copy.
+	rootElements add: subProcess.
+	memento write: rootElements using: rootDescription.
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: OrderedCollection new using: subDescription.
+
+	boundsByNode := IdentityDictionary new.
+	boundsByNode
+		at: start put: (40 @ 60 extent: 42 @ 42);
+		at: task put: (140 @ 54 extent: 132 @ 54).
+	waypointsByFlow := IdentityDictionary new.
+	waypointsByFlow
+		at: firstFlow put: ({ 82 @ 81. 140 @ 81 } asOrderedCollection).
+
+	operation := CPAtelierTransferFlowNodes
+		flowNodes: { start. task }
+		targetContainer: subProcess
+		boundsByFlowNode: boundsByNode
+		waypointsBySequenceFlow: waypointsByFlow
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable not.
+	self assert: ((memento readUsing: rootDescription) identityIncludes: start).
+	self assert: ((memento readUsing: rootDescription) identityIncludes: task).
+	self assert: ((memento readUsing: rootDescription) identityIncludes: fixture seventh).
+	self assert: (subMemento readUsing: subDescription) isEmpty.
 	^ assessment
 ]

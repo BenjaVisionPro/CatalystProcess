@@ -1,6 +1,6 @@
-"I transfer one existing flow node between staged Process/Sub-Process flow containers and move its CPShape atomically.
+"I transfer one disconnected existing flow node between staged Process/Sub-Process flow containers and move its CPShape atomically.
 
-Sequence Flows may connect nodes owned by different Process/Sub-Process containers, so transferring a node preserves its staged incoming and outgoing relations. Semantic containment changes; connection topology does not."
+A SequenceFlow is local to one flow-elements container. I therefore reject a single-node transfer when the node has staged incoming or outgoing SequenceFlows. Connected topology moves through CPAtelierTransferFlowNodes, which transfers a closed selection together with its internal SequenceFlows."
 Class {
 	#name : 'CPAtelierTransferFlowNode',
 	#superclass : 'CFAtelierOperation',
@@ -64,6 +64,8 @@ CPAtelierTransferFlowNode >> assess [
 	outgoingDescription := sourceMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
 	incoming := sourceMemento readUsing: incomingDescription.
 	outgoing := sourceMemento readUsing: outgoingDescription.
+	(incoming isEmpty and: [ outgoing isEmpty ]) ifFalse: [
+		^ self rejectedBecause: 'A connected flow node must be transferred with its closed SequenceFlow topology.' ].
 
 	labelDescription := sourceMemento magritteDescription detect: [ :each | each handlesSelector: #label ].
 	stagedLabel := sourceMemento readUsing: labelDescription.

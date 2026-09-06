@@ -32,6 +32,14 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 				bounds: proposedBounds
 				processMemento: memento
 				diagramDescription: diagramDescription ];
+		transferFlowNodesOperationFor: [ :someFlowNodes :aFlowContainer :boundsByFlowNode :waypointsBySequenceFlow |
+			CPAtelierTransferFlowNodes
+				flowNodes: someFlowNodes
+				targetContainer: aFlowContainer
+				boundsByFlowNode: boundsByFlowNode
+				waypointsBySequenceFlow: waypointsBySequenceFlow
+				processMemento: memento
+				diagramDescription: diagramDescription ];
 		moveShapesOperationFor: [ :boundsByShape |
 			CPAtelierMoveShapes
 				boundsByShape: boundsByShape

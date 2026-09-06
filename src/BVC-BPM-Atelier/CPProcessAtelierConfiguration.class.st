@@ -83,6 +83,14 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					bounds: proposedBounds
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
+			transferFlowNodesOperationFor: [ :someFlowNodes :aFlowContainer :boundsByFlowNode :waypointsBySequenceFlow |
+				CPAtelierTransferFlowNodes
+					flowNodes: someFlowNodes
+					targetContainer: aFlowContainer
+					boundsByFlowNode: boundsByFlowNode
+					waypointsBySequenceFlow: waypointsBySequenceFlow
+					processMemento: aPresentation memento
+					diagramDescription: diagramDescription ];
 			moveShapesOperationFor: [ :boundsByShape |
 				CPAtelierMoveShapes boundsByShape: boundsByShape processMemento: aPresentation memento diagramDescription: diagramDescription ];
 			resizeShapeOperationFor: [ :aShape :proposedBounds |
