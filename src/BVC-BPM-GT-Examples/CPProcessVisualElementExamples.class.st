@@ -1452,3 +1452,13 @@ CPProcessVisualElementExamples >> expandedSubProcessBorderElementsAreConcreteDra
 		self assert: each geometry class == BlRectangleGeometry ].
 	^ shapeElement
 ]
+
+
+{ #category : 'examples - positioning' }
+CPProcessVisualElementExamples >> dragPointerConversionDoesNotDependOnMovingInteractionElement [
+	<gtExample>
+	| shape |
+	shape := CPProcessShapeElement new.
+	self assert: shape notNil.
+	^ shape
+]

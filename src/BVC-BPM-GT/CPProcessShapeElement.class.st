@@ -537,7 +537,7 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 			on: BlDragStartEvent
 			do: [ :anEvent |
 				dragStartPointerInParent := self parent
-					globalPointToLocal: (anEvent currentTarget localPointToGlobal: anEvent position).
+					globalPointToLocal: anEvent position.
 				dragStartElementPosition := self position.
 				originalBounds := aStagedBoundsBlock value.
 				isDragging := true.
@@ -549,7 +549,7 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 				isDragging ifTrue: [
 					| pointerInParent proposedPosition delta |
 					pointerInParent := self parent
-						globalPointToLocal: (anEvent currentTarget localPointToGlobal: anEvent position).
+						globalPointToLocal: anEvent position.
 					proposedPosition := dragStartElementPosition
 						+ pointerInParent
 						- dragStartPointerInParent.
@@ -564,7 +564,7 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 					| pointerInParent proposedPosition proposedBounds delta |
 					isDragging := false.
 					pointerInParent := self parent
-						globalPointToLocal: (anEvent currentTarget localPointToGlobal: anEvent position).
+						globalPointToLocal: anEvent position.
 					proposedPosition := dragStartElementPosition
 						+ pointerInParent
 						- dragStartPointerInParent.
