@@ -62,7 +62,7 @@ CPProcessPresentation >> prepareHostElement [
 				moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 				resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
 				removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
-				selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+				selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
 				processMemento: self memento
 				processVisual: processDiagramElement;
 				yourself.
@@ -189,7 +189,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
 			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
-			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+			selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
 			processMemento: self memento
 			processVisual: processDiagramElement;
 			yourself.
@@ -329,6 +329,16 @@ CPProcessPresentation >> selectModelElement: aModelElement [
 	detailHostElement
 		removeChildren;
 		addChild: detailElement
+]
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> collaborationSelectionChanged: aModelElement [
+	"Pool and Process-content selection are mutually exclusive. Selecting a Pool
+	clears selection throughout the hosted Process tree, including expanded
+	SubProcesses, before making the Pool the presentation selection."
+	processDiagramElement ifNotNil: [
+		processDiagramElement clearDiagramSelection ].
+	self selectModelElement: aModelElement
 ]
 
 { #category : 'private - selection' }
@@ -500,7 +510,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
 			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
-			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+			selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
 			refresh ]
 ]
 { #category : 'configuration' }

@@ -3357,6 +3357,17 @@ CPProcessVisualElement >> removeSelection [
 	self refresh
 ]
 
+{ #category : 'selection' }
+CPProcessVisualElement >> clearDiagramSelection [
+	"Clear selection throughout this Process visual tree without reporting a new
+	selection upward. The caller is transferring selection ownership elsewhere
+	in the diagram."
+	self clearLocalSelection.
+	shapeElementsByModelElement valuesDo: [ :aShapeElement |
+		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
+			aNestedVisual clearDiagramSelection ] ]
+]
+
 { #category : 'private - selection' }
 CPProcessVisualElement >> clearLocalSelection [
 	connectionSourceModelElement := nil.
