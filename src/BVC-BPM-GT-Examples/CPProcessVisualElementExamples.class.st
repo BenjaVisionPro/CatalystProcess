@@ -1476,18 +1476,20 @@ CPProcessVisualElementExamples >> diagramDeletionShortcutIsOwnedByDiagramFocus [
 { #category : 'examples - labels' }
 CPProcessVisualElementExamples >> emptyEdgeLabelCanEnterEditingMode [
 	<gtExample>
-	| fixture visual edge edgeVisual label |
+	| fixture visual edge labelHost label |
 	fixture := self fixture.
 	edge := fixture at: 12.
 	visual := self visualElementForFixture: fixture.
-	edgeVisual := visual edgeVisualsByEdge at: edge.
-	label := edgeVisual labelHost children first.
+	labelHost := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
+	self assert: labelHost notNil.
+	self assert: labelHost children isEmpty not.
+	label := labelHost children first.
 
 	label text: ''.
 	visual beginEditingLabelForEdge: edge.
 
 	self assert: label text asString equals: ''.
-	self assert: label parent == edgeVisual labelHost.
+	self assert: label parent == labelHost.
 	^ label
 ]
 
