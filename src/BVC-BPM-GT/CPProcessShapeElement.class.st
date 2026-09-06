@@ -452,13 +452,15 @@ CPProcessShapeElement >> subProcessExpansionMarker [
 CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 	nestedProcessVisual := aProcessVisual.
 	nestedProcessViewport := BlElement new
-		extent: self extent;
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
 		layout: BlFrameLayout new;
 		clipChildren: true;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ 0;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical matchParent.
+			c frame horizontal alignLeft.
+			c frame vertical alignTop ];
 		yourself.
 	nestedProcessVisual
 		constraintsDo: [ :c |

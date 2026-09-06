@@ -1275,6 +1275,7 @@ CPProcessVisualElementExamples >> nestedProcessRendersWhileHosted [
 	self assert: nestedVisual parent == shapeElement nestedProcessViewport.
 	self assert: taskElement parent == nestedVisual.
 	self assert: (nestedVisual children includes: taskElement).
-	self assert: taskElement position equals: 80 @ 50.
+	self assert: (nestedVisual stagedBoundsOf: taskElement diagramShape)
+		equals: (80 @ 50 extent: 132 @ 54).
 	^ nestedVisual
 ]

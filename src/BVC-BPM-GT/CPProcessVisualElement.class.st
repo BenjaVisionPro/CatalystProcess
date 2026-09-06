@@ -173,8 +173,9 @@ CPProcessVisualElement >> refresh [
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
-		c minWidth: contentExtent x.
-		c minHeight: contentExtent y ].
+		parentProcessVisual ifNil: [
+			c minWidth: contentExtent x.
+			c minHeight: contentExtent y ] ].
 	self addPaletteDropSurface.
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
