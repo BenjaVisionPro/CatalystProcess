@@ -835,34 +835,19 @@ CPProcessVisualElementExamples >> flowElementSubProcessProtocolCoversSequenceFlo
 
 
 { #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> dropPointInsideExpandedSubProcessResolvesNestedContainer [
+CPProcessVisualElementExamples >> expandedSubProcessExposesNestedProcessVisualAsContainmentTarget [
 	<gtExample>
-	| fixture memento rootFlowDescription diagramMemento elementsDescription subProcess subShape rootFlows diagramElements visual |
-	fixture := self fixture.
-	memento := fixture second.
-	rootFlowDescription := self descriptionFor: #flowElements in: memento.
-	diagramMemento := self diagramMementoFor: memento.
-	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	| visual subProcess shapeElement nestedVisual |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
 
-	subProcess := CPNoneSubProcess new label: 'Expanded'; yourself.
-	rootFlows := (memento readUsing: rootFlowDescription) asOrderedCollection copy.
-	rootFlows add: subProcess.
-	memento write: rootFlows using: rootFlowDescription.
-
-	subShape := CPShape new
-		modelElement: subProcess;
-		bounds: (180 @ 180 extent: 360 @ 180);
-		isExpanded: true;
-		yourself.
-	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
-	diagramElements add: subShape.
-	diagramMemento write: diagramElements using: elementsDescription.
-
-	visual := self visualElementForFixture: fixture.
-
-	self assert: (visual flowContainerAtLocalPoint: 300 @ 240) == subProcess.
-	self assert: (visual flowContainerAtLocalPoint: 40 @ 40) == memento model.
-	^ visual
+	self assert: nestedVisual notNil.
+	self assert: nestedVisual flowContainer == subProcess.
+	self assert: nestedVisual rootVisual == visual.
+	^ nestedVisual
 ]
 
 
