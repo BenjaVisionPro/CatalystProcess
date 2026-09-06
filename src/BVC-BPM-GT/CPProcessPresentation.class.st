@@ -61,6 +61,7 @@ CPProcessPresentation >> prepareHostElement [
 				createParticipantOperationFor: createParticipantOperationBlock;
 				moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 				resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+				removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 				selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 				processMemento: self memento
 				processVisual: processDiagramElement;
@@ -186,6 +187,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			createParticipantOperationFor: createParticipantOperationBlock;
 			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 			processMemento: self memento
@@ -240,6 +242,52 @@ CPProcessPresentation >> refreshCollaborationDiagramPreservingCamera [
 			- collaborationDiagramElement diagramBounds origin.
 	targetScrollPosition :=
 		oldScrollPosition + oldNormalizationOffset - newNormalizationOffset.
+	scrollDelta := targetScrollPosition - scrollable scrollPosition.
+	scrollable scrollHorizontallyBy: scrollDelta x.
+	scrollable scrollVerticallyBy: scrollDelta y
+]
+
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> removeParticipant: aParticipant [
+	| operation assessment |
+	removeParticipantOperationBlock ifNil: [ ^ self ].
+	operation := removeParticipantOperationBlock value: aParticipant.
+	assessment := operation assess.
+	assessment isApplicable ifFalse: [ ^ assessment ].
+
+	operation apply.
+	self selectModelElement: nil.
+	self stagedDefinitionalCollaboration
+		ifNil: [ self restoreStandaloneProcessDiagramPreservingCamera ]
+		ifNotNil: [ self refreshCollaborationDiagramPreservingCamera ].
+	^ assessment
+]
+
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> restoreStandaloneProcessDiagramPreservingCamera [
+	| scrollable previousGraphViewportOrigin viewport targetScrollPosition scrollDelta |
+	collaborationDiagramElement ifNil: [ ^ self ].
+	scrollable := diagramScrollElement childNamed: #scrollable.
+	previousGraphViewportOrigin :=
+		scrollable scrollPosition
+			+ collaborationDiagramElement cameraSlack
+			- collaborationDiagramElement diagramBounds origin
+			+ (collaborationDiagramElement
+				collaborationPointForProcessRootPoint:
+					processDiagramElement diagramBounds origin).
+	viewport := diagramScrollElement extent max: 1 @ 1.
+
+	processDiagramElement
+		beStandalone;
+		collaborationVisual: nil;
+		viewportExtent: viewport.
+	collaborationDiagramElement := nil.
+	diagramElement := processDiagramElement.
+	diagramCameraInitialized := true.
+	diagramScrollElement content: diagramElement.
+
+	targetScrollPosition :=
+		previousGraphViewportOrigin - processDiagramElement cameraSlack.
 	scrollDelta := targetScrollPosition - scrollable scrollPosition.
 	scrollable scrollHorizontallyBy: scrollDelta x.
 	scrollable scrollVerticallyBy: scrollDelta y
@@ -440,6 +488,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 			createParticipantOperationFor: createParticipantOperationBlock;
 			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 			refresh ]

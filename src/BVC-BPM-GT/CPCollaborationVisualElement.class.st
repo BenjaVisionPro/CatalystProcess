@@ -19,6 +19,7 @@ Class {
 		'moveParticipantShapeOperationBlock',
 		'resizeParticipantShapeOperationBlock',
 		'refreshAfterGeometryChangeBlock',
+		'removeParticipantBlock',
 		'selectionChangedBlock',
 		'selectedParticipant',
 		'participantElementsByParticipant',
@@ -55,7 +56,9 @@ CPCollaborationVisualElement >> initialize [
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false.
-	self installPaletteDropHandler
+	self
+		installKeyboardHandler;
+		installPaletteDropHandler
 ]
 
 { #category : 'configuration' }
@@ -150,6 +153,22 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		processVisual beCollaborationHosted.
 		processVisual collaborationVisual: self.
 		element hostProcessVisual: processVisual ]
+]
+
+{ #category : 'private - installing' }
+CPCollaborationVisualElement >> installKeyboardHandler [
+	self addEventHandler: (BlEventHandler
+		on: BlKeyDownEvent
+		do: [ :anEvent |
+			(anEvent target == self
+				and: [
+					anEvent key = BlKeyboardKey delete
+						or: [ anEvent key = BlKeyboardKey backspace ] ])
+				ifTrue: [
+					selectedParticipant ifNotNil: [
+						removeParticipantBlock ifNotNil: [ :aBlock |
+							aBlock value: selectedParticipant ] ].
+					anEvent consumed: true ] ])
 ]
 
 { #category : 'private - selection' }
@@ -253,6 +272,11 @@ CPCollaborationVisualElement >> resizeParticipantShapeOperationFor: aBlock [
 { #category : 'configuration' }
 CPCollaborationVisualElement >> refreshAfterGeometryChangeDo: aBlock [
 	refreshAfterGeometryChangeBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> removeParticipantDo: aBlock [
+	removeParticipantBlock := aBlock
 ]
 
 { #category : 'configuration' }
