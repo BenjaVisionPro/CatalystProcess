@@ -209,22 +209,25 @@ CPProcessPresentation >> updateDiagramViewportExtent [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> ensureCollaborationDiagramPresentation [
-	| collaboration collaborationDiagram previousGraphGlobalOrigin |
+	| collaboration collaborationDiagram previousGraphGlobalOrigin viewport newGraphGlobalOrigin |
 	collaboration := self stagedDefinitionalCollaboration.
 	collaboration ifNil: [ ^ self ].
 	collaborationDiagram := self stagedDiagramOfDefinitionalCollaboration: collaboration.
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
-		"A first Collaboration changes the root presentation topology. Preserve
-		the current graph position, then build the hosted Process visual in its
-		final parent configuration. Expanded Sub-Processes use the same lifecycle:
-		a fresh nested Process visual is configured before staged content renders."
+		"Introducing the first Collaboration is a topology change, not a camera
+		command. The authored Process must therefore remain pixel-stationary.
+		Capture its rendered graph origin before replacing the scroll content,
+		build the new hosted Process in its final hierarchy, lay that hierarchy
+		out synchronously, and move only the native camera by the exact delta.
+		Do not run the normal initial-centering path during this hand-off."
 		previousGraphGlobalOrigin := processDiagramElement diagramExtent = (0 @ 0)
 			ifTrue: [ nil ]
 			ifFalse: [
 				processDiagramElement globalPointForDiagramPoint:
 					processDiagramElement diagramBounds origin ].
+		viewport := diagramScrollElement extent max: 1 @ 1.
 		processDiagramElement := self
 			newConfiguredProcessDiagramElementCollaborationHosted: true.
 		collaborationDiagramElement := CPCollaborationVisualElement new
@@ -236,17 +239,16 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			processMemento: self memento
 			processVisual: processDiagramElement;
 			yourself.
+		collaborationDiagramElement viewportExtent: viewport.
 		diagramElement := collaborationDiagramElement.
-		diagramCameraInitialized := false.
+		diagramCameraInitialized := true.
 		diagramScrollElement content: diagramElement.
-		self updateDiagramViewportExtent.
+		diagramScrollElement forceLayout.
 		previousGraphGlobalOrigin ifNotNil: [
-			diagramScrollElement enqueueTask: (BlTaskAction new action: [
-				| newGraphGlobalOrigin |
-				newGraphGlobalOrigin := processDiagramElement
-					globalPointForDiagramPoint: processDiagramElement diagramBounds origin.
-				diagramScrollElement scrollBy:
-					newGraphGlobalOrigin - previousGraphGlobalOrigin ]) ].
+			newGraphGlobalOrigin := processDiagramElement
+				globalPointForDiagramPoint: processDiagramElement diagramBounds origin.
+			diagramScrollElement scrollBy:
+				newGraphGlobalOrigin - previousGraphGlobalOrigin ].
 		^ self ].
 	collaborationDiagramElement refresh
 ]
