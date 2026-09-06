@@ -158,30 +158,32 @@ CPProcessPresentation >> updateDiagramViewportExtent [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> ensureCollaborationDiagramPresentation [
-	| collaboration collaborationDiagram previousGraphGlobalOrigin viewport newGraphGlobalOrigin |
+	| collaboration collaborationDiagram scrollable previousGraphViewportOrigin viewport newGraphContentOrigin targetScrollPosition |
 	collaboration := self stagedDefinitionalCollaboration.
 	collaboration ifNil: [ ^ self ].
 	collaborationDiagram := self stagedDiagramOfDefinitionalCollaboration: collaboration.
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
-		"The first Pool is a presentation-topology change only. Existing Process
-		content must remain pixel-stationary.
+		"The first Pool changes diagram topology, not the user's camera.
+		Preserve the authored graph's viewport position explicitly in the native
+		BlScrollableElement coordinate system.
 
-		Capture the actual rendered graph origin before replacing the standalone
-		Process by the fresh Collaboration hierarchy. Once the new hosted Process
-		is fully laid out, measure that same authored diagram point again and move
-		only the native camera by the exact visual delta.
+		For the standalone Process, the graph bounds origin is presented at
+		cameraSlack inside the scroll content. Therefore:
+		old viewport graph origin = native scrollPosition + cameraSlack.
 
-		Do not reset the scroll position. A zero scroll position is the bounded
-		camera's trailing-slack extreme when a diagram fits, which is precisely
-		what caused the graph to jump toward the bottom/right in the previous
-		implementation."
-		previousGraphGlobalOrigin := processDiagramElement diagramExtent = (0 @ 0)
+		After the Collaboration is built, derive the same graph point's position
+		inside the new Collaboration content from Collaboration DI geometry. The
+		target native scroll position is then solved directly:
+		target = old viewport graph origin - new content graph origin.
+
+		This avoids replacing one relative camera correction with another."
+		scrollable := diagramScrollElement children first.
+		previousGraphViewportOrigin := processDiagramElement diagramExtent = (0 @ 0)
 			ifTrue: [ nil ]
 			ifFalse: [
-				processDiagramElement globalPointForDiagramPoint:
-					processDiagramElement diagramBounds origin ].
+				scrollable scrollPosition + processDiagramElement cameraSlack ].
 		viewport := diagramScrollElement extent max: 1 @ 1.
 
 		processDiagramElement := self
@@ -198,18 +200,24 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 		collaborationDiagramElement viewportExtent: viewport.
 		diagramElement := collaborationDiagramElement.
 
-		"This hand-off establishes the camera itself; the normal initial-centering
-		path must not run as a second navigation command."
+		"The topology hand-off establishes the camera itself. Do not also run the
+		normal initial-centering command."
 		diagramCameraInitialized := true.
 		diagramScrollElement content: diagramElement.
 		diagramScrollElement forceLayout.
 
-		previousGraphGlobalOrigin ifNotNil: [
-			newGraphGlobalOrigin :=
-				processDiagramElement globalPointForDiagramPoint:
-					processDiagramElement diagramBounds origin.
-			diagramScrollElement scrollBy:
-				newGraphGlobalOrigin - previousGraphGlobalOrigin ].
+		previousGraphViewportOrigin ifNotNil: [
+			newGraphContentOrigin :=
+				collaborationDiagramElement cameraSlack
+					- collaborationDiagramElement diagramBounds origin
+					+ (collaborationDiagramElement
+						collaborationPointForProcessRootPoint:
+							processDiagramElement diagramBounds origin).
+			targetScrollPosition :=
+				previousGraphViewportOrigin - newGraphContentOrigin.
+			scrollable scrollBy:
+				scrollable scrollPosition - targetScrollPosition.
+			diagramScrollElement forceLayout ].
 		^ self ].
 	collaborationDiagramElement refresh
 ]
