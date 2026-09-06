@@ -9,7 +9,6 @@ Class {
 		'collaborationDiagramElement',
 		'processDiagramElement',
 		'diagramScrollElement',
-		'diagramScrollContentElement',
 		'detailHostElement',
 		'detailScrollElement',
 		'workspaceElement',
@@ -81,12 +80,6 @@ CPProcessPresentation >> prepareHostElement [
 				yourself.
 			collaborationDiagramElement ].
 
-	diagramScrollContentElement := CPDiagramScrollContentElement new.
-	diagramElement scrollContentElement: diagramScrollContentElement.
-	diagramScrollContentElement
-		diagramElement: diagramElement
-		extent: diagramElement canvasExtent.
-
 	diagramScrollElement := BrScrollPane new
 		background: surfaceColor;
 		allowMeAndChildrenMouseEvents;
@@ -95,7 +88,7 @@ CPProcessPresentation >> prepareHostElement [
 			+ BrGlamorousWithVerticalScrollbarAptitude;
 		hMatchParent;
 		vMatchParent;
-		content: diagramScrollContentElement;
+		content: diagramElement;
 		yourself.
 
 	detailHostElement := BrVerticalPane new
@@ -141,7 +134,6 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
-		processDiagramElement scrollContentElement: nil.
 		collaborationDiagramElement := CPCollaborationVisualElement new
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 			createParticipantOperationFor: createParticipantOperationBlock;
@@ -149,10 +141,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			processVisual: processDiagramElement;
 			yourself.
 		diagramElement := collaborationDiagramElement.
-		diagramElement scrollContentElement: diagramScrollContentElement.
-		diagramScrollContentElement
-			diagramElement: diagramElement
-			extent: diagramElement canvasExtent.
+		diagramScrollElement content: diagramElement.
 		^ self ].
 	collaborationDiagramElement refresh
 ]
@@ -267,10 +256,6 @@ CPProcessPresentation >> diagramElement [
 	^ diagramElement
 ]
 
-{ #category : 'accessing - testing' }
-CPProcessPresentation >> diagramScrollContentElement [
-	^ diagramScrollContentElement
-]
 
 { #category : 'accessing - testing' }
 CPProcessPresentation >> collaborationDiagramElement [

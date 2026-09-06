@@ -21,7 +21,8 @@ Class {
 		'connectMessageFlowOperationBlock',
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
-		'scrollContentElement',
+		'diagramContentElement',
+		'workspaceMargin',
 		'canvasExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -36,8 +37,9 @@ CPCollaborationVisualElement >> initialize [
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
-	scrollContentElement := nil.
-	canvasExtent := 720 @ 360.
+	diagramContentElement := nil.
+	workspaceMargin := 320 @ 220.
+	canvasExtent := 1360 @ 800.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false.
@@ -98,14 +100,18 @@ CPCollaborationVisualElement >> refresh [
 	contentExtent := self
 		canvasExtentForShapes: participantShapes
 		edges: messageFlowEdges.
-	canvasExtent := contentExtent.
-	scrollContentElement ifNotNil: [
-		scrollContentElement diagramExtent: canvasExtent ].
+	canvasExtent := contentExtent + (workspaceMargin * 2).
 	self constraintsDo: [ :c |
-		c horizontal matchParent.
-		c vertical matchParent.
-		c minWidth: contentExtent x.
-		c minHeight: contentExtent y ].
+		c horizontal exact: canvasExtent x.
+		c vertical exact: canvasExtent y ].
+	diagramContentElement := BlElement new
+		layout: BlFrameLayout new;
+		clipChildren: false;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		extent: contentExtent;
+		relocate: workspaceMargin;
+		yourself.
+	self addChild: diagramContentElement.
 	participantShapes do: [ :each | self addParticipantShape: each ].
 	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ]
 ]
@@ -126,7 +132,7 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: bounds origin.
 	participantElementsByParticipant at: participant put: element.
-	self addChild: element.
+	self addDiagramChild: element.
 
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifTrue: [
 		processVisual collaborationVisual: self.
@@ -144,7 +150,7 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 		renderWaypoints: waypoints
 		color: self poolBorderColor
 		label: (self stagedLabelOfMessageFlow: messageFlow)
-		in: self.
+		in: diagramContentElement.
 	messageFlowVisualsByEdge at: anEdge put: visual
 ]
 
@@ -162,7 +168,7 @@ CPCollaborationVisualElement >> createParticipantOperationFor: aBlock [
 CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
 	| pointer sourcePoint |
 	self removeConnectionPreview.
-	pointer := self globalPointToLocal: anEvent position.
+	pointer := self diagramPointForGlobalPoint: anEvent position.
 	sourcePoint := self
 		collaborationDockingPointForFlowNode: aSource
 		inVisual: aSourceVisual
@@ -184,8 +190,8 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 	connectionPreviewLine toHead: (BlArrowheadSimpleArrow new
 		border: (BlBorder paint: self selectionColor width: 1.5)).
 	self
-		addChild: connectionPreviewCursor;
-		addChild: connectionPreviewLine
+		addDiagramChild: connectionPreviewCursor;
+		addDiagramChild: connectionPreviewLine
 ]
 
 { #category : 'connection' }
@@ -196,7 +202,7 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 			beginConnectionDragFrom: aSource
 			sourceVisual: aSourceVisual
 			event: anEvent ].
-	pointer := self globalPointToLocal: anEvent position.
+	pointer := self diagramPointForGlobalPoint: anEvent position.
 	connectionPreviewCursor relocate: pointer.
 	target := self
 		connectionTargetAtGlobalPoint: anEvent position
@@ -253,7 +259,7 @@ CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from
 		from: aSource.
 	sequenceTarget ifNotNil: [ ^ CPCollaborationConnectionTarget sequenceFlowTo: sequenceTarget ].
 	participantTarget := self
-		participantAtCollaborationPoint: (self globalPointToLocal: aGlobalPoint)
+		participantAtCollaborationPoint: (self diagramPointForGlobalPoint: aGlobalPoint)
 		excludingEndpoint: aSource.
 	participantTarget ifNil: [ ^ nil ].
 	^ (CPMessageFlowConnectionRules new
@@ -411,7 +417,7 @@ CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
 	dragItem := anEvent items first.
 	participant := dragItem domainObject.
 	participant isParticipant ifFalse: [ ^ self ].
-	dropPoint := self globalPointToLocal:
+	dropPoint := self diagramPointForGlobalPoint:
 		(anEvent currentTarget localPointToGlobal: anEvent position).
 	bounds := (dropPoint - (self defaultBlackBoxParticipantExtent / 2))
 		extent: self defaultBlackBoxParticipantExtent.
@@ -538,12 +544,36 @@ CPCollaborationVisualElement >> canvasExtent [
 	^ canvasExtent
 ]
 
-{ #category : 'configuration' }
-CPCollaborationVisualElement >> scrollContentElement: anElement [
-	scrollContentElement := anElement.
-	scrollContentElement ifNotNil: [
-		scrollContentElement diagramExtent: canvasExtent ]
+{ #category : 'accessing - presentation' }
+CPCollaborationVisualElement >> diagramContentElement [
+	^ diagramContentElement
 ]
+
+{ #category : 'accessing - presentation' }
+CPCollaborationVisualElement >> workspaceMargin [
+	^ workspaceMargin
+]
+
+{ #category : 'private - coordinates' }
+CPCollaborationVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
+	diagramContentElement ifNil: [
+		^ self globalPointToLocal: aGlobalPoint ].
+	^ diagramContentElement globalPointToLocal: aGlobalPoint
+]
+
+{ #category : 'private - coordinates' }
+CPCollaborationVisualElement >> globalPointForDiagramPoint: aPoint [
+	diagramContentElement ifNil: [
+		^ self localPointToGlobal: aPoint ].
+	^ diagramContentElement localPointToGlobal: aPoint
+]
+
+{ #category : 'private - building' }
+CPCollaborationVisualElement >> addDiagramChild: anElement [
+	diagramContentElement addChild: anElement
+]
+
+
 
 { #category : 'accessing - testing' }
 CPCollaborationVisualElement >> collaboration [

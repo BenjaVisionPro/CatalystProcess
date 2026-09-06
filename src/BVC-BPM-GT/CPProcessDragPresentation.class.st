@@ -39,14 +39,14 @@ CPProcessDragPresentation >> beginIn: aRootVisual shapeAt: aRootShapePosition la
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: dragShapePosition;
 		preventMeAndChildrenMouseEvents.
-	aRootVisual addChild: proxyElement.
+	aRootVisual addDiagramChild: proxyElement.
 
 	proxyLabel ifNotNil: [
 		proxyLabel
 			constraintsDo: [ :c | c ignoreByLayout ];
 			relocate: dragLabelPosition;
 			preventMeAndChildrenMouseEvents.
-		aRootVisual addChild: proxyLabel ].
+		aRootVisual addDiagramChild: proxyLabel ].
 	^ self
 ]
 

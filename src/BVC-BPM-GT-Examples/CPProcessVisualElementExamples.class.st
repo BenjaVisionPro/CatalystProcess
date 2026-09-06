@@ -1837,26 +1837,54 @@ CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomai
 ]
 
 
+
+
 { #category : 'examples - scrolling' }
-CPProcessVisualElementExamples >> scrollWorkspaceAddsNativeScrollableMarginWithoutChangingDiagramCoordinates [
+CPProcessVisualElementExamples >> processDiagramOwnsEntireScrollableCanvas [
 	<gtExample>
-	| fixture visual shape originalBounds scrollContent |
+	| fixture visual shape originalBounds contentExtent |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
 	shape := visual shapeElementsByModelElement values anyOne diagramShape.
 	originalBounds := visual stagedBoundsOf: shape.
+	contentExtent := visual canvasExtentFor:
+		(visual shapeElementsByModelElement values
+			collect: [ :each | each diagramShape ]).
 
-	scrollContent := CPDiagramScrollContentElement new.
-	visual scrollContentElement: scrollContent.
-	scrollContent
-		diagramElement: visual
-		extent: visual canvasExtent.
-
-	self assert: scrollContent diagramElement == visual.
-	self assert: scrollContent workspaceMargin equals: 320 @ 220.
-	self assert: scrollContent diagramExtent equals: visual canvasExtent.
-	self assert: scrollContent workspaceExtent
-		equals: visual canvasExtent + (scrollContent workspaceMargin * 2).
+	self assert: visual workspaceMargin equals: 320 @ 220.
+	self assert: visual canvasExtent
+		equals: contentExtent + (visual workspaceMargin * 2).
+	self assert: visual diagramContentElement parent == visual.
 	self assert: (visual stagedBoundsOf: shape) equals: originalBounds.
-	^ scrollContent
+	^ visual
+]
+
+
+{ #category : 'examples - scrolling' }
+CPProcessVisualElementExamples >> processDiagramShapesLiveInOffsetContentLayer [
+	<gtExample>
+	| fixture visual shapeElement |
+	fixture := self fixture.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement values anyOne.
+
+	self assert: shapeElement parent == visual diagramContentElement.
+	self assert: visual diagramContentElement parent == visual.
+	^ shapeElement
+]
+
+
+{ #category : 'examples - scrolling' }
+CPProcessVisualElementExamples >> collaborationDiagramOwnsEntireScrollableCanvas [
+	<gtExample>
+	| fixture collaborationVisual participantElement |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	participantElement := collaborationVisual participantElementsByParticipant
+		at: (fixture at: 4).
+
+	self assert: collaborationVisual workspaceMargin equals: 320 @ 220.
+	self assert: collaborationVisual diagramContentElement parent == collaborationVisual.
+	self assert: participantElement parent == collaborationVisual diagramContentElement.
+	^ collaborationVisual
 ]

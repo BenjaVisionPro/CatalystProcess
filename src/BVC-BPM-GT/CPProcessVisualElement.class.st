@@ -45,7 +45,8 @@ Class {
 		'collaborationHosted',
 		'collaborationVisual',
 		'collaborationChangedBlock',
-		'scrollContentElement',
+		'diagramContentElement',
+		'workspaceMargin',
 		'canvasExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -65,8 +66,9 @@ CPProcessVisualElement >> initialize [
 	hostShape := nil.
 	collaborationHosted := false.
 	collaborationVisual := nil.
-	scrollContentElement := nil.
-	canvasExtent := 640 @ 260.
+	diagramContentElement := nil.
+	workspaceMargin := 320 @ 220.
+	canvasExtent := 1280 @ 700.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -121,12 +123,48 @@ CPProcessVisualElement >> canvasExtent [
 	^ canvasExtent
 ]
 
-{ #category : 'configuration' }
-CPProcessVisualElement >> scrollContentElement: anElement [
-	scrollContentElement := anElement.
-	scrollContentElement ifNotNil: [
-		scrollContentElement diagramExtent: canvasExtent ]
+{ #category : 'accessing - presentation' }
+CPProcessVisualElement >> diagramContentElement [
+	^ diagramContentElement
 ]
+
+{ #category : 'accessing - presentation' }
+CPProcessVisualElement >> workspaceMargin [
+	^ self usesWorkspaceMargin
+		ifTrue: [ workspaceMargin ]
+		ifFalse: [ 0 @ 0 ]
+]
+
+{ #category : 'testing' }
+CPProcessVisualElement >> usesWorkspaceMargin [
+	^ parentProcessVisual isNil and: [ collaborationHosted not ]
+]
+
+{ #category : 'private - coordinates' }
+CPProcessVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
+	diagramContentElement ifNil: [
+		^ self globalPointToLocal: aGlobalPoint ].
+	^ diagramContentElement globalPointToLocal: aGlobalPoint
+]
+
+{ #category : 'private - coordinates' }
+CPProcessVisualElement >> globalPointForDiagramPoint: aPoint [
+	diagramContentElement ifNil: [
+		^ self localPointToGlobal: aPoint ].
+	^ diagramContentElement localPointToGlobal: aPoint
+]
+
+{ #category : 'private - building' }
+CPProcessVisualElement >> addDiagramChild: anElement [
+	diagramContentElement addChild: anElement
+]
+
+{ #category : 'private - building' }
+CPProcessVisualElement >> addDiagramChildFirst: anElement [
+	diagramContentElement addChildFirst: anElement
+]
+
+
 
 { #category : 'accessing' }
 CPProcessVisualElement >> flowContainer [
@@ -206,16 +244,24 @@ CPProcessVisualElement >> refresh [
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
 	contentExtent := self canvasExtentFor: shapes.
-	canvasExtent := contentExtent.
-	scrollContentElement ifNotNil: [
-		scrollContentElement diagramExtent: canvasExtent ].
+	canvasExtent := contentExtent + (self workspaceMargin * 2).
 	self constraintsDo: [ :c |
-		c horizontal matchParent.
-		c vertical matchParent.
-		(parentProcessVisual isNil and: [ collaborationHosted not ]) ifTrue: [
-			c minWidth: contentExtent x.
-			c minHeight: contentExtent y ] ].
+		(parentProcessVisual isNil and: [ collaborationHosted not ])
+			ifTrue: [
+				c horizontal exact: canvasExtent x.
+				c vertical exact: canvasExtent y ]
+			ifFalse: [
+				c horizontal matchParent.
+				c vertical matchParent ] ].
 	self addPaletteDropSurface.
+	diagramContentElement := BlElement new
+		layout: BlFrameLayout new;
+		clipChildren: false;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		extent: contentExtent;
+		relocate: self workspaceMargin;
+		yourself.
+	self addChild: diagramContentElement.
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
@@ -383,7 +429,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 		shapeElement: element.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
-	self addChild: element.
+	self addDiagramChild: element.
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifTrue: [
 		self
 			installNestedProcessVisualIn: element
@@ -601,7 +647,7 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
 	(edgeVisualsByEdge at: anEdge) labelHost: labelHost.
-	self addChild: labelHost.
+	self addDiagramChild: labelHost.
 	self installLabelEditingOn: labelHost label: label.
 	self installEdgeSelectionOn: labelHost for: anEdge.
 	self installEdgeLabelPositioningOn: labelHost for: anEdge.
@@ -629,7 +675,7 @@ CPProcessVisualElement >> installEdgeLabelPositioningOn: aLabelHost for: anEdge 
 						edgeLabelPathFor: anEdge
 						waypoints: (self stagedWaypointsOf: anEdge)
 						usingLiveBounds: true)
-						nearestPlacementTo: (self globalPointToLocal: anEvent position).
+						nearestPlacementTo: (self diagramPointForGlobalPoint: anEvent position).
 					self
 						positionEdgeLabelFor: anEdge
 						centeredAt: lastPlacement fourth.
@@ -689,8 +735,8 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 			sourceElement := self shapeElementForModelElement: source.
 			targetElement := self shapeElementForModelElement: target.
 			(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ someWaypoints ].
-			sourceBounds := sourceElement bounds inParent: self.
-			targetBounds := targetElement bounds inParent: self ]
+			sourceBounds := sourceElement bounds inParent: diagramContentElement.
+			targetBounds := targetElement bounds inParent: diagramContentElement ]
 		ifFalse: [
 			sourceBounds := self stagedBoundsOf: (self shapeForModelElement: source).
 			targetBounds := self stagedBoundsOf: (self shapeForModelElement: target) ].
@@ -913,7 +959,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 		c frame vertical alignCenter ].
 	labelHost addChild: label.
 	aShapeElement externalLabelHost: labelHost.
-	self addChild: labelHost.
+	self addDiagramChild: labelHost.
 	self installLabelEditingOn: labelHost label: label.
 	self installSelectionOn: labelHost for: aFlowNode.
 	self installPositioningFrom: labelHost moving: aShapeElement for: aShape
@@ -1052,7 +1098,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 				installBendpointInsertionOn: anElement
 				for: anEdge
 				segmentIndex: aSegmentIndex ]
-		addTo: self.
+		addTo: diagramContentElement.
 	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
 
@@ -1060,17 +1106,17 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 	shapeElementsByShape valuesDo: [ :anElement |
 		anElement removeFromParent.
-		self addChild: anElement ].
+		self addDiagramChild: anElement ].
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
-		aShapeElement bringExternalLabelToFrontIn: self ].
+		aShapeElement bringExternalLabelToFrontIn: diagramContentElement ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual bringLabelToFrontIn: self ]
+		anEdgeVisual bringLabelToFrontIn: diagramContentElement ]
 ]
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringReconnectHandlesToFront [
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual bringReconnectHandlesToFrontIn: self ]
+		anEdgeVisual bringReconnectHandlesToFrontIn: diagramContentElement ]
 ]
 
 { #category : 'private - edges' }
@@ -1101,8 +1147,8 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 
 	sourceReference := self anchorReferenceElementAt: interiorPoints first.
 	targetReference := self anchorReferenceElementAt: interiorPoints last.
-	self addChild: sourceReference.
-	self addChild: targetReference.
+	self addDiagramChild: sourceReference.
+	self addDiagramChild: targetReference.
 
 	edgeVisual := CPProcessEdgeVisual new edge: anEdge.
 	pairCount := interiorPoints size + 1.
@@ -1138,7 +1184,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 					installBendpointInsertionOn: anElement
 					for: anEdge
 					segmentIndex: aSegmentIndex ]
-			addTo: self ].
+			addTo: diagramContentElement ].
 	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
 
@@ -1365,7 +1411,7 @@ CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNod
 	candidates ifEmpty: [ ^ nil ].
 	candidates size = 1 ifTrue: [ ^ candidates first ].
 
-	localPoint := self globalPointToLocal: aGlobalPoint.
+	localPoint := self diagramPointForGlobalPoint: aGlobalPoint.
 	^ candidates
 		detectMin: [ :anEdge |
 			self distanceFrom: localPoint toRenderedEdge: anEdge ]
@@ -1497,7 +1543,7 @@ CPProcessVisualElement >> newGroupMovePreviewFor: anEdge waypoints: someWaypoint
 	sourceReference := self anchorReferenceElementAt: interiorPoints first.
 	targetReference := self anchorReferenceElementAt: interiorPoints last.
 	references := { sourceReference. targetReference }.
-	references do: [ :each | self addChild: each ].
+	references do: [ :each | self addDiagramChild: each ].
 
 	lines := OrderedCollection new.
 	pairCount := interiorPoints size + 1.
@@ -1529,7 +1575,7 @@ CPProcessVisualElement >> newGroupMovePreviewFor: anEdge waypoints: someWaypoint
 			line toHead: (BlArrowheadSimpleArrow new
 				border: (BlBorder paint: self shapeBorderColor width: 1.5)) ].
 		lines add: line.
-		self addChild: line ].
+		self addDiagramChild: line ].
 	^ { lines. references }
 ]
 
@@ -1876,7 +1922,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 	dragItem := anEvent items first.
 	candidate := dragItem domainObject.
 	elementExtent := self extentForModelElement: candidate.
-	dropPoint := self globalPointToLocal:
+	dropPoint := self diagramPointForGlobalPoint:
 		(anEvent currentTarget localPointToGlobal: anEvent position).
 	origin :=
 		((dropPoint x - (elementExtent x / 2)) max: 0)
@@ -1921,7 +1967,7 @@ CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
 	selectedModelElements removeAll.
 
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
-		((anElement bounds inParent: self) asRectangle intersects: aRectangle)
+		((anElement bounds inParent: diagramContentElement) asRectangle intersects: aRectangle)
 			ifTrue: [ selectedModelElements add: aModelElement ] ].
 
 	edgeVisualsByEdge keysDo: [ :anEdge |
@@ -2033,7 +2079,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 			on: BlDragStartEvent
 			do: [ :anEvent |
 				isMarqueeDragging := true.
-				marqueeOrigin := self globalPointToLocal: anEvent position.
+				marqueeOrigin := self diagramPointForGlobalPoint: anEvent position.
 				connectionSourceModelElement := nil.
 				connectionTargetModelElement := nil.
 				insertionTargetEdge := nil.
@@ -2043,7 +2089,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 				marqueeElement
 					relocate: marqueeOrigin;
 					extent: 0 @ 0.
-				self addChild: marqueeElement.
+				self addDiagramChild: marqueeElement.
 				self updateSelectionAppearance.
 				self requestFocus.
 				anEvent consumed: true ]);
@@ -2052,7 +2098,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 			do: [ :anEvent |
 				isMarqueeDragging ifTrue: [
 					| corner rectangle |
-					corner := self globalPointToLocal: anEvent position.
+					corner := self diagramPointForGlobalPoint: anEvent position.
 					rectangle := Rectangle encompassing: { marqueeOrigin. corner }.
 					marqueeElement
 						relocate: rectangle origin;
@@ -2065,7 +2111,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 				isMarqueeDragging ifTrue: [
 					| corner rectangle |
 					isMarqueeDragging := false.
-					corner := self globalPointToLocal: anEvent position.
+					corner := self diagramPointForGlobalPoint: anEvent position.
 					rectangle := Rectangle encompassing: { marqueeOrigin. corner }.
 					self updateMarqueeSelectionFor: rectangle.
 					marqueeElement ifNotNil: [ marqueeElement removeFromParent ].
@@ -2110,7 +2156,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 	dragItem := anEvent items first.
 	globalPoint := anEvent currentTarget
 		localPointToGlobal: anEvent position.
-	rootPoint := rootVisual globalPointToLocal: globalPoint.
+	rootPoint := rootVisual diagramPointForGlobalPoint: globalPoint.
 	targetVisual := rootVisual
 		processVisualAtRootDiagramPoint: rootPoint
 		excluding: nil.
@@ -2360,7 +2406,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 					| localPoint |
 					connectionSourceModelElement := aFlowNode.
 					self clearConnectionTarget.
-					localPoint := self globalPointToLocal: anEvent position.
+					localPoint := self diagramPointForGlobalPoint: anEvent position.
 					previewCursor := BlElement new
 						extent: 1 @ 1;
 						background: Color transparent;
@@ -2379,8 +2425,8 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						yourself.
 					previewLine toHead: (BlArrowheadSimpleArrow new
 						border: (BlBorder paint: self selectionColor width: 1.5)).
-					self addChild: previewCursor.
-					self addChildFirst: previewLine.
+					self addDiagramChild: previewCursor.
+					self addDiagramChildFirst: previewLine.
 					self updateSelectionAppearance ] ]
 		dragged: [ :anEvent |
 			collaborationVisual
@@ -2391,7 +2437,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						event: anEvent ]
 				ifNil: [
 					| target |
-					previewCursor relocate: (self globalPointToLocal: anEvent position).
+					previewCursor relocate: (self diagramPointForGlobalPoint: anEvent position).
 					target := self
 						validConnectionTargetAtGlobalPoint: anEvent position
 						from: aFlowNode.
@@ -2645,7 +2691,7 @@ CPProcessVisualElement >> installBendpointInsertionOn: anEdgeElement for: anEdge
 			do: [ :anEvent |
 				isDragging := true.
 				dragStartEventPosition := anEvent position.
-				insertedPoint := self globalPointToLocal: anEvent position.
+				insertedPoint := self diagramPointForGlobalPoint: anEvent position.
 				labelPath := self
 					edgeLabelPathFor: anEdge
 					waypoints: (self stagedWaypointsOf: anEdge)
@@ -2671,7 +2717,7 @@ CPProcessVisualElement >> installBendpointInsertionOn: anEdgeElement for: anEdge
 						afterSegment: aSegmentIndex.
 					previewLines do: [ :aLine | aLine removeFromParent ].
 					previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
-					previewLines do: [ :aLine | self addChild: aLine ].
+					previewLines do: [ :aLine | self addDiagramChild: aLine ].
 					self
 						positionEdgeLabelFor: anEdge
 						pathFraction: labelPathFraction
@@ -2737,7 +2783,7 @@ CPProcessVisualElement >> installBendpointHandlesFor: anEdge [
 
 	(edgeVisualsByEdge at: anEdge)
 		bendpointHandles: handles.
-	handles do: [ :aHandle | self addChild: aHandle ]
+	handles do: [ :aHandle | self addDiagramChild: aHandle ]
 ]
 
 { #category : 'private - bendpoints' }
@@ -2765,7 +2811,7 @@ CPProcessVisualElement >> newBendpointHandleFor: anEdge waypointIndex: waypointI
 				at: newPoint.
 			previewLines do: [ :aLine | aLine removeFromParent ].
 			previewLines := self newPreviewLinesFor: anEdge waypoints: proposed.
-			previewLines do: [ :aLine | self addChild: aLine ].
+			previewLines do: [ :aLine | self addDiagramChild: aLine ].
 			self positionEdgeLabelFor: anEdge usingWaypoints: proposed.
 			self
 				positionReconnectHandlesFor: anEdge
@@ -2804,8 +2850,8 @@ CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
 
 	sourceReference := self anchorReferenceElementAt: interiorPoints first.
 	targetReference := self anchorReferenceElementAt: interiorPoints last.
-	self addChild: sourceReference.
-	self addChild: targetReference.
+	self addDiagramChild: sourceReference.
+	self addDiagramChild: targetReference.
 
 	lines := OrderedCollection new.
 	pairCount := interiorPoints size + 1.
@@ -2843,7 +2889,7 @@ CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringBendpointHandlesToFront [
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual bringBendpointHandlesToFrontIn: self ]
+		anEdgeVisual bringBendpointHandlesToFrontIn: diagramContentElement ]
 ]
 
 { #category : 'private - reconnecting' }
@@ -2870,8 +2916,8 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 
 	(edgeVisualsByEdge at: anEdge)
 		reconnectHandles: { sourceHandle. targetHandle }.
-	self addChild: sourceHandle.
-	self addChild: targetHandle
+	self addDiagramChild: sourceHandle.
+	self addDiagramChild: targetHandle
 ]
 
 { #category : 'private - reconnecting' }
@@ -2929,14 +2975,14 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 					ifTrue: [ waypoints second ]
 					ifFalse: [ waypoints at: waypoints size - 1 ].
 				adjacentReference := self anchorReferenceElementAt: adjacentPoint.
-				self addChild: adjacentReference.
+				self addDiagramChild: adjacentReference.
 				lines := edgeVisual lineElements.
 				lines ifNotEmpty: [
 					hiddenTerminalLine := movesSource
 						ifTrue: [ lines first ]
 						ifFalse: [ lines last ].
 					hiddenTerminalLine visibility: BlVisibility hidden ] ].
-			localPoint := self globalPointToLocal: anEvent position.
+			localPoint := self diagramPointForGlobalPoint: anEvent position.
 			previewCursor := BlElement new
 				extent: 1 @ 1;
 				background: Color transparent;
@@ -2957,11 +3003,11 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 			movesSource ifFalse: [
 				previewLine toHead: (BlArrowheadSimpleArrow new
 					border: (BlBorder paint: self selectionColor width: 1.5)) ].
-			self addChild: previewCursor.
-			self addChildFirst: previewLine ]
+			self addDiagramChild: previewCursor.
+			self addDiagramChildFirst: previewLine ]
 		dragged: [ :anEvent :handle |
 			| candidate |
-			previewCursor relocate: (self globalPointToLocal: anEvent position).
+			previewCursor relocate: (self diagramPointForGlobalPoint: anEvent position).
 			candidate := self
 				validReconnectTargetAtGlobalPoint: anEvent position
 				for: aSequenceFlow
@@ -2978,7 +3024,7 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 				positionReconnectHandle: handle
 				fromPreviewLine: previewLine
 				movingSource: movesSource
-				within: self.
+				within: diagramContentElement.
 			self
 				positionEdgeLabelForReconnectPreview: reconnectEdge
 				line: previewLine
@@ -3032,11 +3078,11 @@ CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPr
 		ifTrue: [
 			aPreviewLine fromAnchor
 				positionForAnchoredElement: aPreviewLine
-				within: self ]
+				within: diagramContentElement ]
 		ifFalse: [
 			aPreviewLine toAnchor
 				positionForAnchoredElement: aPreviewLine
-				within: self ].
+				within: diagramContentElement ].
 	movesSource
 		ifTrue: [ points at: 1 put: endpoint ]
 		ifFalse: [ points at: points size put: endpoint ].
@@ -3074,10 +3120,10 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLin
 	lastLine := someLines last.
 	sourcePoint := firstLine fromAnchor
 		positionForAnchoredElement: firstLine
-		within: self.
+		within: diagramContentElement.
 	targetPoint := lastLine toAnchor
 		positionForAnchoredElement: lastLine
-		within: self.
+		within: diagramContentElement.
 
 	edgeVisual
 		positionReconnectHandlesAtSource: sourcePoint
@@ -3116,7 +3162,7 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: so
 CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement toward: aPoint [
 	^ self
 		dockingPointFor: aFlowNode
-		bounds: (aNodeElement bounds inParent: self)
+		bounds: (aNodeElement bounds inParent: diagramContentElement)
 		toward: aPoint
 ]
 
