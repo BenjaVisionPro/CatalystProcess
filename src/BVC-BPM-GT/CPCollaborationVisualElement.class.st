@@ -79,10 +79,9 @@ CPCollaborationVisualElement >> refresh [
 			modelElement notNil and: [
 				stagedMessageFlows identityIncludes: modelElement ] ] ].
 
-	contentExtent := self canvasExtentFor:
-		(participantShapes asOrderedCollection
-			addAll: messageFlowEdges;
-			yourself).
+	contentExtent := self
+		canvasExtentForShapes: participantShapes
+		edges: messageFlowEdges.
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
@@ -174,22 +173,20 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 ]
 
 { #category : 'private - layout' }
-CPCollaborationVisualElement >> canvasExtentFor: someDiagramElements [
+CPCollaborationVisualElement >> canvasExtentForShapes: someShapes edges: someEdges [
 	| maximumX maximumY |
 	maximumX := 720.
 	maximumY := 360.
-	someDiagramElements do: [ :each |
-		each isShape
-			ifTrue: [
-				| bounds |
-				bounds := self stagedBoundsOf: each.
-				bounds ifNotNil: [
-					maximumX := maximumX max: bounds right + 80.
-					maximumY := maximumY max: bounds bottom + 80 ] ]
-			ifFalse: [
-				(self stagedWaypointsOf: each) do: [ :aPoint |
-					maximumX := maximumX max: aPoint x + 80.
-					maximumY := maximumY max: aPoint y + 80 ] ] ].
+	someShapes do: [ :each |
+		| bounds |
+		bounds := self stagedBoundsOf: each.
+		bounds ifNotNil: [
+			maximumX := maximumX max: bounds right + 80.
+			maximumY := maximumY max: bounds bottom + 80 ] ].
+	someEdges do: [ :each |
+		(self stagedWaypointsOf: each) do: [ :aPoint |
+			maximumX := maximumX max: aPoint x + 80.
+			maximumY := maximumY max: aPoint y + 80 ] ].
 	^ maximumX @ maximumY
 ]
 

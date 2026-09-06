@@ -1731,3 +1731,18 @@ CPProcessVisualElementExamples >> collaborationMessageFlowRendersItsLabel [
 	self assert: messageVisual labelHost parent == collaborationVisual.
 	^ messageVisual
 ]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessVisualElementExamples >> collaborationMessageFlowDoesNotEnterParticipantRendering [
+	<gtExample>
+	| fixture collaborationVisual |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+
+	self assert: collaborationVisual participantElementsByParticipant size equals: 2.
+	self assert: collaborationVisual messageFlowVisualsByEdge size equals: 1.
+	self assert: (collaborationVisual messageFlowVisualsByEdge
+		includesKey: (fixture at: 12)).
+	^ collaborationVisual
+]
