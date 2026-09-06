@@ -110,6 +110,16 @@ CPProcessVisualElement >> hostShape: aShape [
 ]
 
 { #category : 'private - containment' }
+CPProcessVisualElement >> ancestorSubProcessClipping: aBoolean [
+	| hostElement viewport |
+	parentProcessVisual ifNil: [ ^ self ].
+	hostElement := parentProcessVisual shapeElementFor: hostShape.
+	viewport := hostElement nestedProcessViewport.
+	viewport ifNotNil: [ viewport clipChildren: aBoolean ].
+	parentProcessVisual ancestorSubProcessClipping: aBoolean
+]
+
+{ #category : 'private - containment' }
 CPProcessVisualElement >> rootDiagramPointForLocalPoint: aPoint [
 	parentProcessVisual ifNil: [ ^ aPoint ].
 	^ parentProcessVisual rootDiagramPointForLocalPoint:
@@ -1466,6 +1476,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
 			self clearInsertionTarget.
+			self ancestorSubProcessClipping: false.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			dragStartLabelPosition := aShapeElement externalLabelHost
 				ifNotNil: [ :aLabel | aLabel position ].
@@ -1519,6 +1530,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						for: draggedModelElement).
 					self updateConnectionPortVisibility ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
+			self ancestorSubProcessClipping: true.
 			groupMode
 				ifTrue: [
 					| boundsByShape currentContainers rootPoint targetVisual targetContainer |

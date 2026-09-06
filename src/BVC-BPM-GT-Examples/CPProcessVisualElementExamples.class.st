@@ -1453,3 +1453,22 @@ CPProcessVisualElementExamples >> endingLabelEditingPreservesSelection [
 	self assert: (visual selectedModelElements includes: task).
 	^ visual
 ]
+
+
+{ #category : 'examples - subprocess interaction' }
+CPProcessVisualElementExamples >> nestedProcessDragClippingPolicyCanBeReleasedAndRestored [
+	<gtExample>
+	| visual subProcess shapeElement nestedVisual viewport |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+	viewport := shapeElement nestedProcessViewport.
+
+	nestedVisual ancestorSubProcessClipping: false.
+	self assert: viewport clipChildren not.
+	nestedVisual ancestorSubProcessClipping: true.
+	self assert: viewport clipChildren.
+	^ nestedVisual
+]
