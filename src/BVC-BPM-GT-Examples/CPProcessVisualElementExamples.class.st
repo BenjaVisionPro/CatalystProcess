@@ -1179,13 +1179,20 @@ CPProcessVisualElementExamples >> nestedProcessIsResolvedFromSourceLocalDropCent
 { #category : 'examples - subprocess' }
 CPProcessVisualElementExamples >> directSubProcessBoundsResolveNestedTransferTarget [
 	<gtExample>
-	| visual subProcess shapeElement nestedVisual point target |
+	| visual subProcess shapeElement nestedVisual shape diagramMemento
+	  elementsDescription point target |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
 	shapeElement := visual shapeElementsByModelElement at: subProcess.
 	nestedVisual := shapeElement nestedProcessVisual.
-	point := shapeElement position + (shapeElement extent / 2).
+	diagramMemento := visual diagramMemento.
+	elementsDescription := visual elementsDescription.
+	shape := (diagramMemento readUsing: elementsDescription)
+		detect: [ :each |
+			each isShape
+				and: [ (visual stagedModelElementOf: each) == subProcess ] ].
+	point := (visual stagedBoundsOf: shape) center.
 
 	target := visual
 		targetProcessVisualForLocalPoint: point
@@ -1195,3 +1202,4 @@ CPProcessVisualElementExamples >> directSubProcessBoundsResolveNestedTransferTar
 	self assert: target flowContainer == subProcess.
 	^ target
 ]
+

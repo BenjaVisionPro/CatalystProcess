@@ -3013,8 +3013,9 @@ CPProcessVisualElement >> processVisualAtLocalPoint: aLocalPoint globalPoint: aG
 		(aModelElement isSubProcess
 			and: [ aModelElement ~~ anExcludedFlowElement
 			and: [ aShapeElement nestedProcessVisual notNil ] ]) ifTrue: [
-				| bounds |
-				bounds := aShapeElement position extent: aShapeElement extent.
+				| bounds shape |
+				shape := aShapeElement diagramShape.
+				bounds := self stagedBoundsOf: shape.
 				(bounds containsPoint: aLocalPoint) ifTrue: [
 					candidates add: { aModelElement. aShapeElement. bounds } ] ] ].
 	candidates ifEmpty: [ ^ self ].
