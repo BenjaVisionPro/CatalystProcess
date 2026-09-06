@@ -170,7 +170,8 @@ CPProcessVisualElement >> updateCanvasExtent [
 			canvasExtent := viewportExtent.
 			self constraintsDo: [ :c |
 				c horizontal matchParent.
-				c vertical matchParent ] ]
+				c vertical matchParent ].
+			self updateDiagramLayerGeometry ]
 ]
 
 { #category : 'private - layout' }
@@ -2277,8 +2278,8 @@ CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
 		origin := (aRootPoint - (self defaultParticipantExtent / 2)) max: 0 @ 0.
 		^ origin extent: self defaultParticipantExtent ].
 	inset := self hostedDiagramInset.
-	horizontalMargin := CPParticipantShapeElement processContentOriginOffset x + inset x.
-	extent := diagramExtent + ((horizontalMargin * 2) @ (inset y * 2)).
+	horizontalMargin := CPParticipantShapeElement processContentOriginOffset x + (inset x * 2).
+	extent := diagramExtent + (horizontalMargin @ (inset y * 2)).
 
 	"The Collaboration plane is a different BPMNPlane from the Process plane.
 	The first Pool therefore derives its size from the Process graph, but never

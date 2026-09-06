@@ -1715,7 +1715,7 @@ CPProcessVisualElementExamples >> firstPoolWrapsExistingProcessDiagramWithoutCha
 
 	self assert: expected extent equals:
 		visual diagramExtent
-			+ (((CPParticipantShapeElement processContentOriginOffset x + visual hostedDiagramInset x) * 2)
+			+ ((CPParticipantShapeElement processContentOriginOffset x + (visual hostedDiagramInset x * 2))
 				@ (visual hostedDiagramInset y * 2)).
 	self assert: expected origin equals: 0 @ 0.
 	self assert: visual diagramBounds origin ~= expected origin.
@@ -1736,5 +1736,7 @@ CPProcessVisualElementExamples >> collaborationHostsProcessInHostedModeOnFirstRe
 	self assert: processVisual diagramPresentationParent ~~ processVisual.
 	self assert: processVisual shapeElementsByModelElement isEmpty not.
 	self assert: processVisual parent == localElement processHost.
+	self assert: processVisual diagramPresentationParent constraints position equals:
+		processVisual hostedDiagramInset - processVisual diagramBounds origin.
 	^ processVisual
 ]
