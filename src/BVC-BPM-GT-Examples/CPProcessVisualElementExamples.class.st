@@ -1714,3 +1714,16 @@ CPProcessVisualElementExamples >> collaborationHostsProcessInHostedModeOnFirstRe
 		processVisual hostedDiagramInset - processVisual diagramBounds origin.
 	^ processVisual
 ]
+
+{ #category : 'examples - interaction' }
+CPProcessVisualElementExamples >> diagramInteractionSurfaceStaysBehindAuthoredDiagram [
+	<gtExample>
+	| fixture visual |
+	fixture := self fixture.
+	visual := self visualElementForFixture: fixture.
+
+	self assert: visual children first ~~ visual diagramPresentationParent.
+	self assert: visual children last == visual diagramPresentationParent.
+	^ visual
+]
+

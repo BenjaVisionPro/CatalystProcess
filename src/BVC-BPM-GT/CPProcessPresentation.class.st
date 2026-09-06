@@ -165,18 +165,25 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
-		"Introducing the first Collaboration is a topology change, not a camera
-		command. The authored Process must therefore remain pixel-stationary.
-		Capture its rendered graph origin before replacing the scroll content,
-		build the new hosted Process in its final hierarchy, lay that hierarchy
-		out synchronously, and move only the native camera by the exact delta.
-		Do not run the normal initial-centering path during this hand-off."
+		"The first Pool is a presentation-topology change only. Existing Process
+		content must remain pixel-stationary.
+
+		Capture the actual rendered graph origin before replacing the standalone
+		Process by the fresh Collaboration hierarchy. Once the new hosted Process
+		is fully laid out, measure that same authored diagram point again and move
+		only the native camera by the exact visual delta.
+
+		Do not reset the scroll position. A zero scroll position is the bounded
+		camera's trailing-slack extreme when a diagram fits, which is precisely
+		what caused the graph to jump toward the bottom/right in the previous
+		implementation."
 		previousGraphGlobalOrigin := processDiagramElement diagramExtent = (0 @ 0)
 			ifTrue: [ nil ]
 			ifFalse: [
 				processDiagramElement globalPointForDiagramPoint:
 					processDiagramElement diagramBounds origin ].
 		viewport := diagramScrollElement extent max: 1 @ 1.
+
 		processDiagramElement := self
 			newConfiguredProcessDiagramElementCollaborationHosted: true.
 		collaborationDiagramElement := CPCollaborationVisualElement new
@@ -190,12 +197,17 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			yourself.
 		collaborationDiagramElement viewportExtent: viewport.
 		diagramElement := collaborationDiagramElement.
+
+		"This hand-off establishes the camera itself; the normal initial-centering
+		path must not run as a second navigation command."
 		diagramCameraInitialized := true.
 		diagramScrollElement content: diagramElement.
 		diagramScrollElement forceLayout.
+
 		previousGraphGlobalOrigin ifNotNil: [
-			newGraphGlobalOrigin := processDiagramElement
-				globalPointForDiagramPoint: processDiagramElement diagramBounds origin.
+			newGraphGlobalOrigin :=
+				processDiagramElement globalPointForDiagramPoint:
+					processDiagramElement diagramBounds origin.
 			diagramScrollElement scrollBy:
 				newGraphGlobalOrigin - previousGraphGlobalOrigin ].
 		^ self ].
