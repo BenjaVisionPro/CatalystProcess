@@ -151,7 +151,7 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 		renderWaypoints: waypoints
 		color: self poolBorderColor
 		label: (self stagedLabelOfMessageFlow: messageFlow)
-		in: self.
+		in: self diagramPresentationParent.
 	messageFlowVisualsByEdge at: anEdge put: visual
 ]
 
@@ -621,6 +621,11 @@ CPCollaborationVisualElement >> addDiagramChild: anElement [
 	diagramLayer
 		ifNil: [ self addChild: anElement ]
 		ifNotNil: [ diagramLayer addChild: anElement ]
+]
+
+{ #category : 'private - coordinates' }
+CPCollaborationVisualElement >> diagramPresentationParent [
+	^ diagramLayer ifNil: [ self ]
 ]
 
 

@@ -1244,7 +1244,7 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
 	self assert: nestedShapeElement visibility equals: BlVisibility hidden.
-	self assert: presentation proxyElement parent == visual.
+	self assert: presentation proxyElement parent == visual diagramPresentationParent.
 	self assert: presentation dragShapePosition equals: expectedRootPosition.
 
 	presentation moveBy: 20 @ 15.
@@ -1627,7 +1627,7 @@ CPProcessVisualElementExamples >> processDiagramShapesLiveInCameraPositionedDiag
 	expectedLayerOrigin := visual cameraSlack - visual diagramBounds origin.
 
 	self assert: shapeElement parent == visual diagramPresentationParent.
-	self assert: visual diagramPresentationParent position equals: expectedLayerOrigin.
+	self assert: visual diagramPresentationParent constraints position equals: expectedLayerOrigin.
 	^ shapeElement
 ]
 
