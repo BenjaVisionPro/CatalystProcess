@@ -312,19 +312,19 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 			aCorner = #topLeft ifTrue: [
 				c frame horizontal alignLeft.
 				c frame vertical alignTop.
-				c margin: (BlInsets top: halfHeight negated left: halfWidth negated) ].
+				c margin: (BlInsets top: halfHeight negated right: 0 bottom: 0 left: halfWidth negated) ].
 			aCorner = #topRight ifTrue: [
 				c frame horizontal alignRight.
 				c frame vertical alignTop.
-				c margin: (BlInsets top: halfHeight negated right: halfWidth negated) ].
+				c margin: (BlInsets top: halfHeight negated right: halfWidth negated bottom: 0 left: 0) ].
 			aCorner = #bottomLeft ifTrue: [
 				c frame horizontal alignLeft.
 				c frame vertical alignBottom.
-				c margin: (BlInsets bottom: halfHeight negated left: halfWidth negated) ].
+				c margin: (BlInsets top: 0 right: 0 bottom: halfHeight negated left: halfWidth negated) ].
 			aCorner = #bottomRight ifTrue: [
 				c frame horizontal alignRight.
 				c frame vertical alignBottom.
-				c margin: (BlInsets bottom: halfHeight negated right: halfWidth negated) ] ];
+				c margin: (BlInsets top: 0 right: halfWidth negated bottom: halfHeight negated left: 0) ] ];
 		yourself.
 	self installCursor: aCursor leaving: self bodyCursor on: handle.
 	handle
