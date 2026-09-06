@@ -1461,3 +1461,13 @@ CPProcessVisualElementExamples >> expandedSubProcessBorderTargetsUseLayout [
 		self assert: each geometry class == BlRectangleGeometry ].
 	^ shapeElement
 ]
+
+
+{ #category : 'examples - keyboard' }
+CPProcessVisualElementExamples >> diagramDeletionShortcutIsOwnedByDiagramFocus [
+	<gtExample>
+	| visual |
+	visual := self visualElementForFixture: self fixture.
+	self assert: visual isFocusable.
+	^ visual
+]

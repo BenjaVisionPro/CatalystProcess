@@ -2904,12 +2904,18 @@ CPProcessVisualElement >> installKeyboardHandler [
 	self addEventHandler: (BlEventHandler
 		on: BlKeyDownEvent
 		do: [ :anEvent |
-			(anEvent key = BlKeyboardKey delete or: [ anEvent key = BlKeyboardKey backspace ]) ifTrue: [
-				self removeSelection.
-				anEvent consumed: true ].
-			anEvent key = BlKeyboardKey escape ifTrue: [
-				self cancelInteraction.
-				anEvent consumed: true ] ])
+			(anEvent target == self
+				and: [
+					anEvent key = BlKeyboardKey delete
+						or: [ anEvent key = BlKeyboardKey backspace ] ])
+				ifTrue: [
+					self removeSelection.
+					anEvent consumed: true ].
+			(anEvent target == self
+				and: [ anEvent key = BlKeyboardKey escape ])
+				ifTrue: [
+					self cancelInteraction.
+					anEvent consumed: true ] ])
 ]
 
 { #category : 'private - removal' }
