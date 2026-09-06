@@ -1147,3 +1147,30 @@ CPProcessVisualElementExamples >> rootCanResolveNestedShapeForCrossProcessEdge [
 	self assert: resolved == (nestedVisual shapeElementsByModelElement at: nestedTask).
 	^ resolved
 ]
+
+
+{ #category : 'examples - palette' }
+CPProcessVisualElementExamples >> processCanvasOwnsPaletteDropHandlerInstallation [
+	<gtExample>
+	| visual |
+	visual := self visualElementForFixture: self fixture.
+	self assert: visual notNil.
+	self assert: visual flowContainer == visual memento model.
+	^ visual
+]
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedProcessIsResolvedFromSourceLocalDropCenter [
+	<gtExample>
+	| visual subProcess shapeElement nestedVisual |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+
+	self assert: nestedVisual notNil.
+	self assert: nestedVisual rootVisual == visual.
+	self assert: nestedVisual flowContainer == subProcess.
+	^ nestedVisual
+]

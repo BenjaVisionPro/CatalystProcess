@@ -58,7 +58,8 @@ CPProcessVisualElement >> initialize [
 		layout: BlFrameLayout new;
 		clipChildren: false;
 		beFocusable.
-	self installKeyboardHandler
+	self installKeyboardHandler.
+	self installPaletteDropHandler
 ]
 
 { #category : 'accessing' }
@@ -1502,8 +1503,8 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						ifNil: [
 							| currentContainer targetVisual targetContainer targetBounds globalCenter |
 							currentContainer := self stagedFlowContainerContaining: draggedModelElement.
-							globalCenter := aShapeElement
-								localPointToGlobal: (aShapeElement extent / 2).
+							globalCenter := self
+								localPointToGlobal: proposedBounds center.
 							targetVisual := self
 								targetProcessVisualAtGlobalPoint: globalCenter
 								excluding: draggedModelElement.
@@ -1740,6 +1741,16 @@ CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowEle
 
 
 { #category : 'private - creation' }
+CPProcessVisualElement >> installPaletteDropHandler [
+	self addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsPaletteDragItem: aDragItem ];
+		whenDroppedDo: [ :anEvent |
+			self dropPaletteEvent: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
 CPProcessVisualElement >> addPaletteDropSurface [
 	| dropSurface isMarqueeDragging marqueeOrigin marqueeElement |
 	isMarqueeDragging := false.
@@ -1806,11 +1817,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 					selectionChangedBlock ifNotNil: [
 						:aBlock | aBlock value: selectedModelElement ].
 					anEvent consumed: true ] ]);
-		addEventHandler: (CPProcessPaletteDropHandler new
-			acceptItemsSuchThat: [ :aDragItem :aDropArea |
-				self acceptsPaletteDragItem: aDragItem ];
-			whenDroppedDo: [ :anEvent | self dropPaletteEvent: anEvent ];
-			yourself).
+		yourself.
 	self addChild: dropSurface
 ]
 { #category : 'private - creation' }
