@@ -1244,7 +1244,7 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
 	self assert: nestedShapeElement visibility equals: BlVisibility hidden.
-	self assert: presentation proxyElement parent == visual diagramContentElement.
+	self assert: presentation proxyElement parent == visual.
 	self assert: presentation dragShapePosition equals: expectedRootPosition.
 
 	presentation moveBy: 20 @ 15.
@@ -1463,7 +1463,7 @@ CPProcessVisualElementExamples >> collaborationRendersMessageFlowFromItsOwnDiagr
 	self assert: messageVisual diagramEdge == messageEdge.
 	self assert: messageVisual lineElements isEmpty not.
 	self assert: messageVisual sourceMarker notNil.
-	self assert: messageVisual sourceMarker parent == collaborationVisual diagramContentElement.
+	self assert: messageVisual sourceMarker parent == collaborationVisual.
 	^ messageVisual
 ]
 
@@ -1492,7 +1492,7 @@ CPProcessVisualElementExamples >> collaborationMessageFlowRendersItsLabel [
 		at: (fixture at: 12).
 
 	self assert: messageVisual labelHost notNil.
-	self assert: messageVisual labelHost parent == collaborationVisual diagramContentElement.
+	self assert: messageVisual labelHost parent == collaborationVisual.
 	^ messageVisual
 ]
 
@@ -1599,34 +1599,34 @@ CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomai
 { #category : 'examples - scrolling' }
 CPProcessVisualElementExamples >> processDiagramOwnsEntireScrollableCanvas [
 	<gtExample>
-	| fixture visual shape originalBounds contentExtent |
+	| fixture visual shape originalBounds viewport expectedExtent |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
 	shape := visual shapeElementsByModelElement values anyOne diagramShape.
 	originalBounds := visual stagedBoundsOf: shape.
-	contentExtent := visual canvasExtentFor:
-		(visual shapeElementsByModelElement values
-			collect: [ :each | each diagramShape ]).
+	viewport := 1000 @ 600.
+	visual viewportExtent: viewport.
+	expectedExtent :=
+		(visual diagramExtent + (viewport / 2))
+			max: viewport * 1.5.
 
-	self assert: visual workspaceMargin equals: 320 @ 220.
-	self assert: visual canvasExtent
-		equals: contentExtent + (visual workspaceMargin * 2).
-	self assert: visual diagramContentElement parent == visual.
+	self assert: visual canvasExtent equals: expectedExtent.
+	self assert: visual canvasExtent x > viewport x.
+	self assert: visual canvasExtent y > viewport y.
 	self assert: (visual stagedBoundsOf: shape) equals: originalBounds.
 	^ visual
 ]
 
 
 { #category : 'examples - scrolling' }
-CPProcessVisualElementExamples >> processDiagramShapesLiveInOffsetContentLayer [
+CPProcessVisualElementExamples >> processDiagramShapesLiveDirectlyInDiagramPlane [
 	<gtExample>
 	| fixture visual shapeElement |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
 	shapeElement := visual shapeElementsByModelElement values anyOne.
 
-	self assert: shapeElement parent == visual diagramContentElement.
-	self assert: visual diagramContentElement parent == visual.
+	self assert: shapeElement parent == visual.
 	^ shapeElement
 ]
 
@@ -1634,14 +1634,20 @@ CPProcessVisualElementExamples >> processDiagramShapesLiveInOffsetContentLayer [
 { #category : 'examples - scrolling' }
 CPProcessVisualElementExamples >> collaborationDiagramOwnsEntireScrollableCanvas [
 	<gtExample>
-	| fixture collaborationVisual participantElement |
+	| fixture collaborationVisual participantElement viewport expectedExtent |
 	fixture := self collaborationVisualFixture.
 	collaborationVisual := fixture at: 10.
 	participantElement := collaborationVisual participantElementsByParticipant
 		at: (fixture at: 4).
+	viewport := 1000 @ 600.
+	collaborationVisual viewportExtent: viewport.
+	expectedExtent :=
+		(collaborationVisual diagramExtent + (viewport / 2))
+			max: viewport * 1.5.
 
-	self assert: collaborationVisual workspaceMargin equals: 320 @ 220.
-	self assert: collaborationVisual diagramContentElement parent == collaborationVisual.
-	self assert: participantElement parent == collaborationVisual diagramContentElement.
+	self assert: collaborationVisual canvasExtent equals: expectedExtent.
+	self assert: collaborationVisual canvasExtent x > viewport x.
+	self assert: collaborationVisual canvasExtent y > viewport y.
+	self assert: participantElement parent == collaborationVisual.
 	^ collaborationVisual
 ]

@@ -21,8 +21,8 @@ Class {
 		'connectMessageFlowOperationBlock',
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
-		'diagramContentElement',
-		'workspaceMargin',
+		'viewportExtent',
+		'diagramExtent',
 		'canvasExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -37,8 +37,8 @@ CPCollaborationVisualElement >> initialize [
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
-	diagramContentElement := nil.
-	workspaceMargin := 320 @ 220.
+	viewportExtent := 1360 @ 800.
+	diagramExtent := 720 @ 360.
 	canvasExtent := 1360 @ 800.
 	self
 		layout: BlFrameLayout new;
@@ -100,18 +100,8 @@ CPCollaborationVisualElement >> refresh [
 	contentExtent := self
 		canvasExtentForShapes: participantShapes
 		edges: messageFlowEdges.
-	canvasExtent := contentExtent + (workspaceMargin * 2).
-	self constraintsDo: [ :c |
-		c horizontal exact: canvasExtent x.
-		c vertical exact: canvasExtent y ].
-	diagramContentElement := BlElement new
-		layout: BlFrameLayout new;
-		clipChildren: false;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		extent: contentExtent;
-		relocate: workspaceMargin;
-		yourself.
-	self addChild: diagramContentElement.
+	diagramExtent := contentExtent.
+	self updateCanvasExtent.
 	participantShapes do: [ :each | self addParticipantShape: each ].
 	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ]
 ]
@@ -150,7 +140,7 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 		renderWaypoints: waypoints
 		color: self poolBorderColor
 		label: (self stagedLabelOfMessageFlow: messageFlow)
-		in: diagramContentElement.
+		in: self.
 	messageFlowVisualsByEdge at: anEdge put: visual
 ]
 
@@ -545,32 +535,44 @@ CPCollaborationVisualElement >> canvasExtent [
 ]
 
 { #category : 'accessing - presentation' }
-CPCollaborationVisualElement >> diagramContentElement [
-	^ diagramContentElement
+CPCollaborationVisualElement >> viewportExtent [
+	^ viewportExtent
 ]
 
 { #category : 'accessing - presentation' }
-CPCollaborationVisualElement >> workspaceMargin [
-	^ workspaceMargin
+CPCollaborationVisualElement >> diagramExtent [
+	^ diagramExtent
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> viewportExtent: anExtent [
+	viewportExtent := anExtent max: 1 @ 1.
+	self updateCanvasExtent
+]
+
+{ #category : 'private - layout' }
+CPCollaborationVisualElement >> updateCanvasExtent [
+	canvasExtent :=
+		(diagramExtent + (viewportExtent / 2))
+			max: viewportExtent * 1.5.
+	self constraintsDo: [ :c |
+		c horizontal exact: canvasExtent x.
+		c vertical exact: canvasExtent y ]
 ]
 
 { #category : 'private - coordinates' }
 CPCollaborationVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
-	diagramContentElement ifNil: [
-		^ self globalPointToLocal: aGlobalPoint ].
-	^ diagramContentElement globalPointToLocal: aGlobalPoint
+	^ self globalPointToLocal: aGlobalPoint
 ]
 
 { #category : 'private - coordinates' }
 CPCollaborationVisualElement >> globalPointForDiagramPoint: aPoint [
-	diagramContentElement ifNil: [
-		^ self localPointToGlobal: aPoint ].
-	^ diagramContentElement localPointToGlobal: aPoint
+	^ self localPointToGlobal: aPoint
 ]
 
 { #category : 'private - building' }
 CPCollaborationVisualElement >> addDiagramChild: anElement [
-	diagramContentElement addChild: anElement
+	self addChild: anElement
 ]
 
 

@@ -45,8 +45,8 @@ Class {
 		'collaborationHosted',
 		'collaborationVisual',
 		'collaborationChangedBlock',
-		'diagramContentElement',
-		'workspaceMargin',
+		'viewportExtent',
+		'diagramExtent',
 		'canvasExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -66,8 +66,8 @@ CPProcessVisualElement >> initialize [
 	hostShape := nil.
 	collaborationHosted := false.
 	collaborationVisual := nil.
-	diagramContentElement := nil.
-	workspaceMargin := 320 @ 220.
+	viewportExtent := 1280 @ 700.
+	diagramExtent := 640 @ 260.
 	canvasExtent := 1280 @ 700.
 	self
 		layout: BlFrameLayout new;
@@ -124,55 +124,62 @@ CPProcessVisualElement >> canvasExtent [
 ]
 
 { #category : 'accessing - presentation' }
-CPProcessVisualElement >> diagramContentElement [
-	^ diagramContentElement
+CPProcessVisualElement >> viewportExtent [
+	^ viewportExtent
 ]
 
 { #category : 'accessing - presentation' }
-CPProcessVisualElement >> workspaceMargin [
-	^ self usesWorkspaceMargin
-		ifTrue: [ workspaceMargin ]
-		ifFalse: [ 0 @ 0 ]
+CPProcessVisualElement >> diagramExtent [
+	^ diagramExtent
 ]
 
-{ #category : 'testing' }
-CPProcessVisualElement >> usesWorkspaceMargin [
-	^ parentProcessVisual isNil and: [ collaborationHosted not ]
+{ #category : 'configuration' }
+CPProcessVisualElement >> viewportExtent: anExtent [
+	viewportExtent := anExtent max: 1 @ 1.
+	self updateCanvasExtent
+]
+
+{ #category : 'private - layout' }
+CPProcessVisualElement >> updateCanvasExtent [
+	(parentProcessVisual isNil and: [ collaborationHosted not ])
+		ifTrue: [
+			canvasExtent :=
+				(diagramExtent + (viewportExtent / 2))
+					max: viewportExtent * 1.5.
+			self constraintsDo: [ :c |
+				c horizontal exact: canvasExtent x.
+				c vertical exact: canvasExtent y ] ]
+		ifFalse: [
+			canvasExtent := viewportExtent.
+			self constraintsDo: [ :c |
+				c horizontal matchParent.
+				c vertical matchParent ] ]
 ]
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
-	diagramContentElement ifNil: [
-		^ self globalPointToLocal: aGlobalPoint ].
-	^ diagramContentElement globalPointToLocal: aGlobalPoint
+	^ self globalPointToLocal: aGlobalPoint
 ]
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> globalPointForDiagramPoint: aPoint [
-	diagramContentElement ifNil: [
-		^ self localPointToGlobal: aPoint ].
-	^ diagramContentElement localPointToGlobal: aPoint
+	^ self localPointToGlobal: aPoint
 ]
 
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChild: anElement [
-	diagramContentElement
-		ifNil: [ self addChild: anElement ]
-		ifNotNil: [ :aContentElement | aContentElement addChild: anElement ]
+	self addChild: anElement
 ]
 
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChildFirst: anElement [
-	diagramContentElement
-		ifNil: [ self addChildFirst: anElement ]
-		ifNotNil: [ :aContentElement | aContentElement addChildFirst: anElement ]
+	self addChildFirst: anElement
 ]
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> diagramPresentationParent [
-	^ diagramContentElement ifNil: [ self ]
+	^ self
 ]
-
 
 
 { #category : 'accessing' }
@@ -252,29 +259,10 @@ CPProcessVisualElement >> refresh [
 		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
-	contentExtent := self canvasExtentFor: shapes.
-	canvasExtent := contentExtent + (self workspaceMargin * 2).
-	self constraintsDo: [ :c |
-		(parentProcessVisual isNil and: [ collaborationHosted not ])
-			ifTrue: [
-				c horizontal exact: canvasExtent x.
-				c vertical exact: canvasExtent y ]
-			ifFalse: [
-				c horizontal matchParent.
-				c vertical matchParent ] ].
+	contentExtent := self canvasExtentFor: shapes, edges.
+	diagramExtent := contentExtent.
+	self updateCanvasExtent.
 	self addPaletteDropSurface.
-	self usesWorkspaceMargin
-		ifTrue: [
-			diagramContentElement := BlElement new
-				layout: BlFrameLayout new;
-				clipChildren: false;
-				constraintsDo: [ :c | c ignoreByLayout ];
-				extent: contentExtent;
-				relocate: workspaceMargin;
-				yourself.
-			self addChild: diagramContentElement ]
-		ifFalse: [
-			diagramContentElement := nil ].
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.

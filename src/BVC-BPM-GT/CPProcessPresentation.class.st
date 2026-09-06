@@ -90,6 +90,9 @@ CPProcessPresentation >> prepareHostElement [
 		vMatchParent;
 		content: diagramElement;
 		yourself.
+	diagramScrollElement addEventHandler: (BlEventHandler
+		on: BlElementExtentChangedEvent
+		do: [ :anEvent | self updateDiagramViewportExtent ]).
 
 	detailHostElement := BrVerticalPane new
 		hMatchParent;
@@ -125,6 +128,13 @@ CPProcessPresentation >> prepareHostElement [
 
 	selectedModelElement := nil
 ]
+
+{ #category : 'private - layout' }
+CPProcessPresentation >> updateDiagramViewportExtent [
+	diagramElement ifNil: [ ^ self ].
+	diagramElement viewportExtent: diagramScrollElement extent
+]
+
 { #category : 'private - collaboration' }
 CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 	| collaboration collaborationDiagram |
@@ -142,6 +152,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			yourself.
 		diagramElement := collaborationDiagramElement.
 		diagramScrollElement content: diagramElement.
+		self updateDiagramViewportExtent.
 		^ self ].
 	collaborationDiagramElement refresh
 ]
