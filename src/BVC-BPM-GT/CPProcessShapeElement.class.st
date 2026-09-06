@@ -174,11 +174,13 @@ CPProcessShapeElement >> installCursor: aCursor leaving: aLeaveCursor on: anElem
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
 			do: [ :anEvent |
-				anEvent currentTarget space currentCursor: aCursor ]);
+				anEvent target == anElement ifTrue: [
+					anEvent currentTarget space currentCursor: aCursor ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
 			do: [ :anEvent |
-				anEvent currentTarget space currentCursor: aLeaveCursor ])
+				anEvent target == anElement ifTrue: [
+					anEvent currentTarget space currentCursor: aLeaveCursor ] ])
 ]
 
 { #category : 'private - cursor' }
@@ -284,7 +286,7 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 		geometry: BlRectangleGeometry new;
 		background: Color white;
 		border: (BlBorder paint: aSelectionColor width: 1.5);
-		visibility: BlVisibility hidden;
+		visibility: BlVisibility visible;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
 	self

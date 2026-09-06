@@ -1387,3 +1387,20 @@ CPProcessVisualElementExamples >> expandedSubProcessBorderHitAreasUseShapeExtent
 	self assert: borders fourth extent y equals: shapeElement extent y.
 	^ shapeElement
 ]
+
+
+{ #category : 'examples - resizing' }
+CPProcessVisualElementExamples >> resizeHandlesRemainAvailableWithoutSelection [
+	<gtExample>
+	| fixture visual task shapeElement |
+	fixture := self fixture.
+	task := fixture fourth.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: task.
+
+	visual clearInteractionAndSelection.
+	self assert: shapeElement resizeHandles size equals: 4.
+	shapeElement resizeHandles do: [ :each |
+		self assert: each visibility equals: BlVisibility visible ].
+	^ shapeElement
+]

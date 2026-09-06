@@ -1184,9 +1184,6 @@ CPProcessVisualElement >> updateSelectionAppearance [
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual bendpointHandlesVisible:
 			(anEdge modelElement == selectedModelElement) ].
-	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
-		aShapeElement resizeHandleVisible:
-			((self stagedModelElementOf: aShape) == selectedModelElement) ].
 	self updateConnectionPortVisibility
 ]
 
@@ -1587,7 +1584,8 @@ CPProcessVisualElement >> installDiagramCursor [
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
 			do: [ :anEvent |
-				anEvent currentTarget space currentCursor: BlCursor default ])
+				anEvent target == anEvent currentTarget ifTrue: [
+					anEvent currentTarget space currentCursor: BlCursor default ] ])
 ]
 
 { #category : 'private - theme' }
