@@ -1486,7 +1486,7 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
-	self assert: nestedShapeElement visibility == BlVisibility hidden.
+	self assert: nestedShapeElement visibility equals: BlVisibility hidden.
 	self assert: presentation proxyElement parent == visual.
 	self assert: presentation dragShapePosition equals: expectedRootPosition.
 
@@ -1496,7 +1496,7 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	presentation finish.
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
-	self assert: nestedShapeElement visibility == BlVisibility visible.
+	self assert: nestedShapeElement visibility equals: BlVisibility visible.
 	self assert: presentation proxyElement parent isNil.
 	^ presentation
 ]
