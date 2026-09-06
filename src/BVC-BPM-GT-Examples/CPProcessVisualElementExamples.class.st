@@ -1597,57 +1597,56 @@ CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomai
 
 
 { #category : 'examples - scrolling' }
-CPProcessVisualElementExamples >> processDiagramOwnsEntireScrollableCanvas [
+CPProcessVisualElementExamples >> processDiagramUsesExactBoundedCameraTravel [
 	<gtExample>
-	| fixture visual shape originalBounds viewport expectedExtent |
+	| fixture visual shape originalBounds viewport slack expectedExtent |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
 	shape := visual shapeElementsByModelElement values anyOne diagramShape.
 	originalBounds := visual stagedBoundsOf: shape.
 	viewport := 1000 @ 600.
 	visual viewportExtent: viewport.
-	expectedExtent :=
-		(visual diagramExtent + (viewport / 2))
-			max: viewport * 1.5.
+	slack := (viewport - visual diagramExtent) max: 0 @ 0.
+	expectedExtent := visual diagramExtent + (slack * 2).
 
+	self assert: visual cameraSlack equals: slack.
 	self assert: visual canvasExtent equals: expectedExtent.
-	self assert: visual canvasExtent x > viewport x.
-	self assert: visual canvasExtent y > viewport y.
 	self assert: (visual stagedBoundsOf: shape) equals: originalBounds.
 	^ visual
 ]
 
 
 { #category : 'examples - scrolling' }
-CPProcessVisualElementExamples >> processDiagramShapesLiveDirectlyInDiagramPlane [
+CPProcessVisualElementExamples >> processDiagramShapesLiveInCameraPositionedDiagramLayer [
 	<gtExample>
-	| fixture visual shapeElement |
+	| fixture visual shapeElement expectedLayerOrigin |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
+	visual viewportExtent: 1000 @ 600.
 	shapeElement := visual shapeElementsByModelElement values anyOne.
+	expectedLayerOrigin := visual cameraSlack - visual diagramBounds origin.
 
-	self assert: shapeElement parent == visual.
+	self assert: shapeElement parent == visual diagramPresentationParent.
+	self assert: visual diagramPresentationParent position equals: expectedLayerOrigin.
 	^ shapeElement
 ]
 
 
 { #category : 'examples - scrolling' }
-CPProcessVisualElementExamples >> collaborationDiagramOwnsEntireScrollableCanvas [
+CPProcessVisualElementExamples >> collaborationDiagramUsesExactBoundedCameraTravel [
 	<gtExample>
-	| fixture collaborationVisual participantElement viewport expectedExtent |
+	| fixture collaborationVisual participantElement viewport slack expectedExtent |
 	fixture := self collaborationVisualFixture.
 	collaborationVisual := fixture at: 10.
 	participantElement := collaborationVisual participantElementsByParticipant
 		at: (fixture at: 4).
 	viewport := 1000 @ 600.
 	collaborationVisual viewportExtent: viewport.
-	expectedExtent :=
-		(collaborationVisual diagramExtent + (viewport / 2))
-			max: viewport * 1.5.
+	slack := (viewport - collaborationVisual diagramExtent) max: 0 @ 0.
+	expectedExtent := collaborationVisual diagramExtent + (slack * 2).
 
+	self assert: collaborationVisual cameraSlack equals: slack.
 	self assert: collaborationVisual canvasExtent equals: expectedExtent.
-	self assert: collaborationVisual canvasExtent x > viewport x.
-	self assert: collaborationVisual canvasExtent y > viewport y.
-	self assert: participantElement parent == collaborationVisual.
+	self assert: participantElement parent == collaborationVisual diagramPresentationParent.
 	^ collaborationVisual
 ]

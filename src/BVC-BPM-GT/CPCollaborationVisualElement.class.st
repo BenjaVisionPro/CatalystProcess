@@ -22,8 +22,11 @@ Class {
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
 		'viewportExtent',
+		'diagramBounds',
 		'diagramExtent',
-		'canvasExtent'
+		'canvasExtent',
+		'diagramLayer',
+		'cameraSlack'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -38,8 +41,11 @@ CPCollaborationVisualElement >> initialize [
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
 	viewportExtent := 1360 @ 800.
-	diagramExtent := 720 @ 360.
+	diagramBounds := 0 @ 0 extent: 0 @ 0.
+	diagramExtent := 0 @ 0.
 	canvasExtent := 1360 @ 800.
+	diagramLayer := nil.
+	cameraSlack := 0 @ 0.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false.
@@ -55,7 +61,7 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
-	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges contentExtent stagedParticipants stagedMessageFlows |
+	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
 	processVisual ifNotNil: [ processVisual removeFromParent ].
 	self removeChildren.
 	participantElementsByParticipant removeAll.
@@ -97,10 +103,15 @@ CPCollaborationVisualElement >> refresh [
 			modelElement notNil and: [
 				stagedMessageFlows identityIncludes: modelElement ] ] ].
 
-	contentExtent := self
-		canvasExtentForShapes: participantShapes
+	diagramBounds := self
+		diagramBoundsForShapes: participantShapes
 		edges: messageFlowEdges.
-	diagramExtent := contentExtent.
+	diagramExtent := diagramBounds extent.
+	diagramLayer := BlElement new
+		layout: BlFrameLayout new;
+		clipChildren: false;
+		yourself.
+	self addChild: diagramLayer.
 	self updateCanvasExtent.
 	participantShapes do: [ :each | self addParticipantShape: each ].
 	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ]
@@ -492,22 +503,29 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 ]
 
 { #category : 'private - layout' }
-CPCollaborationVisualElement >> canvasExtentForShapes: someShapes edges: someEdges [
-	| maximumX maximumY |
-	maximumX := 720.
-	maximumY := 360.
+CPCollaborationVisualElement >> diagramBoundsForShapes: someShapes edges: someEdges [
+	| minimumX minimumY maximumX maximumY hasContent |
+	hasContent := false.
 	someShapes do: [ :each |
 		| bounds |
 		bounds := self stagedBoundsOf: each.
 		bounds ifNotNil: [
-			maximumX := maximumX max: bounds right + 80.
-			maximumY := maximumY max: bounds bottom + 80 ] ].
+			hasContent := true.
+			minimumX := minimumX ifNil: [ bounds left ] ifNotNil: [ minimumX min: bounds left ].
+			minimumY := minimumY ifNil: [ bounds top ] ifNotNil: [ minimumY min: bounds top ].
+			maximumX := maximumX ifNil: [ bounds right ] ifNotNil: [ maximumX max: bounds right ].
+			maximumY := maximumY ifNil: [ bounds bottom ] ifNotNil: [ maximumY max: bounds bottom ] ] ].
 	someEdges do: [ :each |
 		(self stagedWaypointsOf: each) do: [ :aPoint |
-			maximumX := maximumX max: aPoint x + 80.
-			maximumY := maximumY max: aPoint y + 80 ] ].
-	^ maximumX @ maximumY
+			hasContent := true.
+			minimumX := minimumX ifNil: [ aPoint x ] ifNotNil: [ minimumX min: aPoint x ].
+			minimumY := minimumY ifNil: [ aPoint y ] ifNotNil: [ minimumY min: aPoint y ].
+			maximumX := maximumX ifNil: [ aPoint x ] ifNotNil: [ maximumX max: aPoint x ].
+			maximumY := maximumY ifNil: [ aPoint y ] ifNotNil: [ maximumY max: aPoint y ] ] ].
+	hasContent ifFalse: [ ^ 0 @ 0 extent: 0 @ 0 ].
+	^ minimumX @ minimumY corner: maximumX @ maximumY
 ]
+
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> selectionColor [
@@ -552,27 +570,57 @@ CPCollaborationVisualElement >> viewportExtent: anExtent [
 
 { #category : 'private - layout' }
 CPCollaborationVisualElement >> updateCanvasExtent [
-	canvasExtent :=
-		(diagramExtent + (viewportExtent / 2))
-			max: viewportExtent * 1.5.
+	cameraSlack := (viewportExtent - diagramExtent) max: 0 @ 0.
+	diagramExtent = (0 @ 0)
+		ifTrue: [
+			cameraSlack := 0 @ 0.
+			canvasExtent := viewportExtent ]
+		ifFalse: [
+			canvasExtent := diagramExtent + (cameraSlack * 2) ].
 	self constraintsDo: [ :c |
 		c horizontal exact: canvasExtent x.
-		c vertical exact: canvasExtent y ]
+		c vertical exact: canvasExtent y ].
+	self updateDiagramLayerGeometry
+]
+
+{ #category : 'private - layout' }
+CPCollaborationVisualElement >> updateDiagramLayerGeometry [
+	diagramLayer ifNil: [ ^ self ].
+	diagramLayer
+		constraintsDo: [ :c | c ignoreByLayout ];
+		extent: (diagramBounds corner max: 1 @ 1);
+		relocate: cameraSlack - diagramBounds origin
+]
+
+{ #category : 'accessing - presentation' }
+CPCollaborationVisualElement >> cameraSlack [
+	^ cameraSlack
+]
+
+{ #category : 'accessing - presentation' }
+CPCollaborationVisualElement >> diagramBounds [
+	^ diagramBounds
 ]
 
 { #category : 'private - coordinates' }
 CPCollaborationVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
-	^ self globalPointToLocal: aGlobalPoint
+	^ diagramLayer
+		ifNil: [ self globalPointToLocal: aGlobalPoint ]
+		ifNotNil: [ diagramLayer globalPointToLocal: aGlobalPoint ]
 ]
 
 { #category : 'private - coordinates' }
 CPCollaborationVisualElement >> globalPointForDiagramPoint: aPoint [
-	^ self localPointToGlobal: aPoint
+	^ diagramLayer
+		ifNil: [ self localPointToGlobal: aPoint ]
+		ifNotNil: [ diagramLayer localPointToGlobal: aPoint ]
 ]
 
 { #category : 'private - building' }
 CPCollaborationVisualElement >> addDiagramChild: anElement [
-	self addChild: anElement
+	diagramLayer
+		ifNil: [ self addChild: anElement ]
+		ifNotNil: [ diagramLayer addChild: anElement ]
 ]
 
 

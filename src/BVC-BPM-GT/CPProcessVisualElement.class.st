@@ -46,8 +46,11 @@ Class {
 		'collaborationVisual',
 		'collaborationChangedBlock',
 		'viewportExtent',
+		'diagramBounds',
 		'diagramExtent',
-		'canvasExtent'
+		'canvasExtent',
+		'diagramLayer',
+		'cameraSlack'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -67,8 +70,11 @@ CPProcessVisualElement >> initialize [
 	collaborationHosted := false.
 	collaborationVisual := nil.
 	viewportExtent := 1280 @ 700.
-	diagramExtent := 640 @ 260.
+	diagramBounds := 0 @ 0 extent: 0 @ 0.
+	diagramExtent := 0 @ 0.
 	canvasExtent := 1280 @ 700.
+	diagramLayer := nil.
+	cameraSlack := 0 @ 0.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -143,42 +149,75 @@ CPProcessVisualElement >> viewportExtent: anExtent [
 CPProcessVisualElement >> updateCanvasExtent [
 	(parentProcessVisual isNil and: [ collaborationHosted not ])
 		ifTrue: [
-			canvasExtent :=
-				(diagramExtent + (viewportExtent / 2))
-					max: viewportExtent * 1.5.
+			cameraSlack := (viewportExtent - diagramExtent) max: 0 @ 0.
+			diagramExtent = (0 @ 0)
+				ifTrue: [
+					cameraSlack := 0 @ 0.
+					canvasExtent := viewportExtent ]
+				ifFalse: [
+					canvasExtent := diagramExtent + (cameraSlack * 2) ].
 			self constraintsDo: [ :c |
 				c horizontal exact: canvasExtent x.
-				c vertical exact: canvasExtent y ] ]
+				c vertical exact: canvasExtent y ].
+			self updateDiagramLayerGeometry ]
 		ifFalse: [
+			cameraSlack := 0 @ 0.
 			canvasExtent := viewportExtent.
 			self constraintsDo: [ :c |
 				c horizontal matchParent.
 				c vertical matchParent ] ]
 ]
 
+{ #category : 'private - layout' }
+CPProcessVisualElement >> updateDiagramLayerGeometry [
+	diagramLayer ifNil: [ ^ self ].
+	diagramLayer
+		constraintsDo: [ :c | c ignoreByLayout ];
+		extent: (diagramBounds corner max: 1 @ 1);
+		relocate: cameraSlack - diagramBounds origin
+]
+
+{ #category : 'accessing - presentation' }
+CPProcessVisualElement >> cameraSlack [
+	^ cameraSlack
+]
+
+{ #category : 'accessing - presentation' }
+CPProcessVisualElement >> diagramBounds [
+	^ diagramBounds
+]
+
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
-	^ self globalPointToLocal: aGlobalPoint
+	^ diagramLayer
+		ifNil: [ self globalPointToLocal: aGlobalPoint ]
+		ifNotNil: [ diagramLayer globalPointToLocal: aGlobalPoint ]
 ]
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> globalPointForDiagramPoint: aPoint [
-	^ self localPointToGlobal: aPoint
+	^ diagramLayer
+		ifNil: [ self localPointToGlobal: aPoint ]
+		ifNotNil: [ diagramLayer localPointToGlobal: aPoint ]
 ]
 
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChild: anElement [
-	self addChild: anElement
+	diagramLayer
+		ifNil: [ self addChild: anElement ]
+		ifNotNil: [ diagramLayer addChild: anElement ]
 ]
 
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChildFirst: anElement [
-	self addChildFirst: anElement
+	diagramLayer
+		ifNil: [ self addChildFirst: anElement ]
+		ifNotNil: [ diagramLayer addChildFirst: anElement ]
 ]
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> diagramPresentationParent [
-	^ self
+	^ diagramLayer ifNil: [ self ]
 ]
 
 
@@ -237,7 +276,7 @@ CPProcessVisualElement >> memento [
 
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram elements shapes edges contentExtent |
+	| diagram elements shapes edges |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
@@ -259,8 +298,12 @@ CPProcessVisualElement >> refresh [
 		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
-	contentExtent := self canvasExtentFor: shapes, edges.
-	diagramExtent := contentExtent.
+	diagramBounds := self diagramBoundsFor: shapes, edges.
+	diagramExtent := diagramBounds extent.
+	diagramLayer := (parentProcessVisual isNil and: [ collaborationHosted not ])
+		ifTrue: [ BlElement new layout: BlFrameLayout new; clipChildren: false; yourself ]
+		ifFalse: [ nil ].
+	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
 	self updateCanvasExtent.
 	self addPaletteDropSurface.
 	shapes do: [ :each | self addShapeFor: each ].
@@ -327,23 +370,30 @@ CPProcessVisualElement >> nestingDepthOfFlowElement: aFlowElement inContainerCon
 ]
 
 { #category : 'private - layout' }
-CPProcessVisualElement >> canvasExtentFor: someDiagramElements [
-	| maximumX maximumY |
-	maximumX := 640.
-	maximumY := 260.
+CPProcessVisualElement >> diagramBoundsFor: someDiagramElements [
+	| minimumX minimumY maximumX maximumY hasContent |
+	hasContent := false.
 	someDiagramElements do: [ :each |
 		each isShape ifTrue: [
 			| bounds |
 			bounds := self stagedBoundsOf: each.
 			bounds ifNotNil: [
-				maximumX := maximumX max: bounds right + 80.
-				maximumY := maximumY max: bounds bottom + 80 ] ].
+				hasContent := true.
+				minimumX := minimumX ifNil: [ bounds left ] ifNotNil: [ minimumX min: bounds left ].
+				minimumY := minimumY ifNil: [ bounds top ] ifNotNil: [ minimumY min: bounds top ].
+				maximumX := maximumX ifNil: [ bounds right ] ifNotNil: [ maximumX max: bounds right ].
+				maximumY := maximumY ifNil: [ bounds bottom ] ifNotNil: [ maximumY max: bounds bottom ] ] ].
 		each isEdge ifTrue: [
 			(self stagedWaypointsOf: each) do: [ :aPoint |
-				maximumX := maximumX max: aPoint x + 80.
-				maximumY := maximumY max: aPoint y + 80 ] ] ].
-	^ maximumX @ maximumY
+				hasContent := true.
+				minimumX := minimumX ifNil: [ aPoint x ] ifNotNil: [ minimumX min: aPoint x ].
+				minimumY := minimumY ifNil: [ aPoint y ] ifNotNil: [ minimumY min: aPoint y ].
+				maximumX := maximumX ifNil: [ aPoint x ] ifNotNil: [ maximumX max: aPoint x ].
+				maximumY := maximumY ifNil: [ aPoint y ] ifNotNil: [ maximumY max: aPoint y ] ] ] ].
+	hasContent ifFalse: [ ^ 0 @ 0 extent: 0 @ 0 ].
+	^ minimumX @ minimumY corner: maximumX @ maximumY
 ]
+
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedBoundsOf: aShape [

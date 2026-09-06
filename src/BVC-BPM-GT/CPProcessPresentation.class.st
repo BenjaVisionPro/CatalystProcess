@@ -29,7 +29,8 @@ Class {
 		'reconnectSequenceFlowOperationBlock',
 		'setEdgeWaypointsOperationBlock',
 		'setShapeExpandedOperationBlock',
-		'setEdgeLabelPlacementOperationBlock'
+		'setEdgeLabelPlacementOperationBlock',
+		'diagramCameraInitialized'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -39,6 +40,7 @@ Class {
 { #category : 'private - building' }
 CPProcessPresentation >> prepareHostElement [
 	| surfaceColor collaboration collaborationDiagram |
+	diagramCameraInitialized := false.
 	surfaceColor := self workspaceSurfaceColor.
 	collaboration := self stagedDefinitionalCollaboration.
 	collaborationDiagram := collaboration ifNotNil: [
@@ -131,8 +133,14 @@ CPProcessPresentation >> prepareHostElement [
 
 { #category : 'private - layout' }
 CPProcessPresentation >> updateDiagramViewportExtent [
+	| viewport |
 	diagramElement ifNil: [ ^ self ].
-	diagramElement viewportExtent: diagramScrollElement extent
+	viewport := diagramScrollElement extent.
+	diagramElement viewportExtent: viewport.
+	(diagramCameraInitialized not and: [ viewport x > 1 and: [ viewport y > 1 ] ]) ifTrue: [
+		diagramCameraInitialized := true.
+		diagramScrollElement enqueueTask: (BlTaskAction new action: [
+			diagramScrollElement scrollBy: diagramElement cameraSlack / 2 ]) ]
 ]
 
 { #category : 'private - collaboration' }
@@ -151,6 +159,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			processVisual: processDiagramElement;
 			yourself.
 		diagramElement := collaborationDiagramElement.
+		diagramCameraInitialized := false.
 		diagramScrollElement content: diagramElement.
 		self updateDiagramViewportExtent.
 		^ self ].
