@@ -41,7 +41,8 @@ Class {
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
 		'insertionTargetEdge',
-		'collaborationHosted'
+		'collaborationHosted',
+		'collaborationVisual'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -59,6 +60,7 @@ CPProcessVisualElement >> initialize [
 	parentProcessVisual := nil.
 	hostShape := nil.
 	collaborationHosted := false.
+	collaborationVisual := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -79,6 +81,17 @@ CPProcessVisualElement >> beCollaborationHosted [
 { #category : 'testing' }
 CPProcessVisualElement >> isCollaborationHosted [
 	^ collaborationHosted
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> collaborationVisual: aCollaborationVisual [
+	collaborationVisual := aCollaborationVisual.
+	self refresh
+]
+
+{ #category : 'accessing - collaboration' }
+CPProcessVisualElement >> collaborationVisual [
+	^ collaborationVisual
 ]
 
 { #category : 'accessing' }
@@ -2263,64 +2276,85 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 	| previewLine previewCursor |
 	connectFlowNodesOperationBlock ifNil: [ ^ self ].
-	aFlowNode isEndEvent ifTrue: [ ^ self ].
+	(aFlowNode isEndEvent and: [ collaborationVisual isNil ]) ifTrue: [ ^ self ].
 	aNodeElement
 		installConnectionPortSelectionColor: self selectionColor
 		borderColor: self shapeBorderColor
 		beginConnection: [ self beginConnectionFrom: aFlowNode ]
 		dragStarted: [ :anEvent |
-			| localPoint |
-			connectionSourceModelElement := aFlowNode.
-			self clearConnectionTarget.
-			localPoint := self globalPointToLocal: anEvent position.
-			previewCursor := BlElement new
-				extent: 1 @ 1;
-				background: Color transparent;
-				constraintsDo: [ :c | c ignoreByLayout ];
-				relocate: localPoint;
-				yourself.
-			previewLine := BlLineElement new
-				fromAnchor: ((self anchorClassFor: aFlowNode)
-					nearestTo: previewCursor
-					from: aNodeElement);
-				toAnchor: (BlNearestPositionBoundsAnchor
-					nearestTo: aNodeElement
-					from: previewCursor);
-				border: (BlBorder paint: self selectionColor width: 1.5);
-				constraintsDo: [ :c | c ignoreByLayout ];
-				yourself.
-			previewLine toHead: (BlArrowheadSimpleArrow new
-				border: (BlBorder paint: self selectionColor width: 1.5)).
-			self addChild: previewCursor.
-			self addChildFirst: previewLine.
-			self updateSelectionAppearance ]
+			collaborationVisual
+				ifNotNil: [
+					collaborationVisual
+						beginConnectionDragFrom: aFlowNode
+						sourceVisual: self
+						event: anEvent ]
+				ifNil: [
+					| localPoint |
+					connectionSourceModelElement := aFlowNode.
+					self clearConnectionTarget.
+					localPoint := self globalPointToLocal: anEvent position.
+					previewCursor := BlElement new
+						extent: 1 @ 1;
+						background: Color transparent;
+						constraintsDo: [ :c | c ignoreByLayout ];
+						relocate: localPoint;
+						yourself.
+					previewLine := BlLineElement new
+						fromAnchor: ((self anchorClassFor: aFlowNode)
+							nearestTo: previewCursor
+							from: aNodeElement);
+						toAnchor: (BlNearestPositionBoundsAnchor
+							nearestTo: aNodeElement
+							from: previewCursor);
+						border: (BlBorder paint: self selectionColor width: 1.5);
+						constraintsDo: [ :c | c ignoreByLayout ];
+						yourself.
+					previewLine toHead: (BlArrowheadSimpleArrow new
+						border: (BlBorder paint: self selectionColor width: 1.5)).
+					self addChild: previewCursor.
+					self addChildFirst: previewLine.
+					self updateSelectionAppearance ] ]
 		dragged: [ :anEvent |
-			| target |
-			previewCursor relocate: (self globalPointToLocal: anEvent position).
-			target := self
-				validConnectionTargetAtGlobalPoint: anEvent position
-				from: aFlowNode.
-			self connectionTargetModelElement: target.
-			self
-				updateConnectionPreviewLine: previewLine
-				cursor: previewCursor
-				source: aFlowNode
-				sourceElement: aNodeElement
-				target: target ]
+			collaborationVisual
+				ifNotNil: [
+					collaborationVisual
+						updateConnectionDragFrom: aFlowNode
+						sourceVisual: self
+						event: anEvent ]
+				ifNil: [
+					| target |
+					previewCursor relocate: (self globalPointToLocal: anEvent position).
+					target := self
+						validConnectionTargetAtGlobalPoint: anEvent position
+						from: aFlowNode.
+					self connectionTargetModelElement: target.
+					self
+						updateConnectionPreviewLine: previewLine
+						cursor: previewCursor
+						source: aFlowNode
+						sourceElement: aNodeElement
+						target: target ] ]
 		dragEnded: [ :anEvent |
-			| target |
-			previewLine ifNotNil: [ previewLine removeFromParent ].
-			previewCursor ifNotNil: [ previewCursor removeFromParent ].
-			previewLine := nil.
-			previewCursor := nil.
-			target := self
-				validConnectionTargetAtGlobalPoint: anEvent position
-				from: aFlowNode.
-			connectionSourceModelElement := nil.
-			self clearConnectionTarget.
-			target
-				ifNotNil: [ self connectFrom: aFlowNode to: target ]
-				ifNil: [ self updateSelectionAppearance ] ]
+			collaborationVisual
+				ifNotNil: [
+					collaborationVisual
+						endConnectionDragFrom: aFlowNode
+						sourceVisual: self
+						event: anEvent ]
+				ifNil: [
+					| target |
+					previewLine ifNotNil: [ previewLine removeFromParent ].
+					previewCursor ifNotNil: [ previewCursor removeFromParent ].
+					previewLine := nil.
+					previewCursor := nil.
+					target := self
+						validConnectionTargetAtGlobalPoint: anEvent position
+						from: aFlowNode.
+					connectionSourceModelElement := nil.
+					self clearConnectionTarget.
+					target
+						ifNotNil: [ self connectFrom: aFlowNode to: target ]
+						ifNil: [ self updateSelectionAppearance ] ] ]
 ]
 { #category : 'private - connection' }
 CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
@@ -2335,6 +2369,18 @@ CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
 		value: aTarget
 		value: sourceContainer) assess.
 	^ assessment isApplicable
+]
+
+{ #category : 'collaboration connection' }
+CPProcessVisualElement >> sequenceFlowTargetAtGlobalPoint: aPoint from: aSource [
+	^ self
+		validConnectionTargetAtGlobalPoint: aPoint
+		from: aSource
+]
+
+{ #category : 'collaboration connection' }
+CPProcessVisualElement >> connectSequenceFlowFrom: aSource to: aTarget [
+	^ self connectFrom: aSource to: aTarget
 ]
 
 { #category : 'private - connection' }

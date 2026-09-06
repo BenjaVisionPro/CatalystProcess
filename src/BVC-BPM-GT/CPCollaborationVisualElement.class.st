@@ -15,7 +15,10 @@ Class {
 		'elementsDescription',
 		'messageFlowsDescription',
 		'participantElementsByParticipant',
-		'messageFlowVisualsByEdge'
+		'messageFlowVisualsByEdge',
+		'connectMessageFlowOperationBlock',
+		'connectionPreviewLine',
+		'connectionPreviewCursor'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -27,6 +30,8 @@ CPCollaborationVisualElement >> initialize [
 	super initialize.
 	participantElementsByParticipant := IdentityDictionary new.
 	messageFlowVisualsByEdge := IdentityDictionary new.
+	connectionPreviewLine := nil.
+	connectionPreviewCursor := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false
@@ -42,6 +47,7 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
 	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges contentExtent stagedMessageFlows |
+	processVisual ifNotNil: [ processVisual removeFromParent ].
 	self removeChildren.
 	participantElementsByParticipant removeAll.
 	messageFlowVisualsByEdge removeAll.
@@ -110,6 +116,7 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 	self addChild: element.
 
 	participant processRef == processMemento model ifTrue: [
+		processVisual collaborationVisual: self.
 		element hostProcessVisual: processVisual ]
 ]
 
@@ -126,6 +133,232 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 		label: (self stagedLabelOfMessageFlow: messageFlow)
 		in: self.
 	messageFlowVisualsByEdge at: anEdge put: visual
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> connectMessageFlowOperationFor: aBlock [
+	connectMessageFlowOperationBlock := aBlock
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
+	| pointer sourcePoint |
+	self removeConnectionPreview.
+	pointer := self globalPointToLocal: anEvent position.
+	sourcePoint := self
+		collaborationDockingPointForFlowNode: aSource
+		inVisual: aSourceVisual
+		toward: pointer.
+	connectionPreviewCursor := BlElement new
+		extent: 1 @ 1;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: pointer;
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	connectionPreviewLine := BlLineElement new
+		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
+		toAnchor: (BlAbsolutePositionAnchor position: pointer);
+		border: (BlBorder paint: self selectionColor width: 1.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	connectionPreviewLine toHead: (BlArrowheadSimpleArrow new
+		border: (BlBorder paint: self selectionColor width: 1.5)).
+	self
+		addChild: connectionPreviewCursor;
+		addChild: connectionPreviewLine
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
+	| pointer target sourcePoint targetPoint |
+	connectionPreviewLine ifNil: [
+		^ self
+			beginConnectionDragFrom: aSource
+			sourceVisual: aSourceVisual
+			event: anEvent ].
+	pointer := self globalPointToLocal: anEvent position.
+	connectionPreviewCursor relocate: pointer.
+	target := self
+		connectionTargetAtGlobalPoint: anEvent position
+		from: aSource
+		sourceVisual: aSourceVisual.
+	sourcePoint := self
+		collaborationDockingPointForFlowNode: aSource
+		inVisual: aSourceVisual
+		toward: pointer.
+	targetPoint := target
+		ifNil: [ pointer ]
+		ifNotNil: [
+			target isSequenceFlowTarget
+				ifTrue: [ pointer ]
+				ifFalse: [
+					self
+						dockingPointForParticipant: target modelElement
+						toward: sourcePoint ] ].
+	connectionPreviewLine
+		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
+		toAnchor: (BlAbsolutePositionAnchor position: targetPoint)
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> endConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
+	| target assessment |
+	target := self
+		connectionTargetAtGlobalPoint: anEvent position
+		from: aSource
+		sourceVisual: aSourceVisual.
+	self removeConnectionPreview.
+	target ifNil: [ ^ nil ].
+	target isSequenceFlowTarget ifTrue: [
+		^ aSourceVisual
+			connectSequenceFlowFrom: aSource
+			to: target modelElement ].
+	connectMessageFlowOperationBlock ifNil: [ ^ nil ].
+	assessment := (connectMessageFlowOperationBlock
+		value: aSource
+		value: target modelElement
+		value: (self
+			messageFlowWaypointsFrom: aSource
+			inVisual: aSourceVisual
+			toParticipant: target modelElement)) apply.
+	assessment isApplicable ifTrue: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from: aSource sourceVisual: aSourceVisual [
+	| sequenceTarget participantTarget |
+	sequenceTarget := aSourceVisual
+		sequenceFlowTargetAtGlobalPoint: aGlobalPoint
+		from: aSource.
+	sequenceTarget ifNotNil: [ ^ CPCollaborationConnectionTarget sequenceFlowTo: sequenceTarget ].
+	participantTarget := self
+		participantAtCollaborationPoint: (self globalPointToLocal: aGlobalPoint)
+		excludingEndpoint: aSource.
+	participantTarget ifNil: [ ^ nil ].
+	^ (CPMessageFlowConnectionRules new
+		assessConnectionFrom: aSource
+		to: participantTarget
+		in: collaboration) isAllowed
+			ifTrue: [ CPCollaborationConnectionTarget messageFlowTo: participantTarget ]
+			ifFalse: [ nil ]
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> participantAtCollaborationPoint: aPoint excludingEndpoint: anEndpoint [
+	| endpointParticipant |
+	endpointParticipant := collaboration participantForEndpoint: anEndpoint.
+	^ collaboration participants
+		detect: [ :each |
+			each ~~ endpointParticipant and: [
+				| shape bounds |
+				shape := self participantShapeFor: each.
+				shape notNil and: [
+					bounds := self stagedBoundsOf: shape.
+					bounds containsPoint: aPoint ] ] ]
+		ifNone: [ nil ]
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> participantShapeFor: aParticipant [
+	| matches |
+	matches := participantElementsByParticipant values select: [ :each |
+		each participant == aParticipant ].
+	^ matches size = 1
+		ifTrue: [ matches first diagramShape ]
+		ifFalse: [ nil ]
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> messageFlowWaypointsFrom: aSource inVisual: aSourceVisual toParticipant: aParticipant [
+	| targetBounds sourceCenter targetCenter sourcePoint targetPoint |
+	targetBounds := self stagedBoundsOf: (self participantShapeFor: aParticipant).
+	targetCenter := targetBounds center.
+	sourceCenter := self
+		collaborationCenterForFlowNode: aSource
+		inVisual: aSourceVisual.
+	sourcePoint := self
+		collaborationDockingPointForFlowNode: aSource
+		inVisual: aSourceVisual
+		toward: targetCenter.
+	targetPoint := self
+		dockingPointForRectangle: targetBounds
+		toward: sourceCenter.
+	^ { sourcePoint. targetPoint }
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> collaborationCenterForFlowNode: aFlowNode inVisual: aSourceVisual [
+	| shape bounds rootProcessPoint |
+	shape := aSourceVisual diagramShapeForModelElement: aFlowNode.
+	bounds := aSourceVisual stagedBoundsOf: shape.
+	rootProcessPoint := aSourceVisual
+		rootDiagramPointForLocalPoint: bounds center.
+	^ self collaborationPointForProcessRootPoint: rootProcessPoint
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> collaborationDockingPointForFlowNode: aFlowNode inVisual: aSourceVisual toward: aPoint [
+	| shape bounds rootOrigin collaborationBounds |
+	shape := aSourceVisual diagramShapeForModelElement: aFlowNode.
+	bounds := aSourceVisual stagedBoundsOf: shape.
+	rootOrigin := aSourceVisual
+		rootDiagramPointForLocalPoint: bounds origin.
+	collaborationBounds :=
+		(self collaborationPointForProcessRootPoint: rootOrigin)
+			extent: bounds extent.
+	^ self
+		dockingPointForRectangle: collaborationBounds
+		toward: aPoint
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> collaborationPointForProcessRootPoint: aPoint [
+	| participant participantElement shape bounds |
+	participant := collaboration
+		participantForProcess: processMemento model.
+	participant ifNil: [ ^ aPoint ].
+	participantElement := participantElementsByParticipant
+		at: participant
+		ifAbsent: [ ^ aPoint ].
+	shape := participantElement diagramShape.
+	bounds := self stagedBoundsOf: shape.
+	^ bounds origin + participantElement processContentOriginOffset + aPoint
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> dockingPointForParticipant: aParticipant toward: aPoint [
+	^ self
+		dockingPointForRectangle: (self stagedBoundsOf: (self participantShapeFor: aParticipant))
+		toward: aPoint
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> dockingPointForRectangle: aRectangle toward: aPoint [
+	| center vector halfWidth halfHeight scaleX scaleY scale |
+	center := aRectangle center.
+	vector := aPoint - center.
+	vector = (0 @ 0) ifTrue: [ ^ center ].
+	halfWidth := aRectangle width / 2.0.
+	halfHeight := aRectangle height / 2.0.
+	scaleX := vector x isZero
+		ifTrue: [ Float infinity ]
+		ifFalse: [ halfWidth / vector x abs ].
+	scaleY := vector y isZero
+		ifTrue: [ Float infinity ]
+		ifFalse: [ halfHeight / vector y abs ].
+	scale := scaleX min: scaleY.
+	^ center + (vector * scale)
+]
+
+{ #category : 'connection' }
+CPCollaborationVisualElement >> removeConnectionPreview [
+	connectionPreviewLine ifNotNil: [ connectionPreviewLine removeFromParent ].
+	connectionPreviewCursor ifNotNil: [ connectionPreviewCursor removeFromParent ].
+	connectionPreviewLine := nil.
+	connectionPreviewCursor := nil
 ]
 
 { #category : 'private - staged state' }
@@ -188,6 +421,11 @@ CPCollaborationVisualElement >> canvasExtentForShapes: someShapes edges: someEdg
 			maximumX := maximumX max: aPoint x + 80.
 			maximumY := maximumY max: aPoint y + 80 ] ].
 	^ maximumX @ maximumY
+]
+
+{ #category : 'private - theme' }
+CPCollaborationVisualElement >> selectionColor [
+	^ self theme item selectedColor
 ]
 
 { #category : 'private - theme' }

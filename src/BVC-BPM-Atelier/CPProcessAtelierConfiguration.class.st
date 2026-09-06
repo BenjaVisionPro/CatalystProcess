@@ -117,6 +117,12 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 					flowContainer: aFlowContainer
 					processMemento: aPresentation memento
 					diagramDescription: diagramDescription ];
+			connectMessageFlowOperationFor: [ :aSource :aTarget :someWaypoints |
+				CPAtelierConnectMessageFlow
+					source: aSource
+					target: aTarget
+					waypoints: someWaypoints
+					processMemento: aPresentation memento ];
 			insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds :aFlowContainer |
 				CPAtelierInsertFlowNode
 					sequenceFlow: aSequenceFlow

@@ -41,7 +41,7 @@ CPParticipantShapeElement >> addLabelBandBorderColor: aBorderColor [
 		border: (BlBorder paint: aBorderColor width: 1);
 		layout: BlFrameLayout new;
 		constraintsDo: [ :c |
-			c horizontal exact: 36.
+			c horizontal exact: self processContentOriginOffset x.
 			c vertical matchParent.
 			c frame horizontal alignLeft.
 			c frame vertical alignTop ];
@@ -72,9 +72,14 @@ CPParticipantShapeElement >> addProcessHost [
 			c vertical matchParent.
 			c frame horizontal alignRight.
 			c frame vertical alignTop.
-			c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 36) ];
+			c margin: (BlInsets top: 0 right: 0 bottom: 0 left: self processContentOriginOffset x) ];
 		yourself.
 	self addChildFirst: processHost
+]
+
+{ #category : 'geometry' }
+CPParticipantShapeElement >> processContentOriginOffset [
+	^ 36 @ 0
 ]
 
 { #category : 'hosting' }

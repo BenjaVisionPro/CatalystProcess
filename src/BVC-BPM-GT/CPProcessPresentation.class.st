@@ -6,6 +6,7 @@ Class {
 	#superclass : 'CFMaPresentation',
 	#instVars : [
 		'diagramElement',
+		'collaborationDiagramElement',
 		'processDiagramElement',
 		'diagramScrollElement',
 		'detailHostElement',
@@ -20,6 +21,7 @@ Class {
 		'createFlowNodeOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
+		'connectMessageFlowOperationBlock',
 		'insertFlowNodeOperationBlock',
 		'removeFlowNodeOperationBlock',
 		'removeSequenceFlowOperationBlock',
@@ -63,13 +65,16 @@ CPProcessPresentation >> prepareHostElement [
 		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock;
 		memento: self memento.
 
+	collaborationDiagramElement := nil.
 	diagramElement := collaborationDiagram
 		ifNil: [ processDiagramElement ]
 		ifNotNil: [
-			CPCollaborationVisualElement new
+			collaborationDiagramElement := CPCollaborationVisualElement new
+				connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 				processMemento: self memento
 				processVisual: processDiagramElement;
-				yourself ].
+				yourself.
+			collaborationDiagramElement ].
 
 	diagramScrollElement := BrScrollPane new
 		background: surfaceColor;
@@ -227,6 +232,11 @@ CPProcessPresentation >> diagramElement [
 ]
 
 { #category : 'accessing - testing' }
+CPProcessPresentation >> collaborationDiagramElement [
+	^ collaborationDiagramElement
+]
+
+{ #category : 'accessing - testing' }
 CPProcessPresentation >> processDiagramElement [
 	^ processDiagramElement
 ]
@@ -276,7 +286,11 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
 		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
 		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock.
-	processDiagramElement refresh
+	processDiagramElement refresh.
+	collaborationDiagramElement ifNotNil: [
+		collaborationDiagramElement
+			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
+			refresh ]
 ]
 { #category : 'configuration' }
 CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
@@ -285,6 +299,11 @@ CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOp
 
 { #category : 'configuration' }
 CPProcessPresentation >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> connectMessageFlowOperationFor: aBlock [
+	connectMessageFlowOperationBlock := aBlock
+]
 
 { #category : 'configuration' }
 CPProcessPresentation >> removeFlowNodeOperationFor: aBlock [ removeFlowNodeOperationBlock := aBlock ]

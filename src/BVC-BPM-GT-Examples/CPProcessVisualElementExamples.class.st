@@ -1592,6 +1592,12 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 		memento: memento;
 		yourself.
 	collaborationVisual := CPCollaborationVisualElement new
+		connectMessageFlowOperationFor: [ :aSource :aTarget :someWaypoints |
+			CPAtelierConnectMessageFlow
+				source: aSource
+				target: aTarget
+				waypoints: someWaypoints
+				processMemento: memento ];
 		processMemento: memento
 		processVisual: processVisual;
 		yourself.
@@ -1608,7 +1614,8 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 		processVisual.
 		collaborationVisual.
 		messageFlow.
-		messageEdge
+		messageEdge.
+		task
 	}
 ]
 
@@ -1745,4 +1752,86 @@ CPProcessVisualElementExamples >> collaborationMessageFlowDoesNotEnterParticipan
 	self assert: (collaborationVisual messageFlowVisualsByEdge
 		includesKey: (fixture at: 12)).
 	^ collaborationVisual
+]
+
+
+{ #category : 'examples - collaboration message flow connection' }
+CPProcessVisualElementExamples >> collaborationConnectionResolvesExternalPoolAsMessageFlowTarget [
+	<gtExample>
+	| fixture collaborationVisual externalParticipant target |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	externalParticipant := fixture at: 5.
+
+	target := collaborationVisual
+		participantAtCollaborationPoint: 350 @ 350
+		excludingEndpoint: (fixture at: 13).
+
+	self assert: target == externalParticipant.
+	^ target
+]
+
+
+{ #category : 'examples - collaboration message flow connection' }
+CPProcessVisualElementExamples >> collaborationProcessCoordinatesIncludePoolContentOrigin [
+	<gtExample>
+	| fixture collaborationVisual |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+
+	self assert: (collaborationVisual
+		collaborationPointForProcessRootPoint: 180 @ 64)
+		equals: 256 @ 104.
+	^ collaborationVisual
+]
+
+
+{ #category : 'examples - collaboration message flow connection' }
+CPProcessVisualElementExamples >> collaborationMessageFlowWaypointsDockAtSourceAndPoolBoundaries [
+	<gtExample>
+	| fixture collaborationVisual processVisual externalParticipant waypoints |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	processVisual := fixture at: 9.
+	externalParticipant := fixture at: 5.
+
+	waypoints := collaborationVisual
+		messageFlowWaypointsFrom: (fixture at: 13)
+		inVisual: processVisual
+		toParticipant: externalParticipant.
+
+	self assert: waypoints size equals: 2.
+	self assert: waypoints first y equals: 158.
+	self assert: waypoints second y equals: 320.
+	^ waypoints
+]
+
+
+{ #category : 'examples - collaboration message flow connection' }
+CPProcessVisualElementExamples >> collaborationHostedProcessKnowsItsConnectionCoordinator [
+	<gtExample>
+	| fixture collaborationVisual processVisual |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+
+	self assert: processVisual collaborationVisual == collaborationVisual.
+	^ processVisual
+]
+
+
+{ #category : 'examples - collaboration message flow connection' }
+CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomainObjects [
+	<gtExample>
+	| sequenceTarget messageTarget |
+	sequenceTarget := CPCollaborationConnectionTarget
+		sequenceFlowTo: CPUserTask new.
+	messageTarget := CPCollaborationConnectionTarget
+		messageFlowTo: CPParticipant new.
+
+	self assert: sequenceTarget isSequenceFlowTarget.
+	self assert: sequenceTarget isMessageFlowTarget not.
+	self assert: messageTarget isMessageFlowTarget.
+	self assert: messageTarget isSequenceFlowTarget not.
+	^ messageTarget
 ]
