@@ -1550,7 +1550,7 @@ CPProcessVisualElementExamples >> collaborationProcessCoordinatesIncludePoolCont
 
 	self assert: (collaborationVisual
 		collaborationPointForProcessRootPoint: 180 @ 64)
-		equals: 256 @ 104.
+		equals: 200 @ 64.
 	^ collaborationVisual
 ]
 
@@ -1570,7 +1570,7 @@ CPProcessVisualElementExamples >> collaborationMessageFlowWaypointsDockAtSourceA
 		toParticipant: externalParticipant.
 
 	self assert: waypoints size equals: 2.
-	self assert: waypoints first y equals: 158.
+	self assert: waypoints first y equals: 118.
 	self assert: waypoints second y equals: 320.
 	^ waypoints
 ]
@@ -1702,4 +1702,41 @@ CPProcessVisualElementExamples >> processAndCollaborationShareOneSelectionModel 
 	self assert: processVisual selectedModelElement == task.
 	self assert: collaborationVisual selectionModel selectedModelElement == task.
 	^ selection
+]
+
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> firstPoolWrapsExistingProcessDiagramWithoutChangingProcessDI [
+	<gtExample>
+	| fixture visual expected |
+	fixture := self fixture.
+	visual := self visualElementForFixture: fixture.
+	expected := visual firstParticipantBoundsCenteredAt: 500 @ 300.
+
+	self assert: expected extent equals:
+		visual diagramExtent
+			+ (((CPParticipantShapeElement processContentOriginOffset x + visual hostedDiagramInset x) * 2)
+				@ (visual hostedDiagramInset y * 2)).
+	self assert: expected origin equals:
+		(visual diagramBounds origin
+			- ((CPParticipantShapeElement processContentOriginOffset x + visual hostedDiagramInset x)
+				@ visual hostedDiagramInset y)) max: 0 @ 0.
+	^ expected
+]
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> collaborationHostsProcessInHostedModeOnFirstRefresh [
+	<gtExample>
+	| fixture processVisual collaborationVisual localParticipant localElement |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	localParticipant := fixture at: 4.
+	localElement := collaborationVisual participantElementsByParticipant at: localParticipant.
+
+	self assert: processVisual isCollaborationHosted.
+	self assert: processVisual diagramPresentationParent ~~ processVisual.
+	self assert: processVisual shapeElementsByModelElement isEmpty not.
+	self assert: processVisual parent == localElement processHost.
+	^ processVisual
 ]

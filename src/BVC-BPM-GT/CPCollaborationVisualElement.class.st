@@ -146,6 +146,7 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		installResizeOnParticipantElement: element shape: aShape.
 
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifTrue: [
+		processVisual beCollaborationHosted.
 		processVisual collaborationVisual: self.
 		element hostProcessVisual: processVisual ]
 ]
@@ -451,7 +452,10 @@ CPCollaborationVisualElement >> collaborationPointForProcessRootPoint: aPoint [
 		ifAbsent: [ ^ aPoint ].
 	shape := participantElement diagramShape.
 	bounds := self stagedBoundsOf: shape.
-	^ bounds origin + participantElement processContentOriginOffset + aPoint
+	^ bounds origin
+		+ participantElement processContentOriginOffset
+		+ processVisual hostedDiagramInset
+		+ (aPoint - processVisual diagramBounds origin)
 ]
 
 { #category : 'connection geometry' }

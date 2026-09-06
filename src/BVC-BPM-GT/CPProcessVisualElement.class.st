@@ -175,11 +175,15 @@ CPProcessVisualElement >> updateCanvasExtent [
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> updateDiagramLayerGeometry [
+	| layerOrigin |
 	diagramLayer ifNil: [ ^ self ].
+	layerOrigin := collaborationHosted
+		ifTrue: [ self hostedDiagramInset - diagramBounds origin ]
+		ifFalse: [ cameraSlack - diagramBounds origin ].
 	diagramLayer
 		constraintsDo: [ :c | c ignoreByLayout ];
 		extent: (diagramBounds corner max: 1 @ 1);
-		relocate: cameraSlack - diagramBounds origin
+		relocate: layerOrigin
 ]
 
 { #category : 'accessing - presentation' }
@@ -190,6 +194,11 @@ CPProcessVisualElement >> cameraSlack [
 { #category : 'accessing - presentation' }
 CPProcessVisualElement >> diagramBounds [
 	^ diagramBounds
+]
+
+{ #category : 'accessing - presentation' }
+CPProcessVisualElement >> hostedDiagramInset [
+	^ 24 @ 24
 ]
 
 { #category : 'private - coordinates' }
@@ -305,7 +314,7 @@ CPProcessVisualElement >> refresh [
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
 	diagramBounds := self diagramBoundsFor: shapes, edges.
 	diagramExtent := diagramBounds extent.
-	diagramLayer := (parentProcessVisual isNil and: [ collaborationHosted not ])
+	diagramLayer := parentProcessVisual isNil
 		ifTrue: [ BlElement new layout: BlFrameLayout new; clipChildren: false; yourself ]
 		ifFalse: [ nil ].
 	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
@@ -2195,7 +2204,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		createParticipantOperationBlock ifNil: [ ^ false ].
 		parentProcessVisual ifNotNil: [ ^ false ].
 		collaborationVisual ifNotNil: [ ^ false ].
-		proposedBounds := 0 @ 0 extent: self defaultParticipantExtent.
+		proposedBounds := self firstParticipantBoundsCenteredAt: 0 @ 0.
 		assessment := (createParticipantOperationBlock
 			value: candidate
 			value: proposedBounds) assess.
@@ -2252,14 +2261,26 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagramPoint: aRootPoint [
 	| bounds assessment |
 	createParticipantOperationBlock ifNil: [ ^ nil ].
-	bounds := (aRootPoint - (self defaultParticipantExtent / 2))
-		extent: self defaultParticipantExtent.
+	bounds := self firstParticipantBoundsCenteredAt: aRootPoint.
 	assessment := (createParticipantOperationBlock
 		value: aParticipant
 		value: bounds) apply.
 	assessment isApplicable ifTrue: [
 		collaborationChangedBlock ifNotNil: [ :aBlock | aBlock value ] ].
 	^ assessment
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
+	| inset horizontalMargin extent origin |
+	diagramExtent = (0 @ 0) ifTrue: [
+		origin := (aRootPoint - (self defaultParticipantExtent / 2)) max: 0 @ 0.
+		^ origin extent: self defaultParticipantExtent ].
+	inset := self hostedDiagramInset.
+	horizontalMargin := CPParticipantShapeElement processContentOriginOffset x + inset x.
+	extent := diagramExtent + ((horizontalMargin * 2) @ (inset y * 2)).
+	origin := diagramBounds origin - (horizontalMargin @ inset y).
+	^ (origin max: 0 @ 0) extent: extent
 ]
 
 { #category : 'private - creation' }

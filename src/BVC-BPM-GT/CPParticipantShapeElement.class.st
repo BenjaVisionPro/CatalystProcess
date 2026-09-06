@@ -78,20 +78,18 @@ CPParticipantShapeElement >> addProcessHost [
 ]
 
 { #category : 'geometry' }
-CPParticipantShapeElement >> processContentOriginOffset [
+CPParticipantShapeElement class >> processContentOriginOffset [
 	^ 36 @ 0
+]
+
+{ #category : 'geometry' }
+CPParticipantShapeElement >> processContentOriginOffset [
+	^ self class processContentOriginOffset
 ]
 
 { #category : 'hosting' }
 CPParticipantShapeElement >> hostProcessVisual: aProcessVisual [
 	processVisual := aProcessVisual.
-	processVisual
-		beCollaborationHosted;
-		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical matchParent.
-			c frame horizontal alignLeft.
-			c frame vertical alignTop ].
 	processHost addChild: processVisual
 ]
 
