@@ -1260,17 +1260,21 @@ CPProcessVisualElementExamples >> transferredNodeRendersInNestedProcessAfterRefr
 
 
 { #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> nestedProcessCanvasHasViewportExtent [
+CPProcessVisualElementExamples >> nestedProcessRendersWhileHosted [
 	<gtExample>
-	| visual subProcess shapeElement nestedVisual |
+	| visual subProcess shapeElement nestedVisual nestedTask taskElement |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
 	shapeElement := visual shapeElementsByModelElement at: subProcess.
 	nestedVisual := shapeElement nestedProcessVisual.
+	nestedTask := nestedVisual shapeElementsByModelElement keys
+		detect: [ :each | each isTask ].
+	taskElement := nestedVisual shapeElementsByModelElement at: nestedTask.
 
-	self assert: nestedVisual extent equals: shapeElement extent.
-	self assert: shapeElement nestedProcessViewport extent equals: shapeElement extent.
 	self assert: nestedVisual parent == shapeElement nestedProcessViewport.
+	self assert: taskElement parent == nestedVisual.
+	self assert: (nestedVisual children includes: taskElement).
+	self assert: taskElement position equals: 80 @ 50.
 	^ nestedVisual
 ]

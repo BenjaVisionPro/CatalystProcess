@@ -170,15 +170,11 @@ CPProcessVisualElement >> refresh [
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
 	contentExtent := self canvasExtentFor: shapes.
-	parentProcessVisual
-		ifNil: [
-			self constraintsDo: [ :c |
-				c horizontal matchParent.
-				c vertical matchParent.
-				c minWidth: contentExtent x.
-				c minHeight: contentExtent y ] ]
-		ifNotNil: [
-			self constraintsDo: [ :c | c ignoreByLayout ] ].
+	self constraintsDo: [ :c |
+		c horizontal matchParent.
+		c vertical matchParent.
+		c minWidth: contentExtent x.
+		c minHeight: contentExtent y ].
 	self addPaletteDropSurface.
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
@@ -3106,10 +3102,11 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 	self configureNestedProcessVisual: nestedVisual.
 	nestedVisual
 		parentProcessVisual: self;
-		hostShape: aShapeElement diagramShape;
+		hostShape: aShapeElement diagramShape.
+	aShapeElement hostNestedProcessVisual: nestedVisual.
+	nestedVisual
 		memento: memento
-		flowContainer: aSubProcess.
-	aShapeElement hostNestedProcessVisual: nestedVisual
+		flowContainer: aSubProcess
 ]
 
 { #category : 'private - subprocess' }
