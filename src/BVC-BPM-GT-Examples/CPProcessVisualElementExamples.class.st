@@ -1466,8 +1466,8 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	shapeElement := visual shapeElementsByModelElement at: subProcess.
 	nestedVisual := shapeElement nestedProcessVisual.
 	viewport := shapeElement nestedProcessViewport.
-	nestedShape := nestedVisual shapeElementsByShape keys anyOne.
-	nestedShapeElement := nestedVisual shapeElementFor: nestedShape.
+	nestedShapeElement := nestedVisual shapeElementsByModelElement values anyOne.
+	nestedShape := nestedShapeElement diagramShape.
 	originalParent := nestedShapeElement parent.
 	originalPosition := nestedShapeElement position.
 
