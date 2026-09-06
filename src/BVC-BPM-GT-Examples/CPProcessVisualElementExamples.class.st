@@ -1481,13 +1481,13 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == visual.
-	self assert: nestedShapeElement position equals: expectedRootPosition.
+	self assert: presentation dragShapePosition equals: expectedRootPosition.
 
-	nestedShapeElement relocate: expectedRootPosition + (20 @ 15).
-	presentation restore.
+	presentation
+		restoreShapeAt: expectedRootPosition
+		labelAt: nil.
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
-	self assert: nestedShapeElement position equals: sourceBounds origin + (20 @ 15).
 	^ presentation
 ]

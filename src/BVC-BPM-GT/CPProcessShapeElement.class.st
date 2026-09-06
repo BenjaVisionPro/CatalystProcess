@@ -517,7 +517,7 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 ]
 
 { #category : 'positioning' }
-CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBounds: aStagedBoundsBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
+CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBounds: aStagedBoundsBlock dragStarted: aDragStartBlock dragStartPosition: aDragStartPositionBlock dragged: aDragBlock dragEnded: aDragEndBlock [
 	| isDragging dragStartPointerInParent dragStartElementPosition originalBounds |
 	isDragging := false.
 	anInteractionElement
@@ -528,7 +528,7 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 				aDragStartBlock value: anEvent value: originalBounds.
 				dragStartPointerInParent := self parent
 					globalPointToLocal: anEvent position.
-				dragStartElementPosition := self position.
+				dragStartElementPosition := aDragStartPositionBlock value.
 				isDragging := true.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler

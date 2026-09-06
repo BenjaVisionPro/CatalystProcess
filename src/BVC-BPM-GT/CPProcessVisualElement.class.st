@@ -1466,22 +1466,33 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 		installPositioningFrom: anInteractionElement
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
-			| elementsToLift |
+			| elementsToLift singleLabelPosition |
 			self clearInsertionTarget.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
 			groupMode := moveShapesOperationBlock notNil and: [ groupEntries size > 1 ].
 			movedModelElements := IdentitySet new.
-			groupEntries do: [ :entry | movedModelElements add: entry second ].
+			groupMode
+				ifTrue: [
+					groupEntries do: [ :entry | movedModelElements add: entry second ] ]
+				ifFalse: [
+					movedModelElements add: draggedModelElement ].
+			singleLabelPosition := aShapeElement externalLabelHost
+				ifNotNil: [ :aLabel | aLabel position ].
 			elementsToLift := groupMode
 				ifTrue: [ groupEntries collect: [ :entry | entry third ] ]
 				ifFalse: [ { aShapeElement } ].
 			dragPresentations := IdentityDictionary new.
 			elementsToLift do: [ :anElement |
-				| presentation entry localShapePosition localLabelPosition rootShapePosition rootLabelPosition |
-				entry := groupEntries detect: [ :each | each third == anElement ].
-				localShapePosition := entry fourth origin.
-				localLabelPosition := entry sixth.
+				| entry localShapePosition localLabelPosition rootShapePosition rootLabelPosition presentation |
+				groupMode
+					ifTrue: [
+						entry := groupEntries detect: [ :each | each third == anElement ].
+						localShapePosition := entry fourth origin.
+						localLabelPosition := entry sixth ]
+					ifFalse: [
+						localShapePosition := originalBounds origin.
+						localLabelPosition := singleLabelPosition ].
 				rootShapePosition := self rootDiagramPointForLocalPoint: localShapePosition.
 				rootLabelPosition := localLabelPosition ifNotNil: [
 					self rootDiagramPointForLocalPoint: localLabelPosition ].
@@ -1499,6 +1510,8 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				internalBentEdges do: [ :anEdge |
 					(self lineElementsForEdge: anEdge)
 						do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ] ]
+		dragStartPosition: [
+			(dragPresentations at: aShapeElement) dragShapePosition ]
 		dragged: [ :anEvent :delta |
 			groupMode
 				ifTrue: [
@@ -1542,7 +1555,10 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self updateConnectionPortVisibility ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			dragPresentations valuesDo: [ :aPresentation |
-				aPresentation restore ].
+				aPresentation
+					restoreShapeAt: aPresentation dragShapePosition + delta
+					labelAt: (aPresentation dragLabelPosition
+						ifNotNil: [ :aPosition | aPosition + delta ]) ].
 			groupMode
 				ifTrue: [
 					| boundsByShape currentContainers rootPoint targetVisual targetContainer |

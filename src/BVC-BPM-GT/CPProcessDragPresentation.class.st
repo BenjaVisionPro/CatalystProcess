@@ -47,21 +47,17 @@ CPProcessDragPresentation >> liftFrom: aSourceVisual toRoot: aRootVisual shapeAt
 ]
 
 { #category : 'dragging' }
-CPProcessDragPresentation >> restore [
-	| rootShapePosition rootLabelPosition |
-	rootShapePosition := shapeElement position.
-	rootLabelPosition := labelElement ifNotNil: [ labelElement position ].
-
+CPProcessDragPresentation >> restoreShapeAt: aRootShapePosition labelAt: aRootLabelPosition [
 	shapeElement removeFromParent.
 	originalShapeParent addChild: shapeElement.
 	shapeElement relocate:
-		(sourceVisual localPointForRootDiagramPoint: rootShapePosition).
+		(sourceVisual localPointForRootDiagramPoint: aRootShapePosition).
 
 	labelElement ifNotNil: [
 		labelElement removeFromParent.
 		originalLabelParent addChild: labelElement.
 		labelElement relocate:
-			(sourceVisual localPointForRootDiagramPoint: rootLabelPosition) ]
+			(sourceVisual localPointForRootDiagramPoint: aRootLabelPosition) ]
 ]
 
 { #category : 'accessing' }
