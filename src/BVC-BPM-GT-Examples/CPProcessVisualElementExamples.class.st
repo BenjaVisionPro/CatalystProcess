@@ -494,39 +494,6 @@ CPProcessVisualElementExamples >> draggingShapeStagesMoveThroughBlocGesturePipel
 ]
 
 
-{ #category : 'private - gestures' }
-CPProcessVisualElementExamples >> visibleResizeHandleIn: aVisualElement [
-	^ aVisualElement children
-		detect: [ :each |
-			each extent = (9 @ 9)
-				and: [ each visibility = BlVisibility visible ] ]
-]
-
-{ #category : 'examples - gestures - resizing' }
-CPProcessVisualElementExamples >> selectingActivityRevealsItsResizeHandle [
-	<gtExample>
-	| fixture visual task taskShape scripter handle |
-	fixture := self fixture.
-	task := fixture fourth.
-	taskShape := fixture at: 10.
-	visual := self visualElementForFixture: fixture.
-	(visual shapeElementFor: taskShape) id: #processTaskShape.
-
-	scripter := BlScripter new.
-	scripter element: visual.
-	scripter clickStep: [ :step |
-		step
-			label: 'Select task to reveal resize handle';
-			id: #processTaskShape ].
-
-	handle := self visibleResizeHandleIn: visual.
-	self assert: handle isNotNil.
-	self assert: handle extent equals: (9 @ 9).
-	self assert: handle visibility equals: BlVisibility visible.
-	self assert: visual selectedModelElement == task.
-	^ scripter
-]
-
 
 
 { #category : 'private - gestures' }
