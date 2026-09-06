@@ -6,6 +6,7 @@ Class {
 	#superclass : 'CFMaPresentation',
 	#instVars : [
 		'diagramElement',
+		'processDiagramElement',
 		'diagramScrollElement',
 		'detailHostElement',
 		'detailScrollElement',
@@ -34,10 +35,16 @@ Class {
 
 { #category : 'private - building' }
 CPProcessPresentation >> prepareHostElement [
-	| surfaceColor |
+	| surfaceColor collaboration collaborationDiagram |
 	surfaceColor := self workspaceSurfaceColor.
+	collaboration := self stagedDefinitionalCollaboration.
+	collaborationDiagram := collaboration ifNotNil: [
+		self stagedDiagramOfDefinitionalCollaboration: collaboration ].
 
-	diagramElement := CPProcessVisualElement new
+	processDiagramElement := CPProcessVisualElement new.
+	collaborationDiagram ifNotNil: [
+		processDiagramElement beCollaborationHosted ].
+	processDiagramElement
 		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
@@ -54,8 +61,15 @@ CPProcessPresentation >> prepareHostElement [
 		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
 		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
 		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock;
-		memento: self memento;
-		yourself.
+		memento: self memento.
+
+	diagramElement := collaborationDiagram
+		ifNil: [ processDiagramElement ]
+		ifNotNil: [
+			CPCollaborationVisualElement new
+				processMemento: self memento
+				processVisual: processDiagramElement;
+				yourself ].
 
 	diagramScrollElement := BrScrollPane new
 		background: surfaceColor;
@@ -102,6 +116,27 @@ CPProcessPresentation >> prepareHostElement [
 
 	selectedModelElement := nil
 ]
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> stagedDefinitionalCollaboration [
+	| description |
+	description := self memento magritteDescription
+		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
+	^ self memento readUsing: description
+]
+
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> stagedDiagramOfDefinitionalCollaboration: aCollaboration [
+	| collaborationDescription collaborationMemento diagramDescription |
+	collaborationDescription := self memento magritteDescription
+		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
+	collaborationMemento := self memento
+		childMementoFor: aCollaboration
+		inRelation: collaborationDescription.
+	diagramDescription := collaborationMemento magritteDescription
+		detect: [ :each | each handlesSelector: #diagram ].
+	^ collaborationMemento readUsing: diagramDescription
+]
+
 
 { #category : 'private - selection' }
 CPProcessPresentation >> selectModelElement: aModelElement [
@@ -192,6 +227,11 @@ CPProcessPresentation >> diagramElement [
 ]
 
 { #category : 'accessing - testing' }
+CPProcessPresentation >> processDiagramElement [
+	^ processDiagramElement
+]
+
+{ #category : 'accessing - testing' }
 CPProcessPresentation >> detailHostElement [
 	^ detailHostElement
 ]
@@ -219,8 +259,8 @@ CPProcessPresentation >> moveShapesOperationFor: aBlock [
 
 { #category : 'configuration' }
 CPProcessPresentation >> synchronizeEditingConfiguration [
-	diagramElement ifNil: [ ^ self ].
-	diagramElement
+	processDiagramElement ifNil: [ ^ self ].
+	processDiagramElement
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
 		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
@@ -236,9 +276,8 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
 		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
 		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock.
-	diagramElement refresh
+	processDiagramElement refresh
 ]
-
 { #category : 'configuration' }
 CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
 { #category : 'configuration' }

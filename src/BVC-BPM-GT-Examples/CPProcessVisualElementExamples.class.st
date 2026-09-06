@@ -1500,3 +1500,169 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	self assert: presentation proxyElement parent isNil.
 	^ presentation
 ]
+
+{ #category : 'private - fixture' }
+CPProcessVisualElementExamples >> collaborationVisualFixture [
+	| process start task finish firstFlow secondFlow processDiagram
+	  startShape taskShape finishShape firstEdge secondEdge collaboration localParticipant
+	  externalParticipant collaborationDiagram localPool externalPool memento processVisual collaborationVisual |
+
+	process := CPProcess new label: 'Seller process'; yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Review order'; yourself.
+	finish := CPNoneEndEvent new label: 'End'; yourself.
+	firstFlow := CPSequenceFlow new
+		sourceRef: start;
+		targetRef: task;
+		yourself.
+	secondFlow := CPSequenceFlow new
+		sourceRef: task;
+		targetRef: finish;
+		yourself.
+	process
+		addFlowElement: start;
+		addFlowElement: task;
+		addFlowElement: finish;
+		addFlowElement: firstFlow;
+		addFlowElement: secondFlow.
+
+	processDiagram := CPDiagram new.
+	process diagram: processDiagram.
+	startShape := CPShape new modelElement: start; bounds: (80 @ 70 extent: 42 @ 42); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (180 @ 64 extent: 132 @ 54); yourself.
+	finishShape := CPShape new modelElement: finish; bounds: (370 @ 70 extent: 42 @ 42); yourself.
+	firstEdge := CPEdge new modelElement: firstFlow; yourself.
+	firstEdge
+		addWaypoint: 122 @ 91;
+		addWaypoint: 180 @ 91.
+	secondEdge := CPEdge new modelElement: secondFlow; yourself.
+	secondEdge
+		addWaypoint: 312 @ 91;
+		addWaypoint: 370 @ 91.
+	processDiagram
+		addElement: startShape;
+		addElement: taskShape;
+		addElement: finishShape;
+		addElement: firstEdge;
+		addElement: secondEdge.
+
+	collaboration := CPCollaboration new label: 'Order collaboration'; yourself.
+	localParticipant := CPParticipant new
+		label: 'Seller';
+		processRef: process;
+		yourself.
+	externalParticipant := CPParticipant new
+		label: 'Buyer';
+		yourself.
+	collaboration
+		addParticipant: localParticipant;
+		addParticipant: externalParticipant.
+	collaborationDiagram := CPDiagram new.
+	collaboration diagram: collaborationDiagram.
+	localPool := CPShape new
+		modelElement: localParticipant;
+		bounds: (40 @ 40 extent: 620 @ 230);
+		yourself.
+	externalPool := CPShape new
+		modelElement: externalParticipant;
+		bounds: (40 @ 320 extent: 620 @ 100);
+		yourself.
+	collaborationDiagram
+		addElement: localPool;
+		addElement: externalPool.
+	process definitionalCollaborationRef: collaboration.
+
+	memento := CFMaMemento model: process.
+	processVisual := CPProcessVisualElement new
+		beCollaborationHosted;
+		memento: memento;
+		yourself.
+	collaborationVisual := CPCollaborationVisualElement new
+		processMemento: memento
+		processVisual: processVisual;
+		yourself.
+
+	^ {
+		process.
+		memento.
+		collaboration.
+		localParticipant.
+		externalParticipant.
+		collaborationDiagram.
+		localPool.
+		externalPool.
+		processVisual.
+		collaborationVisual
+	}
+]
+
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> collaborationDiagramAcceptsParticipantShapes [
+	<gtExample>
+	| fixture collaboration diagram localPool externalPool |
+	fixture := self collaborationVisualFixture.
+	collaboration := fixture third.
+	diagram := fixture sixth.
+	localPool := fixture seventh.
+	externalPool := fixture eighth.
+
+	self assert: collaboration diagram == diagram.
+	self assert: diagram modelElement == collaboration.
+	self assert: localPool modelElement == fixture fourth.
+	self assert: externalPool modelElement == fixture fifth.
+	self assert: diagram elements size equals: 2.
+	^ diagram
+]
+
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> collaborationVisualHostsExistingProcessVisualInLocalParticipant [
+	<gtExample>
+	| fixture processVisual collaborationVisual localParticipant localElement |
+	fixture := self collaborationVisualFixture.
+	localParticipant := fixture fourth.
+	processVisual := fixture ninth.
+	collaborationVisual := fixture tenth.
+	localElement := collaborationVisual participantElementsByParticipant
+		at: localParticipant.
+
+	self assert: collaborationVisual processVisual == processVisual.
+	self assert: processVisual isCollaborationHosted.
+	self assert: localElement processVisual == processVisual.
+	self assert: processVisual parent == localElement processHost.
+	self assert: processVisual flowContainer == fixture first.
+	^ collaborationVisual
+]
+
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> blackBoxParticipantRendersWithoutProcessVisual [
+	<gtExample>
+	| fixture collaborationVisual externalParticipant externalElement |
+	fixture := self collaborationVisualFixture.
+	externalParticipant := fixture fifth.
+	collaborationVisual := fixture tenth.
+	externalElement := collaborationVisual participantElementsByParticipant
+		at: externalParticipant.
+
+	self assert: externalParticipant processRef isNil.
+	self assert: externalElement processVisual isNil.
+	self assert: externalElement processHost children isEmpty.
+	^ externalElement
+]
+
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> collaborationPoolsUseTheirOwnDiagramBounds [
+	<gtExample>
+	| fixture collaborationVisual |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture tenth.
+
+	self assert: (collaborationVisual stagedBoundsOf: fixture seventh)
+		equals: (40 @ 40 extent: 620 @ 230).
+	self assert: (collaborationVisual stagedBoundsOf: fixture eighth)
+		equals: (40 @ 320 extent: 620 @ 100).
+	^ collaborationVisual
+]

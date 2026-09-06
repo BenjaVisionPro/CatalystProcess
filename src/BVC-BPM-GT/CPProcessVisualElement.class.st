@@ -40,7 +40,8 @@ Class {
 		'setEdgeLabelPlacementOperationBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
-		'insertionTargetEdge'
+		'insertionTargetEdge',
+		'collaborationHosted'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -57,6 +58,7 @@ CPProcessVisualElement >> initialize [
 	rootVisual := self.
 	parentProcessVisual := nil.
 	hostShape := nil.
+	collaborationHosted := false.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -64,6 +66,19 @@ CPProcessVisualElement >> initialize [
 	self installDiagramCursor.
 	self installKeyboardHandler.
 	self installPaletteDropHandler
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> beCollaborationHosted [
+	collaborationHosted := true.
+	self constraintsDo: [ :c |
+		c minWidth: 0.
+		c minHeight: 0 ]
+]
+
+{ #category : 'testing' }
+CPProcessVisualElement >> isCollaborationHosted [
+	^ collaborationHosted
 ]
 
 { #category : 'accessing' }
@@ -163,7 +178,7 @@ CPProcessVisualElement >> refresh [
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
-		parentProcessVisual ifNil: [
+		(parentProcessVisual isNil and: [ collaborationHosted not ]) ifTrue: [
 			c minWidth: contentExtent x.
 			c minHeight: contentExtent y ] ].
 	self addPaletteDropSurface.

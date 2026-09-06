@@ -31,7 +31,7 @@ CPShape >> modelElementDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #modelElement;
-		classes: { CPFlowNode };
+		classes: { CPFlowNode. CPParticipant };
 		reference: CPFlowNode new labelDescription;
 		label: 'Element';
 		priority: 100;

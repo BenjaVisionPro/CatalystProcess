@@ -6,7 +6,8 @@ Class {
 	#superclass : 'CFLabelledObject',
 	#instVars : [
 		'participants',
-		'messageFlows'
+		'messageFlows',
+		'diagram'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -103,4 +104,29 @@ CPCollaboration >> participantForProcess: aProcess [
 	^ participants
 		detect: [ :each | each processRef == aProcess ]
 		ifNone: [ nil ]
+]
+
+
+{ #category : 'accessing' }
+CPCollaboration >> diagram [
+	^ diagram
+]
+
+{ #category : 'accessing' }
+CPCollaboration >> diagram: aDiagram [
+	diagram := aDiagram.
+	diagram ifNotNil: [ :aCollaborationDiagram |
+		aCollaborationDiagram modelElement: self ]
+]
+
+{ #category : 'descriptions' }
+CPCollaboration >> diagramDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #diagram;
+		classes: { CPDiagram };
+		label: 'Diagram';
+		priority: 120;
+		group: 'Diagram';
+		yourself
 ]

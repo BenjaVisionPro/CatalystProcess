@@ -45,7 +45,7 @@ CPDiagram >> modelElementDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #modelElement;
-		classes: { CPProcess };
+		classes: { CPProcess. CPCollaboration };
 		reference: CPProcess new labelDescription;
 		label: 'Model element';
 		priority: 100;
