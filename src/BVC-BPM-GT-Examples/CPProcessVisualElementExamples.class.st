@@ -1297,7 +1297,7 @@ CPProcessVisualElementExamples >> expandedSubProcessKeepsParentBorderInteraction
 	borders do: [ :each |
 		self assert: each parent == shapeElement ].
 	self assert: shapeElement nestedProcessViewport parent == shapeElement.
-	self assert: shapeElement resizeHandle notNil.
+	self assert: shapeElement resizeHandles size equals: 4.
 	^ shapeElement
 ]
 
@@ -1318,4 +1318,72 @@ CPProcessVisualElementExamples >> nestedBackgroundSelectionTargetsHostingSubProc
 	self assert: visual selectedModelElement == subProcess.
 	self assert: nestedVisual selectedModelElement isNil.
 	^ nestedVisual
+]
+
+
+{ #category : 'examples - resizing' }
+CPProcessVisualElementExamples >> resizableActivityHasFourCornerHandles [
+	<gtExample>
+	| fixture visual task shapeElement |
+	fixture := self fixture.
+	task := fixture fourth.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: task.
+
+	self assert: shapeElement resizeHandles size equals: 4.
+	^ shapeElement
+]
+
+{ #category : 'examples - resizing' }
+CPProcessVisualElementExamples >> resizeCornersPreserveOppositeCorner [
+	<gtExample>
+	| shape original minimum topLeft topRight bottomLeft bottomRight |
+	shape := CPProcessShapeElement new.
+	original := 100 @ 100 extent: 200 @ 120.
+	minimum := 80 @ 50.
+
+	topLeft := shape
+		resizedBoundsFrom: original
+		corner: #topLeft
+		delta: 20 @ 10
+		minimumExtent: minimum.
+	topRight := shape
+		resizedBoundsFrom: original
+		corner: #topRight
+		delta: 20 @ 10
+		minimumExtent: minimum.
+	bottomLeft := shape
+		resizedBoundsFrom: original
+		corner: #bottomLeft
+		delta: 20 @ 10
+		minimumExtent: minimum.
+	bottomRight := shape
+		resizedBoundsFrom: original
+		corner: #bottomRight
+		delta: 20 @ 10
+		minimumExtent: minimum.
+
+	self assert: topLeft bottomRight equals: original bottomRight.
+	self assert: topRight bottomLeft equals: original bottomLeft.
+	self assert: bottomLeft topRight equals: original topRight.
+	self assert: bottomRight topLeft equals: original topLeft.
+	^ shape
+]
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> expandedSubProcessBorderHitAreasUseShapeExtent [
+	<gtExample>
+	| visual subProcess shapeElement borders |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	borders := shapeElement subProcessBorderInteractionElements.
+
+	self assert: borders size equals: 4.
+	self assert: borders first extent x equals: shapeElement extent x.
+	self assert: borders second extent x equals: shapeElement extent x.
+	self assert: borders third extent y equals: shapeElement extent y.
+	self assert: borders fourth extent y equals: shapeElement extent y.
+	^ shapeElement
 ]

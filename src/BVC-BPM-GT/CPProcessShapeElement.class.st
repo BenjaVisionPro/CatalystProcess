@@ -9,7 +9,7 @@ Class {
 		'modelElement',
 		'labelElement',
 		'normalBorderColor',
-		'resizeHandle',
+		'resizeHandles',
 		'connectionPort',
 		'externalLabelHost',
 		'isExpanded',
@@ -41,6 +41,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	modelElement := aFlowNode.
 	labelElement := anEditableLabel.
 	normalBorderColor := aBorderColor.
+	resizeHandles := #().
 	externalLabelHost := nil.
 	isExpanded := aBoolean.
 	subProcessExpansionMarker := nil.
@@ -167,6 +168,47 @@ CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
 	self addChild: innerRing
 ]
 
+{ #category : 'private - cursor' }
+CPProcessShapeElement >> installCursor: aCursor leaving: aLeaveCursor on: anElement [
+	anElement
+		addEventHandler: (BlEventHandler
+			on: BlMouseEnterEvent
+			do: [ :anEvent |
+				anEvent currentTarget space currentCursor: aCursor ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseLeaveEvent
+			do: [ :anEvent |
+				anEvent currentTarget space currentCursor: aLeaveCursor ])
+]
+
+{ #category : 'private - cursor' }
+CPProcessShapeElement >> bodyCursor [
+	(modelElement isSubProcess and: [ isExpanded ]) ifTrue: [
+		^ BlCursor default ].
+	^ BlHandCursor new
+]
+
+{ #category : 'cursor' }
+CPProcessShapeElement >> installBodyCursor [
+	self
+		installCursor: self bodyCursor
+		leaving: BlCursor default
+		on: self.
+	labelElement ifNotNil: [
+		self
+			installCursor: BlCursor default
+			leaving: self bodyCursor
+			on: labelElement ]
+]
+
+{ #category : 'cursor' }
+CPProcessShapeElement >> installDefaultCursorOn: anElement [
+	self
+		installCursor: BlCursor default
+		leaving: self bodyCursor
+		on: anElement
+]
+
 { #category : 'private - appearance' }
 CPProcessShapeElement >> normalBorderColor [
 	^ normalBorderColor
@@ -195,10 +237,49 @@ CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor no
 
 { #category : 'resizing' }
 CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent selectionColor: aSelectionColor stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
-	| handleExtent isDragging dragStartEventPosition dragStartExtent |
+	resizeHandles := {
+		self
+			newResizeHandleAt: #topLeft
+			cursor: BlCursor resizeTopLeft
+			minimumExtent: aMinimumExtent
+			selectionColor: aSelectionColor
+			stagedBounds: aStagedBoundsBlock
+			resize: aResizeBlock
+			geometryChanged: aGeometryChangedBlock.
+		self
+			newResizeHandleAt: #topRight
+			cursor: BlCursor resizeTopRight
+			minimumExtent: aMinimumExtent
+			selectionColor: aSelectionColor
+			stagedBounds: aStagedBoundsBlock
+			resize: aResizeBlock
+			geometryChanged: aGeometryChangedBlock.
+		self
+			newResizeHandleAt: #bottomLeft
+			cursor: BlCursor resizeBottomLeft
+			minimumExtent: aMinimumExtent
+			selectionColor: aSelectionColor
+			stagedBounds: aStagedBoundsBlock
+			resize: aResizeBlock
+			geometryChanged: aGeometryChangedBlock.
+		self
+			newResizeHandleAt: #bottomRight
+			cursor: BlCursor resizeBottomRight
+			minimumExtent: aMinimumExtent
+			selectionColor: aSelectionColor
+			stagedBounds: aStagedBoundsBlock
+			resize: aResizeBlock
+			geometryChanged: aGeometryChangedBlock }.
+	self positionResizeHandles.
+	^ resizeHandles
+]
+
+{ #category : 'private - resizing' }
+CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExtent: aMinimumExtent selectionColor: aSelectionColor stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
+	| handle handleExtent isDragging dragStartEventPosition originalBounds |
 	handleExtent := 9 @ 9.
 	isDragging := false.
-	resizeHandle := BlElement new
+	handle := BlElement new
 		extent: handleExtent;
 		geometry: BlRectangleGeometry new;
 		background: Color white;
@@ -206,8 +287,11 @@ CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent select
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
-	self positionResizeHandle.
-	resizeHandle
+	self
+		installCursor: aCursor
+		leaving: BlCursor default
+		on: handle.
+	handle
 		addEventHandler: (BlEventHandler
 			on: BlClickEvent
 			do: [ :anEvent | anEvent consumed: true ]);
@@ -216,55 +300,96 @@ CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent select
 			do: [ :anEvent |
 				isDragging := true.
 				dragStartEventPosition := anEvent position.
-				dragStartExtent := self extent.
+				originalBounds := aStagedBoundsBlock value.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| delta proposedExtent |
+					| delta proposedBounds |
 					delta := anEvent position - dragStartEventPosition.
-					proposedExtent :=
-						((dragStartExtent x + delta x) max: aMinimumExtent x)
-						@ ((dragStartExtent y + delta y) max: aMinimumExtent y).
-					self extent: proposedExtent.
-					self positionResizeHandle.
+					proposedBounds := self
+						resizedBoundsFrom: originalBounds
+						corner: aCorner
+						delta: delta
+						minimumExtent: aMinimumExtent.
+					self
+						relocate: proposedBounds origin;
+						extent: proposedBounds extent.
+					self positionResizeHandles.
 					aGeometryChangedBlock ifNotNil: [ aGeometryChangedBlock value ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| currentBounds proposedBounds |
+					| delta proposedBounds |
 					isDragging := false.
-					currentBounds := aStagedBoundsBlock value.
-					proposedBounds := currentBounds origin extent: self extent.
+					delta := anEvent position - dragStartEventPosition.
+					proposedBounds := self
+						resizedBoundsFrom: originalBounds
+						corner: aCorner
+						delta: delta
+						minimumExtent: aMinimumExtent.
 					aResizeBlock value: proposedBounds.
 					anEvent consumed: true ] ]).
-	^ resizeHandle
+	^ handle
+]
+
+{ #category : 'private - resizing' }
+CPProcessShapeElement >> resizedBoundsFrom: originalBounds corner: aCorner delta: delta minimumExtent: aMinimumExtent [
+	| left top right bottom minimumWidth minimumHeight |
+	left := originalBounds left.
+	top := originalBounds top.
+	right := originalBounds right.
+	bottom := originalBounds bottom.
+	minimumWidth := aMinimumExtent x.
+	minimumHeight := aMinimumExtent y.
+
+	aCorner = #topLeft ifTrue: [
+		left := (left + delta x) min: right - minimumWidth.
+		top := (top + delta y) min: bottom - minimumHeight ].
+	aCorner = #topRight ifTrue: [
+		right := (right + delta x) max: left + minimumWidth.
+		top := (top + delta y) min: bottom - minimumHeight ].
+	aCorner = #bottomLeft ifTrue: [
+		left := (left + delta x) min: right - minimumWidth.
+		bottom := (bottom + delta y) max: top + minimumHeight ].
+	aCorner = #bottomRight ifTrue: [
+		right := (right + delta x) max: left + minimumWidth.
+		bottom := (bottom + delta y) max: top + minimumHeight ].
+	^ (left @ top) corner: (right @ bottom)
 ]
 
 { #category : 'resizing' }
-CPProcessShapeElement >> positionResizeHandle [
-	resizeHandle ifNil: [ ^ self ].
-	resizeHandle relocate:
-		self position
-			+ self extent
-			- (resizeHandle extent / 2)
+CPProcessShapeElement >> positionResizeHandles [
+	| halfExtent topLeft topRight bottomLeft bottomRight |
+	resizeHandles ifNil: [ ^ self ].
+	resizeHandles isEmpty ifTrue: [ ^ self ].
+	halfExtent := resizeHandles first extent / 2.
+	topLeft := self position - halfExtent.
+	topRight := self position + (self extent x @ 0) - halfExtent.
+	bottomLeft := self position + (0 @ self extent y) - halfExtent.
+	bottomRight := self position + self extent - halfExtent.
+	(resizeHandles at: 1) relocate: topLeft.
+	(resizeHandles at: 2) relocate: topRight.
+	(resizeHandles at: 3) relocate: bottomLeft.
+	(resizeHandles at: 4) relocate: bottomRight
 ]
 
 { #category : 'resizing' }
-CPProcessShapeElement >> resizeHandle [
-	^ resizeHandle
+CPProcessShapeElement >> resizeHandles [
+	^ resizeHandles ifNil: [ #() ]
 ]
 
 { #category : 'resizing' }
 CPProcessShapeElement >> resizeHandleVisible: aBoolean [
-	resizeHandle ifNil: [ ^ self ].
-	resizeHandle visibility: (aBoolean
-		ifTrue: [ BlVisibility visible ]
-		ifFalse: [ BlVisibility hidden ])
+	self resizeHandles do: [ :aHandle |
+		aHandle visibility: (aBoolean
+			ifTrue: [ BlVisibility visible ]
+			ifFalse: [ BlVisibility hidden ]) ]
 ]
+
 
 { #category : 'connection' }
 CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor borderColor: aBorderColor beginConnection: aBeginBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
@@ -346,12 +471,14 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 		addChild: aVisibleIcon;
 		yourself.
 	aConfigureBlock value: visibleHost.
+	self installDefaultCursorOn: visibleHost.
 	self addChild: visibleHost.
 
 	aPopup
 		opacity: 0.0;
 		extent: anExtent.
 	aConfigureBlock value: aPopup.
+	self installDefaultCursorOn: aPopup.
 	aPopup
 		when: BrDropdownIsHidden
 		do: [ :anEvent |
@@ -480,31 +607,36 @@ CPProcessShapeElement >> addSubProcessBorderInteractionElements [
 	| hitWidth top bottom left right |
 	hitWidth := 8.
 	top := BlElement new
-		extent: self width @ hitWidth;
+		extent: self extent x @ hitWidth;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: 0 @ 0;
 		yourself.
 	bottom := BlElement new
-		extent: self width @ hitWidth;
+		extent: self extent x @ hitWidth;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ (self height - hitWidth);
+		relocate: 0 @ (self extent y - hitWidth);
 		yourself.
 	left := BlElement new
-		extent: hitWidth @ self height;
+		extent: hitWidth @ self extent y;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: 0 @ 0;
 		yourself.
 	right := BlElement new
-		extent: hitWidth @ self height;
+		extent: hitWidth @ self extent y;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: (self width - hitWidth) @ 0;
+		relocate: (self extent x - hitWidth) @ 0;
 		yourself.
 	subProcessBorderInteractionElements := { top. bottom. left. right }.
-	subProcessBorderInteractionElements do: [ :each | self addChild: each ]
+	subProcessBorderInteractionElements do: [ :each |
+		self
+			installCursor: BlHandCursor new
+			leaving: BlCursor default
+			on: each.
+		self addChild: each ]
 ]
 
 { #category : 'accessing - testing' }

@@ -62,6 +62,7 @@ CPProcessVisualElement >> initialize [
 		layout: BlFrameLayout new;
 		clipChildren: false;
 		beFocusable.
+	self installDiagramCursor.
 	self installKeyboardHandler.
 	self installPaletteDropHandler
 ]
@@ -322,6 +323,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	modelElement := self stagedModelElementOf: aShape.
 	modelElement ifNil: [ ^ self ].
 	element := self newShapeElementFor: modelElement shape: aShape bounds: bounds.
+	element installBodyCursor.
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: bounds origin.
@@ -1216,10 +1218,10 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 
 { #category : 'private - resizing' }
 CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement bounds: initialBounds [
-	| handle |
+	| handles |
 	resizeShapeOperationBlock ifNil: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
-	handle := aShapeElement
+	handles := aShapeElement
 		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)
 		selectionColor: self selectionColor
 		stagedBounds: [ self stagedBoundsOf: aShape ]
@@ -1227,13 +1229,13 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 		geometryChanged: [
 			self updateIncidentEdgeLabelsFor: aModelElement.
 			self updateIncidentReconnectHandlesFor: aModelElement ].
-	self addChild: handle
+	handles do: [ :aHandle | self addChild: aHandle ]
 ]
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringResizeHandlesToFront [
 	shapeElementsByShape valuesDo: [ :aShapeElement |
-		aShapeElement resizeHandle ifNotNil: [ :aHandle |
+		aShapeElement resizeHandles do: [ :aHandle |
 			aHandle removeFromParent.
 			self addChild: aHandle ] ]
 ]
@@ -1522,7 +1524,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self insertionTargetEdge: (self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement).
-					aShapeElement positionResizeHandle ] ]
+					aShapeElement positionResizeHandles ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			groupMode
 				ifTrue: [
@@ -1577,6 +1579,15 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								shape: aShape
 								intoEdge: insertionEdge
 								atBounds: proposedBounds ] ] ]
+]
+
+{ #category : 'private - cursor' }
+CPProcessVisualElement >> installDiagramCursor [
+	self
+		addEventHandler: (BlEventHandler
+			on: BlMouseEnterEvent
+			do: [ :anEvent |
+				anEvent currentTarget space currentCursor: BlCursor default ])
 ]
 
 { #category : 'private - theme' }
