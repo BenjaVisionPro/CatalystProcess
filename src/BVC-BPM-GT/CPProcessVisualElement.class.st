@@ -330,16 +330,14 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self
 		installResizeHandleFor: aShape
 		modelElement: modelElement
-		shapeElement: element
-		bounds: bounds.
+		shapeElement: element.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	self addChild: element.
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifTrue: [
 		self
 			installNestedProcessVisualIn: element
-			for: modelElement
-			bounds: bounds.
+			for: modelElement.
 		self
 			installExpandedSubProcessBorderInteractionOn: element
 			for: modelElement
@@ -1209,7 +1207,7 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 ]
 
 { #category : 'private - resizing' }
-CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement bounds: initialBounds [
+CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement [
 	| handles |
 	resizeShapeOperationBlock ifNil: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
@@ -1319,7 +1317,7 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 		value: anEdge modelElement
 		value: aFlowNode
 		value: constrainedBounds
-		value: (self stagedFlowContainerContaining: anEdge modelElement)) apply.
+		value: flowContainer) apply.
 	assessment isApplicable
 		ifTrue: [
 			selectedModelElements removeAll.
@@ -1350,10 +1348,6 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 
 
 
-{ #category : 'private - positioning' }
-CPProcessVisualElement >> moveShapeOrSubProcess: aShape modelElement: aFlowNode toBounds: proposedBounds delta: delta [
-	^ self moveShape: aShape toBounds: proposedBounds
-]
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedModelElement [
@@ -1553,15 +1547,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 										extent: proposedBounds extent.
 									targetVisual
 										transferFlowNode: draggedModelElement
-										shape: aShape
 										toContainer: targetContainer
 										bounds: targetBounds ]
 								ifFalse: [
 									self
-										moveShapeOrSubProcess: aShape
-										modelElement: draggedModelElement
-										toBounds: proposedBounds
-										delta: delta ] ]
+										moveShape: aShape
+										toBounds: proposedBounds ] ]
 						ifNotNil: [
 							self
 								insertExistingFlowNode: draggedModelElement
@@ -2572,13 +2563,13 @@ CPProcessVisualElement >> bringBendpointHandlesToFront [
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
-	| sequenceFlow source target sourceElement targetElement lines sourceLine targetLine sourceHandle targetHandle |
+	| sequenceFlow source target lines sourceLine targetLine sourceHandle targetHandle |
 	reconnectSequenceFlowOperationBlock ifNil: [ ^ self ].
 	sequenceFlow := anEdge modelElement.
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
-	sourceElement := shapeElementsByModelElement at: source ifAbsent: [ ^ self ].
-	targetElement := shapeElementsByModelElement at: target ifAbsent: [ ^ self ].
+	(shapeElementsByModelElement includesKey: source) ifFalse: [ ^ self ].
+	(shapeElementsByModelElement includesKey: target) ifFalse: [ ^ self ].
 	edgeVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
 	lines := self lineElementsForEdge: anEdge.
 	lines ifEmpty: [ ^ self ].
@@ -2587,14 +2578,10 @@ CPProcessVisualElement >> installReconnectHandlesFor: anEdge [
 
 	sourceHandle := self
 		newReconnectHandleFor: sequenceFlow
-		movingSource: true
-		owner: sourceElement
-		other: targetElement.
+		movingSource: true.
 	targetHandle := self
 		newReconnectHandleFor: sequenceFlow
-		movingSource: false
-		owner: targetElement
-		other: sourceElement.
+		movingSource: false.
 
 	(edgeVisualsByEdge at: anEdge)
 		reconnectHandles: { sourceHandle. targetHandle }.
@@ -2636,7 +2623,7 @@ CPProcessVisualElement >> validReconnectTargetAtGlobalPoint: aPoint for: aSequen
 ]
 
 { #category : 'private - reconnecting' }
-CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: movesSource owner: ownerElement other: otherElement [
+CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: movesSource [
 	| edgeVisual previewLine previewCursor adjacentReference hiddenTerminalLine reconnectEdge |
 	edgeVisual := self
 		edgeForSequenceFlow: aSequenceFlow
@@ -3018,21 +3005,22 @@ CPProcessVisualElement >> installSubProcessTypePopupOn: aShapeElement for: aFlow
 ]
 
 { #category : 'private - staged state' }
-CPProcessVisualElement >> flowElementMementoFor: aFlowElement [
-	| context |
-	context := CPProcessFlowContainerContext
+CPProcessVisualElement >> flowContainerContextContaining: aFlowElement [
+	^ CPProcessFlowContainerContext
 		containingFlowElement: aFlowElement
-		inRootMemento: memento.
-	^ context ifNotNil: [ context childMementoFor: aFlowElement ]
+		inRootMemento: memento
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> flowElementMementoFor: aFlowElement [
+	^ (self flowContainerContextContaining: aFlowElement)
+		ifNotNil: [ :aContext | aContext childMementoFor: aFlowElement ]
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
-	| context |
-	context := CPProcessFlowContainerContext
-		containingFlowElement: aFlowElement
-		inRootMemento: memento.
-	^ context ifNotNil: [ context container ]
+	^ (self flowContainerContextContaining: aFlowElement)
+		ifNotNil: [ :aContext | aContext container ]
 ]
 
 
@@ -3099,7 +3087,7 @@ CPProcessVisualElement >> shapeElementsByModelElement [
 
 
 { #category : 'private - subprocess' }
-CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubProcess bounds: aRectangle [
+CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubProcess [
 	| nestedVisual |
 	nestedVisual := CPProcessVisualElement new.
 	self configureNestedProcessVisual: nestedVisual.
@@ -3174,7 +3162,7 @@ CPProcessVisualElement >> transferFlowNodeOperationFor: aBlock [
 
 
 { #category : 'operations' }
-CPProcessVisualElement >> transferFlowNode: aFlowNode shape: aShape toContainer: aFlowContainer bounds: aRectangle [
+CPProcessVisualElement >> transferFlowNode: aFlowNode toContainer: aFlowContainer bounds: aRectangle [
 	| assessment constrainedBounds |
 	transferFlowNodeOperationBlock ifNil: [ ^ nil ].
 	constrainedBounds := self constrainedBounds: aRectangle forFlowContainer: aFlowContainer.
