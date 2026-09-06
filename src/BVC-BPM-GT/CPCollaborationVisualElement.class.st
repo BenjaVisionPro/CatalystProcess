@@ -55,7 +55,8 @@ CPCollaborationVisualElement >> initialize [
 	cameraSlack := 0 @ 0.
 	self
 		layout: BlFrameLayout new;
-		clipChildren: false.
+		clipChildren: false;
+		beFocusable.
 	self
 		installKeyboardHandler;
 		installPaletteDropHandler
