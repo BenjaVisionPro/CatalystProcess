@@ -306,18 +306,25 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 		border: (BlBorder paint: aSelectionColor width: 1.5);
 		visibility: BlVisibility visible;
 		constraintsDo: [ :c |
+			| halfWidth halfHeight |
+			halfWidth := handleExtent x / 2.
+			halfHeight := handleExtent y / 2.
 			aCorner = #topLeft ifTrue: [
 				c frame horizontal alignLeft.
-				c frame vertical alignTop ].
+				c frame vertical alignTop.
+				c margin: (BlInsets top: halfHeight negated left: halfWidth negated) ].
 			aCorner = #topRight ifTrue: [
 				c frame horizontal alignRight.
-				c frame vertical alignTop ].
+				c frame vertical alignTop.
+				c margin: (BlInsets top: halfHeight negated right: halfWidth negated) ].
 			aCorner = #bottomLeft ifTrue: [
 				c frame horizontal alignLeft.
-				c frame vertical alignBottom ].
+				c frame vertical alignBottom.
+				c margin: (BlInsets bottom: halfHeight negated left: halfWidth negated) ].
 			aCorner = #bottomRight ifTrue: [
 				c frame horizontal alignRight.
-				c frame vertical alignBottom ] ];
+				c frame vertical alignBottom.
+				c margin: (BlInsets bottom: halfHeight negated right: halfWidth negated) ] ];
 		yourself.
 	self installCursor: aCursor leaving: self bodyCursor on: handle.
 	handle
