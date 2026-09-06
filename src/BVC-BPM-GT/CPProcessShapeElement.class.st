@@ -655,32 +655,40 @@ CPProcessShapeElement >> addSubProcessBorderInteractionElements [
 	| hitWidth top bottom left right |
 	hitWidth := 8.
 	top := BlElement new
-		extent: self extent x @ hitWidth;
+		extent: 0 @ hitWidth;
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ 0;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c frame horizontal alignLeft.
+			c frame vertical alignTop ];
 		yourself.
 	bottom := BlElement new
-		extent: self extent x @ hitWidth;
+		extent: 0 @ hitWidth;
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ (self extent y - hitWidth);
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c frame horizontal alignLeft.
+			c frame vertical alignBottom ];
 		yourself.
 	left := BlElement new
-		extent: hitWidth @ self extent y;
+		extent: hitWidth @ 0;
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: 0 @ 0;
+		constraintsDo: [ :c |
+			c vertical matchParent.
+			c frame horizontal alignLeft.
+			c frame vertical alignTop ];
 		yourself.
 	right := BlElement new
-		extent: hitWidth @ self extent y;
+		extent: hitWidth @ 0;
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: (self extent x - hitWidth) @ 0;
+		constraintsDo: [ :c |
+			c vertical matchParent.
+			c frame horizontal alignRight.
+			c frame vertical alignTop ];
 		yourself.
 	subProcessBorderInteractionElements := { top. bottom. left. right }.
 	subProcessBorderInteractionElements do: [ :each |

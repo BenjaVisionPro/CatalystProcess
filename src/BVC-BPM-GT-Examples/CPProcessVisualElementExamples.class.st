@@ -1337,24 +1337,6 @@ CPProcessVisualElementExamples >> resizeCornersPreserveOppositeCorner [
 	^ shape
 ]
 
-{ #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> expandedSubProcessBorderHitAreasUseShapeExtent [
-	<gtExample>
-	| visual subProcess shapeElement borders |
-	visual := self expandedSubProcessHostsNestedProcessVisual.
-	subProcess := visual shapeElementsByModelElement keys
-		detect: [ :each | each isSubProcess ].
-	shapeElement := visual shapeElementsByModelElement at: subProcess.
-	borders := shapeElement subProcessBorderInteractionElements.
-
-	self assert: borders size equals: 4.
-	self assert: borders first extent x equals: shapeElement extent x.
-	self assert: borders second extent x equals: shapeElement extent x.
-	self assert: borders third extent y equals: shapeElement extent y.
-	self assert: borders fourth extent y equals: shapeElement extent y.
-	^ shapeElement
-]
-
 
 { #category : 'examples - resizing' }
 CPProcessVisualElementExamples >> resizeHandlesRemainAvailableWithoutSelection [
@@ -1461,4 +1443,22 @@ CPProcessVisualElementExamples >> dragPointerConversionDoesNotDependOnMovingInte
 	shape := CPProcessShapeElement new.
 	self assert: shape notNil.
 	^ shape
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> expandedSubProcessBorderTargetsUseLayout [
+	<gtExample>
+	| visual subProcess shapeElement borders |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	borders := shapeElement subProcessBorderInteractionElements.
+
+	self assert: borders size equals: 4.
+	borders do: [ :each |
+		self assert: each parent == shapeElement.
+		self assert: each geometry class == BlRectangleGeometry ].
+	^ shapeElement
 ]
