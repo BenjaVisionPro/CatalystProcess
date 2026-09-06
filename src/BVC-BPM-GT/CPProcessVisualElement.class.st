@@ -156,12 +156,21 @@ CPProcessVisualElement >> globalPointForDiagramPoint: aPoint [
 
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChild: anElement [
-	diagramContentElement addChild: anElement
+	diagramContentElement
+		ifNil: [ self addChild: anElement ]
+		ifNotNil: [ :aContentElement | aContentElement addChild: anElement ]
 ]
 
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChildFirst: anElement [
-	diagramContentElement addChildFirst: anElement
+	diagramContentElement
+		ifNil: [ self addChildFirst: anElement ]
+		ifNotNil: [ :aContentElement | aContentElement addChildFirst: anElement ]
+]
+
+{ #category : 'private - coordinates' }
+CPProcessVisualElement >> diagramPresentationParent [
+	^ diagramContentElement ifNil: [ self ]
 ]
 
 
@@ -254,14 +263,18 @@ CPProcessVisualElement >> refresh [
 				c horizontal matchParent.
 				c vertical matchParent ] ].
 	self addPaletteDropSurface.
-	diagramContentElement := BlElement new
-		layout: BlFrameLayout new;
-		clipChildren: false;
-		constraintsDo: [ :c | c ignoreByLayout ];
-		extent: contentExtent;
-		relocate: self workspaceMargin;
-		yourself.
-	self addChild: diagramContentElement.
+	self usesWorkspaceMargin
+		ifTrue: [
+			diagramContentElement := BlElement new
+				layout: BlFrameLayout new;
+				clipChildren: false;
+				constraintsDo: [ :c | c ignoreByLayout ];
+				extent: contentExtent;
+				relocate: workspaceMargin;
+				yourself.
+			self addChild: diagramContentElement ]
+		ifFalse: [
+			diagramContentElement := nil ].
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
@@ -735,8 +748,8 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 			sourceElement := self shapeElementForModelElement: source.
 			targetElement := self shapeElementForModelElement: target.
 			(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ someWaypoints ].
-			sourceBounds := sourceElement bounds inParent: diagramContentElement.
-			targetBounds := targetElement bounds inParent: diagramContentElement ]
+			sourceBounds := sourceElement bounds inParent: self diagramPresentationParent.
+			targetBounds := targetElement bounds inParent: self diagramPresentationParent ]
 		ifFalse: [
 			sourceBounds := self stagedBoundsOf: (self shapeForModelElement: source).
 			targetBounds := self stagedBoundsOf: (self shapeForModelElement: target) ].
@@ -1098,7 +1111,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 				installBendpointInsertionOn: anElement
 				for: anEdge
 				segmentIndex: aSegmentIndex ]
-		addTo: diagramContentElement.
+		addTo: self diagramPresentationParent.
 	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
 
@@ -1108,15 +1121,15 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 		anElement removeFromParent.
 		self addDiagramChild: anElement ].
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
-		aShapeElement bringExternalLabelToFrontIn: diagramContentElement ].
+		aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual bringLabelToFrontIn: diagramContentElement ]
+		anEdgeVisual bringLabelToFrontIn: self diagramPresentationParent ]
 ]
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringReconnectHandlesToFront [
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual bringReconnectHandlesToFrontIn: diagramContentElement ]
+		anEdgeVisual bringReconnectHandlesToFrontIn: self diagramPresentationParent ]
 ]
 
 { #category : 'private - edges' }
@@ -1184,7 +1197,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 					installBendpointInsertionOn: anElement
 					for: anEdge
 					segmentIndex: aSegmentIndex ]
-			addTo: diagramContentElement ].
+			addTo: self diagramPresentationParent ].
 	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
 
@@ -1967,7 +1980,7 @@ CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
 	selectedModelElements removeAll.
 
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
-		((anElement bounds inParent: diagramContentElement) asRectangle intersects: aRectangle)
+		((anElement bounds inParent: self diagramPresentationParent) asRectangle intersects: aRectangle)
 			ifTrue: [ selectedModelElements add: aModelElement ] ].
 
 	edgeVisualsByEdge keysDo: [ :anEdge |
@@ -2889,7 +2902,7 @@ CPProcessVisualElement >> newPreviewLinesFor: anEdge waypoints: someWaypoints [
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringBendpointHandlesToFront [
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual bringBendpointHandlesToFrontIn: diagramContentElement ]
+		anEdgeVisual bringBendpointHandlesToFrontIn: self diagramPresentationParent ]
 ]
 
 { #category : 'private - reconnecting' }
@@ -3024,7 +3037,7 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 				positionReconnectHandle: handle
 				fromPreviewLine: previewLine
 				movingSource: movesSource
-				within: diagramContentElement.
+				within: self diagramPresentationParent.
 			self
 				positionEdgeLabelForReconnectPreview: reconnectEdge
 				line: previewLine
@@ -3078,11 +3091,11 @@ CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPr
 		ifTrue: [
 			aPreviewLine fromAnchor
 				positionForAnchoredElement: aPreviewLine
-				within: diagramContentElement ]
+				within: self diagramPresentationParent ]
 		ifFalse: [
 			aPreviewLine toAnchor
 				positionForAnchoredElement: aPreviewLine
-				within: diagramContentElement ].
+				within: self diagramPresentationParent ].
 	movesSource
 		ifTrue: [ points at: 1 put: endpoint ]
 		ifFalse: [ points at: points size put: endpoint ].
@@ -3120,10 +3133,10 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLin
 	lastLine := someLines last.
 	sourcePoint := firstLine fromAnchor
 		positionForAnchoredElement: firstLine
-		within: diagramContentElement.
+		within: self diagramPresentationParent.
 	targetPoint := lastLine toAnchor
 		positionForAnchoredElement: lastLine
-		within: diagramContentElement.
+		within: self diagramPresentationParent.
 
 	edgeVisual
 		positionReconnectHandlesAtSource: sourcePoint
@@ -3162,7 +3175,7 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: so
 CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement toward: aPoint [
 	^ self
 		dockingPointFor: aFlowNode
-		bounds: (aNodeElement bounds inParent: diagramContentElement)
+		bounds: (aNodeElement bounds inParent: self diagramPresentationParent)
 		toward: aPoint
 ]
 
