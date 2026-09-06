@@ -55,7 +55,8 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 		border: (BlBorder
 			paint: aBorderColor
 			width: self normalBorderWidth);
-		layout: BlFrameLayout new.
+		layout: BlFrameLayout new;
+		clipChildren: false.
 	self addActivityLabelForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
 	self addCallActivityDecorationForBounds: aRectangle.

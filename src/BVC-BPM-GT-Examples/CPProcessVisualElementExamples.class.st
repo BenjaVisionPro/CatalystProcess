@@ -1402,3 +1402,18 @@ CPProcessVisualElementExamples >> cursorActivationIgnoresDetachedElement [
 	self assert: element space isNil.
 	^ element
 ]
+
+
+{ #category : 'examples - resizing' }
+CPProcessVisualElementExamples >> shapeAllowsAffordancesOutsideGeometry [
+	<gtExample>
+	| fixture visual task shapeElement |
+	fixture := self fixture.
+	task := fixture fourth.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: task.
+
+	self assert: shapeElement clipChildren not.
+	self assert: shapeElement resizeHandles size equals: 4.
+	^ shapeElement
+]
