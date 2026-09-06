@@ -1463,7 +1463,7 @@ CPProcessVisualElementExamples >> collaborationRendersMessageFlowFromItsOwnDiagr
 	self assert: messageVisual diagramEdge == messageEdge.
 	self assert: messageVisual lineElements isEmpty not.
 	self assert: messageVisual sourceMarker notNil.
-	self assert: messageVisual sourceMarker parent == collaborationVisual.
+	self assert: messageVisual sourceMarker parent == collaborationVisual diagramPresentationParent.
 	^ messageVisual
 ]
 
@@ -1492,7 +1492,7 @@ CPProcessVisualElementExamples >> collaborationMessageFlowRendersItsLabel [
 		at: (fixture at: 12).
 
 	self assert: messageVisual labelHost notNil.
-	self assert: messageVisual labelHost parent == collaborationVisual.
+	self assert: messageVisual labelHost parent == collaborationVisual diagramPresentationParent.
 	^ messageVisual
 ]
 
