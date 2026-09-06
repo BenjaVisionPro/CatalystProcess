@@ -2188,7 +2188,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 						:aBlock | aBlock value: selectedModelElement ].
 					anEvent consumed: true ] ]);
 		yourself.
-	self addChild: dropSurface
+	self addChildFirst: dropSurface
 ]
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
