@@ -10,8 +10,16 @@ Class {
 
 { #category : 'assessing' }
 CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: aCollaboration [
-	| sourceParticipant targetParticipant |
 	aCollaboration ifNil: [ ^ self rejectedBecause: 'A Collaboration is required.' ].
+	^ self
+		assessConnectionFrom: aSource
+		to: aTarget
+		participants: aCollaboration participants
+]
+
+{ #category : 'assessing' }
+CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget participants: someParticipants [
+	| sourceParticipant targetParticipant |
 	aSource ifNil: [ ^ self rejectedBecause: 'A MessageFlow source is required.' ].
 	aTarget ifNil: [ ^ self rejectedBecause: 'A MessageFlow target is required.' ].
 	aSource == aTarget ifTrue: [
@@ -21,8 +29,12 @@ CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: aC
 	aTarget canBeMessageFlowEndpoint ifFalse: [
 		^ self rejectedBecause: 'The target cannot participate in a MessageFlow.' ].
 
-	sourceParticipant := aCollaboration participantForEndpoint: aSource.
-	targetParticipant := aCollaboration participantForEndpoint: aTarget.
+	sourceParticipant := self
+		participantForEndpoint: aSource
+		in: someParticipants.
+	targetParticipant := self
+		participantForEndpoint: aTarget
+		in: someParticipants.
 	sourceParticipant ifNil: [
 		^ self rejectedBecause: 'The source is not represented by a Participant in the Collaboration.' ].
 	targetParticipant ifNil: [
@@ -32,6 +44,16 @@ CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: aC
 	^ CPMessageFlowConnectionRuleResult allowed
 ]
 
+{ #category : 'private - resolving' }
+CPMessageFlowConnectionRules >> participantForEndpoint: anEndpoint in: someParticipants [
+	anEndpoint isParticipant ifTrue: [
+		^ someParticipants
+			detect: [ :each | each == anEndpoint ]
+			ifNone: [ nil ] ].
+	^ someParticipants
+		detect: [ :each | each processRef == anEndpoint owningProcess ]
+		ifNone: [ nil ]
+]
 { #category : 'private' }
 CPMessageFlowConnectionRules >> rejectedBecause: aString [
 	^ CPMessageFlowConnectionRuleResult rejectedBecause: aString

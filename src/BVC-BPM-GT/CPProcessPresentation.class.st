@@ -19,6 +19,7 @@ Class {
 		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
+		'createParticipantOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'connectMessageFlowOperationBlock',
@@ -54,6 +55,8 @@ CPProcessPresentation >> prepareHostElement [
 		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		createParticipantOperationFor: createParticipantOperationBlock;
+		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
 		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
 		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
@@ -71,6 +74,7 @@ CPProcessPresentation >> prepareHostElement [
 		ifNotNil: [
 			collaborationDiagramElement := CPCollaborationVisualElement new
 				connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
+				createParticipantOperationFor: createParticipantOperationBlock;
 				processMemento: self memento
 				processVisual: processDiagramElement;
 				yourself.
@@ -121,6 +125,27 @@ CPProcessPresentation >> prepareHostElement [
 
 	selectedModelElement := nil
 ]
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> ensureCollaborationDiagramPresentation [
+	| collaboration collaborationDiagram |
+	collaboration := self stagedDefinitionalCollaboration.
+	collaboration ifNil: [ ^ self ].
+	collaborationDiagram := self stagedDiagramOfDefinitionalCollaboration: collaboration.
+	collaborationDiagram ifNil: [ ^ self ].
+
+	collaborationDiagramElement ifNil: [
+		collaborationDiagramElement := CPCollaborationVisualElement new
+			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
+			createParticipantOperationFor: createParticipantOperationBlock;
+			processMemento: self memento
+			processVisual: processDiagramElement;
+			yourself.
+		diagramElement := collaborationDiagramElement.
+		diagramScrollElement content: diagramElement.
+		^ self ].
+	collaborationDiagramElement refresh
+]
+
 { #category : 'private - collaboration' }
 CPProcessPresentation >> stagedDefinitionalCollaboration [
 	| description |
@@ -277,6 +302,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 		moveShapesOperationFor: moveShapesOperationBlock;
 		resizeShapeOperationFor: resizeShapeOperationBlock;
 		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		createParticipantOperationFor: createParticipantOperationBlock;
 		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
 		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
 		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
@@ -290,10 +316,16 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 	collaborationDiagramElement ifNotNil: [
 		collaborationDiagramElement
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
+			createParticipantOperationFor: createParticipantOperationBlock;
 			refresh ]
 ]
 { #category : 'configuration' }
 CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> createParticipantOperationFor: aBlock [
+	createParticipantOperationBlock := aBlock
+]
 { #category : 'configuration' }
 CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]
 

@@ -32,6 +32,11 @@ CPProcessAtelierConfiguration class >> processPalette [
 	palette := CFAtelierPalette new.
 	palette
 		add: (CFAtelierPaletteItem
+			label: 'Pool'
+			icon: CPParticipant icon
+			provider: (CFAtelierFactoryProvider factory: [
+				CPParticipant new label: 'Pool'; yourself ]));
+		add: (CFAtelierPaletteItem
 			label: 'Start event'
 			icon: CPNoneStartEvent icon
 			provider: (CFAtelierFactoryProvider factory: [
@@ -74,6 +79,11 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
 		aPresentation
+			createParticipantOperationFor: [ :aParticipant :proposedBounds |
+				CPAtelierCreateParticipant
+					participant: aParticipant
+					bounds: proposedBounds
+					processMemento: aPresentation memento ];
 			moveShapeOperationFor: [ :aShape :proposedBounds |
 				CPAtelierMoveShape shape: aShape bounds: proposedBounds processMemento: aPresentation memento diagramDescription: diagramDescription ];
 			transferFlowNodeOperationFor: [ :aFlowNode :aFlowContainer :proposedBounds |

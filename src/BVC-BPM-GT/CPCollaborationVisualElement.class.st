@@ -13,7 +13,9 @@ Class {
 		'collaborationMemento',
 		'diagramMemento',
 		'elementsDescription',
+		'participantsDescription',
 		'messageFlowsDescription',
+		'createParticipantOperationBlock',
 		'participantElementsByParticipant',
 		'messageFlowVisualsByEdge',
 		'connectMessageFlowOperationBlock',
@@ -34,7 +36,8 @@ CPCollaborationVisualElement >> initialize [
 	connectionPreviewCursor := nil.
 	self
 		layout: BlFrameLayout new;
-		clipChildren: false
+		clipChildren: false.
+	self installPaletteDropHandler
 ]
 
 { #category : 'configuration' }
@@ -46,7 +49,7 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
-	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges contentExtent stagedMessageFlows |
+	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges contentExtent stagedParticipants stagedMessageFlows |
 	processVisual ifNotNil: [ processVisual removeFromParent ].
 	self removeChildren.
 	participantElementsByParticipant removeAll.
@@ -69,9 +72,12 @@ CPCollaborationVisualElement >> refresh [
 		inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
+	participantsDescription := collaborationMemento magritteDescription
+		detect: [ :each | each handlesSelector: #participants ].
 	messageFlowsDescription := collaborationMemento magritteDescription
 		detect: [ :each | each handlesSelector: #messageFlows ].
 	elements := diagramMemento readUsing: elementsDescription.
+	stagedParticipants := collaborationMemento readUsing: participantsDescription.
 	stagedMessageFlows := collaborationMemento readUsing: messageFlowsDescription.
 	participantShapes := elements select: [ :each |
 		| modelElement |
@@ -115,7 +121,7 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 	participantElementsByParticipant at: participant put: element.
 	self addChild: element.
 
-	participant processRef == processMemento model ifTrue: [
+	(self stagedProcessRefOfParticipant: participant) == processMemento model ifTrue: [
 		processVisual collaborationVisual: self.
 		element hostProcessVisual: processVisual ]
 ]
@@ -138,6 +144,11 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 { #category : 'configuration' }
 CPCollaborationVisualElement >> connectMessageFlowOperationFor: aBlock [
 	connectMessageFlowOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> createParticipantOperationFor: aBlock [
+	createParticipantOperationBlock := aBlock
 ]
 
 { #category : 'connection' }
@@ -241,7 +252,7 @@ CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from
 	^ (CPMessageFlowConnectionRules new
 		assessConnectionFrom: aSource
 		to: participantTarget
-		in: collaboration) isAllowed
+		participants: self stagedParticipants) isAllowed
 			ifTrue: [ CPCollaborationConnectionTarget messageFlowTo: participantTarget ]
 			ifFalse: [ nil ]
 ]
@@ -250,7 +261,7 @@ CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from
 CPCollaborationVisualElement >> participantAtCollaborationPoint: aPoint excludingEndpoint: anEndpoint [
 	| endpointParticipant |
 	endpointParticipant := collaboration participantForEndpoint: anEndpoint.
-	^ collaboration participants
+	^ self stagedParticipants
 		detect: [ :each |
 			each ~~ endpointParticipant and: [
 				| shape bounds |
@@ -317,8 +328,8 @@ CPCollaborationVisualElement >> collaborationDockingPointForFlowNode: aFlowNode 
 { #category : 'connection geometry' }
 CPCollaborationVisualElement >> collaborationPointForProcessRootPoint: aPoint [
 	| participant participantElement shape bounds |
-	participant := collaboration
-		participantForProcess: processMemento model.
+	participant := self
+		stagedParticipantForProcess: processMemento model.
 	participant ifNil: [ ^ aPoint ].
 	participantElement := participantElementsByParticipant
 		at: participant
@@ -359,6 +370,78 @@ CPCollaborationVisualElement >> removeConnectionPreview [
 	connectionPreviewCursor ifNotNil: [ connectionPreviewCursor removeFromParent ].
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil
+]
+
+{ #category : 'private - creation' }
+CPCollaborationVisualElement >> installPaletteDropHandler [
+	self addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsParticipantPaletteDragItem: aDragItem ];
+		whenDroppedDo: [ :anEvent |
+			self dropParticipantPaletteEvent: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPCollaborationVisualElement >> acceptsParticipantPaletteDragItem: aDragItem [
+	| sourceElement candidate assessment |
+	createParticipantOperationBlock ifNil: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	candidate isParticipant ifFalse: [ ^ false ].
+	assessment := (createParticipantOperationBlock
+		value: candidate
+		value: (0 @ 0 extent: self defaultBlackBoxParticipantExtent)) assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
+	| dragItem participant dropPoint bounds assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	participant := dragItem domainObject.
+	participant isParticipant ifFalse: [ ^ self ].
+	dropPoint := self globalPointToLocal:
+		(anEvent currentTarget localPointToGlobal: anEvent position).
+	bounds := (dropPoint - (self defaultBlackBoxParticipantExtent / 2))
+		extent: self defaultBlackBoxParticipantExtent.
+	assessment := (createParticipantOperationBlock
+		value: participant
+		value: bounds) apply.
+	assessment isApplicable ifTrue: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - creation' }
+CPCollaborationVisualElement >> defaultBlackBoxParticipantExtent [
+	^ 620 @ 100
+]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedParticipants [
+	^ collaborationMemento readUsing: participantsDescription
+]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedProcessRefOfParticipant: aParticipant [
+	| participantMemento description |
+	participantMemento := collaborationMemento
+		childMementoFor: aParticipant
+		inRelation: participantsDescription.
+	description := participantMemento magritteDescription
+		detect: [ :each | each handlesSelector: #processRef ].
+	^ participantMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedParticipantForProcess: aProcess [
+	^ self stagedParticipants
+		detect: [ :each |
+			(self stagedProcessRefOfParticipant: each) == aProcess ]
+		ifNone: [ nil ]
 ]
 
 { #category : 'private - staged state' }

@@ -1174,3 +1174,90 @@ CPProcessAtelierExamples >> connectMessageFlowRejectsEndpointsInsideSameParticip
 		equals: 'A MessageFlow must connect two separate Participants.'.
 	^ assessment
 ]
+
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> createFirstParticipantAssessmentDoesNotEstablishCollaboration [
+	<gtExample>
+	| process memento participant operation assessment collaborationDescription |
+	process := CPProcess new label: 'Process'; yourself.
+	process diagram: CPDiagram new.
+	memento := CFMaMemento model: process.
+	participant := CPParticipant new label: 'Pool'; yourself.
+	operation := CPAtelierCreateParticipant
+		participant: participant
+		bounds: (40 @ 40 extent: 620 @ 230)
+		processMemento: memento.
+
+	assessment := operation assess.
+	collaborationDescription := self
+		descriptionFor: #definitionalCollaborationRef
+		in: memento.
+
+	self assert: assessment isApplicable.
+	self assert: assessment createsCollaboration.
+	self assert: assessment referencesProcess.
+	self assert: (memento readUsing: collaborationDescription) isNil.
+	self assert: process definitionalCollaborationRef isNil.
+	self assert: participant processRef isNil.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> createFirstParticipantStagesCollaborationPoolAndProcessReference [
+	<gtExample>
+	| process memento participant operation assessment collaborationDescription context |
+	process := CPProcess new label: 'Process'; yourself.
+	process diagram: CPDiagram new.
+	memento := CFMaMemento model: process.
+	participant := CPParticipant new label: 'Pool'; yourself.
+	operation := CPAtelierCreateParticipant
+		participant: participant
+		bounds: (40 @ 40 extent: 620 @ 230)
+		processMemento: memento.
+
+	assessment := operation apply.
+	collaborationDescription := self
+		descriptionFor: #definitionalCollaborationRef
+		in: memento.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: (memento readUsing: collaborationDescription) == assessment collaboration.
+	self assert: context participants size equals: 1.
+	self assert: context participants first == participant.
+	self assert: context elements size equals: 1.
+	self assert: context elements first == assessment shape.
+	self assert: assessment shape modelElement == participant.
+	self assert: assessment shape bounds equals: (40 @ 40 extent: 620 @ 230).
+	self assert: participant processRef == process.
+	self assert: process definitionalCollaborationRef isNil.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> createSecondParticipantDefaultsToBlackBox [
+	<gtExample>
+	| fixture memento secondParticipant operation assessment context |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	secondParticipant := CPParticipant new label: 'Carrier'; yourself.
+	operation := CPAtelierCreateParticipant
+		participant: secondParticipant
+		bounds: (40 @ 460 extent: 620 @ 100)
+		processMemento: memento.
+
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: assessment createsCollaboration not.
+	self assert: assessment referencesProcess not.
+	self assert: context participants size equals: 3.
+	self assert: context participants last == secondParticipant.
+	self assert: context elements size equals: 3.
+	self assert: secondParticipant processRef isNil.
+	^ assessment
+]

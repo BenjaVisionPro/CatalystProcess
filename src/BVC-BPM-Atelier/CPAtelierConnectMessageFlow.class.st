@@ -40,7 +40,7 @@ CPAtelierConnectMessageFlow >> assess [
 	ruleResult := CPMessageFlowConnectionRules new
 		assessConnectionFrom: source
 		to: target
-		in: collaboration.
+		participants: collaborationContext participants.
 	ruleResult isAllowed ifFalse: [
 		^ self rejectedBecause: ruleResult message ].
 

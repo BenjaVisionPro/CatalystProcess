@@ -29,6 +29,7 @@ Class {
 		'moveShapesOperationBlock',
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
+		'createParticipantOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'insertFlowNodeOperationBlock',
@@ -42,7 +43,8 @@ Class {
 		'connectionTargetModelElement',
 		'insertionTargetEdge',
 		'collaborationHosted',
-		'collaborationVisual'
+		'collaborationVisual',
+		'collaborationChangedBlock'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -1800,6 +1802,16 @@ CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
 CPProcessVisualElement >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
 
 { #category : 'configuration' }
+CPProcessVisualElement >> createParticipantOperationFor: aBlock [
+	createParticipantOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> collaborationChangedDo: aBlock [
+	collaborationChangedBlock := aBlock
+]
+
+{ #category : 'configuration' }
 CPProcessVisualElement >> insertFlowNodeOperationFor: aBlock [
 	insertFlowNodeOperationBlock := aBlock
 ]
@@ -1828,6 +1840,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdg
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
+	candidate isParticipant ifTrue: [ ^ false ].
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	assessment := (insertFlowNodeOperationBlock
 		value: anEdge modelElement
@@ -2048,16 +2061,29 @@ CPProcessVisualElement >> addPaletteDropSurface [
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	| sourceElement candidate proposedBounds assessment |
-	createFlowNodeOperationBlock ifNil: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
+
+	candidate isParticipant ifTrue: [
+		createParticipantOperationBlock ifNil: [ ^ false ].
+		parentProcessVisual ifNotNil: [ ^ false ].
+		collaborationVisual ifNotNil: [ ^ false ].
+		proposedBounds := 0 @ 0 extent: self defaultParticipantExtent.
+		assessment := (createParticipantOperationBlock
+			value: candidate
+			value: proposedBounds) assess.
+		^ assessment isApplicable ].
+
+	createFlowNodeOperationBlock ifNil: [ ^ false ].
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
-	assessment := (createFlowNodeOperationBlock value: candidate value: proposedBounds value: flowContainer) assess.
+	assessment := (createFlowNodeOperationBlock
+		value: candidate
+		value: proposedBounds
+		value: flowContainer) assess.
 	^ assessment isApplicable
 ]
-
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
 	| dragItem globalPoint rootPoint targetVisual |
@@ -2078,6 +2104,9 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
 	| candidate elementExtent bounds assessment |
 	candidate := aDragItem domainObject.
+	candidate isParticipant ifTrue: [
+		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
+
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self
 		boundsCenteredAtRootDiagramPoint: aRootPoint
@@ -2094,6 +2123,25 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		self refreshEditor.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
 	^ assessment
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagramPoint: aRootPoint [
+	| bounds assessment |
+	createParticipantOperationBlock ifNil: [ ^ nil ].
+	bounds := (aRootPoint - (self defaultParticipantExtent / 2))
+		extent: self defaultParticipantExtent.
+	assessment := (createParticipantOperationBlock
+		value: aParticipant
+		value: bounds) apply.
+	assessment isApplicable ifTrue: [
+		collaborationChangedBlock ifNotNil: [ :aBlock | aBlock value ] ].
+	^ assessment
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> defaultParticipantExtent [
+	^ 620 @ 230
 ]
 { #category : 'private - replacement' }
 CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNode shape: aShape [
@@ -2114,6 +2162,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
+	candidate isParticipant ifTrue: [ ^ false ].
 	candidate class = aFlowNode class ifTrue: [ ^ false ].
 	proposedBounds := self replacementBoundsFor: candidate shape: aShape.
 	assessment := (replaceFlowNodeOperationBlock

@@ -5,6 +5,8 @@ Class {
 	#instVars : [
 		'collaboration',
 		'collaborationMemento',
+		'participantsDescription',
+		'participants',
 		'messageFlowsDescription',
 		'messageFlows',
 		'diagram',
@@ -19,7 +21,7 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
-	| collaborationDescription collaboration collaborationMemento messageFlowsDescription messageFlows diagramDescription diagram diagramMemento elementsDescription elements |
+	| collaborationDescription collaboration collaborationMemento participantsDescription participants messageFlowsDescription messageFlows diagramDescription diagram diagramMemento elementsDescription elements |
 	collaborationDescription := aProcessMemento magritteDescription
 		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
 	collaboration := aProcessMemento readUsing: collaborationDescription.
@@ -27,6 +29,9 @@ CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 	collaborationMemento := aProcessMemento
 		childMementoFor: collaboration
 		inRelation: collaborationDescription.
+	participantsDescription := collaborationMemento magritteDescription
+		detect: [ :each | each handlesSelector: #participants ].
+	participants := collaborationMemento readUsing: participantsDescription.
 	messageFlowsDescription := collaborationMemento magritteDescription
 		detect: [ :each | each handlesSelector: #messageFlows ].
 	messageFlows := collaborationMemento readUsing: messageFlowsDescription.
@@ -43,6 +48,8 @@ CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 	^ self new
 		collaboration: collaboration;
 		collaborationMemento: collaborationMemento;
+		participantsDescription: participantsDescription;
+		participants: participants;
 		messageFlowsDescription: messageFlowsDescription;
 		messageFlows: messageFlows;
 		diagram: diagram;
@@ -60,6 +67,15 @@ CPProcessCollaborationContext >> collaboration: anObject [ collaboration := anOb
 CPProcessCollaborationContext >> collaborationMemento [ ^ collaborationMemento ]
 { #category : 'accessing' }
 CPProcessCollaborationContext >> collaborationMemento: anObject [ collaborationMemento := anObject ]
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> participantsDescription [ ^ participantsDescription ]
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> participantsDescription: anObject [ participantsDescription := anObject ]
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> participants [ ^ participants ]
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> participants: anObject [ participants := anObject ]
+
 { #category : 'accessing' }
 CPProcessCollaborationContext >> messageFlowsDescription [ ^ messageFlowsDescription ]
 { #category : 'accessing' }
