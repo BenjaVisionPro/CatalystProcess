@@ -1309,26 +1309,10 @@ CPProcessVisualElementExamples >> resizeCornersPreserveOppositeCorner [
 	original := 100 @ 100 extent: 200 @ 120.
 	minimum := 80 @ 50.
 
-	topLeft := shape
-		resizedBoundsFrom: original
-		corner: #topLeft
-		delta: 20 @ 10
-		minimumExtent: minimum.
-	topRight := shape
-		resizedBoundsFrom: original
-		corner: #topRight
-		delta: 20 @ 10
-		minimumExtent: minimum.
-	bottomLeft := shape
-		resizedBoundsFrom: original
-		corner: #bottomLeft
-		delta: 20 @ 10
-		minimumExtent: minimum.
-	bottomRight := shape
-		resizedBoundsFrom: original
-		corner: #bottomRight
-		delta: 20 @ 10
-		minimumExtent: minimum.
+	topLeft := shape topLeftBoundsFrom: original delta: 20 @ 10 minimumExtent: minimum.
+	topRight := shape topRightBoundsFrom: original delta: 20 @ 10 minimumExtent: minimum.
+	bottomLeft := shape bottomLeftBoundsFrom: original delta: 20 @ 10 minimumExtent: minimum.
+	bottomRight := shape bottomRightBoundsFrom: original delta: 20 @ 10 minimumExtent: minimum.
 
 	self assert: topLeft bottomRight equals: original bottomRight.
 	self assert: topRight bottomLeft equals: original bottomLeft.
