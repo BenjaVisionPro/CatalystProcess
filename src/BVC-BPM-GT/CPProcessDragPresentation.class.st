@@ -1,6 +1,6 @@
 "I temporarily lift one Process shape presentation out of its normal Bloc parent for an active drag.
 
-The semantic CPShape remains owned by its original Process/Sub-Process. I preserve the shape and external-label global positions while reparenting them to the root Process visual, then restore their original presentation parents translated by the completed drag delta. This lets a nested shape cross a clipped Sub-Process viewport without changing clipping for any sibling content."
+The semantic CPShape remains owned by its original Process/Sub-Process. I preserve the shape and external-label global positions while reparenting them to the root Process visual, then preserve their current global positions when restoring their original presentation parents. Drag delta and final semantic bounds remain owned by the normal positioning and Atelier operation path. This lets a nested shape cross a clipped Sub-Process viewport without changing clipping for any sibling content."
 Class {
 	#name : 'CPProcessDragPresentation',
 	#superclass : 'Object',
@@ -8,9 +8,7 @@ Class {
 		'shapeElement',
 		'labelElement',
 		'originalShapeParent',
-		'originalShapePosition',
 		'originalLabelParent',
-		'originalLabelPosition',
 		'dragShapePosition',
 		'dragLabelPosition'
 	],
@@ -30,7 +28,6 @@ CPProcessDragPresentation class >> shapeElement: aShapeElement [
 CPProcessDragPresentation >> liftTo: aRootVisual [
 	| globalOrigin |
 	originalShapeParent := shapeElement parent.
-	originalShapePosition := shapeElement position.
 	globalOrigin := shapeElement localPointToGlobal: 0 @ 0.
 	dragShapePosition := aRootVisual globalPointToLocal: globalOrigin.
 	shapeElement removeFromParent.
@@ -40,7 +37,6 @@ CPProcessDragPresentation >> liftTo: aRootVisual [
 	labelElement := shapeElement externalLabelHost.
 	labelElement ifNotNil: [
 		originalLabelParent := labelElement parent.
-		originalLabelPosition := labelElement position.
 		globalOrigin := labelElement localPointToGlobal: 0 @ 0.
 		dragLabelPosition := aRootVisual globalPointToLocal: globalOrigin.
 		labelElement removeFromParent.
@@ -50,14 +46,18 @@ CPProcessDragPresentation >> liftTo: aRootVisual [
 ]
 
 { #category : 'dragging' }
-CPProcessDragPresentation >> restoreTranslatedBy: aDelta [
+CPProcessDragPresentation >> restore [
+	| globalOrigin |
+	globalOrigin := shapeElement localPointToGlobal: 0 @ 0.
 	shapeElement removeFromParent.
 	originalShapeParent addChild: shapeElement.
-	shapeElement relocate: originalShapePosition + aDelta.
+	shapeElement relocate: (originalShapeParent globalPointToLocal: globalOrigin).
+
 	labelElement ifNotNil: [
+		globalOrigin := labelElement localPointToGlobal: 0 @ 0.
 		labelElement removeFromParent.
 		originalLabelParent addChild: labelElement.
-		labelElement relocate: originalLabelPosition + aDelta ]
+		labelElement relocate: (originalLabelParent globalPointToLocal: globalOrigin) ]
 ]
 
 { #category : 'accessing' }

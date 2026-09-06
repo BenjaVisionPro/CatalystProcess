@@ -1458,8 +1458,8 @@ CPProcessVisualElementExamples >> endingLabelEditingPreservesSelection [
 { #category : 'examples - subprocess interaction' }
 CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipped [
 	<gtExample>
-	| visual subProcess shapeElement nestedVisual nestedShape nestedShapeElement
-	  viewport originalParent originalPosition presentation |
+	| visual subProcess shapeElement nestedVisual nestedShapeElement
+	  viewport originalParent presentation draggedGlobalOrigin |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
@@ -1467,23 +1467,21 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	nestedVisual := shapeElement nestedProcessVisual.
 	viewport := shapeElement nestedProcessViewport.
 	nestedShapeElement := nestedVisual shapeElementsByModelElement values anyOne.
-	nestedShape := nestedShapeElement diagramShape.
 	originalParent := nestedShapeElement parent.
-	originalPosition := nestedShapeElement position.
 
 	presentation := (CPProcessDragPresentation shapeElement: nestedShapeElement)
 		liftTo: visual.
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == visual.
-	self assert: nestedShapeElement position equals:
-		(visual globalPointToLocal:
-			(originalParent localPointToGlobal: originalPosition)).
 
-	presentation restoreTranslatedBy: 20 @ 15.
+	nestedShapeElement relocate: presentation dragShapePosition + (20 @ 15).
+	draggedGlobalOrigin := nestedShapeElement localPointToGlobal: 0 @ 0.
+	presentation restore.
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
-	self assert: nestedShapeElement position equals: originalPosition + (20 @ 15).
+	self assert: (nestedShapeElement localPointToGlobal: 0 @ 0)
+		equals: draggedGlobalOrigin.
 	^ presentation
 ]

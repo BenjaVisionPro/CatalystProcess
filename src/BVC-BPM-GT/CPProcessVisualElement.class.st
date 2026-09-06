@@ -1533,7 +1533,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self updateConnectionPortVisibility ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			dragPresentations valuesDo: [ :aPresentation |
-				aPresentation restoreTranslatedBy: delta ].
+				aPresentation restore ].
 			groupMode
 				ifTrue: [
 					| boundsByShape currentContainers rootPoint targetVisual targetContainer |
