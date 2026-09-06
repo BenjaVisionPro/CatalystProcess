@@ -1519,7 +1519,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self insertionTargetEdge: (self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement).
-					aShapeElement positionResizeHandles ] ]
+					self updateConnectionPortVisibility ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			groupMode
 				ifTrue: [

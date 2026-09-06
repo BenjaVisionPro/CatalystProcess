@@ -189,6 +189,20 @@ CPProcessShapeElement >> installCursor: aCursor leaving: aLeaveCursor on: anElem
 ]
 
 { #category : 'private - cursor' }
+CPProcessShapeElement >> installCursorForSubtree: aCursor leaving: aLeaveCursor on: anElement [
+	anElement
+		addEventHandler: (BlEventHandler
+			on: BlMouseEnterEvent
+			do: [ :anEvent | aCursor activateOn: anElement space ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseMoveEvent
+			do: [ :anEvent | aCursor activateOn: anElement space ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseLeaveEvent
+			do: [ :anEvent | aLeaveCursor activateOn: anElement space ])
+]
+
+{ #category : 'private - cursor' }
 CPProcessShapeElement >> bodyCursor [
 	(modelElement isSubProcess and: [ isExpanded ]) ifTrue: [
 		^ BlCursor default ].
@@ -203,7 +217,7 @@ CPProcessShapeElement >> installBodyCursor [
 		on: self.
 	labelElement ifNotNil: [
 		self
-			installCursor: BlCursor default
+			installCursorForSubtree: BlCursor default
 			leaving: self bodyCursor
 			on: labelElement ]
 ]
@@ -211,7 +225,7 @@ CPProcessShapeElement >> installBodyCursor [
 { #category : 'cursor' }
 CPProcessShapeElement >> installDefaultCursorOn: anElement [
 	self
-		installCursor: BlCursor default
+		installCursorForSubtree: BlCursor default
 		leaving: self bodyCursor
 		on: anElement
 ]
@@ -277,14 +291,13 @@ CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent select
 			stagedBounds: aStagedBoundsBlock
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock }.
-	self positionResizeHandles.
 	^ resizeHandles
 ]
 
 { #category : 'private - resizing' }
 CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExtent: aMinimumExtent selectionColor: aSelectionColor stagedBounds: aStagedBoundsBlock resize: aResizeBlock geometryChanged: aGeometryChangedBlock [
 	| handle handleExtent isDragging dragStartEventPosition originalBounds |
-	handleExtent := 9 @ 9.
+	handleExtent := 14 @ 14.
 	isDragging := false.
 	handle := BlElement new
 		extent: handleExtent;
@@ -292,12 +305,21 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 		background: Color white;
 		border: (BlBorder paint: aSelectionColor width: 1.5);
 		visibility: BlVisibility visible;
-		constraintsDo: [ :c | c ignoreByLayout ];
+		constraintsDo: [ :c |
+			aCorner = #topLeft ifTrue: [
+				c frame horizontal alignLeft.
+				c frame vertical alignTop ].
+			aCorner = #topRight ifTrue: [
+				c frame horizontal alignRight.
+				c frame vertical alignTop ].
+			aCorner = #bottomLeft ifTrue: [
+				c frame horizontal alignLeft.
+				c frame vertical alignBottom ].
+			aCorner = #bottomRight ifTrue: [
+				c frame horizontal alignRight.
+				c frame vertical alignBottom ] ];
 		yourself.
-	self
-		installCursor: aCursor
-		leaving: BlCursor default
-		on: handle.
+	self installCursor: aCursor leaving: self bodyCursor on: handle.
 	handle
 		addEventHandler: (BlEventHandler
 			on: BlClickEvent
@@ -320,10 +342,7 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 						corner: aCorner
 						delta: delta
 						minimumExtent: aMinimumExtent.
-					self
-						relocate: proposedBounds origin;
-						extent: proposedBounds extent.
-					self positionResizeHandles.
+					self relocate: proposedBounds origin; extent: proposedBounds extent.
 					aGeometryChangedBlock ifNotNil: [ aGeometryChangedBlock value ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
@@ -368,21 +387,6 @@ CPProcessShapeElement >> resizedBoundsFrom: originalBounds corner: aCorner delta
 	^ (left @ top) corner: (right @ bottom)
 ]
 
-{ #category : 'resizing' }
-CPProcessShapeElement >> positionResizeHandles [
-	| halfExtent topLeft topRight bottomLeft bottomRight |
-	resizeHandles ifNil: [ ^ self ].
-	resizeHandles isEmpty ifTrue: [ ^ self ].
-	halfExtent := resizeHandles first extent / 2.
-	topLeft := halfExtent negated.
-	topRight := (self extent x @ 0) - halfExtent.
-	bottomLeft := (0 @ self extent y) - halfExtent.
-	bottomRight := self extent - halfExtent.
-	(resizeHandles at: 1) relocate: topLeft.
-	(resizeHandles at: 2) relocate: topRight.
-	(resizeHandles at: 3) relocate: bottomLeft.
-	(resizeHandles at: 4) relocate: bottomRight
-]
 
 { #category : 'resizing' }
 CPProcessShapeElement >> resizeHandles [
