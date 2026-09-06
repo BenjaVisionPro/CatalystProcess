@@ -314,8 +314,8 @@ CPProcessShapeElement >> newResizeHandleAt: aCorner cursor: aCursor minimumExten
 	handle := BlElement new
 		extent: handleExtent;
 		geometry: BlRectangleGeometry new;
-		background: Color white;
-		border: (BlBorder paint: aSelectionColor width: 1.5);
+		background: Color transparent;
+		border: BlBorder empty;
 		visibility: BlVisibility visible;
 		constraintsDo: [ :c |
 			| halfWidth halfHeight |
@@ -530,13 +530,14 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 
 { #category : 'positioning' }
 CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBounds: aStagedBoundsBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
-	| isDragging dragStartEventPosition dragStartElementPosition originalBounds |
+	| isDragging dragStartPointerInParent dragStartElementPosition originalBounds |
 	isDragging := false.
 	anInteractionElement
 		addEventHandler: (BlEventHandler
 			on: BlDragStartEvent
 			do: [ :anEvent |
-				dragStartEventPosition := anEvent position.
+				dragStartPointerInParent := self parent
+					globalPointToLocal: (anEvent currentTarget localPointToGlobal: anEvent position).
 				dragStartElementPosition := self position.
 				originalBounds := aStagedBoundsBlock value.
 				isDragging := true.
@@ -546,20 +547,29 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 			on: BlDragEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| proposedPosition delta |
-					proposedPosition := dragStartElementPosition + anEvent position - dragStartEventPosition.
+					| pointerInParent proposedPosition delta |
+					pointerInParent := self parent
+						globalPointToLocal: (anEvent currentTarget localPointToGlobal: anEvent position).
+					proposedPosition := dragStartElementPosition
+						+ pointerInParent
+						- dragStartPointerInParent.
 					self relocate: proposedPosition.
-					delta := self position - dragStartElementPosition.
+					delta := proposedPosition - dragStartElementPosition.
 					aDragBlock value: anEvent value: delta.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
 			do: [ :anEvent |
 				isDragging ifTrue: [
-					| proposedBounds delta |
+					| pointerInParent proposedPosition proposedBounds delta |
 					isDragging := false.
-					delta := self position - dragStartElementPosition.
-					proposedBounds := self position extent: originalBounds extent.
+					pointerInParent := self parent
+						globalPointToLocal: (anEvent currentTarget localPointToGlobal: anEvent position).
+					proposedPosition := dragStartElementPosition
+						+ pointerInParent
+						- dragStartPointerInParent.
+					delta := proposedPosition - dragStartElementPosition.
+					proposedBounds := proposedPosition extent: originalBounds extent.
 					aDragEndBlock value: anEvent value: proposedBounds value: delta.
 					anEvent consumed: true ] ])
 ]
@@ -646,24 +656,28 @@ CPProcessShapeElement >> addSubProcessBorderInteractionElements [
 	hitWidth := 8.
 	top := BlElement new
 		extent: self extent x @ hitWidth;
+		geometry: BlRectangleGeometry new;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: 0 @ 0;
 		yourself.
 	bottom := BlElement new
 		extent: self extent x @ hitWidth;
+		geometry: BlRectangleGeometry new;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: 0 @ (self extent y - hitWidth);
 		yourself.
 	left := BlElement new
 		extent: hitWidth @ self extent y;
+		geometry: BlRectangleGeometry new;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: 0 @ 0;
 		yourself.
 	right := BlElement new
 		extent: hitWidth @ self extent y;
+		geometry: BlRectangleGeometry new;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: (self extent x - hitWidth) @ 0;

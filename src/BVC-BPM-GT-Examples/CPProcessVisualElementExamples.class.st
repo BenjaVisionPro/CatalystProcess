@@ -1417,3 +1417,38 @@ CPProcessVisualElementExamples >> shapeAllowsAffordancesOutsideGeometry [
 	self assert: shapeElement resizeHandles size equals: 4.
 	^ shapeElement
 ]
+
+
+{ #category : 'examples - resizing' }
+CPProcessVisualElementExamples >> resizeHandlesAreTransparentHitTargets [
+	<gtExample>
+	| fixture visual task shapeElement |
+	fixture := self fixture.
+	task := fixture fourth.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: task.
+
+	self assert: shapeElement resizeHandles size equals: 4.
+	shapeElement resizeHandles do: [ :each |
+		self assert: each background equals: Color transparent.
+		self assert: each visibility equals: BlVisibility visible ].
+	^ shapeElement
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> expandedSubProcessBorderElementsAreConcreteDragTargets [
+	<gtExample>
+	| visual subProcess shapeElement borders |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	borders := shapeElement subProcessBorderInteractionElements.
+
+	self assert: borders size equals: 4.
+	borders do: [ :each |
+		self assert: each parent == shapeElement.
+		self assert: each geometry class == BlRectangleGeometry ].
+	^ shapeElement
+]

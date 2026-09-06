@@ -1490,7 +1490,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						label := entry fifth.
 						element relocate: bounds origin + delta.
 						label ifNotNil: [ label relocate: entry sixth + delta ].
-						element positionResizeHandle ].
+						element bringResizeHandlesToFront ].
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
 					internalBentEdges do: [ :anEdge |
