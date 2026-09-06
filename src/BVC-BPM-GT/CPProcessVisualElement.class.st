@@ -10,6 +10,8 @@ Class {
 		'memento',
 		'flowContainer',
 		'rootVisual',
+		'parentProcessVisual',
+		'hostShape',
 		'diagramDescription',
 		'flowElementsDescription',
 		'diagramMemento',
@@ -54,6 +56,8 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
 	rootVisual := self.
+	parentProcessVisual := nil.
+	hostShape := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -93,6 +97,42 @@ CPProcessVisualElement >> rootVisual [
 { #category : 'accessing' }
 CPProcessVisualElement >> rootVisual: aProcessVisual [
 	rootVisual := aProcessVisual
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> parentProcessVisual [
+	^ parentProcessVisual
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> parentProcessVisual: aProcessVisual [
+	parentProcessVisual := aProcessVisual
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> hostShape [
+	^ hostShape
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> hostShape: aShape [
+	hostShape := aShape
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> rootDiagramPointForLocalPoint: aPoint [
+	parentProcessVisual ifNil: [ ^ aPoint ].
+	^ parentProcessVisual rootDiagramPointForLocalPoint:
+		((parentProcessVisual stagedBoundsOf: hostShape) origin + aPoint)
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> localPointForRootDiagramPoint: aPoint [
+	| hostOrigin |
+	parentProcessVisual ifNil: [ ^ aPoint ].
+	hostOrigin := parentProcessVisual
+		rootDiagramPointForLocalPoint: (parentProcessVisual stagedBoundsOf: hostShape) origin.
+	^ aPoint - hostOrigin
 ]
 
 { #category : 'updating' }
@@ -1501,24 +1541,19 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| currentContainer targetVisual targetContainer targetBounds globalCenter |
+							| currentContainer targetVisual targetContainer targetBounds rootPoint |
 							currentContainer := self stagedFlowContainerContaining: draggedModelElement.
-							globalCenter := self
-								localPointToGlobal: proposedBounds center.
-							targetVisual := self
-								targetProcessVisualForLocalPoint: proposedBounds center
+							rootPoint := self rootDiagramPointForLocalPoint: proposedBounds center.
+							targetVisual := rootVisual
+								processVisualAtRootDiagramPoint: rootPoint
 								excluding: draggedModelElement.
-							targetVisual == self ifTrue: [
-								targetVisual := self
-									targetProcessVisualAtGlobalPoint: globalCenter
-									excluding: draggedModelElement ].
 							targetContainer := targetVisual flowContainer.
 							(currentContainer notNil
 								and: [ targetContainer ~~ currentContainer
 								and: [ transferFlowNodeOperationBlock notNil ] ])
 								ifTrue: [
 									targetBounds := targetVisual
-										boundsCenteredAtGlobalPoint: globalCenter
+										boundsCenteredAtRootDiagramPoint: rootPoint
 										extent: proposedBounds extent.
 									targetVisual
 										transferFlowNode: draggedModelElement
@@ -1839,26 +1874,27 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
-	| dragItem globalPoint targetVisual |
+	| dragItem globalPoint rootPoint targetVisual |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	globalPoint := anEvent currentTarget
 		localPointToGlobal: anEvent position.
-	targetVisual := self
-		targetProcessVisualAtGlobalPoint: globalPoint
+	rootPoint := rootVisual globalPointToLocal: globalPoint.
+	targetVisual := rootVisual
+		processVisualAtRootDiagramPoint: rootPoint
 		excluding: nil.
 	^ targetVisual
 		createPaletteItem: dragItem
-		atGlobalPoint: globalPoint
+		atRootDiagramPoint: rootPoint
 ]
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> createPaletteItem: aDragItem atGlobalPoint: aGlobalPoint [
+CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
 	| candidate elementExtent bounds assessment |
 	candidate := aDragItem domainObject.
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self
-		boundsCenteredAtGlobalPoint: aGlobalPoint
+		boundsCenteredAtRootDiagramPoint: aRootPoint
 		extent: elementExtent.
 	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
 	assessment := (createFlowNodeOperationBlock
@@ -2998,25 +3034,17 @@ CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
 
 
 { #category : 'private - containment' }
-CPProcessVisualElement >> processVisualAtGlobalPoint: aGlobalPoint excluding: anExcludedFlowElement [
-	^ self
-		processVisualAtLocalPoint: (self globalPointToLocal: aGlobalPoint)
-		globalPoint: aGlobalPoint
-		excluding: anExcludedFlowElement
-]
-
-{ #category : 'private - containment' }
-CPProcessVisualElement >> processVisualAtLocalPoint: aLocalPoint globalPoint: aGlobalPoint excluding: anExcludedFlowElement [
-	| candidates target |
+CPProcessVisualElement >> processVisualAtRootDiagramPoint: aRootPoint excluding: anExcludedFlowElement [
+	| localPoint candidates target |
+	localPoint := self localPointForRootDiagramPoint: aRootPoint.
 	candidates := OrderedCollection new.
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :aShapeElement |
 		(aModelElement isSubProcess
 			and: [ aModelElement ~~ anExcludedFlowElement
 			and: [ aShapeElement nestedProcessVisual notNil ] ]) ifTrue: [
-				| bounds shape |
-				shape := aShapeElement diagramShape.
-				bounds := self stagedBoundsOf: shape.
-				(bounds containsPoint: aLocalPoint) ifTrue: [
+				| bounds |
+				bounds := self stagedBoundsOf: aShapeElement diagramShape.
+				(bounds containsPoint: localPoint) ifTrue: [
 					candidates add: { aModelElement. aShapeElement. bounds } ] ] ].
 	candidates ifEmpty: [ ^ self ].
 	target := candidates
@@ -3027,33 +3055,26 @@ CPProcessVisualElement >> processVisualAtLocalPoint: aLocalPoint globalPoint: aG
 					ifTrue: [ each ]
 					ifFalse: [ smallest ] ].
 	^ target second nestedProcessVisual
-		processVisualAtGlobalPoint: aGlobalPoint
-		excluding: anExcludedFlowElement
-]
-
-{ #category : 'private - containment' }
-CPProcessVisualElement >> targetProcessVisualAtGlobalPoint: aGlobalPoint excluding: anExcludedFlowElement [
-	^ rootVisual
-		processVisualAtGlobalPoint: aGlobalPoint
+		processVisualAtRootDiagramPoint: aRootPoint
 		excluding: anExcludedFlowElement
 ]
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> targetProcessVisualForLocalPoint: aLocalPoint excluding: anExcludedFlowElement [
-	| globalPoint |
-	globalPoint := self localPointToGlobal: aLocalPoint.
-	^ self
-		processVisualAtLocalPoint: aLocalPoint
-		globalPoint: globalPoint
+	| rootPoint |
+	rootPoint := self rootDiagramPointForLocalPoint: aLocalPoint.
+	^ rootVisual
+		processVisualAtRootDiagramPoint: rootPoint
 		excluding: anExcludedFlowElement
 ]
 
 { #category : 'private - containment' }
-CPProcessVisualElement >> boundsCenteredAtGlobalPoint: aGlobalPoint extent: anExtent [
+CPProcessVisualElement >> boundsCenteredAtRootDiagramPoint: aRootPoint extent: anExtent [
 	| localCenter |
-	localCenter := self globalPointToLocal: aGlobalPoint.
+	localCenter := self localPointForRootDiagramPoint: aRootPoint.
 	^ (localCenter - (anExtent / 2)) extent: anExtent
 ]
+
 
 
 { #category : 'private - staged state' }
@@ -3080,6 +3101,8 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 	nestedVisual := CPProcessVisualElement new.
 	self configureNestedProcessVisual: nestedVisual.
 	nestedVisual
+		parentProcessVisual: self;
+		hostShape: aShapeElement diagramShape;
 		memento: memento
 		flowContainer: aSubProcess.
 	aShapeElement hostNestedProcessVisual: nestedVisual
