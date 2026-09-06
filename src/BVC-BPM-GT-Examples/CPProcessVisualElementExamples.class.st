@@ -1179,19 +1179,13 @@ CPProcessVisualElementExamples >> nestedProcessIsResolvedFromSourceLocalDropCent
 { #category : 'examples - subprocess' }
 CPProcessVisualElementExamples >> directSubProcessBoundsResolveNestedTransferTarget [
 	<gtExample>
-	| visual subProcess shapeElement nestedVisual shape diagramMemento
-	  elementsDescription point target |
+	| visual subProcess shapeElement nestedVisual shape point target |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
 	shapeElement := visual shapeElementsByModelElement at: subProcess.
 	nestedVisual := shapeElement nestedProcessVisual.
-	diagramMemento := visual diagramMemento.
-	elementsDescription := visual elementsDescription.
-	shape := (diagramMemento readUsing: elementsDescription)
-		detect: [ :each |
-			each isShape
-				and: [ (visual stagedModelElementOf: each) == subProcess ] ].
+	shape := shapeElement diagramShape.
 	point := (visual stagedBoundsOf: shape) center.
 
 	target := visual
