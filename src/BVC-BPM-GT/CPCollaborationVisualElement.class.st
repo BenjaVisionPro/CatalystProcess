@@ -280,6 +280,13 @@ CPCollaborationVisualElement >> removeParticipantDo: aBlock [
 	removeParticipantBlock := aBlock
 ]
 
+{ #category : 'selection' }
+CPCollaborationVisualElement >> clearParticipantSelection [
+	selectedParticipant ifNil: [ ^ self ].
+	selectedParticipant := nil.
+	self updateParticipantSelectionAppearance
+]
+
 { #category : 'configuration' }
 CPCollaborationVisualElement >> selectionChangedDo: aBlock [
 	selectionChangedBlock := aBlock

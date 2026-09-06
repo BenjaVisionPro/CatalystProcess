@@ -123,7 +123,7 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 	visual := CPProcessVisualElement new.
 	aBoolean ifTrue: [ visual beCollaborationHosted ].
 	visual
-		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+		selectionChangedDo: [ :aModelElement | self processSelectionChanged: aModelElement ];
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
 		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
@@ -329,6 +329,16 @@ CPProcessPresentation >> selectModelElement: aModelElement [
 	detailHostElement
 		removeChildren;
 		addChild: detailElement
+]
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> processSelectionChanged: aModelElement [
+	"Process and Pool selection are mutually exclusive. A click inside a hosted
+	Process transfers selection to the Process content, so the enclosing Pool
+	must immediately lose its selected treatment."
+	collaborationDiagramElement ifNotNil: [
+		collaborationDiagramElement clearParticipantSelection ].
+	self selectModelElement: aModelElement
 ]
 
 { #category : 'private - selection' }

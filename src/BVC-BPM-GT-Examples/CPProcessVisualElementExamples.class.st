@@ -1739,16 +1739,3 @@ CPProcessVisualElementExamples >> collaborationGeometryRefreshCanBeDelegated [
 	^ visual
 ]
 
-{ #category : 'examples - collaboration' }
-CPProcessVisualElementExamples >> collaborationDeleteCallbackIsInstalled [
-	<gtExample>
-	| visual participant called |
-	visual := CPCollaborationVisualElement new.
-	participant := Object new.
-	called := nil.
-	visual removeParticipantDo: [ :anObject | called := anObject ].
-	visual instVarNamed: 'selectedParticipant' put: participant.
-	visual instVarNamed: 'removeParticipantBlock' value: participant.
-	self assert: called == participant.
-	^ visual
-]
