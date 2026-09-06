@@ -1727,3 +1727,14 @@ CPProcessVisualElementExamples >> diagramInteractionSurfaceStaysBehindAuthoredDi
 	^ visual
 ]
 
+{ #category : 'examples - collaboration' }
+CPProcessVisualElementExamples >> collaborationGeometryRefreshCanBeDelegated [
+	<gtExample>
+	| visual called |
+	visual := CPCollaborationVisualElement new.
+	called := false.
+	visual refreshAfterGeometryChangeDo: [ called := true ].
+	visual refreshAfterGeometryChange.
+	self assert: called.
+	^ visual
+]

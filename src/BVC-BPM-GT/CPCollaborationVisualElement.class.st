@@ -18,6 +18,7 @@ Class {
 		'createParticipantOperationBlock',
 		'moveParticipantShapeOperationBlock',
 		'resizeParticipantShapeOperationBlock',
+		'refreshAfterGeometryChangeBlock',
 		'selectionChangedBlock',
 		'selectedParticipant',
 		'participantElementsByParticipant',
@@ -189,7 +190,7 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 			assessment := (moveParticipantShapeOperationBlock
 				value: aShape
 				value: proposedBounds) apply.
-			self refresh ]
+			self refreshAfterGeometryChange ]
 ]
 
 { #category : 'private - resizing' }
@@ -203,7 +204,7 @@ CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement sha
 			(resizeParticipantShapeOperationBlock
 				value: aShape
 				value: proposedBounds) apply.
-			self refresh ]
+			self refreshAfterGeometryChange ]
 		geometryChanged: nil.
 	handles do: [ :aHandle | anElement addChild: aHandle ]
 ]
@@ -250,8 +251,20 @@ CPCollaborationVisualElement >> resizeParticipantShapeOperationFor: aBlock [
 ]
 
 { #category : 'configuration' }
+CPCollaborationVisualElement >> refreshAfterGeometryChangeDo: aBlock [
+	refreshAfterGeometryChangeBlock := aBlock
+]
+
+{ #category : 'configuration' }
 CPCollaborationVisualElement >> selectionChangedDo: aBlock [
 	selectionChangedBlock := aBlock
+]
+
+{ #category : 'private - updating' }
+CPCollaborationVisualElement >> refreshAfterGeometryChange [
+	refreshAfterGeometryChangeBlock
+		ifNil: [ self refresh ]
+		ifNotNil: [ :aBlock | aBlock value ]
 ]
 
 { #category : 'connection' }

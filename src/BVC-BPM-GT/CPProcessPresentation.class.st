@@ -186,6 +186,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			createParticipantOperationFor: createParticipantOperationBlock;
 			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 			processMemento: self memento
 			processVisual: processDiagramElement;
@@ -214,6 +215,34 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			scrollable scrollVerticallyBy: scrollDelta y ].
 		^ self ].
 	collaborationDiagramElement refresh
+]
+
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> refreshCollaborationDiagramPreservingCamera [
+	| scrollable oldScrollPosition oldNormalizationOffset newNormalizationOffset targetScrollPosition scrollDelta |
+	collaborationDiagramElement ifNil: [ ^ self ].
+	scrollable := diagramScrollElement childNamed: #scrollable.
+
+	"Every Collaboration diagram point is rendered through this translation:
+	 scrollPosition + cameraSlack - diagramBounds origin.
+	 A geometry refresh may change both cameraSlack and diagramBounds. Preserve
+	 that complete translation so resizing or moving a Pool never pans the
+	 user's camera as a side effect."
+	oldScrollPosition := scrollable scrollPosition.
+	oldNormalizationOffset :=
+		collaborationDiagramElement cameraSlack
+			- collaborationDiagramElement diagramBounds origin.
+
+	collaborationDiagramElement refresh.
+
+	newNormalizationOffset :=
+		collaborationDiagramElement cameraSlack
+			- collaborationDiagramElement diagramBounds origin.
+	targetScrollPosition :=
+		oldScrollPosition + oldNormalizationOffset - newNormalizationOffset.
+	scrollDelta := targetScrollPosition - scrollable scrollPosition.
+	scrollable scrollHorizontallyBy: scrollDelta x.
+	scrollable scrollVerticallyBy: scrollDelta y
 ]
 
 { #category : 'private - collaboration' }
@@ -411,6 +440,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 			createParticipantOperationFor: createParticipantOperationBlock;
 			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 			refresh ]
 ]
