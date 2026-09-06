@@ -1045,10 +1045,12 @@ CPProcessVisualElementExamples >> nestedBackgroundSelectionTargetsHostingSubProc
 	nestedVisual := shapeElement nestedProcessVisual.
 
 	nestedVisual clearLocalSelection.
-	visual selectOnly: subProcess.
-
-	self assert: visual selectedModelElement == subProcess.
+	self assert: visual selectedModelElement isNil.
 	self assert: nestedVisual selectedModelElement isNil.
+
+	visual selectOnly: subProcess.
+	self assert: visual selectedModelElement == subProcess.
+	self assert: nestedVisual selectedModelElement == subProcess.
 	^ nestedVisual
 ]
 
