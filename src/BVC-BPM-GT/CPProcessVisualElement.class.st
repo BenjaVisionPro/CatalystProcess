@@ -110,16 +110,6 @@ CPProcessVisualElement >> hostShape: aShape [
 ]
 
 { #category : 'private - containment' }
-CPProcessVisualElement >> ancestorSubProcessClipping: aBoolean [
-	| hostElement viewport |
-	parentProcessVisual ifNil: [ ^ self ].
-	hostElement := parentProcessVisual shapeElementFor: hostShape.
-	viewport := hostElement nestedProcessViewport.
-	viewport ifNotNil: [ viewport clipChildren: aBoolean ].
-	parentProcessVisual ancestorSubProcessClipping: aBoolean
-]
-
-{ #category : 'private - containment' }
 CPProcessVisualElement >> rootDiagramPointForLocalPoint: aPoint [
 	parentProcessVisual ifNil: [ ^ aPoint ].
 	^ parentProcessVisual rootDiagramPointForLocalPoint:
@@ -1464,26 +1454,37 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements |
+	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
 	groupPreviews := IdentityDictionary new.
 	internalBentEdges := #().
 	movedModelElements := IdentitySet new.
+	dragPresentations := IdentityDictionary new.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
+			| elementsToLift |
 			self clearInsertionTarget.
-			self ancestorSubProcessClipping: false.
 			draggedModelElement := self stagedModelElementOf: aShape.
-			dragStartLabelPosition := aShapeElement externalLabelHost
-				ifNotNil: [ :aLabel | aLabel position ].
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
 			groupMode := moveShapesOperationBlock notNil and: [ groupEntries size > 1 ].
 			movedModelElements := IdentitySet new.
 			groupEntries do: [ :entry | movedModelElements add: entry second ].
+			elementsToLift := groupMode
+				ifTrue: [ groupEntries collect: [ :entry | entry third ] ]
+				ifFalse: [ { aShapeElement } ].
+			dragPresentations := IdentityDictionary new.
+			elementsToLift do: [ :anElement |
+				| presentation |
+				presentation := (CPProcessDragPresentation shapeElement: anElement)
+					liftTo: rootVisual.
+				dragPresentations at: anElement put: presentation ].
+			dragStartLabelPosition := aShapeElement externalLabelHost
+				ifNotNil: [ :aLabel |
+					(dragPresentations at: aShapeElement) dragLabelPosition ].
 			groupMode ifTrue: [
 				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
 				internalBentEdges do: [ :anEdge |
@@ -1493,12 +1494,13 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 			groupMode
 				ifTrue: [
 					groupEntries do: [ :entry |
-						| element bounds label |
+						| element label presentation |
 						element := entry third.
-						bounds := entry fourth.
 						label := entry fifth.
-						element relocate: bounds origin + delta.
-						label ifNotNil: [ label relocate: entry sixth + delta ].
+						presentation := dragPresentations at: element.
+						element relocate: presentation dragShapePosition + delta.
+						label ifNotNil: [
+							label relocate: presentation dragLabelPosition + delta ].
 						element bringResizeHandlesToFront ].
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
@@ -1530,7 +1532,8 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						for: draggedModelElement).
 					self updateConnectionPortVisibility ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
-			self ancestorSubProcessClipping: true.
+			dragPresentations valuesDo: [ :aPresentation |
+				aPresentation restoreTranslatedBy: delta ].
 			groupMode
 				ifTrue: [
 					| boundsByShape currentContainers rootPoint targetVisual targetContainer |
