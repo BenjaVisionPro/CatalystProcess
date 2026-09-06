@@ -1855,7 +1855,7 @@ CPProcessVisualElementExamples >> scrollWorkspaceAddsNativeScrollableMarginWitho
 	self assert: scrollContent diagramElement == visual.
 	self assert: scrollContent workspaceMargin equals: 320 @ 220.
 	self assert: scrollContent diagramExtent equals: visual canvasExtent.
-	self assert: scrollContent extent
+	self assert: scrollContent workspaceExtent
 		equals: visual canvasExtent + (scrollContent workspaceMargin * 2).
 	self assert: (visual stagedBoundsOf: shape) equals: originalBounds.
 	^ scrollContent

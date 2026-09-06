@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'diagramElement',
 		'diagramExtent',
-		'workspaceMargin'
+		'workspaceMargin',
+		'workspaceExtent'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -19,6 +20,7 @@ CPDiagramScrollContentElement >> initialize [
 	super initialize.
 	diagramExtent := 640 @ 260.
 	workspaceMargin := 320 @ 220.
+	workspaceExtent := diagramExtent + (workspaceMargin * 2).
 	self
 		layout: BlFrameLayout new;
 		background: Color transparent;
@@ -48,8 +50,10 @@ CPDiagramScrollContentElement >> diagramExtent: anExtent [
 
 { #category : 'private - layout' }
 CPDiagramScrollContentElement >> updateWorkspaceExtent [
-	self extent:
-		diagramExtent + (workspaceMargin * 2)
+	workspaceExtent := diagramExtent + (workspaceMargin * 2).
+	self constraintsDo: [ :c |
+		c horizontal exact: workspaceExtent x.
+		c vertical exact: workspaceExtent y ]
 ]
 
 { #category : 'accessing - testing' }
@@ -65,4 +69,10 @@ CPDiagramScrollContentElement >> diagramExtent [
 { #category : 'accessing - testing' }
 CPDiagramScrollContentElement >> workspaceMargin [
 	^ workspaceMargin
+]
+
+
+{ #category : 'accessing - testing' }
+CPDiagramScrollContentElement >> workspaceExtent [
+	^ workspaceExtent
 ]
