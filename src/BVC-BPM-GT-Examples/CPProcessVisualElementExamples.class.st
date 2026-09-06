@@ -1355,6 +1355,16 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 				target: aTarget
 				waypoints: someWaypoints
 				processMemento: memento ];
+		moveParticipantShapeOperationFor: [ :aShape :proposedBounds |
+			CPAtelierMoveParticipantShape
+				shape: aShape
+				bounds: proposedBounds
+				processMemento: memento ];
+		resizeParticipantShapeOperationFor: [ :aShape :proposedBounds |
+			CPAtelierResizeParticipantShape
+				shape: aShape
+				bounds: proposedBounds
+				processMemento: memento ];
 		processMemento: memento
 		processVisual: processVisual;
 		yourself.
@@ -1649,4 +1659,22 @@ CPProcessVisualElementExamples >> collaborationDiagramUsesExactBoundedCameraTrav
 	self assert: collaborationVisual canvasExtent equals: expectedExtent.
 	self assert: participantElement parent == collaborationVisual diagramPresentationParent.
 	^ collaborationVisual
+]
+
+
+{ #category : 'examples - collaboration visual' }
+CPProcessVisualElementExamples >> participantPoolUsesStandardObjectTreatment [
+	<gtExample>
+	| fixture collaborationVisual participant participantElement |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	participant := fixture at: 5.
+	participantElement := collaborationVisual participantElementsByParticipant at: participant.
+
+	self assert: participantElement resizeHandles size equals: 4.
+	self assert: participantElement clipChildren not.
+	self assert: participantElement processHost clipChildren.
+	self assert: participantElement labelElement notNil.
+	self assert: participantElement labelBand notNil.
+	^ participantElement
 ]

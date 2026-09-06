@@ -1,14 +1,12 @@
 "I render one BPMN Participant as a Pool.
 
-I own only Participant presentation: the Pool frame, its label band, and an optional hosted Process visual. The Process visual remains CPProcessVisualElement and keeps its own editing behavior and memento. This element clips its hosted content to the Pool boundary."
+I own only Participant presentation: the Pool frame, its label band, and an optional hosted Process visual. The Process visual remains CPProcessVisualElement and keeps its own editing behavior and memento. The dedicated processHost clips hosted Process content to the Pool boundary while the Pool itself may expose editing affordances outside its border."
 Class {
 	#name : 'CPParticipantShapeElement',
-	#superclass : 'BlElement',
+	#superclass : 'CPProcessShapeElement',
 	#instVars : [
 		'participant',
-		'diagramShape',
 		'labelBand',
-		'labelElement',
 		'processHost',
 		'processVisual'
 	],
@@ -21,13 +19,16 @@ Class {
 CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRectangle background: aBackground borderColor: aBorderColor [
 	participant := aParticipant.
 	diagramShape := aShape.
+	modelElement := aParticipant.
+	normalBorderColor := aBorderColor.
+	resizeHandles := #().
 	self
 		extent: aRectangle extent;
 		geometry: BlRectangleGeometry new;
 		background: aBackground;
 		border: (BlBorder paint: aBorderColor width: 1.5);
 		layout: BlFrameLayout new;
-		clipChildren: true.
+		clipChildren: false.
 	self
 		addLabelBandBorderColor: aBorderColor;
 		addProcessHost
@@ -45,16 +46,15 @@ CPParticipantShapeElement >> addLabelBandBorderColor: aBorderColor [
 			c vertical matchParent.
 			c frame horizontal alignLeft.
 			c frame vertical alignTop ];
-		preventMeAndChildrenMouseEvents;
 		yourself.
 	labelElement := BrLabel new
 		text: (participant label ifNil: [ '' ]);
+		hFitContent;
+		vFitContent;
 		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical fitContent.
 			c frame horizontal alignCenter.
-			c frame vertical alignCenter.
-			c margin: (BlInsets top: 4 right: 4 bottom: 4 left: 4) ];
+			c frame vertical alignCenter ];
+		transformDo: [ :aTransform | aTransform rotateBy: -90 ];
 		preventMeAndChildrenMouseEvents;
 		yourself.
 	labelBand addChild: labelElement.
@@ -118,4 +118,20 @@ CPParticipantShapeElement >> processHost [
 { #category : 'accessing - testing' }
 CPParticipantShapeElement >> processVisual [
 	^ processVisual
+]
+
+
+{ #category : 'private - cursor' }
+CPParticipantShapeElement >> bodyCursor [
+	^ BlHandCursor new
+]
+
+{ #category : 'private - appearance' }
+CPParticipantShapeElement >> normalBorderWidth [
+	^ 1.5
+]
+
+{ #category : 'private - appearance' }
+CPParticipantShapeElement >> selectedBorderWidth [
+	^ 3
 ]

@@ -20,6 +20,8 @@ Class {
 		'resizeShapeOperationBlock',
 		'createFlowNodeOperationBlock',
 		'createParticipantOperationBlock',
+		'moveParticipantShapeOperationBlock',
+		'resizeParticipantShapeOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'connectMessageFlowOperationBlock',
@@ -77,6 +79,9 @@ CPProcessPresentation >> prepareHostElement [
 			collaborationDiagramElement := CPCollaborationVisualElement new
 				connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 				createParticipantOperationFor: createParticipantOperationBlock;
+				moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
+				resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+				selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 				processMemento: self memento
 				processVisual: processDiagramElement;
 				yourself.
@@ -155,6 +160,9 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 		collaborationDiagramElement := CPCollaborationVisualElement new
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 			createParticipantOperationFor: createParticipantOperationBlock;
+			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
+			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 			processMemento: self memento
 			processVisual: processDiagramElement;
 			yourself.
@@ -212,8 +220,29 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 		mementoForFlowElement: aModelElement
 		inContainerMemento: self memento.
 	selectedMemento ifNil: [
-		self error: 'Selected model element is not part of the staged Process/Sub-Process hierarchy.' ].
+		selectedMemento := self mementoForParticipant: aModelElement ].
+	selectedMemento ifNil: [
+		self error: 'Selected model element is not part of the staged Process, Sub-Process, or definitional Collaboration.' ].
 	^ selectedMemento
+]
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> mementoForParticipant: aModelElement [
+	| collaborationDescription collaboration collaborationMemento participantsDescription participants |
+	collaborationDescription := self memento magritteDescription
+		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
+	collaboration := self memento readUsing: collaborationDescription.
+	collaboration ifNil: [ ^ nil ].
+	collaborationMemento := self memento
+		childMementoFor: collaboration
+		inRelation: collaborationDescription.
+	participantsDescription := collaborationMemento magritteDescription
+		detect: [ :each | each handlesSelector: #participants ].
+	participants := collaborationMemento readUsing: participantsDescription.
+	(participants identityIncludes: aModelElement) ifFalse: [ ^ nil ].
+	^ collaborationMemento
+		childMementoFor: aModelElement
+		inRelation: participantsDescription
 ]
 
 { #category : 'private - selection' }
@@ -338,6 +367,9 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 		collaborationDiagramElement
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 			createParticipantOperationFor: createParticipantOperationBlock;
+			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
+			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
 			refresh ]
 ]
 { #category : 'configuration' }
@@ -346,6 +378,17 @@ CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOper
 { #category : 'configuration' }
 CPProcessPresentation >> createParticipantOperationFor: aBlock [
 	createParticipantOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPProcessPresentation >> moveParticipantShapeOperationFor: aBlock [
+	moveParticipantShapeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> resizeParticipantShapeOperationFor: aBlock [
+	resizeParticipantShapeOperationBlock := aBlock
 ]
 { #category : 'configuration' }
 CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]

@@ -16,6 +16,10 @@ Class {
 		'participantsDescription',
 		'messageFlowsDescription',
 		'createParticipantOperationBlock',
+		'moveParticipantShapeOperationBlock',
+		'resizeParticipantShapeOperationBlock',
+		'selectionChangedBlock',
+		'selectedParticipant',
 		'participantElementsByParticipant',
 		'messageFlowVisualsByEdge',
 		'connectMessageFlowOperationBlock',
@@ -40,6 +44,7 @@ CPCollaborationVisualElement >> initialize [
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
+	selectedParticipant := nil.
 	viewportExtent := 1360 @ 800.
 	diagramBounds := 0 @ 0 extent: 0 @ 0.
 	diagramExtent := 0 @ 0.
@@ -114,7 +119,8 @@ CPCollaborationVisualElement >> refresh [
 	self addChild: diagramLayer.
 	self updateCanvasExtent.
 	participantShapes do: [ :each | self addParticipantShape: each ].
-	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ]
+	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ].
+	self updateParticipantSelectionAppearance
 ]
 
 { #category : 'private - building' }
@@ -134,10 +140,76 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		relocate: bounds origin.
 	participantElementsByParticipant at: participant put: element.
 	self addDiagramChild: element.
+	self
+		installSelectionOnParticipantElement: element participant: participant;
+		installPositioningOnParticipantElement: element shape: aShape;
+		installResizeOnParticipantElement: element shape: aShape.
 
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifTrue: [
 		processVisual collaborationVisual: self.
 		element hostProcessVisual: processVisual ]
+]
+
+{ #category : 'private - selection' }
+CPCollaborationVisualElement >> installSelectionOnParticipantElement: anElement participant: aParticipant [
+	anElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			selectedParticipant := aParticipant.
+			self updateParticipantSelectionAppearance.
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aParticipant ].
+			self requestFocus.
+			anEvent consumed: true ]).
+	anElement installBodyCursor
+]
+
+{ #category : 'private - selection' }
+CPCollaborationVisualElement >> updateParticipantSelectionAppearance [
+	participantElementsByParticipant keysAndValuesDo: [ :aParticipant :anElement |
+		anElement
+			selected: aParticipant == selectedParticipant
+			selectionColor: self selectionColor
+			normalColor: self poolBorderColor ]
+]
+
+{ #category : 'private - positioning' }
+CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElement shape: aShape [
+	moveParticipantShapeOperationBlock ifNil: [ ^ self ].
+	anElement
+		installPositioningFrom: anElement labelBand
+		stagedBounds: [ self stagedBoundsOf: aShape ]
+		dragStarted: [ :anEvent :originalBounds |
+			selectedParticipant := anElement participant.
+			self updateParticipantSelectionAppearance ]
+		dragStartPosition: [ (self stagedBoundsOf: aShape) origin ]
+		dragged: [ :anEvent :delta | ]
+		dragEnded: [ :anEvent :proposedBounds :delta |
+			| assessment |
+			assessment := (moveParticipantShapeOperationBlock
+				value: aShape
+				value: proposedBounds) apply.
+			self refresh ]
+]
+
+{ #category : 'private - resizing' }
+CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement shape: aShape [
+	| handles |
+	resizeParticipantShapeOperationBlock ifNil: [ ^ self ].
+	handles := anElement
+		installResizeHandleMinimumExtent: self minimumParticipantExtent
+		stagedBounds: [ self stagedBoundsOf: aShape ]
+		resize: [ :proposedBounds |
+			(resizeParticipantShapeOperationBlock
+				value: aShape
+				value: proposedBounds) apply.
+			self refresh ]
+		geometryChanged: nil.
+	handles do: [ :aHandle | anElement addChild: aHandle ]
+]
+
+{ #category : 'private - sizing' }
+CPCollaborationVisualElement >> minimumParticipantExtent [
+	^ 120 @ 80
 ]
 
 { #category : 'private - building' }
@@ -163,6 +235,22 @@ CPCollaborationVisualElement >> connectMessageFlowOperationFor: aBlock [
 { #category : 'configuration' }
 CPCollaborationVisualElement >> createParticipantOperationFor: aBlock [
 	createParticipantOperationBlock := aBlock
+]
+
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> moveParticipantShapeOperationFor: aBlock [
+	moveParticipantShapeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> resizeParticipantShapeOperationFor: aBlock [
+	resizeParticipantShapeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> selectionChangedDo: aBlock [
+	selectionChangedBlock := aBlock
 ]
 
 { #category : 'connection' }
