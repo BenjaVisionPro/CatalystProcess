@@ -1226,15 +1226,13 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 		geometryChanged: [
 			self updateIncidentEdgeLabelsFor: aModelElement.
 			self updateIncidentReconnectHandlesFor: aModelElement ].
-	handles do: [ :aHandle | self addChild: aHandle ]
+	handles do: [ :aHandle | aShapeElement addChild: aHandle ]
 ]
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringResizeHandlesToFront [
 	shapeElementsByShape valuesDo: [ :aShapeElement |
-		aShapeElement resizeHandles do: [ :aHandle |
-			aHandle removeFromParent.
-			self addChild: aHandle ] ]
+		aShapeElement bringResizeHandlesToFront ]
 ]
 
 { #category : 'operations' }

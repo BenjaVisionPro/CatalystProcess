@@ -175,12 +175,17 @@ CPProcessShapeElement >> installCursor: aCursor leaving: aLeaveCursor on: anElem
 			on: BlMouseEnterEvent
 			do: [ :anEvent |
 				anEvent target == anElement ifTrue: [
-					anEvent currentTarget space currentCursor: aCursor ] ]);
+					aCursor activateOn: anElement space ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseMoveEvent
+			do: [ :anEvent |
+				anEvent target == anElement ifTrue: [
+					aCursor activateOn: anElement space ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
 			do: [ :anEvent |
 				anEvent target == anElement ifTrue: [
-					anEvent currentTarget space currentCursor: aLeaveCursor ] ])
+					aLeaveCursor activateOn: anElement space ] ])
 ]
 
 { #category : 'private - cursor' }
@@ -369,10 +374,10 @@ CPProcessShapeElement >> positionResizeHandles [
 	resizeHandles ifNil: [ ^ self ].
 	resizeHandles isEmpty ifTrue: [ ^ self ].
 	halfExtent := resizeHandles first extent / 2.
-	topLeft := self position - halfExtent.
-	topRight := self position + (self extent x @ 0) - halfExtent.
-	bottomLeft := self position + (0 @ self extent y) - halfExtent.
-	bottomRight := self position + self extent - halfExtent.
+	topLeft := halfExtent negated.
+	topRight := (self extent x @ 0) - halfExtent.
+	bottomLeft := (0 @ self extent y) - halfExtent.
+	bottomRight := self extent - halfExtent.
 	(resizeHandles at: 1) relocate: topLeft.
 	(resizeHandles at: 2) relocate: topRight.
 	(resizeHandles at: 3) relocate: bottomLeft.
@@ -382,6 +387,14 @@ CPProcessShapeElement >> positionResizeHandles [
 { #category : 'resizing' }
 CPProcessShapeElement >> resizeHandles [
 	^ resizeHandles ifNil: [ #() ]
+]
+
+{ #category : 'resizing' }
+CPProcessShapeElement >> bringResizeHandlesToFront [
+	self resizeHandles do: [ :aHandle |
+		aHandle parent == self ifTrue: [
+			aHandle removeFromParent.
+			self addChild: aHandle ] ]
 ]
 
 { #category : 'resizing' }

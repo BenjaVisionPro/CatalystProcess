@@ -1404,3 +1404,29 @@ CPProcessVisualElementExamples >> resizeHandlesRemainAvailableWithoutSelection [
 		self assert: each visibility equals: BlVisibility visible ].
 	^ shapeElement
 ]
+
+
+{ #category : 'examples - resizing' }
+CPProcessVisualElementExamples >> resizeHandlesAreLocalChildrenFromCreation [
+	<gtExample>
+	| fixture visual task shapeElement handles halfExtent |
+	fixture := self fixture.
+	task := fixture fourth.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement at: task.
+	handles := shapeElement resizeHandles.
+	halfExtent := handles first extent / 2.
+
+	self assert: handles size equals: 4.
+	handles do: [ :each |
+		self assert: each parent == shapeElement.
+		self assert: each visibility equals: BlVisibility visible ].
+	self assert: handles first position equals: halfExtent negated.
+	self assert: handles second position
+		equals: (shapeElement extent x @ 0) - halfExtent.
+	self assert: handles third position
+		equals: (0 @ shapeElement extent y) - halfExtent.
+	self assert: handles fourth position
+		equals: shapeElement extent - halfExtent.
+	^ shapeElement
+]
