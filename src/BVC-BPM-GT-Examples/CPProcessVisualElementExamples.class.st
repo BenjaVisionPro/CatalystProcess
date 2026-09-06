@@ -1602,15 +1602,15 @@ CPProcessVisualElementExamples >> collaborationDiagramAcceptsParticipantShapes [
 	<gtExample>
 	| fixture collaboration diagram localPool externalPool |
 	fixture := self collaborationVisualFixture.
-	collaboration := fixture third.
-	diagram := fixture sixth.
-	localPool := fixture seventh.
-	externalPool := fixture eighth.
+	collaboration := (fixture at: 3).
+	diagram := (fixture at: 6).
+	localPool := (fixture at: 7).
+	externalPool := (fixture at: 8).
 
 	self assert: collaboration diagram == diagram.
 	self assert: diagram modelElement == collaboration.
-	self assert: localPool modelElement == fixture fourth.
-	self assert: externalPool modelElement == fixture fifth.
+	self assert: localPool modelElement == (fixture at: 4).
+	self assert: externalPool modelElement == (fixture at: 5).
 	self assert: diagram elements size equals: 2.
 	^ diagram
 ]
@@ -1621,9 +1621,9 @@ CPProcessVisualElementExamples >> collaborationVisualHostsExistingProcessVisualI
 	<gtExample>
 	| fixture processVisual collaborationVisual localParticipant localElement |
 	fixture := self collaborationVisualFixture.
-	localParticipant := fixture fourth.
-	processVisual := fixture ninth.
-	collaborationVisual := fixture tenth.
+	localParticipant := (fixture at: 4).
+	processVisual := (fixture at: 9).
+	collaborationVisual := (fixture at: 10).
 	localElement := collaborationVisual participantElementsByParticipant
 		at: localParticipant.
 
@@ -1631,7 +1631,7 @@ CPProcessVisualElementExamples >> collaborationVisualHostsExistingProcessVisualI
 	self assert: processVisual isCollaborationHosted.
 	self assert: localElement processVisual == processVisual.
 	self assert: processVisual parent == localElement processHost.
-	self assert: processVisual flowContainer == fixture first.
+	self assert: processVisual flowContainer == (fixture at: 1).
 	^ collaborationVisual
 ]
 
@@ -1641,8 +1641,8 @@ CPProcessVisualElementExamples >> blackBoxParticipantRendersWithoutProcessVisual
 	<gtExample>
 	| fixture collaborationVisual externalParticipant externalElement |
 	fixture := self collaborationVisualFixture.
-	externalParticipant := fixture fifth.
-	collaborationVisual := fixture tenth.
+	externalParticipant := (fixture at: 5).
+	collaborationVisual := (fixture at: 10).
 	externalElement := collaborationVisual participantElementsByParticipant
 		at: externalParticipant.
 
@@ -1658,11 +1658,11 @@ CPProcessVisualElementExamples >> collaborationPoolsUseTheirOwnDiagramBounds [
 	<gtExample>
 	| fixture collaborationVisual |
 	fixture := self collaborationVisualFixture.
-	collaborationVisual := fixture tenth.
+	collaborationVisual := (fixture at: 10).
 
-	self assert: (collaborationVisual stagedBoundsOf: fixture seventh)
+	self assert: (collaborationVisual stagedBoundsOf: (fixture at: 7))
 		equals: (40 @ 40 extent: 620 @ 230).
-	self assert: (collaborationVisual stagedBoundsOf: fixture eighth)
+	self assert: (collaborationVisual stagedBoundsOf: (fixture at: 8))
 		equals: (40 @ 320 extent: 620 @ 100).
 	^ collaborationVisual
 ]
