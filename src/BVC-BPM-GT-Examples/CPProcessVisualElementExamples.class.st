@@ -1835,3 +1835,27 @@ CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomai
 	self assert: messageTarget isSequenceFlowTarget not.
 	^ messageTarget
 ]
+
+
+{ #category : 'examples - viewport pan' }
+CPProcessVisualElementExamples >> diagramPanOffsetDoesNotChangeBpmnDiagramCoordinates [
+	<gtExample>
+	| fixture visual shapeElement shape originalBounds pan |
+	fixture := self fixture.
+	visual := self visualElementForFixture: fixture.
+	shapeElement := visual shapeElementsByModelElement values anyOne.
+	shape := shapeElement diagramShape.
+	originalBounds := visual stagedBoundsOf: shape.
+
+	pan := CPDiagramPanElement new.
+	visual diagramPanHost: pan.
+	pan
+		diagramElement: visual
+		extent: visual canvasExtent.
+	pan panOffset: 240 @ 180.
+
+	self assert: pan diagramElement == visual.
+	self assert: pan panOffset equals: 240 @ 180.
+	self assert: (visual stagedBoundsOf: shape) equals: originalBounds.
+	^ pan
+]

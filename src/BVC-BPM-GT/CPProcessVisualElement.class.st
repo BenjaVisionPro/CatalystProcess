@@ -44,7 +44,9 @@ Class {
 		'insertionTargetEdge',
 		'collaborationHosted',
 		'collaborationVisual',
-		'collaborationChangedBlock'
+		'collaborationChangedBlock',
+		'canvasExtent',
+		'diagramPanHost'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -63,6 +65,8 @@ CPProcessVisualElement >> initialize [
 	hostShape := nil.
 	collaborationHosted := false.
 	collaborationVisual := nil.
+	canvasExtent := 640 @ 260.
+	diagramPanHost := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -110,6 +114,18 @@ CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 	diagramDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #diagram ].
 	self refresh
+]
+
+{ #category : 'accessing - presentation' }
+CPProcessVisualElement >> canvasExtent [
+	^ canvasExtent
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> diagramPanHost: aPanHost [
+	diagramPanHost := aPanHost.
+	diagramPanHost ifNotNil: [
+		diagramPanHost diagramExtent: canvasExtent ]
 ]
 
 { #category : 'accessing' }
@@ -190,6 +206,9 @@ CPProcessVisualElement >> refresh [
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
 	contentExtent := self canvasExtentFor: shapes.
+	canvasExtent := contentExtent.
+	diagramPanHost ifNotNil: [
+		diagramPanHost diagramExtent: canvasExtent ].
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.

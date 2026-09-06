@@ -9,6 +9,7 @@ Class {
 		'collaborationDiagramElement',
 		'processDiagramElement',
 		'diagramScrollElement',
+		'diagramPanElement',
 		'detailHostElement',
 		'detailScrollElement',
 		'workspaceElement',
@@ -80,6 +81,12 @@ CPProcessPresentation >> prepareHostElement [
 				yourself.
 			collaborationDiagramElement ].
 
+	diagramPanElement := CPDiagramPanElement new.
+	diagramElement diagramPanHost: diagramPanElement.
+	diagramPanElement
+		diagramElement: diagramElement
+		extent: diagramElement canvasExtent.
+
 	diagramScrollElement := BrScrollPane new
 		background: surfaceColor;
 		allowMeAndChildrenMouseEvents;
@@ -88,7 +95,7 @@ CPProcessPresentation >> prepareHostElement [
 			+ BrGlamorousWithVerticalScrollbarAptitude;
 		hMatchParent;
 		vMatchParent;
-		content: diagramElement;
+		content: diagramPanElement;
 		yourself.
 
 	detailHostElement := BrVerticalPane new
@@ -134,6 +141,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
+		processDiagramElement diagramPanHost: nil.
 		collaborationDiagramElement := CPCollaborationVisualElement new
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 			createParticipantOperationFor: createParticipantOperationBlock;
@@ -141,7 +149,10 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			processVisual: processDiagramElement;
 			yourself.
 		diagramElement := collaborationDiagramElement.
-		diagramScrollElement content: diagramElement.
+		diagramElement diagramPanHost: diagramPanElement.
+		diagramPanElement
+			diagramElement: diagramElement
+			extent: diagramElement canvasExtent.
 		^ self ].
 	collaborationDiagramElement refresh
 ]
@@ -254,6 +265,11 @@ CPProcessPresentation >> visitContainer: aDescription [
 { #category : 'accessing - testing' }
 CPProcessPresentation >> diagramElement [
 	^ diagramElement
+]
+
+{ #category : 'accessing - testing' }
+CPProcessPresentation >> diagramPanElement [
+	^ diagramPanElement
 ]
 
 { #category : 'accessing - testing' }

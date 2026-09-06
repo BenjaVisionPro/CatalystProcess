@@ -20,7 +20,9 @@ Class {
 		'messageFlowVisualsByEdge',
 		'connectMessageFlowOperationBlock',
 		'connectionPreviewLine',
-		'connectionPreviewCursor'
+		'connectionPreviewCursor',
+		'canvasExtent',
+		'diagramPanHost'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -34,6 +36,8 @@ CPCollaborationVisualElement >> initialize [
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
+	canvasExtent := 720 @ 360.
+	diagramPanHost := nil.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false.
@@ -94,6 +98,9 @@ CPCollaborationVisualElement >> refresh [
 	contentExtent := self
 		canvasExtentForShapes: participantShapes
 		edges: messageFlowEdges.
+	canvasExtent := contentExtent.
+	diagramPanHost ifNotNil: [
+		diagramPanHost diagramExtent: canvasExtent ].
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
@@ -524,6 +531,18 @@ CPCollaborationVisualElement >> poolBorderColor [
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> resolvedThemeColor: aThemeableColor [
 	^ aThemeableColor blocResolveColorForTheme: self theme
+]
+
+{ #category : 'accessing - presentation' }
+CPCollaborationVisualElement >> canvasExtent [
+	^ canvasExtent
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> diagramPanHost: aPanHost [
+	diagramPanHost := aPanHost.
+	diagramPanHost ifNotNil: [
+		diagramPanHost diagramExtent: canvasExtent ]
 ]
 
 { #category : 'accessing - testing' }
