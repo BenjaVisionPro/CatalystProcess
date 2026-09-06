@@ -1,17 +1,14 @@
-"I temporarily lift one Process shape presentation out of its normal clipped presentation parent for an active drag.
+"I own the transient root-level presentation used while dragging one Process shape.
 
-The owning CPProcessVisualElement supplies root-diagram coordinates explicitly. I never infer diagram position from Bloc global transforms. While lifted, the shape is a child of the root Process visual and its position is therefore expressed directly in root-diagram coordinates. On restore I convert that root position back through the source Process visual's local coordinate space.
-
-The semantic CPShape remains in its original Process/Sub-Process until the Atelier operation completes."
+The real CPProcessShapeElement remains in its original CPProcessVisualElement for the entire gesture, so edge anchors and Bloc descendant invariants remain valid. I hide that real presentation and display an inert duplicate at root-diagram level. The real element continues to move inside its source visual; I mirror the same drag delta onto the root proxy. At the end of the gesture I remove the proxy and reveal the real presentation again."
 Class {
 	#name : 'CPProcessDragPresentation',
 	#superclass : 'Object',
 	#instVars : [
-		'shapeElement',
-		'labelElement',
-		'sourceVisual',
-		'originalShapeParent',
-		'originalLabelParent',
+		'sourceElement',
+		'sourceLabel',
+		'proxyElement',
+		'proxyLabel',
 		'dragShapePosition',
 		'dragLabelPosition'
 	],
@@ -21,53 +18,81 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPProcessDragPresentation class >> shapeElement: aShapeElement [
+CPProcessDragPresentation class >> sourceElement: aSourceElement proxyElement: aProxyElement proxyLabel: aProxyLabel [
 	^ self new
-		shapeElement: aShapeElement;
+		sourceElement: aSourceElement;
+		proxyElement: aProxyElement;
+		proxyLabel: aProxyLabel;
 		yourself
 ]
 
 { #category : 'dragging' }
-CPProcessDragPresentation >> liftFrom: aSourceVisual toRoot: aRootVisual shapeAt: aRootShapePosition labelAt: aRootLabelPosition [
-	sourceVisual := aSourceVisual.
-	originalShapeParent := shapeElement parent.
+CPProcessDragPresentation >> beginIn: aRootVisual shapeAt: aRootShapePosition labelAt: aRootLabelPosition [
 	dragShapePosition := aRootShapePosition.
-	shapeElement removeFromParent.
-	aRootVisual addChild: shapeElement.
-	shapeElement relocate: dragShapePosition.
+	dragLabelPosition := aRootLabelPosition.
+	sourceLabel := sourceElement externalLabelHost.
 
-	labelElement := shapeElement externalLabelHost.
-	labelElement ifNotNil: [
-		originalLabelParent := labelElement parent.
-		dragLabelPosition := aRootLabelPosition.
-		labelElement removeFromParent.
-		aRootVisual addChild: labelElement.
-		labelElement relocate: dragLabelPosition ].
+	sourceElement visibility: BlVisibility hidden.
+	sourceLabel ifNotNil: [ sourceLabel visibility: BlVisibility hidden ].
+
+	proxyElement
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: dragShapePosition;
+		preventMeAndChildrenMouseEvents.
+	aRootVisual addChild: proxyElement.
+
+	proxyLabel ifNotNil: [
+		proxyLabel
+			constraintsDo: [ :c | c ignoreByLayout ];
+			relocate: dragLabelPosition;
+			preventMeAndChildrenMouseEvents.
+		aRootVisual addChild: proxyLabel ].
 	^ self
 ]
 
 { #category : 'dragging' }
-CPProcessDragPresentation >> restoreShapeAt: aRootShapePosition labelAt: aRootLabelPosition [
-	shapeElement removeFromParent.
-	originalShapeParent addChild: shapeElement.
-	shapeElement relocate:
-		(sourceVisual localPointForRootDiagramPoint: aRootShapePosition).
+CPProcessDragPresentation >> moveBy: aDelta [
+	proxyElement relocate: dragShapePosition + aDelta.
+	proxyLabel ifNotNil: [
+		proxyLabel relocate: dragLabelPosition + aDelta ]
+]
 
-	labelElement ifNotNil: [
-		labelElement removeFromParent.
-		originalLabelParent addChild: labelElement.
-		labelElement relocate:
-			(sourceVisual localPointForRootDiagramPoint: aRootLabelPosition) ]
+{ #category : 'dragging' }
+CPProcessDragPresentation >> finish [
+	proxyElement removeFromParent.
+	proxyLabel ifNotNil: [ proxyLabel removeFromParent ].
+	sourceElement visibility: BlVisibility visible.
+	sourceLabel ifNotNil: [ sourceLabel visibility: BlVisibility visible ]
 ]
 
 { #category : 'accessing' }
-CPProcessDragPresentation >> shapeElement [
-	^ shapeElement
+CPProcessDragPresentation >> sourceElement [
+	^ sourceElement
 ]
 
 { #category : 'accessing' }
-CPProcessDragPresentation >> shapeElement: anElement [
-	shapeElement := anElement
+CPProcessDragPresentation >> sourceElement: anElement [
+	sourceElement := anElement
+]
+
+{ #category : 'accessing' }
+CPProcessDragPresentation >> proxyElement [
+	^ proxyElement
+]
+
+{ #category : 'accessing' }
+CPProcessDragPresentation >> proxyElement: anElement [
+	proxyElement := anElement
+]
+
+{ #category : 'accessing' }
+CPProcessDragPresentation >> proxyLabel [
+	^ proxyLabel
+]
+
+{ #category : 'accessing' }
+CPProcessDragPresentation >> proxyLabel: anElement [
+	proxyLabel := anElement
 ]
 
 { #category : 'accessing' }

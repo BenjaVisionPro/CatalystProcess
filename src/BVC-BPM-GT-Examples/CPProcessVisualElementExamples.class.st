@@ -1459,7 +1459,7 @@ CPProcessVisualElementExamples >> endingLabelEditingPreservesSelection [
 CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipped [
 	<gtExample>
 	| visual subProcess shapeElement nestedVisual nestedShapeElement nestedShape
-	  viewport originalParent presentation sourceBounds expectedRootPosition |
+	  viewport originalParent sourceBounds expectedRootPosition proxy presentation |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
@@ -1472,22 +1472,31 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 	sourceBounds := nestedVisual stagedBoundsOf: nestedShape.
 	expectedRootPosition := nestedVisual
 		rootDiagramPointForLocalPoint: sourceBounds origin.
-
-	presentation := (CPProcessDragPresentation shapeElement: nestedShapeElement)
-		liftFrom: nestedVisual
-		toRoot: visual
-		shapeAt: expectedRootPosition
-		labelAt: nil.
-
-	self assert: viewport clipChildren.
-	self assert: nestedShapeElement parent == visual.
-	self assert: presentation dragShapePosition equals: expectedRootPosition.
-
-	presentation
-		restoreShapeAt: expectedRootPosition
-		labelAt: nil.
+	proxy := nestedVisual
+		newDragProxyFor: nestedShapeElement modelElement
+		shape: nestedShape
+		bounds: sourceBounds.
+	presentation := (CPProcessDragPresentation
+		sourceElement: nestedShapeElement
+		proxyElement: proxy
+		proxyLabel: nil)
+			beginIn: visual
+			shapeAt: expectedRootPosition
+			labelAt: nil.
 
 	self assert: viewport clipChildren.
 	self assert: nestedShapeElement parent == originalParent.
+	self assert: nestedShapeElement visibility == BlVisibility hidden.
+	self assert: presentation proxyElement parent == visual.
+	self assert: presentation dragShapePosition equals: expectedRootPosition.
+
+	presentation moveBy: 20 @ 15.
+	self assert: nestedShapeElement parent == originalParent.
+
+	presentation finish.
+	self assert: viewport clipChildren.
+	self assert: nestedShapeElement parent == originalParent.
+	self assert: nestedShapeElement visibility == BlVisibility visible.
+	self assert: presentation proxyElement parent isNil.
 	^ presentation
 ]

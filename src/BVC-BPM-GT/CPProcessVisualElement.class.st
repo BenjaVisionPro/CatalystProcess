@@ -474,6 +474,45 @@ CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass s
 	^ assessment
 ]
 
+{ #category : 'private - dragging' }
+CPProcessVisualElement >> newDragProxyFor: aFlowNode shape: aShape bounds: bounds [
+	| proxy |
+	proxy := self
+		newShapeElementFor: aFlowNode
+		shape: aShape
+		bounds: bounds.
+	proxy
+		preventMeAndChildrenMouseEvents;
+		bringResizeHandlesToFront.
+	^ proxy
+]
+
+{ #category : 'private - dragging' }
+CPProcessVisualElement >> newDragProxyLabelFor: aFlowNode bounds: bounds [
+	| labelHost label labelWidth |
+	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ nil ].
+	labelWidth := 180.
+	labelHost := BlElement new
+		clipChildren: false;
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c horizontal exact: labelWidth.
+			c vertical fitContent ];
+		yourself.
+	label := self newEditableLabelFor: aFlowNode.
+	label
+		hFitContentLimited;
+		vFitContent;
+		constraintsDo: [ :c |
+			c maxWidth: labelWidth.
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ].
+	labelHost
+		addChild: label;
+		preventMeAndChildrenMouseEvents.
+	^ labelHost
+]
+
 { #category : 'private - shapes' }
 CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bounds [
 	| element label |
@@ -1454,7 +1493,7 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
+	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations dragSourcePosition |
 	moveShapeOperationBlock ifNil: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
@@ -1462,11 +1501,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 	internalBentEdges := #().
 	movedModelElements := IdentitySet new.
 	dragPresentations := IdentityDictionary new.
+	dragSourcePosition := nil.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
-			| elementsToLift singleLabelPosition |
+			| elementsToPresent singleLabelPosition |
 			self clearInsertionTarget.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
@@ -1479,51 +1519,57 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					movedModelElements add: draggedModelElement ].
 			singleLabelPosition := aShapeElement externalLabelHost
 				ifNotNil: [ :aLabel | aLabel position ].
-			elementsToLift := groupMode
+			elementsToPresent := groupMode
 				ifTrue: [ groupEntries collect: [ :entry | entry third ] ]
 				ifFalse: [ { aShapeElement } ].
 			dragPresentations := IdentityDictionary new.
-			elementsToLift do: [ :anElement |
-				| entry localShapePosition localLabelPosition rootShapePosition rootLabelPosition presentation |
+			elementsToPresent do: [ :anElement |
+				| entry modelElement shape bounds localLabelPosition rootShapePosition rootLabelPosition proxy proxyLabel presentation |
 				groupMode
 					ifTrue: [
 						entry := groupEntries detect: [ :each | each third == anElement ].
-						localShapePosition := entry fourth origin.
+						shape := entry first.
+						modelElement := entry second.
+						bounds := entry fourth.
 						localLabelPosition := entry sixth ]
 					ifFalse: [
-						localShapePosition := originalBounds origin.
+						shape := aShape.
+						modelElement := draggedModelElement.
+						bounds := originalBounds.
 						localLabelPosition := singleLabelPosition ].
-				rootShapePosition := self rootDiagramPointForLocalPoint: localShapePosition.
+				rootShapePosition := self rootDiagramPointForLocalPoint: bounds origin.
 				rootLabelPosition := localLabelPosition ifNotNil: [
 					self rootDiagramPointForLocalPoint: localLabelPosition ].
-				presentation := (CPProcessDragPresentation shapeElement: anElement)
-					liftFrom: self
-					toRoot: rootVisual
-					shapeAt: rootShapePosition
-					labelAt: rootLabelPosition.
+				proxy := self newDragProxyFor: modelElement shape: shape bounds: bounds.
+				proxyLabel := self newDragProxyLabelFor: modelElement bounds: bounds.
+				presentation := (CPProcessDragPresentation
+					sourceElement: anElement
+					proxyElement: proxy
+					proxyLabel: proxyLabel)
+						beginIn: rootVisual
+						shapeAt: rootShapePosition
+						labelAt: rootLabelPosition.
 				dragPresentations at: anElement put: presentation ].
-			dragStartLabelPosition := aShapeElement externalLabelHost
-				ifNotNil: [ :aLabel |
-					(dragPresentations at: aShapeElement) dragLabelPosition ].
+			dragSourcePosition := originalBounds origin.
+			dragStartLabelPosition := singleLabelPosition.
 			groupMode ifTrue: [
 				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
 				internalBentEdges do: [ :anEdge |
 					(self lineElementsForEdge: anEdge)
 						do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ] ]
-		dragStartPosition: [
-			(dragPresentations at: aShapeElement) dragShapePosition ]
+		dragStartPosition: [ dragSourcePosition ]
 		dragged: [ :anEvent :delta |
+			dragPresentations valuesDo: [ :aPresentation |
+				aPresentation moveBy: delta ].
 			groupMode
 				ifTrue: [
 					groupEntries do: [ :entry |
-						| element label presentation |
+						| element bounds label |
 						element := entry third.
+						bounds := entry fourth.
 						label := entry fifth.
-						presentation := dragPresentations at: element.
-						element relocate: presentation dragShapePosition + delta.
-						label ifNotNil: [
-							label relocate: presentation dragLabelPosition + delta ].
-						element bringResizeHandlesToFront ].
+						element relocate: bounds origin + delta.
+						label ifNotNil: [ label relocate: entry sixth + delta ] ].
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
 					internalBentEdges do: [ :anEdge |
@@ -1541,12 +1587,11 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						self positionReconnectHandlesFor: anEdge usingWaypoints: proposed.
 						self positionBendpointHandlesFor: anEdge usingWaypoints: proposed ].
 					self bringReconnectHandlesToFront.
-					self bringBendpointHandlesToFront.
-					self bringResizeHandlesToFront ]
+					self bringBendpointHandlesToFront ]
 				ifFalse: [
 					dragStartLabelPosition ifNotNil: [
 						aShapeElement externalLabelHost
-						relocate: dragStartLabelPosition + delta ].
+							relocate: dragStartLabelPosition + delta ].
 					self updateIncidentEdgeLabelsFor: draggedModelElement.
 					self updateIncidentReconnectHandlesFor: draggedModelElement.
 					self insertionTargetEdge: (self
@@ -1555,10 +1600,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self updateConnectionPortVisibility ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			dragPresentations valuesDo: [ :aPresentation |
-				aPresentation
-					restoreShapeAt: aPresentation dragShapePosition + delta
-					labelAt: (aPresentation dragLabelPosition
-						ifNotNil: [ :aPosition | aPosition + delta ]) ].
+				aPresentation finish ].
 			groupMode
 				ifTrue: [
 					| boundsByShape currentContainers rootPoint targetVisual targetContainer |
@@ -1629,7 +1671,6 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								intoEdge: insertionEdge
 								atBounds: proposedBounds ] ] ]
 ]
-
 { #category : 'private - containment' }
 CPProcessVisualElement >> transferGroupEntries: groupEntries movedModelElements: movedModelElements delta: delta to: targetVisual [
 	| boundsByFlowNode waypointsBySequenceFlow internalEdges |
