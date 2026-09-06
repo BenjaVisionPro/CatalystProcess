@@ -15,7 +15,8 @@ Class {
 		'isExpanded',
 		'subProcessExpansionMarker',
 		'nestedProcessViewport',
-		'nestedProcessVisual'
+		'nestedProcessVisual',
+		'subProcessInteractionChrome'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -43,6 +44,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	externalLabelHost := nil.
 	isExpanded := aBoolean.
 	subProcessExpansionMarker := nil.
+	subProcessInteractionChrome := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -469,7 +471,23 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 			c frame horizontal alignLeft.
 			c frame vertical alignTop ].
 	nestedProcessViewport addChild: nestedProcessVisual.
-	self addChildFirst: nestedProcessViewport
+	self addChildFirst: nestedProcessViewport.
+
+	subProcessInteractionChrome := BlElement new
+		extent: self width @ 32;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: 0 @ 0;
+		allowMeAndChildrenMouseEvents;
+		yourself.
+	self addChild: subProcessInteractionChrome.
+
+	labelElement ifNotNil: [
+		labelElement removeFromParent.
+		self addChild: labelElement ].
+	subProcessExpansionMarker ifNotNil: [
+		subProcessExpansionMarker removeFromParent.
+		self addChild: subProcessExpansionMarker ]
 ]
 
 { #category : 'accessing - testing' }
@@ -480,4 +498,9 @@ CPProcessShapeElement >> nestedProcessViewport [
 { #category : 'accessing - testing' }
 CPProcessShapeElement >> nestedProcessVisual [
 	^ nestedProcessVisual
+]
+
+{ #category : 'accessing - testing' }
+CPProcessShapeElement >> subProcessInteractionChrome [
+	^ subProcessInteractionChrome
 ]

@@ -1279,3 +1279,21 @@ CPProcessVisualElementExamples >> nestedProcessRendersWhileHosted [
 		equals: (80 @ 50 extent: 132 @ 54).
 	^ nestedVisual
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> expandedSubProcessKeepsParentInteractionChrome [
+	<gtExample>
+	| visual subProcess shapeElement chrome |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	chrome := shapeElement subProcessInteractionChrome.
+
+	self assert: chrome notNil.
+	self assert: chrome parent == shapeElement.
+	self assert: shapeElement nestedProcessViewport parent == shapeElement.
+	self assert: shapeElement resizeHandle notNil.
+	^ shapeElement
+]

@@ -349,7 +349,11 @@ CPProcessVisualElement >> addShapeFor: aShape [
 		self
 			installNestedProcessVisualIn: element
 			for: modelElement
-			bounds: bounds ].
+			bounds: bounds.
+		self
+			installExpandedSubProcessChromeInteractionOn: element
+			for: modelElement
+			shape: aShape ].
 	self addExternalLabelFor: modelElement bounds: bounds shape: aShape shapeElement: element.
 	self updateSelectionAppearance
 ]
@@ -3108,6 +3112,18 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 	nestedVisual
 		memento: memento
 		flowContainer: aSubProcess
+]
+
+{ #category : 'private - subprocess' }
+CPProcessVisualElement >> installExpandedSubProcessChromeInteractionOn: aShapeElement for: aFlowNode shape: aShape [
+	| chrome |
+	chrome := aShapeElement subProcessInteractionChrome.
+	chrome ifNil: [ ^ self ].
+	self installSelectionOn: chrome for: aFlowNode.
+	self
+		installPositioningFrom: chrome
+		moving: aShapeElement
+		for: aShape
 ]
 
 { #category : 'private - subprocess' }
