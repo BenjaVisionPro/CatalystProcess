@@ -13,6 +13,7 @@ Class {
 		'detailScrollElement',
 		'workspaceElement',
 		'selectedModelElement',
+		'selectionModel',
 		'moveShapeOperationBlock',
 		'transferFlowNodeOperationBlock',
 		'transferFlowNodesOperationBlock',
@@ -22,6 +23,7 @@ Class {
 		'createParticipantOperationBlock',
 		'moveParticipantShapeOperationBlock',
 		'resizeParticipantShapeOperationBlock',
+		'removeParticipantOperationBlock',
 		'replaceFlowNodeOperationBlock',
 		'connectFlowNodesOperationBlock',
 		'connectMessageFlowOperationBlock',
@@ -43,6 +45,8 @@ Class {
 CPProcessPresentation >> prepareHostElement [
 	| surfaceColor collaboration collaborationDiagram |
 	diagramCameraInitialized := false.
+	selectionModel := CPDiagramSelectionModel new.
+	selectionModel changedDo: [ self selectionDidChange ].
 	surfaceColor := self workspaceSurfaceColor.
 	collaboration := self stagedDefinitionalCollaboration.
 	collaborationDiagram := collaboration ifNotNil: [
@@ -52,7 +56,7 @@ CPProcessPresentation >> prepareHostElement [
 	collaborationDiagram ifNotNil: [
 		processDiagramElement beCollaborationHosted ].
 	processDiagramElement
-		selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+		selectionModel: selectionModel;
 		moveShapeOperationFor: moveShapeOperationBlock;
 		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
 		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
@@ -81,7 +85,7 @@ CPProcessPresentation >> prepareHostElement [
 				createParticipantOperationFor: createParticipantOperationBlock;
 				moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 				resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
-				selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+				selectionModel: selectionModel;
 				processMemento: self memento
 				processVisual: processDiagramElement;
 				yourself.
@@ -97,6 +101,7 @@ CPProcessPresentation >> prepareHostElement [
 		vMatchParent;
 		content: diagramElement;
 		yourself.
+	self installDiagramKeyboardHandler.
 	diagramScrollElement addEventHandler: (BlEventHandler
 		on: BlElementExtentChangedEvent
 		do: [ :anEvent | self updateDiagramViewportExtent ]).
@@ -136,6 +141,53 @@ CPProcessPresentation >> prepareHostElement [
 	selectedModelElement := nil
 ]
 
+{ #category : 'private - installing' }
+CPProcessPresentation >> installDiagramKeyboardHandler [
+	diagramScrollElement addEventHandler: (BlEventHandler
+		on: BlKeyDownEvent
+		do: [ :anEvent |
+			(anEvent key = BlKeyboardKey delete
+				or: [ anEvent key = BlKeyboardKey backspace ])
+				ifTrue: [
+					self removeSelection.
+					anEvent consumed: true ] ])
+]
+
+{ #category : 'private - removal' }
+CPProcessPresentation >> removeSelection [
+	| selected operations rejected participants |
+	selected := selectionModel selectedModelElements.
+	selected isEmpty ifTrue: [ ^ self ].
+	operations := processDiagramElement removalOperationsForModelElements: selected.
+	participants := selected select: [ :each | self stagedDefinitionalCollaboration notNil and: [ (self mementoForParticipant: each) notNil ] ].
+	participants do: [ :aParticipant |
+		removeParticipantOperationBlock ifNotNil: [
+			operations add: (removeParticipantOperationBlock value: aParticipant) ] ].
+	operations isEmpty ifTrue: [ ^ self ].
+	rejected := operations
+		detect: [ :anOperation | anOperation assess isApplicable not ]
+		ifNone: [ nil ].
+	rejected ifNotNil: [ ^ rejected assess ].
+	operations do: [ :anOperation | anOperation apply ].
+	selectionModel clear.
+	self synchronizeDiagramAfterRemoval
+]
+
+{ #category : 'private - removal' }
+CPProcessPresentation >> synchronizeDiagramAfterRemoval [
+	self stagedDefinitionalCollaboration
+		ifNil: [
+			collaborationDiagramElement := nil.
+			processDiagramElement beStandalone.
+			diagramElement := processDiagramElement.
+			diagramScrollElement content: diagramElement.
+			diagramCameraInitialized := false.
+			self updateDiagramViewportExtent ]
+		ifNotNil: [
+			processDiagramElement refresh.
+			collaborationDiagramElement ifNotNil: [ collaborationDiagramElement refresh ] ]
+]
+
 { #category : 'private - layout' }
 CPProcessPresentation >> updateDiagramViewportExtent [
 	| viewport |
@@ -162,7 +214,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			createParticipantOperationFor: createParticipantOperationBlock;
 			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
-			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+			selectionModel: selectionModel;
 			processMemento: self memento
 			processVisual: processDiagramElement;
 			yourself.
@@ -195,6 +247,13 @@ CPProcessPresentation >> stagedDiagramOfDefinitionalCollaboration: aCollaboratio
 	^ collaborationMemento readUsing: diagramDescription
 ]
 
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> selectionDidChange [
+	processDiagramElement ifNotNil: [ processDiagramElement updateSelectionAppearanceRecursively ].
+	collaborationDiagramElement ifNotNil: [ collaborationDiagramElement updateParticipantSelectionAppearance ].
+	self selectModelElement: selectionModel selectedModelElement
+]
 
 { #category : 'private - selection' }
 CPProcessPresentation >> selectModelElement: aModelElement [
@@ -369,7 +428,7 @@ CPProcessPresentation >> synchronizeEditingConfiguration [
 			createParticipantOperationFor: createParticipantOperationBlock;
 			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
 			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
-			selectionChangedDo: [ :aModelElement | self selectModelElement: aModelElement ];
+			selectionModel: selectionModel;
 			refresh ]
 ]
 { #category : 'configuration' }
@@ -389,6 +448,11 @@ CPProcessPresentation >> moveParticipantShapeOperationFor: aBlock [
 { #category : 'configuration' }
 CPProcessPresentation >> resizeParticipantShapeOperationFor: aBlock [
 	resizeParticipantShapeOperationBlock := aBlock
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> removeParticipantOperationFor: aBlock [
+	removeParticipantOperationBlock := aBlock
 ]
 { #category : 'configuration' }
 CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]

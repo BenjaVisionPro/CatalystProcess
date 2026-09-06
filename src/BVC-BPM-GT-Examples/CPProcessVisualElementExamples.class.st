@@ -1678,3 +1678,26 @@ CPProcessVisualElementExamples >> participantPoolUsesStandardObjectTreatment [
 	self assert: participantElement labelBand notNil.
 	^ participantElement
 ]
+
+{ #category : 'examples - selection' }
+CPProcessVisualElementExamples >> processAndCollaborationShareOneSelectionModel [
+	<gtExample>
+	| fixture processVisual collaborationVisual selection participant task |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	participant := fixture at: 5.
+	task := fixture at: 13.
+	selection := CPDiagramSelectionModel new.
+	processVisual selectionModel: selection.
+	collaborationVisual selectionModel: selection.
+
+	selection selectOnly: participant.
+	self assert: processVisual selectionModel == collaborationVisual selectionModel.
+	self assert: processVisual selectedModelElement == participant.
+
+	selection selectOnly: task.
+	self assert: processVisual selectedModelElement == task.
+	self assert: collaborationVisual selectionModel selectedModelElement == task.
+	^ selection
+]

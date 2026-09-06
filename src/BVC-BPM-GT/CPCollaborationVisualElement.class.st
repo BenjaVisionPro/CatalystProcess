@@ -19,7 +19,7 @@ Class {
 		'moveParticipantShapeOperationBlock',
 		'resizeParticipantShapeOperationBlock',
 		'selectionChangedBlock',
-		'selectedParticipant',
+		'selectionModel',
 		'participantElementsByParticipant',
 		'messageFlowVisualsByEdge',
 		'connectMessageFlowOperationBlock',
@@ -44,7 +44,7 @@ CPCollaborationVisualElement >> initialize [
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
-	selectedParticipant := nil.
+	selectionModel := CPDiagramSelectionModel new.
 	viewportExtent := 1360 @ 800.
 	diagramBounds := 0 @ 0 extent: 0 @ 0.
 	diagramExtent := 0 @ 0.
@@ -155,19 +155,32 @@ CPCollaborationVisualElement >> installSelectionOnParticipantElement: anElement 
 	anElement addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
-			selectedParticipant := aParticipant.
+			anEvent modifiers isShift
+				ifTrue: [ selectionModel toggle: aParticipant ]
+				ifFalse: [ selectionModel selectOnly: aParticipant ].
 			self updateParticipantSelectionAppearance.
-			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aParticipant ].
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: selectionModel selectedModelElement ].
 			self requestFocus.
 			anEvent consumed: true ]).
 	anElement installBodyCursor
+]
+
+{ #category : 'selection' }
+CPCollaborationVisualElement >> selectionModel [
+	^ selectionModel
+]
+
+{ #category : 'selection' }
+CPCollaborationVisualElement >> selectionModel: aSelectionModel [
+	selectionModel := aSelectionModel.
+	self updateParticipantSelectionAppearance
 ]
 
 { #category : 'private - selection' }
 CPCollaborationVisualElement >> updateParticipantSelectionAppearance [
 	participantElementsByParticipant keysAndValuesDo: [ :aParticipant :anElement |
 		anElement
-			selected: aParticipant == selectedParticipant
+			selected: (selectionModel includes: aParticipant)
 			selectionColor: self selectionColor
 			normalColor: self poolBorderColor ]
 ]
@@ -179,7 +192,7 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 		installPositioningFrom: anElement labelBand
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
-			selectedParticipant := anElement participant.
+			selectionModel selectOnly: anElement participant.
 			self updateParticipantSelectionAppearance ]
 		dragStartPosition: [ (self stagedBoundsOf: aShape) origin ]
 		dragged: [ :anEvent :delta | ]

@@ -1261,3 +1261,76 @@ CPProcessAtelierExamples >> createSecondParticipantDefaultsToBlackBox [
 	self assert: secondParticipant processRef isNil.
 	^ assessment
 ]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> removeBlackBoxParticipantStagesPoolAndIncidentMessageFlowRemoval [
+	<gtExample>
+	| fixture memento externalParticipant connectAssessment operation assessment context |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	externalParticipant := fixture at: 6.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: externalParticipant
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+
+	operation := CPAtelierRemoveParticipant
+		participant: externalParticipant
+		processMemento: memento.
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: (context participants identityIncludes: externalParticipant) not.
+	self assert: (context messageFlows identityIncludes: connectAssessment messageFlow) not.
+	self assert: (context elements identityIncludes: (fixture at: 9)) not.
+	self assert: (context elements identityIncludes: connectAssessment edge) not.
+	self assert: context participants size equals: 1.
+	self assert: context messageFlows isEmpty.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> removeSoleParticipantReturnsProcessToStandalonePresentationState [
+	<gtExample>
+	| process memento participant createAssessment operation assessment collaborationDescription |
+	process := CPProcess new label: 'Process'; yourself.
+	process diagram: CPDiagram new.
+	memento := CFMaMemento model: process.
+	participant := CPParticipant new label: 'Pool'; yourself.
+	createAssessment := (CPAtelierCreateParticipant
+		participant: participant
+		bounds: (40 @ 40 extent: 620 @ 230)
+		processMemento: memento) apply.
+	collaborationDescription := self
+		descriptionFor: #definitionalCollaborationRef
+		in: memento.
+
+	operation := CPAtelierRemoveParticipant
+		participant: participant
+		processMemento: memento.
+	assessment := operation apply.
+
+	self assert: createAssessment isApplicable.
+	self assert: assessment isApplicable.
+	self assert: assessment removesCollaboration.
+	self assert: (memento readUsing: collaborationDescription) isNil.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> removingHostedParticipantWithOtherPoolsIsRejected [
+	<gtExample>
+	| fixture operation assessment |
+	fixture := self collaborationFixture.
+	operation := CPAtelierRemoveParticipant
+		participant: (fixture at: 5)
+		processMemento: (fixture at: 2).
+	assessment := operation assess.
+
+	self assert: assessment isApplicable not.
+	self assert: assessment rejectionMessage
+		equals: 'The Participant that hosts the edited Process cannot be removed while other Participants remain.'.
+	^ assessment
+]
