@@ -2279,8 +2279,14 @@ CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
 	inset := self hostedDiagramInset.
 	horizontalMargin := CPParticipantShapeElement processContentOriginOffset x + inset x.
 	extent := diagramExtent + ((horizontalMargin * 2) @ (inset y * 2)).
-	origin := diagramBounds origin - (horizontalMargin @ inset y).
-	^ (origin max: 0 @ 0) extent: extent
+
+	"The Collaboration plane is a different BPMNPlane from the Process plane.
+	The first Pool therefore derives its size from the Process graph, but never
+	borrows the Process DI origin as a Collaboration coordinate. The camera
+	positions the new Collaboration presentation; the hosted Process visual
+	normalizes its own DI bounds inside the Pool."
+	origin := 0 @ 0.
+	^ origin extent: extent
 ]
 
 { #category : 'private - creation' }

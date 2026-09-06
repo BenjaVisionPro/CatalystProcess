@@ -52,29 +52,8 @@ CPProcessPresentation >> prepareHostElement [
 	collaborationDiagram := collaboration ifNotNil: [
 		self stagedDiagramOfDefinitionalCollaboration: collaboration ].
 
-	processDiagramElement := CPProcessVisualElement new.
-	collaborationDiagram ifNotNil: [
-		processDiagramElement beCollaborationHosted ].
-	processDiagramElement
-		selectionModel: selectionModel;
-		moveShapeOperationFor: moveShapeOperationBlock;
-		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
-		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
-		moveShapesOperationFor: moveShapesOperationBlock;
-		resizeShapeOperationFor: resizeShapeOperationBlock;
-		createFlowNodeOperationFor: createFlowNodeOperationBlock;
-		createParticipantOperationFor: createParticipantOperationBlock;
-		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
-		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
-		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
-		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
-		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
-		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
-		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
-		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
-		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
-		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock;
-		memento: self memento.
+	processDiagramElement := self
+		newConfiguredProcessDiagramElementCollaborationHosted: collaborationDiagram notNil.
 
 	collaborationDiagramElement := nil.
 	diagramElement := collaborationDiagram
@@ -141,6 +120,34 @@ CPProcessPresentation >> prepareHostElement [
 	selectedModelElement := nil
 ]
 
+{ #category : 'private - building' }
+CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: aBoolean [
+	| visual |
+	visual := CPProcessVisualElement new.
+	aBoolean ifTrue: [ visual beCollaborationHosted ].
+	visual
+		selectionModel: selectionModel;
+		moveShapeOperationFor: moveShapeOperationBlock;
+		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
+		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
+		moveShapesOperationFor: moveShapesOperationBlock;
+		resizeShapeOperationFor: resizeShapeOperationBlock;
+		createFlowNodeOperationFor: createFlowNodeOperationBlock;
+		createParticipantOperationFor: createParticipantOperationBlock;
+		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
+		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
+		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
+		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
+		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
+		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
+		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
+		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
+		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
+		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock;
+		memento: self memento.
+	^ visual
+]
+
 { #category : 'private - installing' }
 CPProcessPresentation >> installDiagramKeyboardHandler [
 	diagramScrollElement addEventHandler: (BlEventHandler
@@ -202,13 +209,24 @@ CPProcessPresentation >> updateDiagramViewportExtent [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> ensureCollaborationDiagramPresentation [
-	| collaboration collaborationDiagram |
+	| collaboration collaborationDiagram previousGraphGlobalOrigin |
 	collaboration := self stagedDefinitionalCollaboration.
 	collaboration ifNil: [ ^ self ].
 	collaborationDiagram := self stagedDiagramOfDefinitionalCollaboration: collaboration.
 	collaborationDiagram ifNil: [ ^ self ].
 
 	collaborationDiagramElement ifNil: [
+		"A first Collaboration changes the root presentation topology. Preserve
+		the current graph position, then build the hosted Process visual in its
+		final parent configuration. Expanded Sub-Processes use the same lifecycle:
+		a fresh nested Process visual is configured before staged content renders."
+		previousGraphGlobalOrigin := processDiagramElement diagramExtent = (0 @ 0)
+			ifTrue: [ nil ]
+			ifFalse: [
+				processDiagramElement globalPointForDiagramPoint:
+					processDiagramElement diagramBounds origin ].
+		processDiagramElement := self
+			newConfiguredProcessDiagramElementCollaborationHosted: true.
 		collaborationDiagramElement := CPCollaborationVisualElement new
 			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
 			createParticipantOperationFor: createParticipantOperationBlock;
@@ -222,6 +240,13 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 		diagramCameraInitialized := false.
 		diagramScrollElement content: diagramElement.
 		self updateDiagramViewportExtent.
+		previousGraphGlobalOrigin ifNotNil: [
+			diagramScrollElement enqueueTask: (BlTaskAction new action: [
+				| newGraphGlobalOrigin |
+				newGraphGlobalOrigin := processDiagramElement
+					globalPointForDiagramPoint: processDiagramElement diagramBounds origin.
+				diagramScrollElement scrollBy:
+					newGraphGlobalOrigin - previousGraphGlobalOrigin ]) ].
 		^ self ].
 	collaborationDiagramElement refresh
 ]

@@ -1717,11 +1717,8 @@ CPProcessVisualElementExamples >> firstPoolWrapsExistingProcessDiagramWithoutCha
 		visual diagramExtent
 			+ (((CPParticipantShapeElement processContentOriginOffset x + visual hostedDiagramInset x) * 2)
 				@ (visual hostedDiagramInset y * 2)).
-	self assert: expected origin equals:
-		((visual diagramBounds origin
-			- ((CPParticipantShapeElement processContentOriginOffset x + visual hostedDiagramInset x)
-				@ visual hostedDiagramInset y))
-			max: 0 @ 0).
+	self assert: expected origin equals: 0 @ 0.
+	self assert: visual diagramBounds origin ~= expected origin.
 	^ expected
 ]
 
