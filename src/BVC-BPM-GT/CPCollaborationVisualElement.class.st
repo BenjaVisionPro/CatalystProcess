@@ -13,7 +13,9 @@ Class {
 		'collaborationMemento',
 		'diagramMemento',
 		'elementsDescription',
-		'participantElementsByParticipant'
+		'messageFlowsDescription',
+		'participantElementsByParticipant',
+		'messageFlowVisualsByEdge'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -24,6 +26,7 @@ Class {
 CPCollaborationVisualElement >> initialize [
 	super initialize.
 	participantElementsByParticipant := IdentityDictionary new.
+	messageFlowVisualsByEdge := IdentityDictionary new.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false
@@ -38,9 +41,10 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
-	| collaborationDescription diagramDescription diagram elements participantShapes contentExtent |
+	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges contentExtent stagedMessageFlows |
 	self removeChildren.
 	participantElementsByParticipant removeAll.
+	messageFlowVisualsByEdge removeAll.
 
 	collaborationDescription := processMemento magritteDescription
 		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
@@ -59,20 +63,33 @@ CPCollaborationVisualElement >> refresh [
 		inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
+	messageFlowsDescription := collaborationMemento magritteDescription
+		detect: [ :each | each handlesSelector: #messageFlows ].
 	elements := diagramMemento readUsing: elementsDescription.
+	stagedMessageFlows := collaborationMemento readUsing: messageFlowsDescription.
 	participantShapes := elements select: [ :each |
 		| modelElement |
 		each isShape and: [
 			modelElement := self stagedModelElementOf: each.
 			modelElement notNil and: [ modelElement isParticipant ] ] ].
+	messageFlowEdges := elements select: [ :each |
+		| modelElement |
+		each isEdge and: [
+			modelElement := self stagedModelElementOf: each.
+			modelElement notNil and: [
+				stagedMessageFlows identityIncludes: modelElement ] ] ].
 
-	contentExtent := self canvasExtentFor: participantShapes.
+	contentExtent := self canvasExtentFor:
+		(participantShapes asOrderedCollection
+			addAll: messageFlowEdges;
+			yourself).
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
 		c vertical matchParent.
 		c minWidth: contentExtent x.
 		c minHeight: contentExtent y ].
-	participantShapes do: [ :each | self addParticipantShape: each ]
+	participantShapes do: [ :each | self addParticipantShape: each ].
+	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ]
 ]
 
 { #category : 'private - building' }
@@ -95,6 +112,43 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 
 	participant processRef == processMemento model ifTrue: [
 		element hostProcessVisual: processVisual ]
+]
+
+{ #category : 'private - building' }
+CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
+	| messageFlow waypoints visual |
+	messageFlow := self stagedModelElementOf: anEdge.
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size < 2 ifTrue: [ ^ self ].
+	visual := CPCollaborationMessageFlowVisual edge: anEdge.
+	visual
+		renderWaypoints: waypoints
+		color: self poolBorderColor
+		label: (self stagedLabelOfMessageFlow: messageFlow)
+		in: self.
+	messageFlowVisualsByEdge at: anEdge put: visual
+]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedWaypointsOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := diagramMemento
+		childMementoFor: anEdge
+		inRelation: elementsDescription.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #waypoints ].
+	^ (edgeMemento readUsing: description) ifNil: [ #() ]
+]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedLabelOfMessageFlow: aMessageFlow [
+	| flowMemento description |
+	flowMemento := collaborationMemento
+		childMementoFor: aMessageFlow
+		inRelation: messageFlowsDescription.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
+	^ flowMemento readUsing: description
 ]
 
 { #category : 'private - staged state' }
@@ -120,16 +174,22 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 ]
 
 { #category : 'private - layout' }
-CPCollaborationVisualElement >> canvasExtentFor: someShapes [
+CPCollaborationVisualElement >> canvasExtentFor: someDiagramElements [
 	| maximumX maximumY |
 	maximumX := 720.
 	maximumY := 360.
-	someShapes do: [ :each |
-		| bounds |
-		bounds := self stagedBoundsOf: each.
-		bounds ifNotNil: [
-			maximumX := maximumX max: bounds right + 80.
-			maximumY := maximumY max: bounds bottom + 80 ] ].
+	someDiagramElements do: [ :each |
+		each isShape
+			ifTrue: [
+				| bounds |
+				bounds := self stagedBoundsOf: each.
+				bounds ifNotNil: [
+					maximumX := maximumX max: bounds right + 80.
+					maximumY := maximumY max: bounds bottom + 80 ] ]
+			ifFalse: [
+				(self stagedWaypointsOf: each) do: [ :aPoint |
+					maximumX := maximumX max: aPoint x + 80.
+					maximumY := maximumY max: aPoint y + 80 ] ] ].
 	^ maximumX @ maximumY
 ]
 
@@ -161,4 +221,10 @@ CPCollaborationVisualElement >> processVisual [
 { #category : 'accessing - testing' }
 CPCollaborationVisualElement >> participantElementsByParticipant [
 	^ participantElementsByParticipant
+]
+
+
+{ #category : 'accessing - testing' }
+CPCollaborationVisualElement >> messageFlowVisualsByEdge [
+	^ messageFlowVisualsByEdge
 ]

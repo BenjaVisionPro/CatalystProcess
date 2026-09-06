@@ -59,3 +59,9 @@ CPMessageFlow >> targetRefDescription [
 		beRequired;
 		yourself
 ]
+
+
+{ #category : 'testing' }
+CPMessageFlow >> isMessageFlow [
+	^ true
+]

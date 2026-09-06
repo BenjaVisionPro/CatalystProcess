@@ -1505,7 +1505,8 @@ CPProcessVisualElementExamples >> nestedShapeDragPresentationLeavesViewportClipp
 CPProcessVisualElementExamples >> collaborationVisualFixture [
 	| process start task finish firstFlow secondFlow processDiagram
 	  startShape taskShape finishShape firstEdge secondEdge collaboration localParticipant
-	  externalParticipant collaborationDiagram localPool externalPool memento processVisual collaborationVisual |
+	  externalParticipant collaborationDiagram localPool externalPool messageFlow messageEdge
+	  memento processVisual collaborationVisual |
 
 	process := CPProcess new label: 'Seller process'; yourself.
 	start := CPNoneStartEvent new label: 'Start'; yourself.
@@ -1557,6 +1558,12 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 	collaboration
 		addParticipant: localParticipant;
 		addParticipant: externalParticipant.
+	messageFlow := CPMessageFlow new
+		label: 'Order';
+		sourceRef: localParticipant;
+		targetRef: externalParticipant;
+		yourself.
+	collaboration addMessageFlow: messageFlow.
 	collaborationDiagram := CPDiagram new.
 	collaboration diagram: collaborationDiagram.
 	localPool := CPShape new
@@ -1567,9 +1574,16 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 		modelElement: externalParticipant;
 		bounds: (40 @ 320 extent: 620 @ 100);
 		yourself.
+	messageEdge := CPEdge new
+		modelElement: messageFlow;
+		yourself.
+	messageEdge
+		addWaypoint: 350 @ 270;
+		addWaypoint: 350 @ 320.
 	collaborationDiagram
 		addElement: localPool;
-		addElement: externalPool.
+		addElement: externalPool;
+		addElement: messageEdge.
 	process definitionalCollaborationRef: collaboration.
 
 	memento := CFMaMemento model: process.
@@ -1592,7 +1606,9 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 		localPool.
 		externalPool.
 		processVisual.
-		collaborationVisual
+		collaborationVisual.
+		messageFlow.
+		messageEdge
 	}
 ]
 
@@ -1611,7 +1627,8 @@ CPProcessVisualElementExamples >> collaborationDiagramAcceptsParticipantShapes [
 	self assert: diagram modelElement == collaboration.
 	self assert: localPool modelElement == (fixture at: 4).
 	self assert: externalPool modelElement == (fixture at: 5).
-	self assert: diagram elements size equals: 2.
+	self assert: (fixture at: 12) modelElement == (fixture at: 11).
+	self assert: diagram elements size equals: 3.
 	^ diagram
 ]
 
@@ -1665,4 +1682,52 @@ CPProcessVisualElementExamples >> collaborationPoolsUseTheirOwnDiagramBounds [
 	self assert: (collaborationVisual stagedBoundsOf: (fixture at: 8))
 		equals: (40 @ 320 extent: 620 @ 100).
 	^ collaborationVisual
+]
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessVisualElementExamples >> collaborationRendersMessageFlowFromItsOwnDiagram [
+	<gtExample>
+	| fixture collaborationVisual messageFlow messageEdge messageVisual |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageFlow := fixture at: 11.
+	messageEdge := fixture at: 12.
+	messageVisual := collaborationVisual messageFlowVisualsByEdge
+		at: messageEdge.
+
+	self assert: messageEdge modelElement == messageFlow.
+	self assert: messageVisual diagramEdge == messageEdge.
+	self assert: messageVisual lineElements isEmpty not.
+	self assert: messageVisual sourceMarker notNil.
+	self assert: messageVisual sourceMarker parent == collaborationVisual.
+	^ messageVisual
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessVisualElementExamples >> collaborationMessageFlowUsesStagedWaypoints [
+	<gtExample>
+	| fixture collaborationVisual messageEdge |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+
+	self assert: (collaborationVisual stagedWaypointsOf: messageEdge)
+		equals: ({ 350 @ 270. 350 @ 320 } asOrderedCollection).
+	^ messageEdge
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessVisualElementExamples >> collaborationMessageFlowRendersItsLabel [
+	<gtExample>
+	| fixture collaborationVisual messageVisual |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageVisual := collaborationVisual messageFlowVisualsByEdge
+		at: (fixture at: 12).
+
+	self assert: messageVisual labelHost notNil.
+	self assert: messageVisual labelHost parent == collaborationVisual.
+	^ messageVisual
 ]
