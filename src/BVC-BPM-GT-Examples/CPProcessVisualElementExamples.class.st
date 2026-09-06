@@ -1174,3 +1174,24 @@ CPProcessVisualElementExamples >> nestedProcessIsResolvedFromSourceLocalDropCent
 	self assert: nestedVisual flowContainer == subProcess.
 	^ nestedVisual
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> directSubProcessBoundsResolveNestedTransferTarget [
+	<gtExample>
+	| visual subProcess shapeElement nestedVisual point target |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+	point := shapeElement position + (shapeElement extent / 2).
+
+	target := visual
+		targetProcessVisualForLocalPoint: point
+		excluding: nil.
+
+	self assert: target == nestedVisual.
+	self assert: target flowContainer == subProcess.
+	^ target
+]

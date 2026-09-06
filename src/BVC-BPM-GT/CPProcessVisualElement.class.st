@@ -1506,8 +1506,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 							globalCenter := self
 								localPointToGlobal: proposedBounds center.
 							targetVisual := self
-								targetProcessVisualAtGlobalPoint: globalCenter
+								targetProcessVisualForLocalPoint: proposedBounds center
 								excluding: draggedModelElement.
+							targetVisual == self ifTrue: [
+								targetVisual := self
+									targetProcessVisualAtGlobalPoint: globalCenter
+									excluding: draggedModelElement ].
 							targetContainer := targetVisual flowContainer.
 							(currentContainer notNil
 								and: [ targetContainer ~~ currentContainer
@@ -2995,26 +2999,51 @@ CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> processVisualAtGlobalPoint: aGlobalPoint excluding: anExcludedFlowElement [
-	| nestedCandidate |
+	^ self
+		processVisualAtLocalPoint: (self globalPointToLocal: aGlobalPoint)
+		globalPoint: aGlobalPoint
+		excluding: anExcludedFlowElement
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> processVisualAtLocalPoint: aLocalPoint globalPoint: aGlobalPoint excluding: anExcludedFlowElement [
+	| candidates target |
+	candidates := OrderedCollection new.
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :aShapeElement |
 		(aModelElement isSubProcess
 			and: [ aModelElement ~~ anExcludedFlowElement
 			and: [ aShapeElement nestedProcessVisual notNil ] ]) ifTrue: [
-				| viewport localPoint |
-				viewport := aShapeElement nestedProcessViewport.
-				localPoint := viewport globalPointToLocal: aGlobalPoint.
-				((0 @ 0 extent: viewport extent) containsPoint: localPoint) ifTrue: [
-					nestedCandidate := aShapeElement nestedProcessVisual
-						processVisualAtGlobalPoint: aGlobalPoint
-						excluding: anExcludedFlowElement.
-					nestedCandidate ifNotNil: [ ^ nestedCandidate ] ] ] ].
-	^ self
+				| bounds |
+				bounds := aShapeElement position extent: aShapeElement extent.
+				(bounds containsPoint: aLocalPoint) ifTrue: [
+					candidates add: { aModelElement. aShapeElement. bounds } ] ] ].
+	candidates ifEmpty: [ ^ self ].
+	target := candidates
+		inject: candidates first
+		into: [ :smallest :each |
+			(each third width * each third height)
+				< (smallest third width * smallest third height)
+					ifTrue: [ each ]
+					ifFalse: [ smallest ] ].
+	^ target second nestedProcessVisual
+		processVisualAtGlobalPoint: aGlobalPoint
+		excluding: anExcludedFlowElement
 ]
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> targetProcessVisualAtGlobalPoint: aGlobalPoint excluding: anExcludedFlowElement [
 	^ rootVisual
 		processVisualAtGlobalPoint: aGlobalPoint
+		excluding: anExcludedFlowElement
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> targetProcessVisualForLocalPoint: aLocalPoint excluding: anExcludedFlowElement [
+	| globalPoint |
+	globalPoint := self localPointToGlobal: aLocalPoint.
+	^ self
+		processVisualAtLocalPoint: aLocalPoint
+		globalPoint: globalPoint
 		excluding: anExcludedFlowElement
 ]
 
