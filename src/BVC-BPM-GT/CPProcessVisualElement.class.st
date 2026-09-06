@@ -170,11 +170,15 @@ CPProcessVisualElement >> refresh [
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
 	contentExtent := self canvasExtentFor: shapes.
-	self constraintsDo: [ :c |
-		c horizontal matchParent.
-		c vertical matchParent.
-		c minWidth: contentExtent x.
-		c minHeight: contentExtent y ].
+	parentProcessVisual
+		ifNil: [
+			self constraintsDo: [ :c |
+				c horizontal matchParent.
+				c vertical matchParent.
+				c minWidth: contentExtent x.
+				c minHeight: contentExtent y ] ]
+		ifNotNil: [
+			self constraintsDo: [ :c | c ignoreByLayout ] ].
 	self addPaletteDropSurface.
 	shapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].

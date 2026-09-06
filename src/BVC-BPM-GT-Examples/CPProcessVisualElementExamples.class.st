@@ -1257,3 +1257,20 @@ CPProcessVisualElementExamples >> transferredNodeRendersInNestedProcessAfterRefr
 	self assert: (nestedVisual stagedBoundsOf: taskShape) equals: (80 @ 50 extent: 132 @ 54).
 	^ nestedVisual
 ]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedProcessCanvasHasViewportExtent [
+	<gtExample>
+	| visual subProcess shapeElement nestedVisual |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+
+	self assert: nestedVisual extent equals: shapeElement extent.
+	self assert: shapeElement nestedProcessViewport extent equals: shapeElement extent.
+	self assert: nestedVisual parent == shapeElement nestedProcessViewport.
+	^ nestedVisual
+]
