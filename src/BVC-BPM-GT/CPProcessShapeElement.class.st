@@ -16,7 +16,7 @@ Class {
 		'subProcessExpansionMarker',
 		'nestedProcessViewport',
 		'nestedProcessVisual',
-		'subProcessInteractionChrome'
+		'subProcessBorderInteractionElements'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -44,7 +44,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	externalLabelHost := nil.
 	isExpanded := aBoolean.
 	subProcessExpansionMarker := nil.
-	subProcessInteractionChrome := nil.
+	subProcessBorderInteractionElements := #().
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -472,22 +472,44 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 			c frame vertical alignTop ].
 	nestedProcessViewport addChild: nestedProcessVisual.
 	self addChildFirst: nestedProcessViewport.
+	self addSubProcessBorderInteractionElements
+]
 
-	subProcessInteractionChrome := BlElement new
-		extent: self width @ 32;
+{ #category : 'private - subprocess' }
+CPProcessShapeElement >> addSubProcessBorderInteractionElements [
+	| hitWidth top bottom left right |
+	hitWidth := 8.
+	top := BlElement new
+		extent: self width @ hitWidth;
 		background: Color transparent;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: 0 @ 0;
-		allowMeAndChildrenMouseEvents;
 		yourself.
-	self addChild: subProcessInteractionChrome.
+	bottom := BlElement new
+		extent: self width @ hitWidth;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: 0 @ (self height - hitWidth);
+		yourself.
+	left := BlElement new
+		extent: hitWidth @ self height;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: 0 @ 0;
+		yourself.
+	right := BlElement new
+		extent: hitWidth @ self height;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: (self width - hitWidth) @ 0;
+		yourself.
+	subProcessBorderInteractionElements := { top. bottom. left. right }.
+	subProcessBorderInteractionElements do: [ :each | self addChild: each ]
+]
 
-	labelElement ifNotNil: [
-		labelElement removeFromParent.
-		self addChild: labelElement ].
-	subProcessExpansionMarker ifNotNil: [
-		subProcessExpansionMarker removeFromParent.
-		self addChild: subProcessExpansionMarker ]
+{ #category : 'accessing - testing' }
+CPProcessShapeElement >> subProcessBorderInteractionElements [
+	^ subProcessBorderInteractionElements
 ]
 
 { #category : 'accessing - testing' }
@@ -500,7 +522,3 @@ CPProcessShapeElement >> nestedProcessVisual [
 	^ nestedProcessVisual
 ]
 
-{ #category : 'accessing - testing' }
-CPProcessShapeElement >> subProcessInteractionChrome [
-	^ subProcessInteractionChrome
-]

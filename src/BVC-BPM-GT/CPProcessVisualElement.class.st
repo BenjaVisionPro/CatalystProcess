@@ -351,7 +351,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 			for: modelElement
 			bounds: bounds.
 		self
-			installExpandedSubProcessChromeInteractionOn: element
+			installExpandedSubProcessBorderInteractionOn: element
 			for: modelElement
 			shape: aShape ].
 	self addExternalLabelFor: modelElement bounds: bounds shape: aShape shapeElement: element.
@@ -1813,7 +1813,11 @@ CPProcessVisualElement >> addPaletteDropSurface [
 		addEventHandler: (BlEventHandler
 			on: BlClickEvent
 			do: [ :anEvent |
-				self clearInteractionAndSelection.
+				parentProcessVisual
+					ifNil: [ self clearInteractionAndSelection ]
+					ifNotNil: [
+						self clearLocalSelection.
+						parentProcessVisual selectOnly: flowContainer ].
 				self requestFocus.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -2942,6 +2946,16 @@ CPProcessVisualElement >> removeSelection [
 	self refresh
 ]
 
+{ #category : 'private - selection' }
+CPProcessVisualElement >> clearLocalSelection [
+	connectionSourceModelElement := nil.
+	connectionTargetModelElement := nil.
+	insertionTargetEdge := nil.
+	selectedModelElements removeAll.
+	selectedModelElement := nil.
+	self updateSelectionAppearance
+]
+
 { #category : 'private - interaction' }
 CPProcessVisualElement >> clearInteractionAndSelection [
 	connectionSourceModelElement := nil.
@@ -3115,16 +3129,15 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 ]
 
 { #category : 'private - subprocess' }
-CPProcessVisualElement >> installExpandedSubProcessChromeInteractionOn: aShapeElement for: aFlowNode shape: aShape [
-	| chrome |
-	chrome := aShapeElement subProcessInteractionChrome.
-	chrome ifNil: [ ^ self ].
-	self installSelectionOn: chrome for: aFlowNode.
-	self
-		installPositioningFrom: chrome
-		moving: aShapeElement
-		for: aShape
+CPProcessVisualElement >> installExpandedSubProcessBorderInteractionOn: aShapeElement for: aFlowNode shape: aShape [
+	aShapeElement subProcessBorderInteractionElements do: [ :borderElement |
+		self installSelectionOn: borderElement for: aFlowNode.
+		self
+			installPositioningFrom: borderElement
+			moving: aShapeElement
+			for: aShape ]
 ]
+
 
 { #category : 'private - subprocess' }
 CPProcessVisualElement >> configureNestedProcessVisual: aVisual [

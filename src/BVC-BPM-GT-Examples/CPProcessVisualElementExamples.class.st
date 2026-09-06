@@ -1281,19 +1281,41 @@ CPProcessVisualElementExamples >> nestedProcessRendersWhileHosted [
 ]
 
 
+
+
 { #category : 'examples - subprocess' }
-CPProcessVisualElementExamples >> expandedSubProcessKeepsParentInteractionChrome [
+CPProcessVisualElementExamples >> expandedSubProcessKeepsParentBorderInteraction [
 	<gtExample>
-	| visual subProcess shapeElement chrome |
+	| visual subProcess shapeElement borders |
 	visual := self expandedSubProcessHostsNestedProcessVisual.
 	subProcess := visual shapeElementsByModelElement keys
 		detect: [ :each | each isSubProcess ].
 	shapeElement := visual shapeElementsByModelElement at: subProcess.
-	chrome := shapeElement subProcessInteractionChrome.
+	borders := shapeElement subProcessBorderInteractionElements.
 
-	self assert: chrome notNil.
-	self assert: chrome parent == shapeElement.
+	self assert: borders size equals: 4.
+	borders do: [ :each |
+		self assert: each parent == shapeElement ].
 	self assert: shapeElement nestedProcessViewport parent == shapeElement.
 	self assert: shapeElement resizeHandle notNil.
 	^ shapeElement
+]
+
+
+{ #category : 'examples - subprocess' }
+CPProcessVisualElementExamples >> nestedBackgroundSelectionTargetsHostingSubProcess [
+	<gtExample>
+	| visual subProcess shapeElement nestedVisual |
+	visual := self expandedSubProcessHostsNestedProcessVisual.
+	subProcess := visual shapeElementsByModelElement keys
+		detect: [ :each | each isSubProcess ].
+	shapeElement := visual shapeElementsByModelElement at: subProcess.
+	nestedVisual := shapeElement nestedProcessVisual.
+
+	nestedVisual clearLocalSelection.
+	visual selectOnly: subProcess.
+
+	self assert: visual selectedModelElement == subProcess.
+	self assert: nestedVisual selectedModelElement isNil.
+	^ nestedVisual
 ]
