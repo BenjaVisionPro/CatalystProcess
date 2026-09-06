@@ -1391,3 +1391,14 @@ CPProcessVisualElementExamples >> resizeHandlesArePresentFromCreation [
 		self assert: each visibility equals: BlVisibility visible ].
 	^ shapeElement
 ]
+
+
+{ #category : 'examples - cursor' }
+CPProcessVisualElementExamples >> cursorActivationIgnoresDetachedElement [
+	<gtExample>
+	| element |
+	element := CPProcessShapeElement new.
+	element activateCursor: BlHandCursor new on: element.
+	self assert: element space isNil.
+	^ element
+]

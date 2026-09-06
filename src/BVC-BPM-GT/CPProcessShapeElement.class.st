@@ -169,23 +169,31 @@ CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
 ]
 
 { #category : 'private - cursor' }
+CPProcessShapeElement >> activateCursor: aCursor on: anElement [
+	| aSpace |
+	aSpace := anElement space.
+	aSpace ifNil: [ ^ self ].
+	aCursor activateOn: aSpace
+]
+
+{ #category : 'private - cursor' }
 CPProcessShapeElement >> installCursor: aCursor leaving: aLeaveCursor on: anElement [
 	anElement
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
 			do: [ :anEvent |
 				anEvent target == anElement ifTrue: [
-					aCursor activateOn: anElement space ] ]);
+					self activateCursor: aCursor on: anElement ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseMoveEvent
 			do: [ :anEvent |
 				anEvent target == anElement ifTrue: [
-					aCursor activateOn: anElement space ] ]);
+					self activateCursor: aCursor on: anElement ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
 			do: [ :anEvent |
 				anEvent target == anElement ifTrue: [
-					aLeaveCursor activateOn: anElement space ] ])
+					self activateCursor: aLeaveCursor on: anElement ] ])
 ]
 
 { #category : 'private - cursor' }
@@ -193,13 +201,16 @@ CPProcessShapeElement >> installCursorForSubtree: aCursor leaving: aLeaveCursor 
 	anElement
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
-			do: [ :anEvent | aCursor activateOn: anElement space ]);
+			do: [ :anEvent |
+				self activateCursor: aCursor on: anElement ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseMoveEvent
-			do: [ :anEvent | aCursor activateOn: anElement space ]);
+			do: [ :anEvent |
+				self activateCursor: aCursor on: anElement ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
-			do: [ :anEvent | aLeaveCursor activateOn: anElement space ])
+			do: [ :anEvent |
+				self activateCursor: aLeaveCursor on: anElement ])
 ]
 
 { #category : 'private - cursor' }

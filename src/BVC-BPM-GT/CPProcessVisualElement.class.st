@@ -1583,7 +1583,8 @@ CPProcessVisualElement >> installDiagramCursor [
 			on: BlMouseEnterEvent
 			do: [ :anEvent |
 				anEvent target == anEvent currentTarget ifTrue: [
-					anEvent currentTarget space currentCursor: BlCursor default ] ])
+					anEvent currentTarget space ifNotNil: [ :aSpace |
+						aSpace currentCursor: BlCursor default ] ] ])
 ]
 
 { #category : 'private - theme' }
