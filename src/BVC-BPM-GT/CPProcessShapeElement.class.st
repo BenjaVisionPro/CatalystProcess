@@ -17,7 +17,9 @@ Class {
 		'nestedProcessViewport',
 		'nestedProcessVisual',
 		'subProcessBorderInteractionElements',
-		'boundaryInterrupting'
+		'boundaryInterrupting',
+		'boundaryOuterRing',
+		'boundaryInnerRing'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -48,17 +50,23 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	subProcessExpansionMarker := nil.
 	subProcessBorderInteractionElements := #().
 	boundaryInterrupting := true.
+	boundaryOuterRing := nil.
+	boundaryInnerRing := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
 		extent: aRectangle extent;
 		geometry: (self geometryFor: aFlowNode bounds: aRectangle);
-		background: aBackground;
-		border: (self borderForColor: aBorderColor width: self normalBorderWidth);
+		background: (aFlowNode isBoundaryEvent ifTrue: [ Color transparent ] ifFalse: [ aBackground ]);
+		border: (aFlowNode isBoundaryEvent
+			ifTrue: [ BlBorder empty ]
+			ifFalse: [ self borderForColor: aBorderColor width: self normalBorderWidth ]);
 		layout: BlFrameLayout new;
 		clipChildren: false.
+	aFlowNode isBoundaryEvent ifTrue: [ self effect: (BlBlurBelowEffect radius: 10) ].
 	self addActivityLabelForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
+	self addBoundaryEventRingsForBounds: aRectangle.
 	self addBoundaryEventDefinitionDecorationForBounds: aRectangle.
 	self addCallActivityDecorationForBounds: aRectangle.
 	self addSubProcessDecorationForBounds: aRectangle
@@ -157,6 +165,7 @@ CPProcessShapeElement >> addCallActivityDecorationForBounds: aRectangle [
 CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
 	| innerRing ringInset |
 	modelElement isIntermediateEvent ifFalse: [ ^ self ].
+	modelElement isBoundaryEvent ifTrue: [ ^ self ].
 	ringInset := 8 @ 8.
 	innerRing := BlElement new
 		extent: aRectangle extent - ringInset;
@@ -257,7 +266,42 @@ CPProcessShapeElement >> borderForColor: aColor width: aWidth [
 { #category : 'configuration' }
 CPProcessShapeElement >> boundaryInterrupting: aBoolean [
 	boundaryInterrupting := aBoolean.
-	self border: (self borderForColor: normalBorderColor width: self normalBorderWidth)
+	modelElement isBoundaryEvent
+		ifTrue: [
+			boundaryOuterRing ifNotNil: [
+				boundaryOuterRing border: (self
+					borderForColor: normalBorderColor
+					width: self boundaryBorderWidth) ] ]
+		ifFalse: [
+			self border: (self borderForColor: normalBorderColor width: self normalBorderWidth) ]
+]
+
+{ #category : 'private - decoration' }
+CPProcessShapeElement >> addBoundaryEventRingsForBounds: aRectangle [
+	modelElement isBoundaryEvent ifFalse: [ ^ self ].
+	boundaryOuterRing := BlElement new
+		extent: 32 @ 32;
+		geometry: BlCircleGeometry new;
+		background: Color transparent;
+		border: (self borderForColor: self normalBorderColor width: self boundaryBorderWidth);
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	boundaryInnerRing := BlElement new
+		extent: 24 @ 24;
+		geometry: BlCircleGeometry new;
+		background: Color transparent;
+		border: (BlBorder paint: self normalBorderColor width: self boundaryBorderWidth);
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	self
+		addChild: boundaryOuterRing;
+		addChild: boundaryInnerRing
 ]
 
 { #category : 'private - decoration' }
@@ -266,7 +310,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 	modelElement isBoundaryEvent ifFalse: [ ^ self ].
 	modelElement eventDefinitions ifEmpty: [ ^ self ].
 	definition := modelElement eventDefinitions first.
-	marker := FontAwesomeIcons icon: definition class eventTypeIcon.
+	marker := FontAwesomeIcons defaultStyle icon: definition class eventTypeIcon.
 	marker
 		extent: 16 @ 16;
 		constraintsDo: [ :c |
@@ -279,6 +323,11 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 { #category : 'private - appearance' }
 CPProcessShapeElement >> normalBorderColor [
 	^ normalBorderColor
+]
+
+{ #category : 'private - appearance' }
+CPProcessShapeElement >> boundaryBorderWidth [
+	^ 1
 ]
 
 { #category : 'private - appearance' }
@@ -297,8 +346,17 @@ CPProcessShapeElement >> selectedBorderWidth [
 
 { #category : 'appearance' }
 CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor normalColor: aNormalColor [
+	| color width |
+	color := isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ].
+	modelElement isBoundaryEvent ifTrue: [
+		width := isSelected ifTrue: [ 1.5 ] ifFalse: [ self boundaryBorderWidth ].
+		boundaryOuterRing ifNotNil: [
+			boundaryOuterRing border: (self borderForColor: color width: width) ].
+		boundaryInnerRing ifNotNil: [
+			boundaryInnerRing border: (BlBorder paint: color width: width) ].
+		^ self ].
 	self border: (self
-		borderForColor: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
+		borderForColor: color
 		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
 ]
 

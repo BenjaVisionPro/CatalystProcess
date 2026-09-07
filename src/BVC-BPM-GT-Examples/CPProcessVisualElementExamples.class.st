@@ -2057,7 +2057,7 @@ CPProcessVisualElementExamples >> boundaryEventBoundsStayCenteredOnActivityBorde
 	<gtExample>
 	| visual eventBounds activityBounds constrained |
 	visual := CPProcessVisualElement new.
-	eventBounds := 82 @ 122 extent: 32 @ 32.
+	eventBounds := 224 @ 124 extent: 32 @ 32.
 	activityBounds := 100 @ 100 extent: 140 @ 80.
 	constrained := visual
 		boundaryEventBounds: eventBounds
@@ -2074,7 +2074,7 @@ CPProcessVisualElementExamples >> boundaryEventResizeGeometryPreservesHostSideAn
 	<gtExample>
 	| visual eventBounds currentActivityBounds proposedActivityBounds resized |
 	visual := CPProcessVisualElement new.
-	eventBounds := 82 @ 122 extent: 32 @ 32.
+	eventBounds := 84 @ 124 extent: 32 @ 32.
 	currentActivityBounds := 100 @ 100 extent: 140 @ 80.
 	proposedActivityBounds := 120 @ 90 extent: 200 @ 120.
 	resized := visual
@@ -2095,11 +2095,11 @@ CPProcessVisualElementExamples >> boundaryEventHoverLabelStaysOutsideAttachedAct
 	activityBounds := 100 @ 100 extent: 140 @ 80.
 	labelExtent := 180 @ 44.
 	topOrigin := visual
-		boundaryEventHoverLabelOriginForEventBounds: (152 @ 82 extent: 32 @ 32)
+		boundaryEventHoverLabelOriginForEventBounds: (154 @ 84 extent: 32 @ 32)
 		activityBounds: activityBounds
 		labelExtent: labelExtent.
 	rightOrigin := visual
-		boundaryEventHoverLabelOriginForEventBounds: (222 @ 122 extent: 32 @ 32)
+		boundaryEventHoverLabelOriginForEventBounds: (224 @ 124 extent: 32 @ 32)
 		activityBounds: activityBounds
 		labelExtent: labelExtent.
 
