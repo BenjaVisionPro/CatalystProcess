@@ -168,8 +168,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 
 		previousGraphViewportOrigin ifNotNil: [
 			newGraphContentOrigin :=
-				collaborationDiagramElement cameraSlack
-					- collaborationDiagramElement diagramBounds origin
+				collaborationDiagramElement diagramContentOffset
 					+ (collaborationDiagramElement
 						collaborationPointForProcessRootPoint:
 							processDiagramElement diagramBounds origin).
@@ -195,14 +194,12 @@ CPProcessPresentation >> refreshCollaborationDiagramPreservingCamera [
 	 user's camera as a side effect."
 	oldScrollPosition := scrollable scrollPosition.
 	oldNormalizationOffset :=
-		collaborationDiagramElement cameraSlack
-			- collaborationDiagramElement diagramBounds origin.
+		collaborationDiagramElement diagramContentOffset.
 
 	collaborationDiagramElement refresh.
 
 	newNormalizationOffset :=
-		collaborationDiagramElement cameraSlack
-			- collaborationDiagramElement diagramBounds origin.
+		collaborationDiagramElement diagramContentOffset.
 	targetScrollPosition :=
 		oldScrollPosition + oldNormalizationOffset - newNormalizationOffset.
 	scrollDelta := targetScrollPosition - scrollable scrollPosition.
@@ -234,8 +231,7 @@ CPProcessPresentation >> restoreStandaloneProcessDiagramPreservingCamera [
 	scrollable := diagramScrollElement childNamed: #scrollable.
 	previousGraphViewportOrigin :=
 		scrollable scrollPosition
-			+ collaborationDiagramElement cameraSlack
-			- collaborationDiagramElement diagramBounds origin
+			+ collaborationDiagramElement diagramContentOffset
 			+ (collaborationDiagramElement
 				collaborationPointForProcessRootPoint:
 					processDiagramElement diagramBounds origin).
@@ -251,7 +247,8 @@ CPProcessPresentation >> restoreStandaloneProcessDiagramPreservingCamera [
 	diagramScrollElement content: diagramElement.
 
 	targetScrollPosition :=
-		previousGraphViewportOrigin - processDiagramElement cameraSlack.
+		previousGraphViewportOrigin
+			- processDiagramElement diagramBoundsOriginInContent.
 	scrollDelta := targetScrollPosition - scrollable scrollPosition.
 	scrollable scrollHorizontallyBy: scrollDelta x.
 	scrollable scrollVerticallyBy: scrollDelta y

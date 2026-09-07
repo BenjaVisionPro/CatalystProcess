@@ -1740,6 +1740,28 @@ CPProcessVisualElementExamples >> processDiagramShapesLiveInCameraPositionedDiag
 ]
 
 
+{ #category : 'examples - geometry' }
+CPProcessVisualElementExamples >> diagramContentOffsetsPreserveExistingCoordinateTransforms [
+	<gtExample>
+	| fixture processVisual collaborationVisual viewport |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	viewport := 1000 @ 600.
+	collaborationVisual viewportExtent: viewport.
+
+	self assert: collaborationVisual diagramContentOffset equals:
+		collaborationVisual cameraSlack - collaborationVisual diagramBounds origin.
+	self assert: collaborationVisual diagramBoundsOriginInContent equals:
+		collaborationVisual cameraSlack.
+	self assert: processVisual diagramContentOffset equals:
+		processVisual hostedDiagramInset - processVisual diagramBounds origin.
+	self assert: processVisual diagramBoundsOriginInContent equals:
+		processVisual hostedDiagramInset.
+	^ collaborationVisual
+]
+
+
 { #category : 'examples - scrolling' }
 CPProcessVisualElementExamples >> collaborationDiagramUsesExactBoundedCameraTravel [
 	<gtExample>

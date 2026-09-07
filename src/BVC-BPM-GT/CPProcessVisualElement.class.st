@@ -179,9 +179,7 @@ CPProcessVisualElement >> updateDiagramLayerGeometry [
 	| layerOrigin |
 	diagramLayer ifNil: [ ^ self ].
 	planeGeometry ifNil: [ ^ self ].
-	layerOrigin := collaborationHosted
-		ifTrue: [ self hostedDiagramInset + planeGeometry normalizationOffset ]
-		ifFalse: [ cameraSlack + planeGeometry normalizationOffset ].
+	layerOrigin := self diagramContentOffset.
 	diagramLayer
 		constraintsDo: [ :c | c ignoreByLayout ];
 		extent: planeGeometry layerExtent;
@@ -191,6 +189,22 @@ CPProcessVisualElement >> updateDiagramLayerGeometry [
 { #category : 'accessing - presentation' }
 CPProcessVisualElement >> cameraSlack [
 	^ cameraSlack
+]
+
+
+{ #category : 'geometry' }
+CPProcessVisualElement >> diagramContentOffset [
+	planeGeometry ifNil: [ ^ 0 @ 0 ].
+	^ (collaborationHosted
+		ifTrue: [ self hostedDiagramInset ]
+		ifFalse: [ cameraSlack ])
+		+ planeGeometry normalizationOffset
+]
+
+
+{ #category : 'geometry' }
+CPProcessVisualElement >> diagramBoundsOriginInContent [
+	^ self diagramContentOffset + diagramBounds origin
 ]
 
 { #category : 'accessing - presentation' }

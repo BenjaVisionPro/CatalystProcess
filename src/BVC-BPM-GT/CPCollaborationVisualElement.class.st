@@ -750,12 +750,25 @@ CPCollaborationVisualElement >> updateDiagramLayerGeometry [
 	diagramLayer
 		constraintsDo: [ :c | c ignoreByLayout ];
 		extent: planeGeometry layerExtent;
-		relocate: cameraSlack + planeGeometry normalizationOffset
+		relocate: self diagramContentOffset
 ]
 
 { #category : 'accessing - presentation' }
 CPCollaborationVisualElement >> cameraSlack [
 	^ cameraSlack
+]
+
+
+{ #category : 'geometry' }
+CPCollaborationVisualElement >> diagramContentOffset [
+	planeGeometry ifNil: [ ^ 0 @ 0 ].
+	^ cameraSlack + planeGeometry normalizationOffset
+]
+
+
+{ #category : 'geometry' }
+CPCollaborationVisualElement >> diagramBoundsOriginInContent [
+	^ self diagramContentOffset + diagramBounds origin
 ]
 
 { #category : 'accessing - presentation' }
