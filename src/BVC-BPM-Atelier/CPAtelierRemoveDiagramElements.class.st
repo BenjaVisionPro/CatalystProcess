@@ -147,15 +147,12 @@ CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwne
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> processDiagramContext [
-	| diagram diagramMemento elementsDescription |
+	| diagram |
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
 	^ CPDiagramMementoContext
 		diagram: diagram
-		memento: diagramMemento
-		elementsDescription: elementsDescription
+		inMemento: processMemento
+		using: diagramDescription
 ]
 
 { #category : 'private - resolving' }

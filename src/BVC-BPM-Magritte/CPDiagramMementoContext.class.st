@@ -23,6 +23,21 @@ CPDiagramMementoContext class >> diagram: aDiagram memento: aDiagramMemento elem
 		yourself
 ]
 
+
+{ #category : 'instance creation' }
+CPDiagramMementoContext class >> diagram: aDiagram inMemento: anOwnerMemento using: aDiagramDescription [
+	| diagramMemento elementsDescription |
+	diagramMemento := anOwnerMemento
+		childMementoFor: aDiagram
+		inRelation: aDiagramDescription.
+	elementsDescription := diagramMemento magritteDescription
+		detect: [ :each | each handlesSelector: #elements ].
+	^ self
+		diagram: aDiagram
+		memento: diagramMemento
+		elementsDescription: elementsDescription
+]
+
 { #category : 'accessing' }
 CPDiagramMementoContext >> diagram [
 	^ diagram

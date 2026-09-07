@@ -303,7 +303,7 @@ CPProcessVisualElement >> memento [
 
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram diagramMemento elementsDescription elements shapes edges |
+	| diagram elements shapes edges |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
@@ -314,13 +314,10 @@ CPProcessVisualElement >> refresh [
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
-	diagramMemento := memento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
-		memento: diagramMemento
-		elementsDescription: elementsDescription.
+		inMemento: memento
+		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self ].
 	diagramElements := elements.

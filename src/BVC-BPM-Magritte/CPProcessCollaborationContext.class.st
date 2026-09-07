@@ -18,7 +18,7 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
-	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription diagramDescription diagram diagramMemento elementsDescription diagramContext |
+	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription diagramDescription diagram diagramContext |
 	collaborationDescription := aProcessMemento magritteDescription
 		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
 	collaboration := aProcessMemento readUsing: collaborationDescription.
@@ -34,15 +34,10 @@ CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 		detect: [ :each | each handlesSelector: #diagram ].
 	diagram := collaborationMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ nil ].
-	diagramMemento := collaborationMemento
-		childMementoFor: diagram
-		inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
-		memento: diagramMemento
-		elementsDescription: elementsDescription.
+		inMemento: collaborationMemento
+		using: diagramDescription.
 	^ self new
 		collaboration: collaboration;
 		collaborationMemento: collaborationMemento;
