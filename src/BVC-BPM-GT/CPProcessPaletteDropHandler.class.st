@@ -27,7 +27,11 @@ CPProcessPaletteDropHandler >> itemsEnteredEvent: anEvent [
 
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> itemsLeftEvent: anEvent [
-	acceptsCurrentDrag := false.
+	"Do not clear acceptsCurrentDrag here. Bloc may emit ItemsLeft as part of
+	the drop lifecycle before BlDropEvent is delivered to this handler. The
+	compatibility belongs to this drag/target pair and is refreshed by the next
+	ItemsEnteredEvent. Clearing it here makes an accepted hover impossible to
+	drop."
 	super itemsLeftEvent: anEvent
 ]
 
@@ -58,5 +62,7 @@ CPProcessPaletteDropHandler >> dragLeaveEvent: anEvent [
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> dropEvent: anEvent [
 	((self isPaletteDragEvent: anEvent) and: [ acceptsCurrentDrag ])
-		ifTrue: [ super dropEvent: anEvent ]
+		ifTrue: [
+			super dropEvent: anEvent.
+			acceptsCurrentDrag := false ]
 ]
