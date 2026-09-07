@@ -9,13 +9,10 @@ Class {
 	#instVars : [
 		'processMemento',
 		'processVisual',
-		'collaboration',
-		'collaborationMemento',
+		'collaborationContext',
 		'diagramContext',
 		'planeGeometry',
 		'diagramViewport',
-		'participantsDescription',
-		'messageFlowsDescription',
 		'diagramEditing',
 		'refreshAfterGeometryChangeBlock',
 		'diagramElementsRemovedBlock',
@@ -80,7 +77,7 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
-	| collaborationContext elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
+	| elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
 	processVisual ifNotNil: [ processVisual removeFromParent ].
 	self removeChildren.
 	participantElementsByParticipant removeAll.
@@ -89,14 +86,10 @@ CPCollaborationVisualElement >> refresh [
 	collaborationContext := CPProcessCollaborationContext
 		inRootMemento: processMemento.
 	collaborationContext ifNil: [ ^ self ].
-	collaboration := collaborationContext collaboration.
-	collaborationMemento := collaborationContext collaborationMemento.
 	diagramContext := collaborationContext diagramContext.
-	participantsDescription := collaborationContext participantsDescription.
-	messageFlowsDescription := collaborationContext messageFlowsDescription.
 	elements := diagramContext elements.
-	stagedParticipants := collaborationMemento readUsing: participantsDescription.
-	stagedMessageFlows := collaborationMemento readUsing: messageFlowsDescription.
+	stagedParticipants := collaborationContext participants.
+	stagedMessageFlows := collaborationContext messageFlows.
 	participantShapes := elements select: [ :each |
 		| modelElement |
 		each isShape and: [
@@ -464,7 +457,7 @@ CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from
 { #category : 'connection' }
 CPCollaborationVisualElement >> participantAtCollaborationPoint: aPoint excludingEndpoint: anEndpoint [
 	| endpointParticipant |
-	endpointParticipant := collaboration participantForEndpoint: anEndpoint.
+	endpointParticipant := collaborationContext collaboration participantForEndpoint: anEndpoint.
 	^ self stagedParticipants
 		detect: [ :each |
 			each ~~ endpointParticipant and: [
@@ -631,18 +624,12 @@ CPCollaborationVisualElement >> defaultBlackBoxParticipantExtent [
 
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedParticipants [
-	^ collaborationMemento readUsing: participantsDescription
+	^ collaborationContext participants
 ]
 
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedProcessRefOfParticipant: aParticipant [
-	| participantMemento description |
-	participantMemento := collaborationMemento
-		childMementoFor: aParticipant
-		inRelation: participantsDescription.
-	description := participantMemento magritteDescription
-		detect: [ :each | each handlesSelector: #processRef ].
-	^ participantMemento readUsing: description
+	^ collaborationContext processRefOf: aParticipant
 ]
 
 { #category : 'private - staged state' }
@@ -661,9 +648,8 @@ CPCollaborationVisualElement >> stagedWaypointsOf: anEdge [
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedLabelOfMessageFlow: aMessageFlow [
 	| flowMemento description |
-	flowMemento := collaborationMemento
-		childMementoFor: aMessageFlow
-		inRelation: messageFlowsDescription.
+	flowMemento := collaborationContext mementoForMember: aMessageFlow.
+	flowMemento ifNil: [ ^ nil ].
 	description := flowMemento magritteDescription
 		detect: [ :each | each handlesSelector: #label ].
 	^ flowMemento readUsing: description
@@ -793,7 +779,7 @@ CPCollaborationVisualElement >> diagramPresentationParent [
 
 { #category : 'accessing - testing' }
 CPCollaborationVisualElement >> collaboration [
-	^ collaboration
+	^ collaborationContext ifNotNil: [ collaborationContext collaboration ]
 ]
 
 { #category : 'accessing - testing' }
