@@ -2047,7 +2047,7 @@ CPProcessVisualElementExamples >> boundaryEventUsesCompactExtentAroundStandardEv
 	visual := CPProcessVisualElement new.
 	boundary := CPBoundaryEvent new.
 
-	self assert: (visual extentForModelElement: boundary) equals: 38 @ 38.
+	self assert: (visual extentForModelElement: boundary) equals: 32 @ 32.
 	self assert: (visual extentForModelElement: CPIntermediateEvent new) equals: 42 @ 42.
 	^ visual
 ]
@@ -2057,14 +2057,14 @@ CPProcessVisualElementExamples >> boundaryEventBoundsStayCenteredOnActivityBorde
 	<gtExample>
 	| visual eventBounds activityBounds constrained |
 	visual := CPProcessVisualElement new.
-	eventBounds := 79 @ 119 extent: 38 @ 38.
+	eventBounds := 82 @ 122 extent: 32 @ 32.
 	activityBounds := 100 @ 100 extent: 140 @ 80.
 	constrained := visual
 		boundaryEventBounds: eventBounds
 		constrainedToActivityBounds: activityBounds
 		nearCenter: 260 @ 140.
 
-	self assert: constrained extent equals: 38 @ 38.
+	self assert: constrained extent equals: 32 @ 32.
 	self assert: constrained center equals: 240 @ 140.
 	^ constrained
 ]
@@ -2074,7 +2074,7 @@ CPProcessVisualElementExamples >> boundaryEventResizeGeometryPreservesHostSideAn
 	<gtExample>
 	| visual eventBounds currentActivityBounds proposedActivityBounds resized |
 	visual := CPProcessVisualElement new.
-	eventBounds := 79 @ 119 extent: 38 @ 38.
+	eventBounds := 82 @ 122 extent: 32 @ 32.
 	currentActivityBounds := 100 @ 100 extent: 140 @ 80.
 	proposedActivityBounds := 120 @ 90 extent: 200 @ 120.
 	resized := visual
@@ -2082,7 +2082,7 @@ CPProcessVisualElementExamples >> boundaryEventResizeGeometryPreservesHostSideAn
 		fromActivityBounds: currentActivityBounds
 		toActivityBounds: proposedActivityBounds.
 
-	self assert: resized extent equals: 38 @ 38.
+	self assert: resized extent equals: 32 @ 32.
 	self assert: resized center equals: 120 @ 150.
 	^ resized
 ]
@@ -2095,11 +2095,11 @@ CPProcessVisualElementExamples >> boundaryEventHoverLabelStaysOutsideAttachedAct
 	activityBounds := 100 @ 100 extent: 140 @ 80.
 	labelExtent := 180 @ 44.
 	topOrigin := visual
-		boundaryEventHoverLabelOriginForEventBounds: (149 @ 79 extent: 38 @ 38)
+		boundaryEventHoverLabelOriginForEventBounds: (152 @ 82 extent: 32 @ 32)
 		activityBounds: activityBounds
 		labelExtent: labelExtent.
 	rightOrigin := visual
-		boundaryEventHoverLabelOriginForEventBounds: (219 @ 119 extent: 38 @ 38)
+		boundaryEventHoverLabelOriginForEventBounds: (222 @ 122 extent: 32 @ 32)
 		activityBounds: activityBounds
 		labelExtent: labelExtent.
 

@@ -268,7 +268,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 	definition := modelElement eventDefinitions first.
 	marker := FontAwesomeIcons icon: definition class eventTypeIcon.
 	marker
-		extent: 22 @ 22;
+		extent: 16 @ 16;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];

@@ -2705,7 +2705,7 @@ CPProcessVisualElement >> replacementBoundsFor: aFlowNode shape: aShape [
 
 { #category : 'private - shapes' }
 CPProcessVisualElement >> extentForModelElement: aFlowNode [
-	aFlowNode isBoundaryEvent ifTrue: [ ^ 38 @ 38 ].
+	aFlowNode isBoundaryEvent ifTrue: [ ^ 32 @ 32 ].
 	aFlowNode isEvent ifTrue: [ ^ 42 @ 42 ].
 	aFlowNode isActivity ifTrue: [ ^ 132 @ 54 ].
 	aFlowNode isGateway ifTrue: [ ^ 54 @ 54 ].
