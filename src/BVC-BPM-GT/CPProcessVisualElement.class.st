@@ -2005,7 +2005,7 @@ CPProcessVisualElement >> edge: anEdge enclosedByRectangle: aRectangle [
 	points := self
 		renderedPathPointsFor: anEdge
 		waypoints: (self stagedWaypointsOf: anEdge)
-		usingLiveBounds: true.
+		usingLiveBounds: false.
 	^ points notEmpty and: [
 		points allSatisfy: [ :aPoint |
 			self rectangle: aRectangle containsPointIncludingBoundary: aPoint ] ]
