@@ -628,10 +628,35 @@ CPProcessVisualElement >> newDragProxyFor: aFlowNode shape: aShape bounds: bound
 		newShapeElementFor: aFlowNode
 		shape: aShape
 		bounds: bounds.
+	aFlowNode isActivity ifTrue: [
+		self hostAttachedBoundaryEventDragProxiesIn: proxy forActivity: aFlowNode activityBounds: bounds ].
 	proxy
 		preventMeAndChildrenMouseEvents;
 		bringResizeHandlesToFront.
 	^ proxy
+]
+
+{ #category : 'private - dragging' }
+CPProcessVisualElement >> hostAttachedBoundaryEventDragProxiesIn: anActivityProxy forActivity: anActivity activityBounds: activityBounds [
+	| flowContext |
+	flowContext := CPProcessFlowContainerContext
+		containingFlowElement: anActivity
+		inRootMemento: memento.
+	flowContext ifNil: [ ^ self ].
+	(flowContext attachedBoundaryEventsFor: anActivity) do: [ :aBoundaryEvent |
+		| shapes boundaryShape boundaryBounds boundaryProxy |
+		shapes := diagramContext shapesForModelElement: aBoundaryEvent.
+		shapes size = 1 ifTrue: [
+			boundaryShape := shapes anyOne.
+			boundaryBounds := self stagedBoundsOf: boundaryShape.
+			boundaryBounds ifNotNil: [
+				boundaryProxy := self
+					newShapeElementFor: aBoundaryEvent
+					shape: boundaryShape
+					bounds: boundaryBounds.
+				anActivityProxy
+					hostBoundaryEventElement: boundaryProxy
+					atLocalPosition: boundaryBounds origin - activityBounds origin ] ] ]
 ]
 
 { #category : 'private - dragging' }
