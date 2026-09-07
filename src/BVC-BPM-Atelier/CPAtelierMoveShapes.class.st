@@ -25,15 +25,18 @@ CPAtelierMoveShapes class >> boundsByShape: aDictionary processMemento: aMemento
 
 { #category : 'assessing' }
 CPAtelierMoveShapes >> assess [
-	| diagram diagramMemento elementsDescription elements currentBoundsByShape proposedDelta |
+	| diagram diagramMemento elementsDescription elements currentBoundsByShape proposedDelta diagramContext |
 	(boundsByShape isNil or: [ boundsByShape isEmpty ]) ifTrue: [
 		^ self rejectedWithCurrentBounds: IdentityDictionary new delta: nil because: 'At least one diagram shape is required.' ].
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [
 		^ self rejectedWithCurrentBounds: IdentityDictionary new delta: nil because: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	currentBoundsByShape := IdentityDictionary new.
 	proposedDelta := nil.
@@ -69,11 +72,14 @@ CPAtelierMoveShapes >> assess [
 
 { #category : 'applying' }
 CPAtelierMoveShapes >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription elements movedModelElements delta |
+	| diagram diagramMemento elementsDescription elements movedModelElements delta diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	movedModelElements := IdentitySet new.
 	delta := anAssessment delta.

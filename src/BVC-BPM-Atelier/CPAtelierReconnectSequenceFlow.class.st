@@ -45,7 +45,7 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 CPAtelierReconnectSequenceFlow >> assess [
 	| flowElements currentSource currentTarget topology ruleResult
 	  diagram diagramMemento elementsDescription elements sourceShape targetShape
-	  edgeMatches edge sourceDescription targetDescription |
+	  edgeMatches edge sourceDescription targetDescription diagramContext |
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
@@ -81,9 +81,12 @@ CPAtelierReconnectSequenceFlow >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
@@ -127,7 +130,7 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 	| flowMemento sourceDescription targetDescription
 	  diagram diagramMemento elementsDescription elements edge
 	  edgeMemento waypointsDescription sourceShape targetShape
-	  sourceBounds targetBounds proposedWaypoints |
+	  sourceBounds targetBounds proposedWaypoints diagramContext |
 
 	flowMemento := flowContainerContext childMementoFor: sequenceFlow.
 	sourceDescription := flowMemento magritteDescription
@@ -146,9 +149,12 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 		flowMemento write: anAssessment proposedTarget using: targetDescription ].
 
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 
 	edge := (elements select: [

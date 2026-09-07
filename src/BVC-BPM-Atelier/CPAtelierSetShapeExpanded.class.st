@@ -29,7 +29,7 @@ CPAtelierSetShapeExpanded class >> shape: aShape expanded: aBoolean processMemen
 CPAtelierSetShapeExpanded >> assess [
 	| diagram diagramMemento elementsDescription elements shapeMemento
 	  expandedDescription boundsDescription modelDescription modelElement
-	  currentExpanded currentBounds proposedBounds proposedExtent |
+	  currentExpanded currentBounds proposedBounds proposedExtent diagramContext |
 
 	shape ifNil: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'A diagram shape is required.' ].
@@ -39,9 +39,12 @@ CPAtelierSetShapeExpanded >> assess [
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	(elements identityIncludes: shape) ifFalse: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'The shape does not belong to the staged diagram.' ].
@@ -95,11 +98,14 @@ CPAtelierSetShapeExpanded >> assess [
 
 { #category : 'applying' }
 CPAtelierSetShapeExpanded >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription shapeMemento expandedDescription boundsDescription |
+	| diagram diagramMemento elementsDescription shapeMemento expandedDescription boundsDescription diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
 	expandedDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #isExpanded ].

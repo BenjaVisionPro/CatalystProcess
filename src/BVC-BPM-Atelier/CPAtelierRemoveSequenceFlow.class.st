@@ -40,7 +40,7 @@ CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow flowContainer: 
 
 { #category : 'assessing' }
 CPAtelierRemoveSequenceFlow >> assess [
-	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements removedEdges proposedElements |
+	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements removedEdges proposedElements diagramContext |
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowElements := flowContainerContext stagedFlowElements.
@@ -49,8 +49,12 @@ CPAtelierRemoveSequenceFlow >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	removedEdges := elements select: [ :each | each isEdge and: [ each modelElement == sequenceFlow ] ].
@@ -74,7 +78,7 @@ CPAtelierRemoveSequenceFlow >> assess [
 
 { #category : 'applying' }
 CPAtelierRemoveSequenceFlow >> applyAssessment: anAssessment [
-	| source target diagram diagramMemento elementsDescription |
+	| source target diagram diagramMemento elementsDescription diagramContext |
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 
@@ -83,8 +87,12 @@ CPAtelierRemoveSequenceFlow >> applyAssessment: anAssessment [
 	self stageIncomingWithout: sequenceFlow for: target.
 
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
 	flowContainerContext detachChildMementoFor: sequenceFlow.
 	anAssessment removedEdges do: [ :anEdge |

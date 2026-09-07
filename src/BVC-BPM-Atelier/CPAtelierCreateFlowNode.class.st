@@ -45,7 +45,7 @@ CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle flowCont
 
 { #category : 'assessing' }
 CPAtelierCreateFlowNode >> assess [
-	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements proposedElements shape boundsDescription |
+	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements proposedElements shape boundsDescription diagramContext |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Diagram bounds are required.' ].
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
@@ -55,8 +55,12 @@ CPAtelierCreateFlowNode >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
@@ -81,11 +85,15 @@ CPAtelierCreateFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateFlowNode >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription |
+	| diagram diagramMemento elementsDescription diagramContext |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
 ]
 

@@ -47,7 +47,7 @@ CPAtelierInsertFlowNode >> assess [
 	  firstFlow secondFlow sourceDescription targetDescription
 	  diagram diagramMemento elementsDescription elements removedEdges removedEdge
 	  shape boundsDescription sourceShape targetShape sourceBounds targetBounds
-	  firstEdge secondEdge proposedFlowElements proposedElements flowNodeAlreadyPresent |
+	  firstEdge secondEdge proposedFlowElements proposedElements flowNodeAlreadyPresent diagramContext |
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
@@ -94,9 +94,12 @@ CPAtelierInsertFlowNode >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
@@ -181,7 +184,7 @@ CPAtelierInsertFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierInsertFlowNode >> applyAssessment: anAssessment [
-	| source target firstFlow secondFlow diagram diagramMemento elementsDescription flowNodeAlreadyPresent shapeMemento boundsDescription |
+	| source target firstFlow secondFlow diagram diagramMemento elementsDescription flowNodeAlreadyPresent shapeMemento boundsDescription diagramContext |
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 	firstFlow := anAssessment firstSequenceFlow.
@@ -205,9 +208,12 @@ CPAtelierInsertFlowNode >> applyAssessment: anAssessment [
 			self stageIncoming: { firstFlow } outgoing: { secondFlow } for: flowNode ].
 
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
 	shapeMemento := diagramMemento
 		childMementoFor: anAssessment shape

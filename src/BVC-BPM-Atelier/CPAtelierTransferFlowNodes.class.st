@@ -33,7 +33,7 @@ CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aT
 CPAtelierTransferFlowNodes >> assess [
 	| nodes nodeSet sourceContext targetContext sourceElements targetElements internalFlows boundaryFlows
 	  proposedSource proposedTarget diagram diagramMemento elementsDescription elements shapesByNode edgesByFlow
-	  stagedNodeState stagedFlowState |
+	  stagedNodeState stagedFlowState diagramContext |
 
 	flowNodes ifNil: [ ^ self rejectedBecause: 'At least one flow node is required.' ].
 	nodes := flowNodes asOrderedCollection.
@@ -114,9 +114,12 @@ CPAtelierTransferFlowNodes >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 
 	shapesByNode := IdentityDictionary new.
@@ -178,7 +181,7 @@ CPAtelierTransferFlowNodes >> assess [
 
 { #category : 'applying' }
 CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
-	| sourceContext targetContext diagram diagramMemento elementsDescription |
+	| sourceContext targetContext diagram diagramMemento elementsDescription diagramContext |
 	sourceContext := CPProcessFlowContainerContext
 		forContainer: anAssessment sourceContainer
 		inRootMemento: processMemento.
@@ -203,9 +206,12 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 			targetContainer: anAssessment targetContainer ].
 
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	anAssessment shapesByFlowNode keysAndValuesDo: [ :aFlowNode :aShape |
 		| shapeMemento boundsDescription |
 		shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.

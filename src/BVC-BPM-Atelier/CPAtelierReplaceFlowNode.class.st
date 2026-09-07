@@ -44,7 +44,7 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 { #category : 'assessing' }
 CPAtelierReplaceFlowNode >> assess [
 	| flowElements proposedFlowElements incidentFlows diagram diagramMemento
-	  elementsDescription elements shapeMatches shape modelElementDescription boundsDescription |
+	  elementsDescription elements shapeMatches shape modelElementDescription boundsDescription diagramContext |
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
@@ -110,11 +110,12 @@ CPAtelierReplaceFlowNode >> assess [
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [
 		^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento
-		childMementoFor: diagram
-		inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	elements ifNil: [
 		^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
@@ -145,7 +146,7 @@ CPAtelierReplaceFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
-	| incoming outgoing preservedLabel preservedNestedFlowElements diagram diagramMemento elementsDescription shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription |
+	| incoming outgoing preservedLabel preservedNestedFlowElements diagram diagramMemento elementsDescription shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription diagramContext |
 
 	incoming := OrderedCollection new.
 	outgoing := OrderedCollection new.
@@ -186,11 +187,12 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 		replacementMemento write: preservedNestedFlowElements using: nestedDescription ].
 
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento
-		childMementoFor: diagram
-		inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	shapeMemento := diagramMemento
 		childMementoFor: anAssessment shape
 		inRelation: elementsDescription.

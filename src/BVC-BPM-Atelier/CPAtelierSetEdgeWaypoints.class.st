@@ -14,14 +14,18 @@ CPAtelierSetEdgeWaypoints class >> edge: anEdge waypoints: somePoints processMem
 
 { #category : 'assessing' }
 CPAtelierSetEdgeWaypoints >> assess [
-	| diagram diagramMemento elementsDescription elements occurrences edgeMemento waypointsDescription currentWaypoints proposed |
+	| diagram diagramMemento elementsDescription elements occurrences edgeMemento waypointsDescription currentWaypoints proposed diagramContext |
 	edge ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'A diagram edge is required.' ].
 	waypoints ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'Edge waypoints are required.' ].
 	waypoints size < 2 ifTrue: [ ^ self rejectedWithCurrentWaypoints: nil because: 'An edge requires at least two waypoints.' ].
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	occurrences := elements count: [ :each | each == edge ].
 	occurrences = 1 ifFalse: [ ^ self rejectedWithCurrentWaypoints: nil because: 'The edge must occur exactly once in the staged diagram.' ].
@@ -38,10 +42,14 @@ CPAtelierSetEdgeWaypoints >> assess [
 
 { #category : 'applying' }
 CPAtelierSetEdgeWaypoints >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription edgeMemento waypointsDescription |
+	| diagram diagramMemento elementsDescription edgeMemento waypointsDescription diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
 	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
 	edgeMemento write: anAssessment proposedWaypoints using: waypointsDescription

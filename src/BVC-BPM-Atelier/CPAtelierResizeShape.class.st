@@ -27,14 +27,17 @@ CPAtelierResizeShape class >> shape: aShape bounds: aRectangle processMemento: a
 
 { #category : 'assessing' }
 CPAtelierResizeShape >> assess [
-	| diagram diagramMemento elementsDescription elements shapeMemento boundsDescription currentBounds occurrences |
+	| diagram diagramMemento elementsDescription elements shapeMemento boundsDescription currentBounds occurrences diagramContext |
 	shape ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'A diagram shape is required.' ].
 	bounds ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'Diagram bounds are required.' ].
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	occurrences := elements count: [ :each | each == shape ].
 	occurrences = 1 ifFalse: [
@@ -58,11 +61,14 @@ CPAtelierResizeShape >> assess [
 { #category : 'applying' }
 CPAtelierResizeShape >> applyAssessment: anAssessment [
 	| diagram diagramMemento elementsDescription elements shapeMemento
-	  boundsDescription modelElementDescription resizedModelElement centerDelta |
+	  boundsDescription modelElementDescription resizedModelElement centerDelta diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
 	boundsDescription := shapeMemento magritteDescription

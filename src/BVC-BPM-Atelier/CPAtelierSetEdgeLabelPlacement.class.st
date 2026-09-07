@@ -28,7 +28,7 @@ CPAtelierSetEdgeLabelPlacement class >> edge: anEdge segmentIndex: aSegmentIndex
 
 { #category : 'assessing' }
 CPAtelierSetEdgeLabelPlacement >> assess [
-	| diagram diagramMemento elementsDescription elements edgeMemento segmentDescription positionDescription offsetDescription currentSegment currentPosition currentOffset waypointsDescription waypoints segmentCount |
+	| diagram diagramMemento elementsDescription elements edgeMemento segmentDescription positionDescription offsetDescription currentSegment currentPosition currentOffset waypointsDescription waypoints segmentCount diagramContext |
 	edge ifNil: [ ^ self rejectedBecause: 'A diagram edge is required.' ].
 	segmentIndex ifNil: [ ^ self rejectedBecause: 'A label segment is required.' ].
 	segmentPosition ifNil: [ ^ self rejectedBecause: 'A label segment position is required.' ].
@@ -38,9 +38,12 @@ CPAtelierSetEdgeLabelPlacement >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	(elements identityIncludes: edge) ifFalse: [
 		^ self rejectedBecause: 'The edge does not belong to the staged diagram.' ].
@@ -82,11 +85,14 @@ CPAtelierSetEdgeLabelPlacement >> assess [
 
 { #category : 'applying' }
 CPAtelierSetEdgeLabelPlacement >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription edgeMemento segmentDescription positionDescription offsetDescription |
+	| diagram diagramMemento elementsDescription edgeMemento segmentDescription positionDescription offsetDescription diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
 	segmentDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #labelSegmentIndex ].

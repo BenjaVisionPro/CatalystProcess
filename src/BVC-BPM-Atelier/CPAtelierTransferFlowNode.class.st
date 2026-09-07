@@ -32,7 +32,7 @@ CPAtelierTransferFlowNode >> assess [
 	| sourceContext targetContext sourceElements targetElements sourceMemento
 	  incomingDescription outgoingDescription incoming outgoing labelDescription stagedLabel
 	  nestedElements diagram diagramMemento elementsDescription elements shape shapeMemento
-	  boundsDescription currentBounds proposedSource proposedTarget |
+	  boundsDescription currentBounds proposedSource proposedTarget diagramContext |
 
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	targetContainer ifNil: [ ^ self rejectedBecause: 'A target flow container is required.' ].
@@ -89,8 +89,12 @@ CPAtelierTransferFlowNode >> assess [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	shape := self shapeFor: flowNode in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription.
 	shape ifNil: [ ^ self rejectedBecause: 'The transferred flow node requires exactly one diagram shape.' ].
@@ -120,7 +124,7 @@ CPAtelierTransferFlowNode >> assess [
 CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
 	| sourceContext targetContext targetMemento labelDescription containerDescription
 	  incomingDescription outgoingDescription diagram diagramMemento elementsDescription
-	  shapeMemento boundsDescription |
+	  shapeMemento boundsDescription diagramContext |
 
 	sourceContext := CPProcessFlowContainerContext forContainer: anAssessment sourceContainer inRootMemento: processMemento.
 	targetContext := CPProcessFlowContainerContext forContainer: anAssessment targetContainer inRootMemento: processMemento.
@@ -142,8 +146,12 @@ CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
 		targetMemento write: nested using: nestedDescription ].
 
 	diagram := processMemento readUsing: diagramDescription.
-	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
 	shapeMemento := diagramMemento childMementoFor: anAssessment shape inRelation: elementsDescription.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription
