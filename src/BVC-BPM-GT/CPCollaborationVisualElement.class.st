@@ -11,8 +11,7 @@ Class {
 		'processVisual',
 		'collaboration',
 		'collaborationMemento',
-		'diagramMemento',
-		'elementsDescription',
+		'diagramContext',
 		'participantsDescription',
 		'messageFlowsDescription',
 		'createParticipantOperationBlock',
@@ -71,7 +70,7 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
-	| collaborationDescription diagramDescription diagram elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
+	| collaborationDescription diagramDescription diagram diagramMemento elementsDescription elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
 	processVisual ifNotNil: [ processVisual removeFromParent ].
 	self removeChildren.
 	participantElementsByParticipant removeAll.
@@ -94,11 +93,15 @@ CPCollaborationVisualElement >> refresh [
 		inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		memento: diagramMemento
+		elementsDescription: elementsDescription.
 	participantsDescription := collaborationMemento magritteDescription
 		detect: [ :each | each handlesSelector: #participants ].
 	messageFlowsDescription := collaborationMemento magritteDescription
 		detect: [ :each | each handlesSelector: #messageFlows ].
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	stagedParticipants := collaborationMemento readUsing: participantsDescription.
 	stagedMessageFlows := collaborationMemento readUsing: messageFlowsDescription.
 	participantShapes := elements select: [ :each |
@@ -597,13 +600,7 @@ CPCollaborationVisualElement >> stagedParticipantForProcess: aProcess [
 
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedWaypointsOf: anEdge [
-	| edgeMemento description |
-	edgeMemento := diagramMemento
-		childMementoFor: anEdge
-		inRelation: elementsDescription.
-	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #waypoints ].
-	^ (edgeMemento readUsing: description) ifNil: [ #() ]
+	^ diagramContext waypointsOf: anEdge
 ]
 
 { #category : 'private - staged state' }
@@ -619,24 +616,12 @@ CPCollaborationVisualElement >> stagedLabelOfMessageFlow: aMessageFlow [
 
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedBoundsOf: aShape [
-	| shapeMemento description |
-	shapeMemento := diagramMemento
-		childMementoFor: aShape
-		inRelation: elementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #bounds ].
-	^ shapeMemento readUsing: description
+	^ diagramContext boundsOf: aShape
 ]
 
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedModelElementOf: aShape [
-	| shapeMemento description |
-	shapeMemento := diagramMemento
-		childMementoFor: aShape
-		inRelation: elementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
+	^ diagramContext modelElementOf: aShape
 ]
 
 { #category : 'private - layout' }
