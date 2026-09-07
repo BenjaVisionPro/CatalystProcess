@@ -110,21 +110,26 @@ CPProcessAtelierDiagramEditing >> processDiagramContext [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> resizeParticipantShapeOperation [
-	^ [ :aShape :proposedBounds |
-		CPAtelierResizeParticipantShape shape: aShape bounds: proposedBounds processMemento: processMemento ]
-]
-
-{ #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> removeParticipantOperation [
 	^ [ :aParticipant |
 		CPAtelierRemoveParticipant participant: aParticipant processMemento: processMemento ]
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> resizeShapeOperation [
-	^ [ :aShape :proposedBounds |
-		CPAtelierResizeShape shape: aShape bounds: proposedBounds processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
+	| collaborationContext |
+	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	(collaborationContext notNil
+		and: [ collaborationContext elements identityIncludes: aShape ]) ifTrue: [
+		^ CPAtelierResizeParticipantShape
+			shape: aShape
+			bounds: proposedBounds
+			processMemento: processMemento ].
+	^ CPAtelierResizeShape
+		shape: aShape
+		bounds: proposedBounds
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }

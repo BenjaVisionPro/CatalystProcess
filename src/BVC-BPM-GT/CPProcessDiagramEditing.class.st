@@ -26,17 +26,12 @@ CPProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aFlowConta
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> resizeParticipantShapeOperation [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
 CPProcessDiagramEditing >> removeParticipantOperation [
 	^ self subclassResponsibility
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> resizeShapeOperation [
+CPProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 	^ self subclassResponsibility
 ]
 

@@ -1360,9 +1360,10 @@ CPProcessVisualElement >> updateSelectionAppearance [
 
 { #category : 'operations' }
 CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
-	| assessment |
-	diagramEditing resizeShapeOperation ifNil: [ ^ nil ].
-	assessment := (diagramEditing resizeShapeOperation value: aShape value: aRectangle) apply.
+	| assessment operation |
+	operation := diagramEditing resizeShape: aShape toBounds: aRectangle.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifFalse: [ self refresh ].
 	^ assessment
 ]
@@ -1370,7 +1371,7 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 { #category : 'private - resizing' }
 CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement [
 	| handles |
-	diagramEditing resizeShapeOperation ifNil: [ ^ self ].
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
 	handles := aShapeElement
 		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)

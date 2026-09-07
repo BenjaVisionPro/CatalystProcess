@@ -24,17 +24,12 @@ CPReadOnlyProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aF
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> resizeParticipantShapeOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> removeParticipantOperation [
 	^ nil
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> resizeShapeOperation [
+CPReadOnlyProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 	^ nil
 ]
 

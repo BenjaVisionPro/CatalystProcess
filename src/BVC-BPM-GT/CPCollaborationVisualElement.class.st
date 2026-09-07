@@ -234,14 +234,12 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 { #category : 'private - resizing' }
 CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement shape: aShape [
 	| handles |
-	diagramEditing resizeParticipantShapeOperation ifNil: [ ^ self ].
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	handles := anElement
 		installResizeHandleMinimumExtent: self minimumParticipantExtent
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds |
-			(diagramEditing resizeParticipantShapeOperation
-				value: aShape
-				value: proposedBounds) apply.
+			(diagramEditing resizeShape: aShape toBounds: proposedBounds) apply.
 			self refreshAfterGeometryChange ]
 		geometryChanged: nil.
 	handles do: [ :aHandle | anElement addChild: aHandle ]
