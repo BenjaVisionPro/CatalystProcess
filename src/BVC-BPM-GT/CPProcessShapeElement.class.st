@@ -16,7 +16,8 @@ Class {
 		'subProcessExpansionMarker',
 		'nestedProcessViewport',
 		'nestedProcessVisual',
-		'subProcessBorderInteractionElements'
+		'subProcessBorderInteractionElements',
+		'boundaryInterrupting'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -46,19 +47,19 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	isExpanded := aBoolean.
 	subProcessExpansionMarker := nil.
 	subProcessBorderInteractionElements := #().
+	boundaryInterrupting := true.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
 		extent: aRectangle extent;
 		geometry: (self geometryFor: aFlowNode bounds: aRectangle);
 		background: aBackground;
-		border: (BlBorder
-			paint: aBorderColor
-			width: self normalBorderWidth);
+		border: (self borderForColor: aBorderColor width: self normalBorderWidth);
 		layout: BlFrameLayout new;
 		clipChildren: false.
 	self addActivityLabelForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
+	self addBoundaryEventDefinitionDecorationForBounds: aRectangle.
 	self addCallActivityDecorationForBounds: aRectangle.
 	self addSubProcessDecorationForBounds: aRectangle
 ]
@@ -243,6 +244,38 @@ CPProcessShapeElement >> installDefaultCursorOn: anElement [
 ]
 
 { #category : 'private - appearance' }
+CPProcessShapeElement >> borderForColor: aColor width: aWidth [
+	(modelElement isBoundaryEvent and: [ boundaryInterrupting not ]) ifTrue: [
+		^ BlBorder builder dashed
+			paint: aColor;
+			width: aWidth;
+			build ].
+	^ BlBorder paint: aColor width: aWidth
+]
+
+{ #category : 'configuration' }
+CPProcessShapeElement >> boundaryInterrupting: aBoolean [
+	boundaryInterrupting := aBoolean.
+	self border: (self borderForColor: normalBorderColor width: self normalBorderWidth)
+]
+
+{ #category : 'private - decoration' }
+CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectangle [
+	| definition marker |
+	modelElement isBoundaryEvent ifFalse: [ ^ self ].
+	modelElement eventDefinitions ifEmpty: [ ^ self ].
+	definition := modelElement eventDefinitions first.
+	marker := FontAwesomeIcons icon: definition class eventTypeIcon.
+	marker
+		height: 16;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents.
+	self addChild: marker
+]
+
+{ #category : 'private - appearance' }
 CPProcessShapeElement >> normalBorderColor [
 	^ normalBorderColor
 ]
@@ -263,8 +296,8 @@ CPProcessShapeElement >> selectedBorderWidth [
 
 { #category : 'appearance' }
 CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor normalColor: aNormalColor [
-	self border: (BlBorder
-		paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
+	self border: (self
+		borderForColor: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
 		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
 ]
 

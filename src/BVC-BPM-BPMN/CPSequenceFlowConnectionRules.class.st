@@ -13,6 +13,7 @@ CPSequenceFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: a
 	aSource == aTarget ifTrue: [ ^ self rejectedBecause: 'A sequence flow requires distinct source and target nodes.' ].
 	aSource isEndEvent ifTrue: [ ^ self rejectedBecause: 'An end event cannot be the source of a sequence flow.' ].
 	aTarget isStartEvent ifTrue: [ ^ self rejectedBecause: 'A start event cannot be the target of a sequence flow.' ].
+	aTarget isBoundaryEvent ifTrue: [ ^ self rejectedBecause: 'A boundary event cannot be the target of a sequence flow.' ].
 	((aTopology includesFlowElement: aSource) and: [ aTopology includesFlowElement: aTarget ]) ifFalse: [
 		^ self rejectedBecause: 'Both connection endpoints must belong to the process.' ].
 	(aTopology hasSequenceFlowFrom: aSource to: aTarget) ifTrue: [

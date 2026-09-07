@@ -113,4 +113,9 @@ CPFlowNode >> isIntermediateEvent [
 	^ false
 ]
 
+{ #category : 'testing' }
+CPFlowNode >> isBoundaryEvent [
+	^ false
+]
+
 

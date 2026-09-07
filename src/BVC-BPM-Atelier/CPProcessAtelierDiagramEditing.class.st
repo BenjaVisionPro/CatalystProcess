@@ -26,6 +26,24 @@ CPProcessAtelierDiagramEditing >> processMemento: aMemento [ processMemento := a
 CPProcessAtelierDiagramEditing >> diagramDescription: aDescription [ diagramDescription := aDescription ]
 
 { #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedToShape: anActivityShape bounds: proposedBounds [
+	| diagramContext activity context |
+	diagramContext := self processDiagramContext.
+	(diagramContext elements identityIncludes: anActivityShape) ifFalse: [ ^ nil ].
+	activity := diagramContext modelElementOf: anActivityShape.
+	(activity notNil and: [ activity isActivity ]) ifFalse: [ ^ nil ].
+	context := CPProcessFlowContainerContext containingFlowElement: activity inRootMemento: processMemento.
+	context ifNil: [ ^ nil ].
+	^ CPAtelierCreateBoundaryEvent
+		boundaryEvent: aBoundaryEvent
+		attachedTo: activity
+		bounds: proposedBounds
+		flowContainer: context container
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
+
+{ #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
 	| targetContainer |
 	targetContainer := self flowContainerHostedBy: aHostShape.

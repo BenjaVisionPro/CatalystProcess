@@ -1851,3 +1851,43 @@ CPProcessAtelierExamples >> diagramEditingReconnectsCollaborationEdgeThroughMess
 		equals: ({ 300 @ 270. 300 @ 320 } asOrderedCollection).
 	^ assessment
 ]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> createBoundaryEventStagesAttachmentAndDiagramShape [
+	<gtExample>
+	| process task diagram taskShape memento diagramDescription event operation assessment context eventMemento attachedDescription |
+	process := CPProcess new.
+	task := CPUserTask new label: 'Task'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new.
+	taskShape := CPShape new modelElement: task; bounds: (100 @ 100 extent: 140 @ 80); yourself.
+	diagram addElement: taskShape.
+	process diagram: diagram.
+	memento := CFMaMemento model: process.
+	diagramDescription := memento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
+	event := CPBoundaryEvent new eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection; yourself.
+	operation := CPAtelierCreateBoundaryEvent boundaryEvent: event attachedTo: task bounds: (79 @ 119 extent: 42 @ 42) flowContainer: process processMemento: memento diagramDescription: diagramDescription.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	context := CPProcessFlowContainerContext rootFor: memento.
+	self assert: (context stagedFlowElements identityIncludes: event).
+	eventMemento := context childMementoFor: event.
+	attachedDescription := eventMemento magritteDescription detect: [ :each | each handlesSelector: #attachedToRef ].
+	self assert: (eventMemento readUsing: attachedDescription) == task.
+	self assert: event attachedToRef isNil.
+	^ assessment
+]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> boundaryEventCannotBeSequenceFlowTarget [
+	<gtExample>
+	| process source boundary topology result |
+	process := CPProcess new.
+	source := CPUserTask new.
+	boundary := CPBoundaryEvent new eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection; yourself.
+	process addFlowElement: source; addFlowElement: boundary.
+	topology := CPProcessTopology fromProcess: process.
+	result := CPSequenceFlowConnectionRules new assessConnectionFrom: source to: boundary in: topology.
+	self assert: result isAllowed not.
+	^ result
+]

@@ -7,6 +7,12 @@ Class {
 	#tag : 'Editing'
 }
 
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedToShape: anActivityShape bounds: proposedBounds [
+	^ nil
+]
+
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
 	^ nil

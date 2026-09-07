@@ -525,6 +525,7 @@ CPProcessVisualElement >> installEndEventTypePopupOn: aShapeElement for: aFlowNo
 { #category : 'private - type selection' }
 CPProcessVisualElement >> installIntermediateEventTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
 	aFlowNode isIntermediateEvent ifFalse: [ ^ self ].
+	aFlowNode isBoundaryEvent ifTrue: [ ^ self ].
 	self
 		installTypePopupOn: aShapeElement
 		for: aFlowNode
@@ -658,6 +659,8 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		borderColor: self shapeBorderColor
 		label: label
 		expanded: (self stagedExpandedOf: aShape).
+	aFlowNode isBoundaryEvent ifTrue: [
+		element boundaryInterrupting: (self stagedCancelActivityOf: aFlowNode) ].
 	label ifNotNil: [ self installLabelEditingOn: element label: label ].
 	^ element
 ]
@@ -1864,6 +1867,15 @@ CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
 ]
 
 { #category : 'private - staged state' }
+CPProcessVisualElement >> stagedCancelActivityOf: aBoundaryEvent [
+	| eventMemento description |
+	eventMemento := self flowElementMementoFor: aBoundaryEvent.
+	eventMemento ifNil: [ ^ aBoundaryEvent cancelActivity ].
+	description := eventMemento magritteDescription detect: [ :each | each handlesSelector: #cancelActivity ].
+	^ eventMemento readUsing: description
+]
+
+{ #category : 'private - staged state' }
 CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
 	| context |
 	context := self flowContainerContextContaining: aSequenceFlow.
@@ -2182,6 +2194,9 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		assessment := operation assess.
 		^ assessment isApplicable ].
 
+	candidate isBoundaryEvent ifTrue: [
+		^ shapeElementsByModelElement keys anySatisfy: [ :each | each isActivity ] ].
+
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
 		createFlowNode: candidate
@@ -2213,6 +2228,8 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
+	candidate isBoundaryEvent ifTrue: [
+		^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self
@@ -2233,6 +2250,61 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
+{ #category : 'private - creation' }
+CPProcessVisualElement >> createBoundaryEventPaletteItem: aBoundaryEvent atRootDiagramPoint: aRootPoint [
+	| localPoint activityShape activityBounds extent boundaryBounds operation assessment |
+	localPoint := self localPointForRootDiagramPoint: aRootPoint.
+	activityShape := self activityShapeAtDiagramPoint: localPoint.
+	activityShape ifNil: [ ^ nil ].
+	activityBounds := self stagedBoundsOf: activityShape.
+	extent := self extentForModelElement: aBoundaryEvent.
+	boundaryBounds := ((self nearestPointOnBoundaryOf: activityBounds to: localPoint) - (extent / 2)) extent: extent.
+	operation := diagramEditing
+		createBoundaryEvent: aBoundaryEvent
+		attachedToShape: activityShape
+		bounds: boundaryBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: aBoundaryEvent) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> activityShapeAtDiagramPoint: aPoint [
+	| candidates |
+	candidates := OrderedCollection new.
+	shapeElementsByShape keysDo: [ :aShape |
+		| modelElement bounds |
+		modelElement := self stagedModelElementOf: aShape.
+		(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [
+			bounds := self stagedBoundsOf: aShape.
+			(bounds containsPoint: aPoint) ifTrue: [ candidates add: aShape ] ] ].
+	candidates ifEmpty: [ ^ nil ].
+	^ candidates detectMin: [ :aShape |
+		| extent |
+		extent := (self stagedBoundsOf: aShape) extent.
+		extent x * extent y ]
+]
+
+{ #category : 'private - geometry' }
+CPProcessVisualElement >> nearestPointOnBoundaryOf: aRectangle to: aPoint [
+	| clampedX clampedY distances minimum |
+	clampedX := (aPoint x max: aRectangle left) min: aRectangle right.
+	clampedY := (aPoint y max: aRectangle top) min: aRectangle bottom.
+	distances := {
+		{ (aPoint x - aRectangle left) abs. aRectangle left @ clampedY }.
+		{ (aPoint x - aRectangle right) abs. aRectangle right @ clampedY }.
+		{ (aPoint y - aRectangle top) abs. clampedX @ aRectangle top }.
+		{ (aPoint y - aRectangle bottom) abs. clampedX @ aRectangle bottom } }.
+	minimum := distances detectMin: [ :each | each first ].
+	^ minimum second
+]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagramPoint: aRootPoint [
 	| bounds operation assessment |

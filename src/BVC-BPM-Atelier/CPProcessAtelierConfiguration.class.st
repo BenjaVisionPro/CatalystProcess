@@ -52,6 +52,14 @@ CPProcessAtelierConfiguration class >> processPalette [
 			provider: (CFAtelierFactoryProvider factory: [
 				CPTimerIntermediateEvent new label: 'Event'; yourself ]));
 		add: (CFAtelierPaletteItem
+			label: 'Boundary event'
+			icon: CPBoundaryEvent icon
+			provider: (CFAtelierFactoryProvider factory: [
+				CPBoundaryEvent new
+					label: 'Boundary';
+					eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
+					yourself ]));
+		add: (CFAtelierPaletteItem
 			label: 'Task'
 			icon: CPUserTask icon
 			provider: (CFAtelierFactoryProvider factory: [

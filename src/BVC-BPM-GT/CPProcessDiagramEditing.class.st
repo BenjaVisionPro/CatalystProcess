@@ -9,6 +9,12 @@ Class {
 	#tag : 'Editing'
 }
 
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedToShape: anActivityShape bounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
 	^ self subclassResponsibility
