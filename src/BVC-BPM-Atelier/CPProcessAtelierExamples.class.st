@@ -1220,10 +1220,7 @@ CPProcessAtelierExamples >> diagramMementoContextReadsCurrentStagedDiagramState 
 	fixture := self collaborationFixture.
 	memento := fixture at: 2.
 	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
-	diagramContext := CPDiagramMementoContext
-		diagram: collaborationContext diagram
-		memento: collaborationContext diagramMemento
-		elementsDescription: collaborationContext elementsDescription.
+	diagramContext := collaborationContext diagramContext.
 
 	self assert: diagramContext elements size equals: 2.
 

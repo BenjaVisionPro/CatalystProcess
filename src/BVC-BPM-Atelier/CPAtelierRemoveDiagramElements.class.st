@@ -59,10 +59,7 @@ CPAtelierRemoveDiagramElements >> participantRemovalOperations [
 	operations := OrderedCollection new.
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
 	collaborationContext ifNil: [ ^ operations ].
-	collaborationDiagramContext := CPDiagramMementoContext
-		diagram: collaborationContext diagram
-		memento: collaborationContext diagramMemento
-		elementsDescription: collaborationContext elementsDescription.
+	collaborationDiagramContext := collaborationContext diagramContext.
 	diagramElements do: [ :aDiagramElement |
 		((collaborationContext elements identityIncludes: aDiagramElement)
 			and: [ aDiagramElement isShape ]) ifTrue: [
@@ -126,10 +123,7 @@ CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwne
 	| context diagramContext participantAssessments ownedMessageFlows operations |
 	context := CPProcessCollaborationContext inRootMemento: processMemento.
 	context ifNil: [ ^ #() ].
-	diagramContext := CPDiagramMementoContext
-		diagram: context diagram
-		memento: context diagramMemento
-		elementsDescription: context elementsDescription.
+	diagramContext := context diagramContext.
 	participantAssessments := participantOperations collect: [ :anOperation | anOperation assess ].
 	ownedMessageFlows := IdentitySet new.
 	participantAssessments do: [ :anAssessment |

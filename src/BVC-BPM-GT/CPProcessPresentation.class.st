@@ -323,10 +323,7 @@ CPProcessPresentation >> localParticipantShapeIn: aCollaborationContext [
 	participant := aCollaborationContext participants
 		detect: [ :each | (aCollaborationContext processRefOf: each) == self memento model ]
 		ifNone: [ ^ nil ].
-	diagramContext := CPDiagramMementoContext
-		diagram: aCollaborationContext diagram
-		memento: aCollaborationContext diagramMemento
-		elementsDescription: aCollaborationContext elementsDescription.
+	diagramContext := aCollaborationContext diagramContext.
 	shapes := diagramContext shapesForModelElement: participant.
 	^ shapes size = 1
 		ifTrue: [ shapes first ]
@@ -339,10 +336,7 @@ CPProcessPresentation >> stagedModelElementOfDiagramElement: aDiagramElement [
 	| collaborationContext collaborationDiagramContext |
 	collaborationContext := self collaborationContext.
 	collaborationDiagramContext := collaborationContext ifNotNil: [ :aContext |
-		CPDiagramMementoContext
-			diagram: aContext diagram
-			memento: aContext diagramMemento
-			elementsDescription: aContext elementsDescription ].
+		aContext diagramContext ].
 	(collaborationDiagramContext notNil
 		and: [ collaborationContext elements identityIncludes: aDiagramElement ])
 		ifTrue: [ ^ collaborationDiagramContext modelElementOf: aDiagramElement ].

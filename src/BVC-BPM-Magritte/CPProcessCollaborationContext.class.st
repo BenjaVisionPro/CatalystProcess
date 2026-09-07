@@ -1,4 +1,6 @@
-"I resolve the staged definitional Collaboration and its DI from one root Process memento."
+"I resolve the staged definitional Collaboration and its DI from one root Process memento.
+
+I own the CPDiagramMementoContext for the Collaboration plane so callers share one staged DI boundary instead of reconstructing diagram/memento/description triples."
 Class {
 	#name : 'CPProcessCollaborationContext',
 	#superclass : 'Object',
@@ -7,9 +9,7 @@ Class {
 		'collaborationMemento',
 		'participantsDescription',
 		'messageFlowsDescription',
-		'diagram',
-		'diagramMemento',
-		'elementsDescription'
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Magritte-Diagram',
 	#package : 'BVC-BPM-Magritte',
@@ -18,7 +18,7 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
-	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription diagramDescription diagram diagramMemento elementsDescription |
+	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription diagramDescription diagram diagramMemento elementsDescription diagramContext |
 	collaborationDescription := aProcessMemento magritteDescription
 		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
 	collaboration := aProcessMemento readUsing: collaborationDescription.
@@ -39,14 +39,16 @@ CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 		inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		memento: diagramMemento
+		elementsDescription: elementsDescription.
 	^ self new
 		collaboration: collaboration;
 		collaborationMemento: collaborationMemento;
 		participantsDescription: participantsDescription;
 		messageFlowsDescription: messageFlowsDescription;
-		diagram: diagram;
-		diagramMemento: diagramMemento;
-		elementsDescription: elementsDescription;
+		diagramContext: diagramContext;
 		yourself
 ]
 
@@ -76,20 +78,18 @@ CPProcessCollaborationContext >> messageFlows [
 	^ collaborationMemento readUsing: messageFlowsDescription
 ]
 { #category : 'accessing' }
-CPProcessCollaborationContext >> diagram [ ^ diagram ]
+CPProcessCollaborationContext >> diagramContext [ ^ diagramContext ]
 { #category : 'accessing' }
-CPProcessCollaborationContext >> diagram: anObject [ diagram := anObject ]
+CPProcessCollaborationContext >> diagramContext: aDiagramContext [ diagramContext := aDiagramContext ]
 { #category : 'accessing' }
-CPProcessCollaborationContext >> diagramMemento [ ^ diagramMemento ]
+CPProcessCollaborationContext >> diagram [ ^ diagramContext diagram ]
 { #category : 'accessing' }
-CPProcessCollaborationContext >> diagramMemento: anObject [ diagramMemento := anObject ]
+CPProcessCollaborationContext >> diagramMemento [ ^ diagramContext diagramMemento ]
 { #category : 'accessing' }
-CPProcessCollaborationContext >> elementsDescription [ ^ elementsDescription ]
-{ #category : 'accessing' }
-CPProcessCollaborationContext >> elementsDescription: anObject [ elementsDescription := anObject ]
+CPProcessCollaborationContext >> elementsDescription [ ^ diagramContext elementsDescription ]
 { #category : 'accessing' }
 CPProcessCollaborationContext >> elements [
-	^ diagramMemento readUsing: elementsDescription
+	^ diagramContext elements
 ]
 
 

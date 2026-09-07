@@ -32,10 +32,7 @@ CPAtelierRemoveMessageFlow >> assess [
 
 	proposedMessageFlows := context messageFlows species withAll:
 		(context messageFlows reject: [ :each | each == messageFlow ]).
-	diagramContext := CPDiagramMementoContext
-		diagram: context diagram
-		memento: context diagramMemento
-		elementsDescription: context elementsDescription.
+	diagramContext := context diagramContext.
 	removedDiagramElements := context elements select: [ :each |
 		(diagramContext modelElementOf: each) == messageFlow ].
 	proposedElements := context elements species withAll:

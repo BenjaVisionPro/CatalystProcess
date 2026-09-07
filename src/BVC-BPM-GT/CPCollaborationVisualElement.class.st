@@ -80,37 +80,20 @@ CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcess
 
 { #category : 'updating' }
 CPCollaborationVisualElement >> refresh [
-	| collaborationDescription diagramDescription diagram diagramMemento elementsDescription elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
+	| collaborationContext elements participantShapes messageFlowEdges stagedParticipants stagedMessageFlows |
 	processVisual ifNotNil: [ processVisual removeFromParent ].
 	self removeChildren.
 	participantElementsByParticipant removeAll.
 	messageFlowVisualsByEdge removeAll.
 
-	collaborationDescription := processMemento magritteDescription
-		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
-	collaboration := processMemento readUsing: collaborationDescription.
-	collaboration ifNil: [ ^ self ].
-	collaborationMemento := processMemento
-		childMementoFor: collaboration
-		inRelation: collaborationDescription.
-
-	diagramDescription := collaborationMemento magritteDescription
-		detect: [ :each | each handlesSelector: #diagram ].
-	diagram := collaborationMemento readUsing: diagramDescription.
-	diagram ifNil: [ ^ self ].
-	diagramMemento := collaborationMemento
-		childMementoFor: diagram
-		inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		memento: diagramMemento
-		elementsDescription: elementsDescription.
-	participantsDescription := collaborationMemento magritteDescription
-		detect: [ :each | each handlesSelector: #participants ].
-	messageFlowsDescription := collaborationMemento magritteDescription
-		detect: [ :each | each handlesSelector: #messageFlows ].
+	collaborationContext := CPProcessCollaborationContext
+		inRootMemento: processMemento.
+	collaborationContext ifNil: [ ^ self ].
+	collaboration := collaborationContext collaboration.
+	collaborationMemento := collaborationContext collaborationMemento.
+	diagramContext := collaborationContext diagramContext.
+	participantsDescription := collaborationContext participantsDescription.
+	messageFlowsDescription := collaborationContext messageFlowsDescription.
 	elements := diagramContext elements.
 	stagedParticipants := collaborationMemento readUsing: participantsDescription.
 	stagedMessageFlows := collaborationMemento readUsing: messageFlowsDescription.

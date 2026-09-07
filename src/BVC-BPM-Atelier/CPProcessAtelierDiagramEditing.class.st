@@ -211,10 +211,7 @@ CPProcessAtelierDiagramEditing >> modelElementOfDiagramElement: aDiagramElement 
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
 	(collaborationContext notNil
 		and: [ collaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
-		collaborationDiagramContext := CPDiagramMementoContext
-			diagram: collaborationContext diagram
-			memento: collaborationContext diagramMemento
-			elementsDescription: collaborationContext elementsDescription.
+		collaborationDiagramContext := collaborationContext diagramContext.
 		^ collaborationDiagramContext modelElementOf: aDiagramElement ].
 	processDiagramContext := self processDiagramContext.
 	(processDiagramContext elements identityIncludes: aDiagramElement) ifTrue: [
