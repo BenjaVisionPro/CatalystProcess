@@ -1182,6 +1182,38 @@ CPProcessAtelierExamples >> collaborationContextReadsCurrentStagedCollections [
 	^ context
 ]
 
+{ #category : 'examples - staged diagram context' }
+CPProcessAtelierExamples >> diagramMementoContextReadsCurrentStagedDiagramState [
+	<gtExample>
+	| fixture memento collaborationContext diagramContext operation assessment edge |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	diagramContext := CPDiagramMementoContext
+		diagram: collaborationContext diagram
+		memento: collaborationContext diagramMemento
+		elementsDescription: collaborationContext elementsDescription.
+
+	self assert: diagramContext elements size equals: 2.
+
+	operation := CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento.
+	assessment := operation apply.
+	edge := assessment edge.
+
+	self assert: assessment isApplicable.
+	self assert: diagramContext elements size equals: 3.
+	self assert: (diagramContext elements identityIncludes: edge).
+	self assert: (diagramContext modelElementOf: edge) == assessment messageFlow.
+	self assert: (diagramContext waypointsOf: edge) equals: ({ 250 @ 270. 250 @ 320 } asOrderedCollection).
+	self assert: (diagramContext edgesForModelElement: assessment messageFlow) size equals: 1.
+	self assert: (diagramContext edgesForModelElement: assessment messageFlow) first == edge.
+	^ diagramContext
+]
+
 { #category : 'examples - collaboration message flow' }
 CPProcessAtelierExamples >> connectMessageFlowRejectsEndpointsInsideSameParticipant [
 	<gtExample>

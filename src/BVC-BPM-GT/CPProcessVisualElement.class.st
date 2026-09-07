@@ -13,8 +13,7 @@ Class {
 		'parentProcessVisual',
 		'hostShape',
 		'diagramDescription',
-		'diagramMemento',
-		'elementsDescription',
+		'diagramContext',
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'edgeVisualsByEdge',
@@ -292,7 +291,7 @@ CPProcessVisualElement >> memento [
 
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram elements shapes edges |
+	| diagram diagramMemento elementsDescription elements shapes edges |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
@@ -306,7 +305,11 @@ CPProcessVisualElement >> refresh [
 	diagramMemento := memento childMementoFor: diagram inRelation: diagramDescription.
 	elementsDescription := diagramMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
-	elements := diagramMemento readUsing: elementsDescription.
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		memento: diagramMemento
+		elementsDescription: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self ].
 	diagramElements := elements.
 
@@ -413,56 +416,32 @@ CPProcessVisualElement >> diagramBoundsFor: someDiagramElements [
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedBoundsOf: aShape [
-	| shapeMemento description |
-	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #bounds ].
-	^ shapeMemento readUsing: description
+	^ diagramContext boundsOf: aShape
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedModelElementOf: aShape [
-	| shapeMemento description |
-	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
+	^ diagramContext modelElementOf: aShape
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedWaypointsOf: anEdge [
-	| edgeMemento description |
-	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
-	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #waypoints ].
-	^ (edgeMemento readUsing: description) ifNil: [ #() ]
+	^ diagramContext waypointsOf: anEdge
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedLabelSegmentIndexOf: anEdge [
-	| edgeMemento description |
-	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
-	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #labelSegmentIndex ].
-	^ edgeMemento readUsing: description
+	^ diagramContext labelSegmentIndexOf: anEdge
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedLabelSegmentPositionOf: anEdge [
-	| edgeMemento description |
-	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
-	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #labelSegmentPosition ].
-	^ edgeMemento readUsing: description
+	^ diagramContext labelSegmentPositionOf: anEdge
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedLabelOffsetOf: anEdge [
-	| edgeMemento description |
-	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
-	description := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #labelOffset ].
-	^ edgeMemento readUsing: description
+	^ diagramContext labelOffsetOf: anEdge
 ]
 
 
@@ -3497,11 +3476,7 @@ CPProcessVisualElement >> boundsCenteredAtRootDiagramPoint: aRootPoint extent: a
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedExpandedOf: aShape [
-	| shapeMemento description |
-	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #isExpanded ].
-	^ shapeMemento readUsing: description
+	^ diagramContext expandedOf: aShape
 ]
 
 
