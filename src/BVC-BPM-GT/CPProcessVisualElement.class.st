@@ -1000,7 +1000,9 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 	self addDiagramChild: labelHost.
 	self installLabelEditingOn: labelHost label: label.
 	self installSelectionOn: labelHost for: aFlowNode.
-	self installPositioningFrom: labelHost moving: aShapeElement for: aShape
+	aFlowNode isBoundaryEvent
+		ifTrue: [ self installBoundaryEventPositioningFrom: labelHost moving: aShapeElement for: aShape ]
+		ifFalse: [ self installPositioningFrom: labelHost moving: aShapeElement for: aShape ]
 ]
 
 { #category : 'private - labels' }
@@ -1519,6 +1521,10 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
+	| modelElement |
+	modelElement := self stagedModelElementOf: aShape.
+	(modelElement notNil and: [ modelElement isBoundaryEvent ]) ifTrue: [
+		^ self installBoundaryEventPositioningFrom: anElement moving: anElement for: aShape ].
 	self installPositioningFrom: anElement moving: anElement for: aShape
 ]
 
@@ -1534,6 +1540,71 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 
 
 
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedAttachedActivityOf: aBoundaryEvent [
+	| context |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aBoundaryEvent
+		inRootMemento: processMemento.
+	^ context ifNotNil: [ context stagedAttachedToOf: aBoundaryEvent ]
+]
+
+{ #category : 'private - geometry' }
+CPProcessVisualElement >> boundaryEventBounds: eventBounds constrainedToActivityBounds: activityBounds nearCenter: aPoint [
+	| center |
+	center := self nearestPointOnBoundaryOf: activityBounds to: aPoint.
+	^ (center - (eventBounds extent / 2)) extent: eventBounds extent
+]
+
+{ #category : 'private - positioning' }
+CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
+	| boundaryEvent attachedActivity activityShape activityBounds dragStartBounds dragStartLabelPosition snappedBounds |
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	boundaryEvent := self stagedModelElementOf: aShape.
+	attachedActivity := self stagedAttachedActivityOf: boundaryEvent.
+	attachedActivity ifNil: [ ^ self ].
+	activityShape := self diagramShapeForModelElement: attachedActivity.
+	activityShape ifNil: [ ^ self ].
+	activityBounds := self stagedBoundsOf: activityShape.
+	snappedBounds := self stagedBoundsOf: aShape.
+	aShapeElement
+		installPositioningFrom: anInteractionElement
+		stagedBounds: [ self stagedBoundsOf: aShape ]
+		dragStarted: [ :anEvent :originalBounds |
+			dragStartBounds := originalBounds.
+			dragStartLabelPosition := aShapeElement externalLabelHost
+				ifNotNil: [ :aLabel | aLabel position ].
+			self clearInsertionTarget ]
+		dragStartPosition: [ dragStartBounds origin ]
+		dragged: [ :anEvent :delta |
+			| candidateBounds translatedDelta |
+			candidateBounds := dragStartBounds translateBy: delta.
+			snappedBounds := self
+				boundaryEventBounds: dragStartBounds
+				constrainedToActivityBounds: activityBounds
+				nearCenter: candidateBounds center.
+			aShapeElement relocate: snappedBounds origin.
+			translatedDelta := snappedBounds origin - dragStartBounds origin.
+			dragStartLabelPosition ifNotNil: [
+				aShapeElement externalLabelHost relocate: dragStartLabelPosition + translatedDelta ].
+			self updateIncidentEdgeLabelsFor: boundaryEvent.
+			self updateIncidentReconnectHandlesFor: boundaryEvent ]
+		dragEnded: [ :anEvent :proposedBounds :delta |
+			| boundsByShape operation assessment |
+			boundsByShape := IdentityDictionary new
+				at: aShape put: snappedBounds;
+				yourself.
+			operation := diagramEditing
+				moveShapes: boundsByShape
+				toProcessHostedBy: hostShape
+				waypointsByEdge: IdentityDictionary new.
+			operation
+				ifNil: [ self refresh ]
+				ifNotNil: [
+					assessment := operation apply.
+					self refresh ] ]
+]
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedModelElement [

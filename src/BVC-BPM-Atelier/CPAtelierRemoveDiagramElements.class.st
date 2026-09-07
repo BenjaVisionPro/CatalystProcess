@@ -75,7 +75,7 @@ CPAtelierRemoveDiagramElements >> participantRemovalOperations [
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> flowRemovalOperations [
-	| operations processDiagramContext selectedNodes selectedSequenceFlows |
+	| operations processDiagramContext selectedNodes operationOwnerNodes selectedSequenceFlows |
 	operations := OrderedCollection new.
 	processDiagramContext := self processDiagramContext.
 	selectedNodes := IdentitySet new.
@@ -91,20 +91,38 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 						modelElement isSequenceFlow ifTrue: [
 							selectedSequenceFlows add: modelElement ] ] ] ] ].
 
+	operationOwnerNodes := selectedNodes copy.
 	selectedNodes do: [ :aFlowNode |
-		| context |
-		context := CPProcessFlowContainerContext
-			containingFlowElement: aFlowNode
-			inRootMemento: processMemento.
-		context ifNotNil: [
-			operations add: (CPAtelierRemoveFlowNode
-				flowNode: aFlowNode
-				flowContainer: context container
-				processMemento: processMemento
-				diagramDescription: diagramDescription) ] ].
+		aFlowNode isActivity ifTrue: [
+			| context |
+			context := CPProcessFlowContainerContext
+				containingFlowElement: aFlowNode
+				inRootMemento: processMemento.
+			context ifNotNil: [
+				operationOwnerNodes addAll: (context attachedBoundaryEventsFor: aFlowNode) ] ] ].
+
+	selectedNodes do: [ :aFlowNode |
+		| context isOwnedBySelectedActivity |
+		isOwnedBySelectedActivity := aFlowNode isBoundaryEvent and: [
+			| boundaryContext attachedActivity |
+			boundaryContext := CPProcessFlowContainerContext
+				containingFlowElement: aFlowNode
+				inRootMemento: processMemento.
+			attachedActivity := boundaryContext ifNotNil: [ boundaryContext stagedAttachedToOf: aFlowNode ].
+			attachedActivity notNil and: [ selectedNodes includes: attachedActivity ] ].
+		isOwnedBySelectedActivity ifFalse: [
+			context := CPProcessFlowContainerContext
+				containingFlowElement: aFlowNode
+				inRootMemento: processMemento.
+			context ifNotNil: [
+				operations add: (CPAtelierRemoveFlowNode
+					flowNode: aFlowNode
+					flowContainer: context container
+					processMemento: processMemento
+					diagramDescription: diagramDescription) ] ] ].
 
 	selectedSequenceFlows do: [ :aSequenceFlow |
-		(self sequenceFlow: aSequenceFlow isIncidentToAny: selectedNodes) ifFalse: [
+		(self sequenceFlow: aSequenceFlow isIncidentToAny: operationOwnerNodes) ifFalse: [
 			| context |
 			context := CPProcessFlowContainerContext
 				containingFlowElement: aSequenceFlow
@@ -117,6 +135,7 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 					diagramDescription: diagramDescription) ] ] ].
 	^ operations
 ]
+
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwnedBy: participantOperations [

@@ -25,7 +25,7 @@ CPAtelierMoveShapes class >> boundsByShape: aDictionary processMemento: aMemento
 
 { #category : 'assessing' }
 CPAtelierMoveShapes >> assess [
-	| diagram diagramMemento elementsDescription elements currentBoundsByShape proposedDelta diagramContext |
+	| diagram diagramMemento elementsDescription elements currentBoundsByShape proposedBoundsByShape proposedDelta diagramContext |
 	(boundsByShape isNil or: [ boundsByShape isEmpty ]) ifTrue: [
 		^ self rejectedWithCurrentBounds: IdentityDictionary new delta: nil because: 'At least one diagram shape is required.' ].
 	diagram := processMemento readUsing: diagramDescription.
@@ -39,36 +39,87 @@ CPAtelierMoveShapes >> assess [
 	elementsDescription := diagramContext elementsDescription.
 	elements := diagramMemento readUsing: elementsDescription.
 	currentBoundsByShape := IdentityDictionary new.
+	proposedBoundsByShape := IdentityDictionary new.
 	proposedDelta := nil.
 
 	boundsByShape keysAndValuesDo: [ :shape :proposedBounds |
-		| occurrences shapeMemento boundsDescription currentBounds shapeDelta |
-		occurrences := elements count: [ :each | each == shape ].
-		occurrences = 1 ifFalse: [
-			^ self rejectedWithCurrentBounds: currentBoundsByShape delta: proposedDelta because: 'Every moved shape must occur exactly once in the diagram.' ].
-		shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
-		boundsDescription := shapeMemento magritteDescription
-			detect: [ :each | each handlesSelector: #bounds ].
-		currentBounds := shapeMemento readUsing: boundsDescription.
-		[
-			boundsDescription validate: proposedBounds
-		] on: MAValidationError do: [ :anException |
-			^ self rejectedWithCurrentBounds: currentBoundsByShape delta: proposedDelta because: anException printString ].
-		currentBoundsByShape at: shape put: currentBounds.
+		| currentBounds shapeDelta |
+		currentBounds := self
+			validateShape: shape
+			proposedBounds: proposedBounds
+			inElements: elements
+			diagramMemento: diagramMemento
+			elementsDescription: elementsDescription
+			currentBoundsByShape: currentBoundsByShape
+			delta: proposedDelta.
+		currentBounds isString ifTrue: [
+			^ self rejectedWithCurrentBounds: currentBoundsByShape delta: proposedDelta because: currentBounds ].
 		shapeDelta := proposedBounds origin - currentBounds origin.
 		proposedDelta
 			ifNil: [ proposedDelta := shapeDelta ]
 			ifNotNil: [
 				proposedDelta = shapeDelta ifFalse: [
-					^ self rejectedWithCurrentBounds: currentBoundsByShape delta: proposedDelta because: 'All group shapes require the same translation delta.' ] ] ].
+					^ self rejectedWithCurrentBounds: currentBoundsByShape delta: proposedDelta because: 'All group shapes require the same translation delta.' ] ].
+		proposedBoundsByShape at: shape put: proposedBounds ].
 
 	proposedDelta isZero ifTrue: [
 		^ self rejectedWithCurrentBounds: currentBoundsByShape delta: proposedDelta because: 'The group is already at the requested bounds.' ].
+
+	self
+		addAttachedBoundaryEventShapesForMovedShapesTo: proposedBoundsByShape
+		currentBoundsByShape: currentBoundsByShape
+		by: proposedDelta
+		diagramContext: diagramContext.
+
 	^ CPAtelierMoveShapesAssessment
 		currentBoundsByShape: currentBoundsByShape
-		proposedBoundsByShape: boundsByShape
+		proposedBoundsByShape: proposedBoundsByShape
 		delta: proposedDelta
 ]
+
+{ #category : 'private - assessing' }
+CPAtelierMoveShapes >> validateShape: shape proposedBounds: proposedBounds inElements: elements diagramMemento: diagramMemento elementsDescription: elementsDescription currentBoundsByShape: currentBoundsByShape delta: proposedDelta [
+	| occurrences shapeMemento boundsDescription currentBounds |
+	occurrences := elements count: [ :each | each == shape ].
+	occurrences = 1 ifFalse: [ ^ 'Every moved shape must occur exactly once in the diagram.' ].
+	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	boundsDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
+	currentBounds := shapeMemento readUsing: boundsDescription.
+	[
+		boundsDescription validate: proposedBounds
+	] on: MAValidationError do: [ :anException |
+		^ anException printString ].
+	currentBoundsByShape at: shape put: currentBounds.
+	^ currentBounds
+]
+
+{ #category : 'private - assessing' }
+CPAtelierMoveShapes >> addAttachedBoundaryEventShapesForMovedShapesTo: proposedBoundsByShape currentBoundsByShape: currentBoundsByShape by: delta diagramContext: diagramContext [
+	| movedActivities |
+	movedActivities := IdentitySet new.
+	proposedBoundsByShape keysDo: [ :aShape |
+		| modelElement |
+		modelElement := diagramContext modelElementOf: aShape.
+		(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [
+			movedActivities add: modelElement ] ].
+	movedActivities do: [ :anActivity |
+		| flowContext |
+		flowContext := CPProcessFlowContainerContext
+			containingFlowElement: anActivity
+			inRootMemento: processMemento.
+		flowContext ifNotNil: [
+			(flowContext attachedBoundaryEventsFor: anActivity) do: [ :aBoundaryEvent |
+				| shapes boundaryShape currentBounds |
+				shapes := diagramContext shapesForModelElement: aBoundaryEvent.
+				shapes size = 1 ifTrue: [
+					boundaryShape := shapes anyOne.
+					(proposedBoundsByShape includesKey: boundaryShape) ifFalse: [
+						currentBounds := diagramContext boundsOf: boundaryShape.
+						currentBoundsByShape at: boundaryShape put: currentBounds.
+						proposedBoundsByShape at: boundaryShape put: (currentBounds translateBy: delta) ] ] ] ] ]
+]
+
 
 { #category : 'applying' }
 CPAtelierMoveShapes >> applyAssessment: anAssessment [

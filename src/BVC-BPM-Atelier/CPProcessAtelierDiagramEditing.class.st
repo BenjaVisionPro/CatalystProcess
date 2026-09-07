@@ -120,12 +120,6 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 			processMemento: processMemento
 			diagramDescription: diagramDescription ].
 
-	boundsByShape size = 1 ifTrue: [
-		^ CPAtelierMoveShape
-			shape: boundsByShape keys anyOne
-			bounds: boundsByShape values anyOne
-			processMemento: processMemento
-			diagramDescription: diagramDescription ].
 	^ CPAtelierMoveShapes
 		boundsByShape: boundsByShape
 		processMemento: processMemento

@@ -40,19 +40,22 @@ CPAtelierRemoveFlowNode class >> flowNode: aFlowNode flowContainer: aContainer p
 
 { #category : 'assessing' }
 CPAtelierRemoveFlowNode >> assess [
-	| flowElements incidentFlows proposedFlowElements diagram diagramMemento elementsDescription elements removedDiagramElements proposedElements diagramContext |
+	| flowElements removedFlowNodes incidentFlows proposedFlowElements diagram diagramMemento elementsDescription elements removedDiagramElements proposedElements diagramContext |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowElements := flowContainerContext stagedFlowElements.
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: flowNode) ifFalse: [ ^ self rejectedBecause: 'The flow node does not belong to the staged process.' ].
 
+	removedFlowNodes := IdentitySet with: flowNode.
+	flowNode isActivity ifTrue: [
+		removedFlowNodes addAll: (flowContainerContext attachedBoundaryEventsFor: flowNode) ].
 	incidentFlows := flowElements select: [ :each |
 		each isSequenceFlow and: [
-			(self stagedSourceOf: each) == flowNode
-				or: [ (self stagedTargetOf: each) == flowNode ] ] ].
+			(removedFlowNodes includes: (self stagedSourceOf: each))
+				or: [ removedFlowNodes includes: (self stagedTargetOf: each) ] ] ].
 	proposedFlowElements := flowElements species withAll: (flowElements reject: [ :each |
-		each == flowNode or: [ incidentFlows identityIncludes: each ] ]).
+		(removedFlowNodes includes: each) or: [ incidentFlows identityIncludes: each ] ]).
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
@@ -66,18 +69,19 @@ CPAtelierRemoveFlowNode >> assess [
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	removedDiagramElements := elements select: [ :each |
 		(each isShape and: [
-			(self
+			removedFlowNodes includes: (self
 				stagedModelElementOf: each
 				in: diagramMemento
-				elementsDescription: elementsDescription) == flowNode ])
+				elementsDescription: elementsDescription) ])
 			or: [ each isEdge and: [ incidentFlows identityIncludes: each modelElement ] ] ].
-	(removedDiagramElements anySatisfy: [ :each |
-		each isShape and: [
-			(self
-				stagedModelElementOf: each
-				in: diagramMemento
-				elementsDescription: elementsDescription) == flowNode ] ])
-		ifFalse: [ ^ self rejectedBecause: 'The flow node has no staged diagram shape.' ].
+	removedFlowNodes do: [ :aRemovedFlowNode |
+		(removedDiagramElements anySatisfy: [ :each |
+			each isShape and: [
+				(self
+					stagedModelElementOf: each
+					in: diagramMemento
+					elementsDescription: elementsDescription) == aRemovedFlowNode ] ])
+			ifFalse: [ ^ self rejectedBecause: 'Every removed flow node must have a staged diagram shape.' ] ].
 	proposedElements := elements species withAll: (elements reject: [ :each | removedDiagramElements identityIncludes: each ]).
 
 	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ]
@@ -89,15 +93,18 @@ CPAtelierRemoveFlowNode >> assess [
 
 	^ CPAtelierRemoveFlowNodeAssessment
 		flowNode: flowNode
+		removedFlowNodes: removedFlowNodes
 		removedSequenceFlows: incidentFlows
 		removedDiagramElements: removedDiagramElements
 		proposedFlowElements: proposedFlowElements
 		proposedDiagramElements: proposedElements
 ]
 
+
 { #category : 'applying' }
 CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
-	| incidentTopology diagram diagramMemento elementsDescription diagramContext |
+	| incidentTopology removedFlowNodes diagram diagramMemento elementsDescription diagramContext |
+	removedFlowNodes := anAssessment removedFlowNodes.
 	incidentTopology := anAssessment removedSequenceFlows collect: [ :aSequenceFlow |
 		{ aSequenceFlow. self stagedSourceOf: aSequenceFlow. self stagedTargetOf: aSequenceFlow } ].
 
@@ -107,8 +114,8 @@ CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
 		aSequenceFlow := each first.
 		source := each second.
 		target := each third.
-		source == flowNode ifFalse: [ self stageOutgoingWithout: aSequenceFlow for: source ].
-		target == flowNode ifFalse: [ self stageIncomingWithout: aSequenceFlow for: target ] ].
+		(removedFlowNodes includes: source) ifFalse: [ self stageOutgoingWithout: aSequenceFlow for: source ].
+		(removedFlowNodes includes: target) ifFalse: [ self stageIncomingWithout: aSequenceFlow for: target ] ].
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
@@ -118,12 +125,14 @@ CPAtelierRemoveFlowNode >> applyAssessment: anAssessment [
 	diagramMemento := diagramContext diagramMemento.
 	elementsDescription := diagramContext elementsDescription.
 	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
-	flowContainerContext detachChildMementoFor: flowNode.
+	removedFlowNodes do: [ :aRemovedFlowNode |
+		flowContainerContext detachChildMementoFor: aRemovedFlowNode ].
 	anAssessment removedSequenceFlows do: [ :aSequenceFlow |
 		flowContainerContext detachChildMementoFor: aSequenceFlow ].
 	anAssessment removedDiagramElements do: [ :aDiagramElement |
 		diagramMemento detachChildMementoFor: aDiagramElement inRelation: elementsDescription ]
 ]
+
 
 { #category : 'private - staged topology' }
 CPAtelierRemoveFlowNode >> stageIncomingWithout: aSequenceFlow for: aFlowNode [

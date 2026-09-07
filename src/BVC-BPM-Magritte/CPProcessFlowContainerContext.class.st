@@ -106,6 +106,23 @@ CPProcessFlowContainerContext >> childMementoFor: aFlowElement [
 ]
 
 
+
+{ #category : 'staged state' }
+CPProcessFlowContainerContext >> stagedAttachedToOf: aBoundaryEvent [
+	| eventMemento description |
+	eventMemento := self childMementoFor: aBoundaryEvent.
+	description := eventMemento magritteDescription
+		detect: [ :each | each handlesSelector: #attachedToRef ].
+	^ eventMemento readUsing: description
+]
+
+{ #category : 'staged state' }
+CPProcessFlowContainerContext >> attachedBoundaryEventsFor: anActivity [
+	^ self stagedFlowElements select: [ :each |
+		each isBoundaryEvent and: [
+			(self stagedAttachedToOf: each) == anActivity ] ]
+]
+
 { #category : 'staged state' }
 CPProcessFlowContainerContext >> stagedSourceOf: aSequenceFlow [
 	| flowMemento description |

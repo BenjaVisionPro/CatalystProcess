@@ -4,6 +4,7 @@ Class {
 	#superclass : 'CFAtelierAssessment',
 	#instVars : [
 		'flowNode',
+		'removedFlowNodes',
 		'removedSequenceFlows',
 		'removedDiagramElements',
 		'proposedFlowElements',
@@ -15,9 +16,10 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierRemoveFlowNodeAssessment class >> flowNode: aFlowNode removedSequenceFlows: someFlows removedDiagramElements: someDiagramElements proposedFlowElements: someFlowElements proposedDiagramElements: proposedDiagramElements [
+CPAtelierRemoveFlowNodeAssessment class >> flowNode: aFlowNode removedFlowNodes: someFlowNodes removedSequenceFlows: someFlows removedDiagramElements: someDiagramElements proposedFlowElements: someFlowElements proposedDiagramElements: proposedDiagramElements [
 	^ self new
 		flowNode: aFlowNode;
+		removedFlowNodes: someFlowNodes;
 		removedSequenceFlows: someFlows;
 		removedDiagramElements: someDiagramElements;
 		proposedFlowElements: someFlowElements;
@@ -34,6 +36,10 @@ CPAtelierRemoveFlowNodeAssessment class >> flowNode: aFlowNode rejectedBecause: 
 CPAtelierRemoveFlowNodeAssessment >> flowNode [ ^ flowNode ]
 { #category : 'accessing' }
 CPAtelierRemoveFlowNodeAssessment >> flowNode: anObject [ flowNode := anObject ]
+{ #category : 'accessing' }
+CPAtelierRemoveFlowNodeAssessment >> removedFlowNodes [ ^ removedFlowNodes ]
+{ #category : 'accessing' }
+CPAtelierRemoveFlowNodeAssessment >> removedFlowNodes: aCollection [ removedFlowNodes := aCollection ]
 { #category : 'accessing' }
 CPAtelierRemoveFlowNodeAssessment >> removedSequenceFlows [ ^ removedSequenceFlows ]
 { #category : 'accessing' }

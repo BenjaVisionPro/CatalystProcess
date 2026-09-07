@@ -2039,3 +2039,20 @@ CPProcessVisualElementExamples >> collaborationMessageFlowBendpointEditUsesShare
 	self assert: messageVisual bendpointHandles size equals: 1.
 	^ messageVisual
 ]
+
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventBoundsStayCenteredOnActivityBorder [
+	<gtExample>
+	| visual eventBounds activityBounds constrained |
+	visual := CPProcessVisualElement new.
+	eventBounds := 79 @ 119 extent: 42 @ 42.
+	activityBounds := 100 @ 100 extent: 140 @ 80.
+	constrained := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 260 @ 140.
+
+	self assert: constrained extent equals: 42 @ 42.
+	self assert: constrained center equals: 240 @ 140.
+	^ constrained
+]

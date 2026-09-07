@@ -1891,3 +1891,122 @@ CPProcessAtelierExamples >> boundaryEventCannotBeSequenceFlowTarget [
 	self assert: result isAllowed not.
 	^ result
 ]
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> boundaryEventFixture [
+	| process task boundary finish flow diagram taskShape boundaryShape finishShape edge memento |
+	process := CPProcess new label: 'Boundary event process'; yourself.
+	task := CPUserTask new label: 'Work'; yourself.
+	boundary := CPBoundaryEvent new
+		label: 'Timeout';
+		attachedToRef: task;
+		eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
+		yourself.
+	finish := CPNoneEndEvent new label: 'Escalated'; yourself.
+	flow := CPSequenceFlow new
+		sourceRef: boundary;
+		targetRef: finish;
+		yourself.
+	process
+		addFlowElement: task;
+		addFlowElement: boundary;
+		addFlowElement: finish;
+		addFlowElement: flow.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	taskShape := CPShape new modelElement: task; bounds: (100 @ 100 extent: 140 @ 80); yourself.
+	boundaryShape := CPShape new modelElement: boundary; bounds: (79 @ 119 extent: 42 @ 42); yourself.
+	finishShape := CPShape new modelElement: finish; bounds: (350 @ 119 extent: 42 @ 42); yourself.
+	edge := CPEdge new modelElement: flow; yourself.
+	edge addWaypoint: 100 @ 140; addWaypoint: 350 @ 140.
+	diagram
+		addElement: taskShape;
+		addElement: boundaryShape;
+		addElement: finishShape;
+		addElement: edge.
+	memento := CFMaMemento model: process.
+	^ { process. memento. task. boundary. finish. flow. diagram. taskShape. boundaryShape. finishShape. edge }
+]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> movingActivityCarriesAttachedBoundaryEventAndItsEdgeEndpoint [
+	<gtExample>
+	| fixture memento diagramDescription operation assessment boundsByShape |
+	fixture := self boundaryEventFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	boundsByShape := IdentityDictionary new
+		at: fixture eighth put: (140 @ 130 extent: 140 @ 80);
+		yourself.
+	operation := CPAtelierMoveShapes
+		boundsByShape: boundsByShape
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (self stagedBoundsOf: fixture eighth processMemento: memento)
+		equals: (140 @ 130 extent: 140 @ 80).
+	self assert: (self stagedBoundsOf: fixture ninth processMemento: memento)
+		equals: (119 @ 149 extent: 42 @ 42).
+	self assert: (self stagedWaypointsOf: fixture eleventh processMemento: memento)
+		equals: ({ 140 @ 170. 350 @ 140 } asOrderedCollection).
+	self assert: fixture ninth bounds equals: (79 @ 119 extent: 42 @ 42).
+	^ assessment
+]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> removingActivityOwnsAttachedBoundaryEventAndIncidentSequenceFlow [
+	<gtExample>
+	| fixture memento diagramDescription operation assessment context diagramContext |
+	fixture := self boundaryEventFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveFlowNode
+		flowNode: fixture third
+		flowContainer: fixture first
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	context := CPProcessFlowContainerContext rootFor: memento.
+	diagramContext := CPDiagramMementoContext
+		diagram: (memento readUsing: diagramDescription)
+		inMemento: memento
+		using: diagramDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (assessment removedFlowNodes includes: fixture third).
+	self assert: (assessment removedFlowNodes includes: fixture fourth).
+	self assert: (assessment removedSequenceFlows identityIncludes: fixture sixth).
+	self assert: (context stagedFlowElements identityIncludes: fixture third) not.
+	self assert: (context stagedFlowElements identityIncludes: fixture fourth) not.
+	self assert: (context stagedFlowElements identityIncludes: fixture sixth) not.
+	self assert: (context stagedFlowElements identityIncludes: fixture fifth).
+	self assert: (diagramContext elements identityIncludes: fixture eighth) not.
+	self assert: (diagramContext elements identityIncludes: fixture ninth) not.
+	self assert: (diagramContext elements identityIncludes: fixture eleventh) not.
+	self assert: (diagramContext elements identityIncludes: fixture tenth).
+	^ assessment
+]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> removingSelectedActivitySuppressesDependentBoundaryEventAndFlowOperations [
+	<gtExample>
+	| fixture memento diagramDescription operation assessment |
+	fixture := self boundaryEventFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { fixture eighth. fixture ninth. fixture eleventh }
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment operations size equals: 1.
+	self assert: assessment operationAssessments first removedFlowNodes size equals: 2.
+	^ assessment
+]
