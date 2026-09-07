@@ -1648,9 +1648,19 @@ CPProcessVisualElementExamples >> collaborationMessageFlowParticipatesInDiagramS
 { #category : 'examples - geometry' }
 CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
 	<gtExample>
-	| fixture visual geometry |
+	| fixture memento diagram diagramDescription diagramMemento elementsDescription diagramContext geometry |
 	fixture := self fixture.
-	visual := self visualElementForFixture: fixture.
+	memento := fixture second.
+	diagram := fixture at: 8.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagramMemento := memento
+		childMementoFor: diagram
+		inRelation: diagramDescription.
+	elementsDescription := self descriptionFor: #elements in: diagramMemento.
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		memento: diagramMemento
+		elementsDescription: elementsDescription.
 	geometry := CPDiagramPlaneGeometry
 		shapes: {
 			fixture at: 9.
@@ -1659,7 +1669,7 @@ CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
 		edges: {
 			fixture at: 12.
 			fixture at: 13 }
-		context: visual diagramContext.
+		context: diagramContext.
 
 	self assert: geometry diagramBounds equals: (100 @ 94 corner: 472 @ 148).
 	self assert: geometry diagramExtent equals: 372 @ 54.
