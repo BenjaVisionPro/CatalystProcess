@@ -254,7 +254,7 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 				yourself.
 			(diagramEditing
 				moveShapes: boundsByShape
-				toFlowContainer: nil
+				toProcessHostedBy: nil
 				waypointsByEdge: IdentityDictionary new) apply.
 			self refreshAfterGeometryChange ]
 ]
@@ -606,9 +606,8 @@ CPCollaborationVisualElement >> acceptsParticipantPaletteDragItem: aDragItem [
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifFalse: [ ^ false ].
 	operation := diagramEditing
-		create: candidate
-		bounds: (0 @ 0 extent: self defaultBlackBoxParticipantExtent)
-		flowContainer: nil.
+		createParticipant: candidate
+		bounds: (0 @ 0 extent: self defaultBlackBoxParticipantExtent).
 	operation ifNil: [ ^ false ].
 	assessment := operation assess.
 	^ assessment isApplicable
@@ -625,9 +624,8 @@ CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
 	bounds := (dropPoint - (self defaultBlackBoxParticipantExtent / 2))
 		extent: self defaultBlackBoxParticipantExtent.
 	operation := diagramEditing
-		create: participant
-		bounds: bounds
-		flowContainer: nil.
+		createParticipant: participant
+		bounds: bounds.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [ self refresh ].

@@ -26,24 +26,31 @@ CPProcessAtelierDiagramEditing >> processMemento: aMemento [ processMemento := a
 CPProcessAtelierDiagramEditing >> diagramDescription: aDescription [ diagramDescription := aDescription ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> create: aModelElement bounds: proposedBounds flowContainer: aFlowContainer [
-	aModelElement isParticipant ifTrue: [
-		^ CPAtelierCreateParticipant
-			participant: aModelElement
-			bounds: proposedBounds
-			processMemento: processMemento ].
+CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
+	| targetContainer |
+	targetContainer := self flowContainerHostedBy: aHostShape.
+	targetContainer ifNil: [ ^ nil ].
 	^ CPAtelierCreateFlowNode
-		flowNode: aModelElement
+		flowNode: aFlowNode
 		bounds: proposedBounds
-		flowContainer: aFlowContainer
+		flowContainer: targetContainer
 		processMemento: processMemento
 		diagramDescription: diagramDescription
 ]
 
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aTargetContainer waypointsByEdge: waypointsByEdge [
-	| collaborationContext processDiagramContext modelElements currentContainers boundsByFlowNode waypointsBySequenceFlow |
+CPProcessAtelierDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [
+	^ CPAtelierCreateParticipant
+		participant: aParticipant
+		bounds: proposedBounds
+		processMemento: processMemento
+]
+
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: aHostShape waypointsByEdge: waypointsByEdge [
+	| collaborationContext processDiagramContext modelElements currentContainers targetContainer boundsByFlowNode waypointsBySequenceFlow |
 	boundsByShape ifEmpty: [ ^ nil ].
 
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
@@ -55,6 +62,8 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aTa
 			bounds: boundsByShape values anyOne
 			processMemento: processMemento ].
 
+	targetContainer := self flowContainerHostedBy: aHostShape.
+	targetContainer ifNil: [ ^ nil ].
 	processDiagramContext := self processDiagramContext.
 	modelElements := boundsByShape keys collect: [ :aShape |
 		processDiagramContext modelElementOf: aShape ].
@@ -65,9 +74,9 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aTa
 			inRootMemento: processMemento)
 			ifNotNil: [ :aContext | currentContainers add: aContext container ] ].
 
-	(aTargetContainer notNil
+	(targetContainer notNil
 		and: [ currentContainers size = 1
-		and: [ currentContainers anyOne ~~ aTargetContainer ] ]) ifTrue: [
+		and: [ currentContainers anyOne ~~ targetContainer ] ]) ifTrue: [
 		boundsByFlowNode := IdentityDictionary new.
 		boundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
 			boundsByFlowNode
@@ -76,7 +85,7 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aTa
 		modelElements size = 1 ifTrue: [
 			^ CPAtelierTransferFlowNode
 				flowNode: modelElements anyOne
-				targetContainer: aTargetContainer
+				targetContainer: targetContainer
 				bounds: boundsByFlowNode values anyOne
 				processMemento: processMemento
 				diagramDescription: diagramDescription ].
@@ -87,7 +96,7 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aTa
 				put: someWaypoints ].
 		^ CPAtelierTransferFlowNodes
 			flowNodes: modelElements
-			targetContainer: aTargetContainer
+			targetContainer: targetContainer
 			boundsByFlowNode: boundsByFlowNode
 			waypointsBySequenceFlow: waypointsBySequenceFlow
 			processMemento: processMemento
@@ -180,6 +189,20 @@ CPProcessAtelierDiagramEditing >> flowContainerContaining: aModelElement [
 		containingFlowElement: aModelElement
 		inRootMemento: processMemento.
 	^ context ifNotNil: [ context container ]
+]
+
+
+{ #category : 'private - staged state' }
+CPProcessAtelierDiagramEditing >> flowContainerHostedBy: aHostShape [
+	| hostModelElement |
+	aHostShape ifNil: [ ^ processMemento model ].
+	hostModelElement := self modelElementOfDiagramElement: aHostShape.
+	(hostModelElement notNil and: [ hostModelElement isSubProcess ])
+		ifFalse: [ ^ nil ].
+	^ (CPProcessFlowContainerContext
+		forContainer: hostModelElement
+		inRootMemento: processMemento)
+		ifNotNil: [ :aContext | aContext container ]
 ]
 
 { #category : 'private - staged state' }

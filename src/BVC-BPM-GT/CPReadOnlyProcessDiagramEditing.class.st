@@ -8,7 +8,13 @@ Class {
 }
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> create: aModelElement bounds: proposedBounds flowContainer: aFlowContainer [
+CPReadOnlyProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
+	^ nil
+]
+
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [
 	^ nil
 ]
 
@@ -19,7 +25,7 @@ CPReadOnlyProcessDiagramEditing >> allowsEditing [
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aFlowContainer waypointsByEdge: waypointsByEdge [
+CPReadOnlyProcessDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: aHostShape waypointsByEdge: waypointsByEdge [
 	^ nil
 ]
 

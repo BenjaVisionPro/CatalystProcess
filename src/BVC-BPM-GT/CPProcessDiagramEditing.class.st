@@ -1,6 +1,6 @@
 "I define the Process diagram editing-operation factory contract used by the GT presentation layer.
 
-The presentation and its Process/Collaboration visual surfaces share one instance of me. Concrete editing integrations answer semantic operations for the current staged transaction. Movement is expressed as one diagram intention. Concrete editing integrations resolve current staged semantics and choose ordinary movement, containment transfer, or Participant movement without exposing those distinctions to GT."
+The presentation and its Process/Collaboration visual surfaces share one instance of me. My editing boundary is expressed in BPMN DI identities wherever an existing depiction identifies the edited object or target. A nested Process target is identified by its hosting CPShape; nil identifies the root Process surface. Concrete editing integrations resolve current staged semantics and choose ordinary movement, containment transfer, or Participant movement without exposing those distinctions to GT."
 Class {
 	#name : 'CPProcessDiagramEditing',
 	#superclass : 'Object',
@@ -10,7 +10,13 @@ Class {
 }
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> create: aModelElement bounds: proposedBounds flowContainer: aFlowContainer [
+CPProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
+	^ self subclassResponsibility
+]
+
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [
 	^ self subclassResponsibility
 ]
 
@@ -21,7 +27,7 @@ CPProcessDiagramEditing >> allowsEditing [
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aFlowContainer waypointsByEdge: waypointsByEdge [
+CPProcessDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: aHostShape waypointsByEdge: waypointsByEdge [
 	^ self subclassResponsibility
 ]
 

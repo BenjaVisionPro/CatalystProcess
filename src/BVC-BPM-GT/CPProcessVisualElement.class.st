@@ -274,6 +274,12 @@ CPProcessVisualElement >> parentProcessVisual: aProcessVisual [
 
 
 { #category : 'accessing' }
+CPProcessVisualElement >> hostShape [
+	^ hostShape
+]
+
+
+{ #category : 'accessing' }
 CPProcessVisualElement >> hostShape: aShape [
 	hostShape := aShape
 ]
@@ -1432,7 +1438,7 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 		yourself.
 	assessment := (diagramEditing
 		moveShapes: boundsByShape
-		toFlowContainer: flowContainer
+		toProcessHostedBy: hostShape
 		waypointsByEdge: IdentityDictionary new) apply.
 	assessment isApplicable ifFalse: [ self refresh ].
 	^ assessment
@@ -1444,7 +1450,7 @@ CPProcessVisualElement >> moveShapesToBounds: boundsByShape [
 	diagramEditing allowsEditing ifFalse: [ ^ nil ].
 	assessment := (diagramEditing
 		moveShapes: boundsByShape
-		toFlowContainer: flowContainer
+		toProcessHostedBy: hostShape
 		waypointsByEdge: IdentityDictionary new) apply.
 	self refresh.
 	^ assessment
@@ -1801,7 +1807,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								yourself.
 							assessment := (diagramEditing
 								moveShapes: boundsByShape
-								toFlowContainer: targetVisual flowContainer
+								toProcessHostedBy: targetVisual hostShape
 								waypointsByEdge: IdentityDictionary new) apply.
 							targetVisual == self
 								ifTrue: [ assessment isApplicable ifFalse: [ self refresh ] ]
@@ -1839,7 +1845,7 @@ CPProcessVisualElement >> moveGroupEntries: groupEntries movedModelElements: mov
 
 	assessment := (diagramEditing
 		moveShapes: boundsByShape
-		toFlowContainer: targetVisual flowContainer
+		toProcessHostedBy: targetVisual hostShape
 		waypointsByEdge: waypointsByEdge) apply.
 	targetVisual == self
 		ifTrue: [ self refresh ]
@@ -2193,18 +2199,17 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		collaborationVisual ifNotNil: [ ^ false ].
 		proposedBounds := self firstParticipantBoundsCenteredAt: 0 @ 0.
 		operation := diagramEditing
-			create: candidate
-			bounds: proposedBounds
-			flowContainer: nil.
+			createParticipant: candidate
+			bounds: proposedBounds.
 		operation ifNil: [ ^ false ].
 		assessment := operation assess.
 		^ assessment isApplicable ].
 
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
-		create: candidate
+		createFlowNode: candidate
 		bounds: proposedBounds
-		flowContainer: flowContainer.
+		inProcessHostedBy: hostShape.
 	operation ifNil: [ ^ false ].
 	assessment := operation assess.
 	^ assessment isApplicable
@@ -2238,9 +2243,9 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		extent: elementExtent.
 	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
 	operation := diagramEditing
-		create: candidate
+		createFlowNode: candidate
 		bounds: bounds
-		flowContainer: flowContainer.
+		inProcessHostedBy: hostShape.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
@@ -2256,9 +2261,8 @@ CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagr
 	| bounds operation assessment |
 	bounds := self firstParticipantBoundsCenteredAt: aRootPoint.
 	operation := diagramEditing
-		create: aParticipant
-		bounds: bounds
-		flowContainer: nil.
+		createParticipant: aParticipant
+		bounds: bounds.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
