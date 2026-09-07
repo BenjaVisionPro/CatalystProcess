@@ -57,7 +57,9 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	self
 		extent: aRectangle extent;
 		geometry: (self geometryFor: aFlowNode bounds: aRectangle);
-		background: (aFlowNode isBoundaryEvent ifTrue: [ Color transparent ] ifFalse: [ aBackground ]);
+		background: (aFlowNode isBoundaryEvent
+			ifTrue: [ aBackground alpha: 0.65 ]
+			ifFalse: [ aBackground ]);
 		border: (aFlowNode isBoundaryEvent
 			ifTrue: [ BlBorder empty ]
 			ifFalse: [ self borderForColor: aBorderColor width: self normalBorderWidth ]);
