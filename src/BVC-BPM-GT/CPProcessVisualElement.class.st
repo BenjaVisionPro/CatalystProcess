@@ -1692,14 +1692,19 @@ CPProcessVisualElement >> stagedAttachedActivityOf: aBoundaryEvent [
 
 { #category : 'private - geometry' }
 CPProcessVisualElement >> displayBoundsForBoundaryEvent: aBoundaryEvent stagedBounds: stagedBounds [
-	| attachedActivity attachedActivityShape activityBounds center extent |
+	| attachedActivity attachedActivityShape attachedActivityElement activityBounds center extent |
 	extent := self extentForModelElement: aBoundaryEvent.
 	center := stagedBounds center.
 	attachedActivity := self stagedAttachedActivityOf: aBoundaryEvent.
 	attachedActivity ifNil: [ ^ (center - (extent / 2)) extent: extent ].
 	attachedActivityShape := self diagramShapeForModelElement: attachedActivity.
 	attachedActivityShape ifNil: [ ^ (center - (extent / 2)) extent: extent ].
-	activityBounds := self stagedBoundsOf: attachedActivityShape.
+	attachedActivityElement := shapeElementsByModelElement
+		at: attachedActivity
+		ifAbsent: [ nil ].
+	activityBounds := attachedActivityElement
+		ifNil: [ self stagedBoundsOf: attachedActivityShape ]
+		ifNotNil: [ attachedActivityElement position extent: attachedActivityElement extent ].
 	center := self nearestPointOnBoundaryOf: activityBounds to: center.
 	^ (center - (extent / 2)) extent: extent
 ]
