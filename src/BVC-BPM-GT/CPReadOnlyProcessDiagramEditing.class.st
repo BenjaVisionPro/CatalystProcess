@@ -12,8 +12,14 @@ CPReadOnlyProcessDiagramEditing >> createParticipantOperation [
 	^ nil
 ]
 
+
+{ #category : 'testing' }
+CPReadOnlyProcessDiagramEditing >> allowsEditing [
+	^ false
+]
+
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> moveParticipantShapeOperation [
+CPReadOnlyProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aFlowContainer waypointsByEdge: waypointsByEdge [
 	^ nil
 ]
 
@@ -24,26 +30,6 @@ CPReadOnlyProcessDiagramEditing >> resizeParticipantShapeOperation [
 
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> removeParticipantOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> moveShapeOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> transferFlowNodeOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> transferFlowNodesOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> moveShapesOperation [
 	^ nil
 ]
 

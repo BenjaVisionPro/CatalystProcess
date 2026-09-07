@@ -1,6 +1,6 @@
 "I define the Process diagram editing-operation factory contract used by the GT presentation layer.
 
-The presentation and its Process/Collaboration visual surfaces share one instance of me. Concrete editing integrations answer semantic operations for the current staged transaction. During this migration pass the protocol deliberately mirrors the existing operation distinctions one-for-one; later passes collapse distinctions such as move versus transfer behind domain-shaped editing intentions."
+The presentation and its Process/Collaboration visual surfaces share one instance of me. Concrete editing integrations answer semantic operations for the current staged transaction. Movement is expressed as one diagram intention. Concrete editing integrations resolve current staged semantics and choose ordinary movement, containment transfer, or Participant movement without exposing those distinctions to GT."
 Class {
 	#name : 'CPProcessDiagramEditing',
 	#superclass : 'Object',
@@ -14,8 +14,14 @@ CPProcessDiagramEditing >> createParticipantOperation [
 	^ self subclassResponsibility
 ]
 
+
+{ #category : 'testing' }
+CPProcessDiagramEditing >> allowsEditing [
+	^ true
+]
+
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> moveParticipantShapeOperation [
+CPProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aFlowContainer waypointsByEdge: waypointsByEdge [
 	^ self subclassResponsibility
 ]
 
@@ -26,26 +32,6 @@ CPProcessDiagramEditing >> resizeParticipantShapeOperation [
 
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> removeParticipantOperation [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
-CPProcessDiagramEditing >> moveShapeOperation [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
-CPProcessDiagramEditing >> transferFlowNodeOperation [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
-CPProcessDiagramEditing >> transferFlowNodesOperation [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
-CPProcessDiagramEditing >> moveShapesOperation [
 	^ self subclassResponsibility
 ]
 

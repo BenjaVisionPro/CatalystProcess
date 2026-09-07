@@ -31,10 +31,82 @@ CPProcessAtelierDiagramEditing >> createParticipantOperation [
 		CPAtelierCreateParticipant participant: aParticipant bounds: proposedBounds processMemento: processMemento ]
 ]
 
+
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> moveParticipantShapeOperation [
-	^ [ :aShape :proposedBounds |
-		CPAtelierMoveParticipantShape shape: aShape bounds: proposedBounds processMemento: processMemento ]
+CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aTargetContainer waypointsByEdge: waypointsByEdge [
+	| collaborationContext processDiagramContext modelElements currentContainers boundsByFlowNode waypointsBySequenceFlow |
+	boundsByShape ifEmpty: [ ^ nil ].
+
+	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	(collaborationContext notNil
+		and: [ boundsByShape size = 1
+		and: [ collaborationContext elements identityIncludes: boundsByShape keys anyOne ] ]) ifTrue: [
+		^ CPAtelierMoveParticipantShape
+			shape: boundsByShape keys anyOne
+			bounds: boundsByShape values anyOne
+			processMemento: processMemento ].
+
+	processDiagramContext := self processDiagramContext.
+	modelElements := boundsByShape keys collect: [ :aShape |
+		processDiagramContext modelElementOf: aShape ].
+	currentContainers := IdentitySet new.
+	modelElements do: [ :each |
+		(CPProcessFlowContainerContext
+			containingFlowElement: each
+			inRootMemento: processMemento)
+			ifNotNil: [ :aContext | currentContainers add: aContext container ] ].
+
+	(aTargetContainer notNil
+		and: [ currentContainers size = 1
+		and: [ currentContainers anyOne ~~ aTargetContainer ] ]) ifTrue: [
+		boundsByFlowNode := IdentityDictionary new.
+		boundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
+			boundsByFlowNode
+				at: (processDiagramContext modelElementOf: aShape)
+				put: proposedBounds ].
+		modelElements size = 1 ifTrue: [
+			^ CPAtelierTransferFlowNode
+				flowNode: modelElements anyOne
+				targetContainer: aTargetContainer
+				bounds: boundsByFlowNode values anyOne
+				processMemento: processMemento
+				diagramDescription: diagramDescription ].
+		waypointsBySequenceFlow := IdentityDictionary new.
+		waypointsByEdge keysAndValuesDo: [ :anEdge :someWaypoints |
+			waypointsBySequenceFlow
+				at: (processDiagramContext modelElementOf: anEdge)
+				put: someWaypoints ].
+		^ CPAtelierTransferFlowNodes
+			flowNodes: modelElements
+			targetContainer: aTargetContainer
+			boundsByFlowNode: boundsByFlowNode
+			waypointsBySequenceFlow: waypointsBySequenceFlow
+			processMemento: processMemento
+			diagramDescription: diagramDescription ].
+
+	boundsByShape size = 1 ifTrue: [
+		^ CPAtelierMoveShape
+			shape: boundsByShape keys anyOne
+			bounds: boundsByShape values anyOne
+			processMemento: processMemento
+			diagramDescription: diagramDescription ].
+	^ CPAtelierMoveShapes
+		boundsByShape: boundsByShape
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
+
+{ #category : 'private - staged state' }
+CPProcessAtelierDiagramEditing >> processDiagramContext [
+	| diagram diagramMemento elementsDescription |
+	diagram := processMemento readUsing: diagramDescription.
+	diagramMemento := processMemento childMementoFor: diagram inRelation: diagramDescription.
+	elementsDescription := diagramMemento magritteDescription
+		detect: [ :each | each handlesSelector: #elements ].
+	^ CPDiagramMementoContext
+		diagram: diagram
+		memento: diagramMemento
+		elementsDescription: elementsDescription
 ]
 
 { #category : 'operation factories' }
@@ -47,30 +119,6 @@ CPProcessAtelierDiagramEditing >> resizeParticipantShapeOperation [
 CPProcessAtelierDiagramEditing >> removeParticipantOperation [
 	^ [ :aParticipant |
 		CPAtelierRemoveParticipant participant: aParticipant processMemento: processMemento ]
-]
-
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> moveShapeOperation [
-	^ [ :aShape :proposedBounds |
-		CPAtelierMoveShape shape: aShape bounds: proposedBounds processMemento: processMemento diagramDescription: diagramDescription ]
-]
-
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> transferFlowNodeOperation [
-	^ [ :aFlowNode :aFlowContainer :proposedBounds |
-		CPAtelierTransferFlowNode flowNode: aFlowNode targetContainer: aFlowContainer bounds: proposedBounds processMemento: processMemento diagramDescription: diagramDescription ]
-]
-
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> transferFlowNodesOperation [
-	^ [ :someFlowNodes :aFlowContainer :boundsByFlowNode :waypointsBySequenceFlow |
-		CPAtelierTransferFlowNodes flowNodes: someFlowNodes targetContainer: aFlowContainer boundsByFlowNode: boundsByFlowNode waypointsBySequenceFlow: waypointsBySequenceFlow processMemento: processMemento diagramDescription: diagramDescription ]
-]
-
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> moveShapesOperation [
-	^ [ :boundsByShape |
-		CPAtelierMoveShapes boundsByShape: boundsByShape processMemento: processMemento diagramDescription: diagramDescription ]
 ]
 
 { #category : 'operation factories' }

@@ -1390,13 +1390,19 @@ CPProcessVisualElement >> bringResizeHandlesToFront [
 
 { #category : 'operations' }
 CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
-	| assessment modelElement constrainedBounds |
-	diagramEditing moveShapeOperation ifNil: [ ^ nil ].
+	| assessment modelElement constrainedBounds boundsByShape |
+	diagramEditing allowsEditing ifFalse: [ ^ nil ].
 	modelElement := self stagedModelElementOf: aShape.
 	constrainedBounds := modelElement
 		ifNil: [ aRectangle ]
 		ifNotNil: [ self constrainedBounds: aRectangle forFlowElement: modelElement ].
-	assessment := (diagramEditing moveShapeOperation value: aShape value: constrainedBounds) apply.
+	boundsByShape := IdentityDictionary new
+		at: aShape put: constrainedBounds;
+		yourself.
+	assessment := (diagramEditing
+		moveShapes: boundsByShape
+		toFlowContainer: flowContainer
+		waypointsByEdge: IdentityDictionary new) apply.
 	assessment isApplicable ifFalse: [ self refresh ].
 	^ assessment
 ]
@@ -1404,12 +1410,14 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 { #category : 'operations' }
 CPProcessVisualElement >> moveShapesToBounds: boundsByShape [
 	| assessment |
-	diagramEditing moveShapesOperation ifNil: [ ^ nil ].
-	assessment := (diagramEditing moveShapesOperation value: boundsByShape) apply.
+	diagramEditing allowsEditing ifFalse: [ ^ nil ].
+	assessment := (diagramEditing
+		moveShapes: boundsByShape
+		toFlowContainer: flowContainer
+		waypointsByEdge: IdentityDictionary new) apply.
 	self refresh.
 	^ assessment
 ]
-
 
 { #category : 'private - insertion' }
 CPProcessVisualElement >> insertionTargetEdge: anEdge [
@@ -1615,7 +1623,7 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
 	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations dragSourcePosition |
-	diagramEditing moveShapeOperation ifNil: [ ^ self ].
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
 	groupPreviews := IdentityDictionary new.
@@ -1631,7 +1639,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 			self clearInsertionTarget.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
-			groupMode := diagramEditing moveShapesOperation notNil and: [ groupEntries size > 1 ].
+			groupMode := groupEntries size > 1.
 			movedModelElements := IdentitySet new.
 			groupMode
 				ifTrue: [
@@ -1724,37 +1732,21 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				aPresentation finish ].
 			groupMode
 				ifTrue: [
-					| boundsByShape currentContainers rootPoint targetVisual targetContainer |
+					| rootPoint targetVisual |
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
 					internalBentEdges do: [ :anEdge |
 						(self lineElementsForEdge: anEdge)
 							do: [ :aLine | aLine visibility: BlVisibility visible ] ].
-					boundsByShape := IdentityDictionary new.
-					groupEntries do: [ :entry |
-						boundsByShape
-							at: entry first
-							put: (entry fourth translateBy: delta) ].
-					currentContainers := IdentitySet new.
-					movedModelElements do: [ :each |
-						(self stagedFlowContainerContaining: each)
-							ifNotNil: [ :aContainer | currentContainers add: aContainer ] ].
 					rootPoint := self rootDiagramPointForLocalPoint: proposedBounds center.
 					targetVisual := rootVisual
 						processVisualAtRootDiagramPoint: rootPoint
 						excluding: draggedModelElement.
-					targetContainer := targetVisual flowContainer.
-					(currentContainers size = 1
-						and: [ currentContainers anyOne ~~ targetContainer
-						and: [ diagramEditing transferFlowNodesOperation notNil ] ])
-						ifTrue: [
-							self
-								transferGroupEntries: groupEntries
-								movedModelElements: movedModelElements
-								delta: delta
-								to: targetVisual ]
-						ifFalse: [
-							self moveShapesToBounds: boundsByShape ] ]
+					self
+						moveGroupEntries: groupEntries
+						movedModelElements: movedModelElements
+						delta: delta
+						to: targetVisual ]
 				ifFalse: [
 					| insertionEdge |
 					insertionEdge := self
@@ -1763,28 +1755,27 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| currentContainer targetVisual targetContainer targetBounds rootPoint |
-							currentContainer := self stagedFlowContainerContaining: draggedModelElement.
+							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape assessment |
 							rootPoint := self rootDiagramPointForLocalPoint: proposedBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
 								excluding: draggedModelElement.
-							targetContainer := targetVisual flowContainer.
-							(currentContainer notNil
-								and: [ targetContainer ~~ currentContainer
-								and: [ diagramEditing transferFlowNodeOperation notNil ] ])
-								ifTrue: [
-									targetBounds := targetVisual
-										boundsCenteredAtRootDiagramPoint: rootPoint
-										extent: proposedBounds extent.
-									targetVisual
-										transferFlowNode: draggedModelElement
-										toContainer: targetContainer
-										bounds: targetBounds ]
-								ifFalse: [
-									self
-										moveShape: aShape
-										toBounds: proposedBounds ] ]
+							targetBounds := targetVisual
+								boundsCenteredAtRootDiagramPoint: rootPoint
+								extent: proposedBounds extent.
+							constrainedBounds := targetVisual
+								constrainedBounds: targetBounds
+								forFlowContainer: targetVisual flowContainer.
+							boundsByShape := IdentityDictionary new
+								at: aShape put: constrainedBounds;
+								yourself.
+							assessment := (diagramEditing
+								moveShapes: boundsByShape
+								toFlowContainer: targetVisual flowContainer
+								waypointsByEdge: IdentityDictionary new) apply.
+							targetVisual == self
+								ifTrue: [ assessment isApplicable ifFalse: [ self refresh ] ]
+								ifFalse: [ self refreshEditor ] ]
 						ifNotNil: [
 							self
 								insertExistingFlowNode: draggedModelElement
@@ -1793,48 +1784,36 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								atBounds: proposedBounds ] ] ]
 ]
 { #category : 'private - containment' }
-CPProcessVisualElement >> transferGroupEntries: groupEntries movedModelElements: movedModelElements delta: delta to: targetVisual [
-	| boundsByFlowNode waypointsBySequenceFlow internalEdges |
-	boundsByFlowNode := IdentityDictionary new.
+CPProcessVisualElement >> moveGroupEntries: groupEntries movedModelElements: movedModelElements delta: delta to: targetVisual [
+	| boundsByShape waypointsByEdge internalEdges assessment |
+	boundsByShape := IdentityDictionary new.
 	groupEntries do: [ :entry |
 		| sourceBounds sourceCenter rootCenter targetCenter |
 		sourceBounds := entry fourth translateBy: delta.
 		sourceCenter := sourceBounds center.
 		rootCenter := self rootDiagramPointForLocalPoint: sourceCenter.
 		targetCenter := targetVisual localPointForRootDiagramPoint: rootCenter.
-		boundsByFlowNode
-			at: entry second
+		boundsByShape
+			at: entry first
 			put: (targetCenter - (sourceBounds extent / 2) extent: sourceBounds extent) ].
 
 	internalEdges := self internalEdgesForMovedModelElements: movedModelElements.
-	waypointsBySequenceFlow := IdentityDictionary new.
+	waypointsByEdge := IdentityDictionary new.
 	internalEdges do: [ :anEdge |
 		| proposed |
 		proposed := (self translatedWaypointsOf: anEdge by: delta)
 			collect: [ :aPoint |
 				targetVisual localPointForRootDiagramPoint:
 					(self rootDiagramPointForLocalPoint: aPoint) ].
-		waypointsBySequenceFlow
-			at: anEdge modelElement
-			put: proposed asOrderedCollection ].
+		waypointsByEdge at: anEdge put: proposed asOrderedCollection ].
 
-	targetVisual
-		transferFlowNodes: movedModelElements
-		toContainer: targetVisual flowContainer
-		boundsByFlowNode: boundsByFlowNode
-		waypointsBySequenceFlow: waypointsBySequenceFlow
-]
-
-{ #category : 'operations' }
-CPProcessVisualElement >> transferFlowNodes: someFlowNodes toContainer: aFlowContainer boundsByFlowNode: boundsByFlowNode waypointsBySequenceFlow: waypointsBySequenceFlow [
-	| assessment |
-	diagramEditing transferFlowNodesOperation ifNil: [ ^ nil ].
-	assessment := (diagramEditing transferFlowNodesOperation
-		value: someFlowNodes
-		value: aFlowContainer
-		value: boundsByFlowNode
-		value: waypointsBySequenceFlow) apply.
-	self refreshEditor.
+	assessment := (diagramEditing
+		moveShapes: boundsByShape
+		toFlowContainer: targetVisual flowContainer
+		waypointsByEdge: waypointsByEdge) apply.
+	targetVisual == self
+		ifTrue: [ self refresh ]
+		ifFalse: [ self refreshEditor ].
 	^ assessment
 ]
 
@@ -3479,14 +3458,4 @@ CPProcessVisualElement >> setShape: aShape expanded: aBoolean [
 
 
 { #category : 'operations' }
-CPProcessVisualElement >> transferFlowNode: aFlowNode toContainer: aFlowContainer bounds: aRectangle [
-	| assessment constrainedBounds |
-	diagramEditing transferFlowNodeOperation ifNil: [ ^ nil ].
-	constrainedBounds := self constrainedBounds: aRectangle forFlowContainer: aFlowContainer.
-	assessment := (diagramEditing transferFlowNodeOperation
-		value: aFlowNode
-		value: aFlowContainer
-		value: constrainedBounds) apply.
-	self refreshEditor.
-	^ assessment
-]
+

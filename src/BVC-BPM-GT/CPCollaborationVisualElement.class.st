@@ -210,7 +210,7 @@ CPCollaborationVisualElement >> updateParticipantSelectionAppearance [
 
 { #category : 'private - positioning' }
 CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElement shape: aShape [
-	diagramEditing moveParticipantShapeOperation ifNil: [ ^ self ].
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	anElement
 		installPositioningFrom: anElement labelBand
 		stagedBounds: [ self stagedBoundsOf: aShape ]
@@ -220,10 +220,14 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 		dragStartPosition: [ (self stagedBoundsOf: aShape) origin ]
 		dragged: [ :anEvent :delta | ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
-			| assessment |
-			assessment := (diagramEditing moveParticipantShapeOperation
-				value: aShape
-				value: proposedBounds) apply.
+			| boundsByShape |
+			boundsByShape := IdentityDictionary new
+				at: aShape put: proposedBounds;
+				yourself.
+			(diagramEditing
+				moveShapes: boundsByShape
+				toFlowContainer: nil
+				waypointsByEdge: IdentityDictionary new) apply.
 			self refreshAfterGeometryChange ]
 ]
 
