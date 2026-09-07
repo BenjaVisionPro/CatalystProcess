@@ -237,7 +237,7 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 			diagramSelection selectOnly: aShape.
 			self updateSelectionAppearance.
 			selectionChangedBlock ifNotNil: [ :aBlock |
-				aBlock value: diagramSelection soleDiagramElement ] ]
+				aBlock value: aShape ] ]
 		dragStartPosition: [ (self stagedBoundsOf: aShape) origin ]
 		dragged: [ :anEvent :delta | ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
@@ -305,7 +305,7 @@ CPCollaborationVisualElement >> selectOnlyDiagramElement: aDiagramElement [
 	diagramSelection selectOnly: aDiagramElement.
 	self updateSelectionAppearance.
 	selectionChangedBlock ifNotNil: [ :aBlock |
-		aBlock value: diagramSelection soleDiagramElement ]
+		aBlock value: aDiagramElement ]
 ]
 
 
@@ -314,7 +314,7 @@ CPCollaborationVisualElement >> toggleSelectionOfDiagramElement: aDiagramElement
 	diagramSelection toggle: aDiagramElement.
 	self updateSelectionAppearance.
 	selectionChangedBlock ifNotNil: [ :aBlock |
-		aBlock value: diagramSelection soleDiagramElement ]
+		aBlock value: aDiagramElement ]
 ]
 
 

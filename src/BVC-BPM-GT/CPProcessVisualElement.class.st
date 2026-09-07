@@ -1504,7 +1504,7 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 			diagramSelection selectOnly: aShape.
 			self refresh.
 			self updateSelectionAppearance.
-			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ]
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aShape ] ]
 		ifFalse: [
 			self moveShape: aShape toBounds: proposedBounds ].
 	^ assessment
@@ -1960,17 +1960,23 @@ CPProcessVisualElement >> newSelectionMarqueeElement [
 ]
 
 { #category : 'private - selection' }
-CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
+CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle baseSelection: someDiagramElements [
 	| selectedDiagramElements |
-	selectedDiagramElements := OrderedCollection new.
+	selectedDiagramElements := OrderedCollection withAll: someDiagramElements.
 
-	shapeElementsByShape keysAndValuesDo: [ :aShape :anElement |
-		((anElement bounds inParent: self diagramPresentationParent) asRectangle intersects: aRectangle)
-			ifTrue: [ selectedDiagramElements add: aShape ] ].
+	shapeElementsByShape keysDo: [ :aShape |
+		| bounds |
+		bounds := self stagedBoundsOf: aShape.
+		(self rectangle: aRectangle fullyContainsRectangle: bounds)
+			ifTrue: [
+				(selectedDiagramElements identityIncludes: aShape) ifFalse: [
+					selectedDiagramElements add: aShape ] ] ].
 
 	edgeVisualsByEdge keysDo: [ :anEdge |
-		(self edge: anEdge intersectsRectangle: aRectangle)
-			ifTrue: [ selectedDiagramElements add: anEdge ] ].
+		(self edge: anEdge enclosedByRectangle: aRectangle)
+			ifTrue: [
+				(selectedDiagramElements identityIncludes: anEdge) ifFalse: [
+					selectedDiagramElements add: anEdge ] ] ].
 
 	diagramSelection replaceWith: selectedDiagramElements.
 	self updateSelectionAppearance
@@ -1992,6 +1998,37 @@ CPProcessVisualElement >> edge: anEdge intersectsRectangle: aRectangle [
 				ifTrue: [ ^ true ] ].
 	^ false
 ]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> edge: anEdge enclosedByRectangle: aRectangle [
+	| points |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: (self stagedWaypointsOf: anEdge)
+		usingLiveBounds: true.
+	^ points notEmpty and: [
+		points allSatisfy: [ :aPoint |
+			self rectangle: aRectangle containsPointIncludingBoundary: aPoint ] ]
+]
+
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> rectangle: anOuterRectangle fullyContainsRectangle: anInnerRectangle [
+	^ anOuterRectangle left <= anInnerRectangle left
+		and: [ anInnerRectangle right <= anOuterRectangle right
+		and: [ anOuterRectangle top <= anInnerRectangle top
+		and: [ anInnerRectangle bottom <= anOuterRectangle bottom ] ] ]
+]
+
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> rectangle: aRectangle containsPointIncludingBoundary: aPoint [
+	^ aRectangle left <= aPoint x
+		and: [ aPoint x <= aRectangle right
+		and: [ aRectangle top <= aPoint y
+		and: [ aPoint y <= aRectangle bottom ] ] ]
+]
+
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> segmentFrom: aStart to: anEnd intersectsRectangle: aRectangle [
@@ -2048,10 +2085,11 @@ CPProcessVisualElement >> installPaletteDropHandler [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> addPaletteDropSurface [
-	| dropSurface isMarqueeDragging marqueeOrigin marqueeElement |
+	| dropSurface isMarqueeDragging marqueeOrigin marqueeElement marqueeBaseSelection |
 	isMarqueeDragging := false.
 	marqueeOrigin := nil.
 	marqueeElement := nil.
+	marqueeBaseSelection := #().
 	dropSurface := BlElement new
 		geometry: BlRectangleGeometry new;
 		background: Color transparent;
@@ -2080,7 +2118,11 @@ CPProcessVisualElement >> addPaletteDropSurface [
 				connectionSourceModelElement := nil.
 				connectionTargetModelElement := nil.
 				insertionTargetEdge := nil.
-				diagramSelection clear.
+				marqueeBaseSelection := anEvent modifiers isShift
+					ifTrue: [ diagramSelection diagramElements ]
+					ifFalse: [ #() ].
+				anEvent modifiers isShift ifFalse: [
+					diagramSelection clear ].
 				marqueeElement := self newSelectionMarqueeElement.
 				marqueeElement
 					relocate: marqueeOrigin;
@@ -2099,7 +2141,9 @@ CPProcessVisualElement >> addPaletteDropSurface [
 					marqueeElement
 						relocate: rectangle origin;
 						extent: rectangle extent.
-					self updateMarqueeSelectionFor: rectangle.
+					self
+						updateMarqueeSelectionFor: rectangle
+						baseSelection: marqueeBaseSelection.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent
@@ -2109,16 +2153,21 @@ CPProcessVisualElement >> addPaletteDropSurface [
 					isMarqueeDragging := false.
 					corner := self diagramPointForGlobalPoint: anEvent position.
 					rectangle := Rectangle encompassing: { marqueeOrigin. corner }.
-					self updateMarqueeSelectionFor: rectangle.
+					self
+						updateMarqueeSelectionFor: rectangle
+						baseSelection: marqueeBaseSelection.
 					marqueeElement ifNotNil: [ marqueeElement removeFromParent ].
 					marqueeElement := nil.
 					marqueeOrigin := nil.
+					marqueeBaseSelection := #().
 					selectionChangedBlock ifNotNil: [
 						:aBlock | aBlock value: diagramSelection soleDiagramElement ].
 					anEvent consumed: true ] ]);
 		yourself.
 	self addChildFirst: dropSurface
 ]
+
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	| sourceElement candidate proposedBounds operation assessment |

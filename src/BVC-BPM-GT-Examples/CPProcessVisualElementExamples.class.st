@@ -26,6 +26,70 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 ]
 
 { #category : 'examples - selection' }
+CPProcessVisualElementExamples >> marqueeRequiresFullShapeEnclosure [
+	<gtExample>
+	| fixture visual task taskShape partialRectangle |
+	fixture := self fixture.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+
+	partialRectangle := 190 @ 70 corner: 230 @ 95.
+	visual
+		updateMarqueeSelectionFor: partialRectangle
+		baseSelection: #().
+
+	self assert: (visual selectedDiagramElements identityIncludes: taskShape) not.
+	self assert: visual selectedDiagramElements isEmpty.
+	^ visual
+]
+
+
+{ #category : 'examples - selection' }
+CPProcessVisualElementExamples >> marqueeCanAddToExistingDiagramSelection [
+	<gtExample>
+	| fixture visual taskShape startShape startRectangle |
+	fixture := self fixture.
+	startShape := fixture at: 9.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+
+	startRectangle := 70 @ 60 corner: 135 @ 125.
+	visual
+		updateMarqueeSelectionFor: startRectangle
+		baseSelection: { taskShape }.
+
+	self assert: visual selectedDiagramElements size equals: 2.
+	self assert: (visual selectedDiagramElements identityIncludes: taskShape).
+	self assert: (visual selectedDiagramElements identityIncludes: startShape).
+	^ visual
+]
+
+
+{ #category : 'examples - selection' }
+CPProcessVisualElementExamples >> marqueeRequiresFullEdgeEnclosure [
+	<gtExample>
+	| fixture visual firstEdge partialRectangle fullRectangle |
+	fixture := self fixture.
+	firstEdge := fixture at: 12.
+	visual := self visualElementForFixture: fixture.
+
+	partialRectangle := 120 @ 80 corner: 150 @ 100.
+	visual
+		updateMarqueeSelectionFor: partialRectangle
+		baseSelection: #().
+	self assert: (visual selectedDiagramElements identityIncludes: firstEdge) not.
+
+	fullRectangle := 120 @ 80 corner: 182 @ 102.
+	visual
+		updateMarqueeSelectionFor: fullRectangle
+		baseSelection: #().
+	self assert: (visual selectedDiagramElements identityIncludes: firstEdge).
+	^ visual
+]
+
+
+{ #category : 'examples - selection' }
 CPProcessVisualElementExamples >> selectionSupportsExclusiveAndAdditiveDiagramSelection [
 	<gtExample>
 	| fixture visual start task firstFlow startShape taskShape firstEdge |

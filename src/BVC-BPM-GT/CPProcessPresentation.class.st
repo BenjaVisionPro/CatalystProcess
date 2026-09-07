@@ -44,7 +44,7 @@ CPProcessPresentation >> prepareHostElement [
 			collaborationDiagramElement := CPCollaborationVisualElement new
 			diagramEditing: diagramEditing;
 				removeDiagramElementsDo: [ :someDiagramElements | self removeDiagramElements: someDiagramElements ];
-				selectionChangedDo: [ :aDiagramElement | self diagramSelectionChanged: aDiagramElement ];
+				selectionChangedDo: [ :aDiagramElement | self collaborationDiagramSelectionChanged: aDiagramElement ];
 				processMemento: self memento
 				processVisual: processDiagramElement;
 				yourself.
@@ -104,7 +104,7 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 	visual := CPProcessVisualElement new.
 	aBoolean ifTrue: [ visual beCollaborationHosted ].
 	visual
-		selectionChangedDo: [ :aDiagramElement | self diagramSelectionChanged: aDiagramElement ];
+		selectionChangedDo: [ :aDiagramElement | self processDiagramSelectionChanged: aDiagramElement ];
 		removeDiagramElementsDo: [ :someDiagramElements | self removeDiagramElements: someDiagramElements ];
 		diagramEditing: diagramEditing;
 		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
@@ -152,7 +152,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			diagramEditing: diagramEditing;
 			removeDiagramElementsDo: [ :someDiagramElements | self removeDiagramElements: someDiagramElements ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
-			selectionChangedDo: [ :aDiagramElement | self diagramSelectionChanged: aDiagramElement ];
+			selectionChangedDo: [ :aDiagramElement | self collaborationDiagramSelectionChanged: aDiagramElement ];
 			processMemento: self memento
 			processVisual: processDiagramElement;
 			yourself.
@@ -272,10 +272,36 @@ CPProcessPresentation >> stagedDefinitionalCollaboration [
 
 
 { #category : 'private - selection' }
-CPProcessPresentation >> diagramSelectionChanged: aDiagramElement [
+CPProcessPresentation >> processDiagramSelectionChanged: aDiagramElement [
+	| collaborationContext localParticipantShape |
+	collaborationContext := self collaborationContext.
+	collaborationContext ifNotNil: [
+		localParticipantShape := self localParticipantShapeIn: collaborationContext.
+		localParticipantShape ifNotNil: [
+			processDiagramElement diagramSelection remove: localParticipantShape ] ].
+	self diagramSelectionDidChange
+]
+
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> collaborationDiagramSelectionChanged: aDiagramElement [
+	| collaborationContext modelElement |
+	collaborationContext := self collaborationContext.
+	(collaborationContext notNil and: [ aDiagramElement notNil ]) ifTrue: [
+		modelElement := self stagedModelElementOfDiagramElement: aDiagramElement.
+		(modelElement notNil and: [
+			(collaborationContext participants identityIncludes: modelElement)
+				and: [ (collaborationContext processRefOf: modelElement) == self memento model ] ])
+			ifTrue: [
+				processDiagramElement diagramElementsInTree do: [ :each |
+					processDiagramElement diagramSelection remove: each ] ] ].
+	self diagramSelectionDidChange
+]
+
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> diagramSelectionDidChange [
 	| modelElement |
-	aDiagramElement ifNotNil: [
-		self normalizeSelectionFor: aDiagramElement ].
 	processDiagramElement ifNotNil: [ :aVisual |
 		aVisual updateSelectionAppearanceRecursively ].
 	collaborationDiagramElement ifNotNil: [ :aVisual |
@@ -285,7 +311,6 @@ CPProcessPresentation >> diagramSelectionChanged: aDiagramElement [
 			self stagedModelElementOfDiagramElement: aSoleDiagramElement ].
 	self selectModelElement: modelElement
 ]
-
 
 { #category : 'private - selection' }
 CPProcessPresentation >> selectModelElement: aModelElement [
@@ -302,26 +327,6 @@ CPProcessPresentation >> selectModelElement: aModelElement [
 		addChild: detailElement
 ]
 
-{ #category : 'private - selection' }
-CPProcessPresentation >> normalizeSelectionFor: aDiagramElement [
-	| collaborationContext modelElement localParticipantShape |
-	collaborationContext := self collaborationContext.
-	collaborationContext ifNil: [ ^ self ].
-	(collaborationContext elements identityIncludes: aDiagramElement)
-		ifTrue: [
-			modelElement := self stagedModelElementOfDiagramElement: aDiagramElement.
-			(modelElement notNil and: [
-				(collaborationContext participants identityIncludes: modelElement)
-					and: [ (collaborationContext processRefOf: modelElement) == self memento model ] ])
-				ifTrue: [
-					processDiagramElement diagramElementsInTree do: [ :each |
-						processDiagramElement diagramSelection remove: each ] ].
-			^ self ].
-
-	localParticipantShape := self localParticipantShapeIn: collaborationContext.
-	localParticipantShape ifNotNil: [
-		processDiagramElement diagramSelection remove: localParticipantShape ]
-]
 
 
 { #category : 'private - selection' }
