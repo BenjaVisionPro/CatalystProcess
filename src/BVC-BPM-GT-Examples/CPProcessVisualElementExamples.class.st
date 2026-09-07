@@ -1755,8 +1755,8 @@ CPProcessVisualElementExamples >> collaborationDiagramUsesExactBoundedCameraTrav
 
 	self assert: collaborationVisual cameraSlack equals: slack.
 	self assert: collaborationVisual canvasExtent equals: expectedExtent.
-	self assert: collaborationVisual diagramBounds equals: (100 @ 80 corner: 900 @ 300).
-	self assert: collaborationVisual diagramExtent equals: 800 @ 220.
+	self assert: collaborationVisual diagramBounds equals: (40 @ 40 corner: 660 @ 420).
+	self assert: collaborationVisual diagramExtent equals: 620 @ 380.
 	self assert: participantElement parent == collaborationVisual diagramPresentationParent.
 	^ collaborationVisual
 ]
