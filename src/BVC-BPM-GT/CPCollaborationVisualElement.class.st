@@ -12,6 +12,8 @@ Class {
 		'collaboration',
 		'collaborationMemento',
 		'diagramContext',
+		'planeGeometry',
+		'diagramViewport',
 		'participantsDescription',
 		'messageFlowsDescription',
 		'diagramEditing',
@@ -45,6 +47,9 @@ CPCollaborationVisualElement >> initialize [
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
 	viewportExtent := 1360 @ 800.
+	diagramViewport := CPDiagramViewport
+		viewportExtent: viewportExtent
+		diagramExtent: 0 @ 0.
 	diagramBounds := 0 @ 0 extent: 0 @ 0.
 	diagramExtent := 0 @ 0.
 	canvasExtent := 1360 @ 800.
@@ -128,10 +133,12 @@ CPCollaborationVisualElement >> refresh [
 			modelElement notNil and: [
 				stagedMessageFlows identityIncludes: modelElement ] ] ].
 
-	diagramBounds := self
-		diagramBoundsForShapes: participantShapes
-		edges: messageFlowEdges.
-	diagramExtent := diagramBounds extent.
+	planeGeometry := CPDiagramPlaneGeometry
+		shapes: participantShapes
+		edges: messageFlowEdges
+		context: diagramContext.
+	diagramBounds := planeGeometry diagramBounds.
+	diagramExtent := planeGeometry diagramExtent.
 	diagramLayer := BlElement new
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -682,31 +689,6 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 	^ diagramContext modelElementOf: aShape
 ]
 
-{ #category : 'private - layout' }
-CPCollaborationVisualElement >> diagramBoundsForShapes: someShapes edges: someEdges [
-	| minimumX minimumY maximumX maximumY hasContent |
-	hasContent := false.
-	someShapes do: [ :each |
-		| bounds |
-		bounds := self stagedBoundsOf: each.
-		bounds ifNotNil: [
-			hasContent := true.
-			minimumX := minimumX ifNil: [ bounds left ] ifNotNil: [ minimumX min: bounds left ].
-			minimumY := minimumY ifNil: [ bounds top ] ifNotNil: [ minimumY min: bounds top ].
-			maximumX := maximumX ifNil: [ bounds right ] ifNotNil: [ maximumX max: bounds right ].
-			maximumY := maximumY ifNil: [ bounds bottom ] ifNotNil: [ maximumY max: bounds bottom ] ] ].
-	someEdges do: [ :each |
-		(self stagedWaypointsOf: each) do: [ :aPoint |
-			hasContent := true.
-			minimumX := minimumX ifNil: [ aPoint x ] ifNotNil: [ minimumX min: aPoint x ].
-			minimumY := minimumY ifNil: [ aPoint y ] ifNotNil: [ minimumY min: aPoint y ].
-			maximumX := maximumX ifNil: [ aPoint x ] ifNotNil: [ maximumX max: aPoint x ].
-			maximumY := maximumY ifNil: [ aPoint y ] ifNotNil: [ maximumY max: aPoint y ] ] ].
-	hasContent ifFalse: [ ^ 0 @ 0 extent: 0 @ 0 ].
-	^ minimumX @ minimumY corner: maximumX @ maximumY
-]
-
-
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> selectionColor [
 	^ self theme item selectedColor
@@ -750,13 +732,11 @@ CPCollaborationVisualElement >> viewportExtent: anExtent [
 
 { #category : 'private - layout' }
 CPCollaborationVisualElement >> updateCanvasExtent [
-	cameraSlack := (viewportExtent - diagramExtent) max: 0 @ 0.
-	diagramExtent = (0 @ 0)
-		ifTrue: [
-			cameraSlack := 0 @ 0.
-			canvasExtent := viewportExtent ]
-		ifFalse: [
-			canvasExtent := diagramExtent + (cameraSlack * 2) ].
+	diagramViewport := CPDiagramViewport
+		viewportExtent: viewportExtent
+		diagramExtent: diagramExtent.
+	cameraSlack := diagramViewport cameraSlack.
+	canvasExtent := diagramViewport canvasExtent.
 	self constraintsDo: [ :c |
 		c horizontal exact: canvasExtent x.
 		c vertical exact: canvasExtent y ].
@@ -766,10 +746,11 @@ CPCollaborationVisualElement >> updateCanvasExtent [
 { #category : 'private - layout' }
 CPCollaborationVisualElement >> updateDiagramLayerGeometry [
 	diagramLayer ifNil: [ ^ self ].
+	planeGeometry ifNil: [ ^ self ].
 	diagramLayer
 		constraintsDo: [ :c | c ignoreByLayout ];
-		extent: (diagramBounds corner max: 1 @ 1);
-		relocate: cameraSlack - diagramBounds origin
+		extent: planeGeometry layerExtent;
+		relocate: cameraSlack + planeGeometry normalizationOffset
 ]
 
 { #category : 'accessing - presentation' }
