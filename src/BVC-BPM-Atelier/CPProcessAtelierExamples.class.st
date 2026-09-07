@@ -1866,7 +1866,7 @@ CPProcessAtelierExamples >> createBoundaryEventStagesAttachmentAndDiagramShape [
 	memento := CFMaMemento model: process.
 	diagramDescription := memento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
 	event := CPBoundaryEvent new eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection; yourself.
-	operation := CPAtelierCreateBoundaryEvent boundaryEvent: event attachedTo: task bounds: (79 @ 119 extent: 42 @ 42) flowContainer: process processMemento: memento diagramDescription: diagramDescription.
+	operation := CPAtelierCreateBoundaryEvent boundaryEvent: event attachedTo: task bounds: (84 @ 124 extent: 32 @ 32) flowContainer: process processMemento: memento diagramDescription: diagramDescription.
 	assessment := operation apply.
 	self assert: assessment isApplicable.
 	context := CPProcessFlowContainerContext rootFor: memento.
@@ -1874,6 +1874,7 @@ CPProcessAtelierExamples >> createBoundaryEventStagesAttachmentAndDiagramShape [
 	eventMemento := context childMementoFor: event.
 	attachedDescription := eventMemento magritteDescription detect: [ :each | each handlesSelector: #attachedToRef ].
 	self assert: (eventMemento readUsing: attachedDescription) == task.
+	self assert: assessment shape bounds center equals: 100 @ 140.
 	self assert: event attachedToRef isNil.
 	^ assessment
 ]

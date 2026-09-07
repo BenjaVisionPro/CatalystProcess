@@ -322,11 +322,6 @@ CPProcessVisualElement >> refresh [
 		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
-	"Boundary Event presentation depends on the attached Activity presentation.
-	Build host shapes first regardless of DI collection order."
-	shapes :=
-		(shapes reject: [ :each | (self stagedModelElementOf: each) isBoundaryEvent ]),
-		(shapes select: [ :each | (self stagedModelElementOf: each) isBoundaryEvent ]).
 	planeGeometry := CPDiagramPlaneGeometry
 		shapes: shapes
 		edges: edges
@@ -450,10 +445,6 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	bounds ifNil: [ ^ self ].
 	modelElement := self stagedModelElementOf: aShape.
 	modelElement ifNil: [ ^ self ].
-	modelElement isBoundaryEvent ifTrue: [
-		bounds := self
-			displayBoundsForBoundaryEvent: modelElement
-			stagedBounds: bounds ].
 	element := self newShapeElementFor: modelElement shape: aShape bounds: bounds.
 	element installBodyCursor.
 	element
@@ -1222,9 +1213,18 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
-	shapeElementsByShape valuesDo: [ :anElement |
-		anElement removeFromParent.
-		self addDiagramChild: anElement ].
+	"Boundary Events must be painted after their host Activities. Besides the
+	visible attachment overlap, BlBlurBelowEffect can only filter content that
+	has already been painted. IdentityDictionary iteration is intentionally not
+	a presentation-order contract, so establish the dependency explicitly."
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+		aModelElement isBoundaryEvent ifFalse: [
+			anElement removeFromParent.
+			self addDiagramChild: anElement ] ].
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+		aModelElement isBoundaryEvent ifTrue: [
+			anElement removeFromParent.
+			self addDiagramChild: anElement ] ].
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
 		aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
@@ -1499,9 +1499,7 @@ CPProcessVisualElement >> updateAttachedBoundaryEventGeometryForActivity: anActi
 		boundaryShape ifNotNil: [
 			boundaryElement := shapeElementsByShape at: boundaryShape ifAbsent: [ nil ].
 			boundaryElement ifNotNil: [
-				currentBoundaryBounds := self
-					displayBoundsForBoundaryEvent: aBoundaryEvent
-					stagedBounds: (self stagedBoundsOf: boundaryShape).
+				currentBoundaryBounds := self stagedBoundsOf: boundaryShape.
 				proposedBoundaryBounds := self
 					boundaryEventBounds: currentBoundaryBounds
 					fromActivityBounds: currentActivityBounds
@@ -1697,22 +1695,6 @@ CPProcessVisualElement >> stagedAttachedActivityOf: aBoundaryEvent [
 ]
 
 { #category : 'private - geometry' }
-CPProcessVisualElement >> displayBoundsForBoundaryEvent: aBoundaryEvent stagedBounds: stagedBounds [
-	| attachedActivity attachedActivityElement activityBounds center extent |
-	extent := self extentForModelElement: aBoundaryEvent.
-	center := stagedBounds center.
-	attachedActivity := self stagedAttachedActivityOf: aBoundaryEvent.
-	attachedActivity ifNil: [ ^ (center - (extent / 2)) extent: extent ].
-	attachedActivityElement := shapeElementsByModelElement
-		at: attachedActivity
-		ifAbsent: [ nil ].
-	attachedActivityElement ifNil: [ ^ (center - (extent / 2)) extent: extent ].
-	activityBounds := self stagedBoundsOf: attachedActivityElement diagramShape.
-	center := self nearestPointOnBoundaryOf: activityBounds to: center.
-	^ (center - (extent / 2)) extent: extent
-]
-
-{ #category : 'private - geometry' }
 CPProcessVisualElement >> boundaryEventBounds: eventBounds constrainedToActivityBounds: activityBounds nearCenter: aPoint [
 	| center |
 	center := self nearestPointOnBoundaryOf: activityBounds to: aPoint.
@@ -1728,15 +1710,11 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 	attachedActivity ifNil: [ ^ self ].
 	attachedActivityShape := self diagramShapeForModelElement: attachedActivity.
 	attachedActivityShape ifNil: [ ^ self ].
-	snappedBounds := self
-		displayBoundsForBoundaryEvent: boundaryEvent
-		stagedBounds: (self stagedBoundsOf: aShape).
+	snappedBounds := self stagedBoundsOf: aShape.
 	candidateActivityShape := attachedActivityShape.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
-		stagedBounds: [ self
-			displayBoundsForBoundaryEvent: boundaryEvent
-			stagedBounds: (self stagedBoundsOf: aShape) ]
+		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
 			dragStartBounds := originalBounds.
 			dragStartLabelPosition := aShapeElement externalLabelHost
@@ -2555,7 +2533,7 @@ CPProcessVisualElement >> createBoundaryEventPaletteItem: aBoundaryEvent atRootD
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
-		self refreshEditor.
+		self refresh.
 		(rootVisual diagramElementForModelElementInTree: aBoundaryEvent) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
