@@ -358,7 +358,7 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 
 { #category : 'connection' }
 CPCollaborationVisualElement >> endConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
-	| target assessment |
+	| target sourceShape targetShape operation assessment |
 	target := self
 		connectionTargetAtGlobalPoint: anEvent position
 		from: aSource
@@ -369,21 +369,25 @@ CPCollaborationVisualElement >> endConnectionDragFrom: aSource sourceVisual: aSo
 		^ aSourceVisual
 			connectSequenceFlowFrom: aSource
 			to: target modelElement ].
-	diagramEditing connectMessageFlowOperation ifNil: [ ^ nil ].
-	assessment := (diagramEditing connectMessageFlowOperation
-		value: aSource
-		value: target modelElement
-		value: (self
+	sourceShape := aSourceVisual diagramShapeForModelElement: aSource.
+	targetShape := self participantShapeFor: target modelElement.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ nil ].
+	operation := diagramEditing
+		connectFrom: sourceShape
+		to: targetShape
+		waypoints: (self
 			messageFlowWaypointsFrom: aSource
 			inVisual: aSourceVisual
-			toParticipant: target modelElement)) apply.
+			toParticipant: target modelElement).
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifTrue: [ self refresh ].
 	^ assessment
 ]
 
 { #category : 'connection' }
 CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from: aSource sourceVisual: aSourceVisual [
-	| sequenceTarget participantTarget |
+	| sequenceTarget participantTarget sourceShape targetShape operation assessment |
 	sequenceTarget := aSourceVisual
 		sequenceFlowTargetAtGlobalPoint: aGlobalPoint
 		from: aSource.
@@ -392,12 +396,21 @@ CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from
 		participantAtCollaborationPoint: (self diagramPointForGlobalPoint: aGlobalPoint)
 		excludingEndpoint: aSource.
 	participantTarget ifNil: [ ^ nil ].
-	^ (CPMessageFlowConnectionRules new
-		assessConnectionFrom: aSource
-		to: participantTarget
-		participants: self stagedParticipants) isAllowed
-			ifTrue: [ CPCollaborationConnectionTarget messageFlowTo: participantTarget ]
-			ifFalse: [ nil ]
+	sourceShape := aSourceVisual diagramShapeForModelElement: aSource.
+	targetShape := self participantShapeFor: participantTarget.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ nil ].
+	operation := diagramEditing
+		connectFrom: sourceShape
+		to: targetShape
+		waypoints: (self
+			messageFlowWaypointsFrom: aSource
+			inVisual: aSourceVisual
+			toParticipant: participantTarget).
+	operation ifNil: [ ^ nil ].
+	assessment := operation assess.
+	^ assessment isApplicable
+		ifTrue: [ CPCollaborationConnectionTarget messageFlowTo: participantTarget ]
+		ifFalse: [ nil ]
 ]
 
 { #category : 'connection' }

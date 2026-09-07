@@ -39,12 +39,7 @@ CPReadOnlyProcessDiagramEditing >> replaceFlowNodeOperation [
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> connectFlowNodesOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> connectMessageFlowOperation [
+CPReadOnlyProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
 	^ nil
 ]
 

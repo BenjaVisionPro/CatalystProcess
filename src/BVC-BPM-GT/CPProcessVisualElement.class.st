@@ -2400,7 +2400,7 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 { #category : 'private - connection' }
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 	| previewLine previewCursor |
-	diagramEditing connectFlowNodesOperation ifNil: [ ^ self ].
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	(aFlowNode isEndEvent and: [ collaborationVisual isNil ]) ifTrue: [ ^ self ].
 	aNodeElement
 		installConnectionPortSelectionColor: self selectionColor
@@ -2483,16 +2483,18 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 ]
 { #category : 'private - connection' }
 CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
-	| sourceContainer targetContainer assessment |
-	diagramEditing connectFlowNodesOperation ifNil: [ ^ false ].
+	| sourceShape targetShape operation assessment |
+	diagramEditing allowsEditing ifFalse: [ ^ false ].
 	aSource == aTarget ifTrue: [ ^ false ].
-	sourceContainer := self stagedFlowContainerContaining: aSource.
-	targetContainer := self stagedFlowContainerContaining: aTarget.
-	(sourceContainer isNil or: [ sourceContainer ~~ targetContainer ]) ifTrue: [ ^ false ].
-	assessment := (diagramEditing connectFlowNodesOperation
-		value: aSource
-		value: aTarget
-		value: sourceContainer) assess.
+	sourceShape := self diagramShapeForModelElement: aSource.
+	targetShape := self diagramShapeForModelElement: aTarget.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ false ].
+	operation := diagramEditing
+		connectFrom: sourceShape
+		to: targetShape
+		waypoints: nil.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
 	^ assessment isApplicable
 ]
 
@@ -2566,15 +2568,17 @@ CPProcessVisualElement >> preferredConnectionTargetFrom: candidates [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> connectFrom: aSource to: aTarget [
-	| sourceContainer targetContainer assessment |
-	diagramEditing connectFlowNodesOperation ifNil: [ ^ nil ].
-	sourceContainer := self stagedFlowContainerContaining: aSource.
-	targetContainer := self stagedFlowContainerContaining: aTarget.
-	(sourceContainer isNil or: [ sourceContainer ~~ targetContainer ]) ifTrue: [ ^ nil ].
-	assessment := (diagramEditing connectFlowNodesOperation
-		value: aSource
-		value: aTarget
-		value: sourceContainer) apply.
+	| sourceShape targetShape operation assessment |
+	diagramEditing allowsEditing ifFalse: [ ^ nil ].
+	sourceShape := self diagramShapeForModelElement: aSource.
+	targetShape := self diagramShapeForModelElement: aTarget.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ nil ].
+	operation := diagramEditing
+		connectFrom: sourceShape
+		to: targetShape
+		waypoints: nil.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
 		ifFalse: [ self updateSelectionAppearance ].

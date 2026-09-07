@@ -41,12 +41,7 @@ CPProcessDiagramEditing >> replaceFlowNodeOperation [
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> connectFlowNodesOperation [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
-CPProcessDiagramEditing >> connectMessageFlowOperation [
+CPProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
 	^ self subclassResponsibility
 ]
 

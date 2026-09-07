@@ -148,15 +148,51 @@ CPProcessAtelierDiagramEditing >> replaceFlowNodeOperation [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> connectFlowNodesOperation [
-	^ [ :aSource :aTarget :aFlowContainer |
-		CPAtelierConnectFlowNodes source: aSource target: aTarget flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
+	| source target sourceContainer targetContainer |
+	source := self modelElementOfShape: aSourceShape.
+	target := self modelElementOfShape: aTargetShape.
+	(source isNil or: [ target isNil ]) ifTrue: [ ^ nil ].
+	sourceContainer := self flowContainerContaining: source.
+	targetContainer := self flowContainerContaining: target.
+	(sourceContainer notNil and: [ sourceContainer == targetContainer ]) ifTrue: [
+		^ CPAtelierConnectFlowNodes
+			source: source
+			target: target
+			flowContainer: sourceContainer
+			processMemento: processMemento
+			diagramDescription: diagramDescription ].
+	^ CPAtelierConnectMessageFlow
+		source: source
+		target: target
+		waypoints: someWaypoints
+		processMemento: processMemento
 ]
 
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> connectMessageFlowOperation [
-	^ [ :aSource :aTarget :someWaypoints |
-		CPAtelierConnectMessageFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: processMemento ]
+{ #category : 'private - staged state' }
+CPProcessAtelierDiagramEditing >> flowContainerContaining: aModelElement [
+	| context |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aModelElement
+		inRootMemento: processMemento.
+	^ context ifNotNil: [ context container ]
+]
+
+{ #category : 'private - staged state' }
+CPProcessAtelierDiagramEditing >> modelElementOfShape: aShape [
+	| collaborationContext collaborationDiagramContext processDiagramContext |
+	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	(collaborationContext notNil
+		and: [ collaborationContext elements identityIncludes: aShape ]) ifTrue: [
+		collaborationDiagramContext := CPDiagramMementoContext
+			diagram: collaborationContext diagram
+			memento: collaborationContext diagramMemento
+			elementsDescription: collaborationContext elementsDescription.
+		^ collaborationDiagramContext modelElementOf: aShape ].
+	processDiagramContext := self processDiagramContext.
+	(processDiagramContext elements identityIncludes: aShape) ifTrue: [
+		^ processDiagramContext modelElementOf: aShape ].
+	^ nil
 ]
 
 { #category : 'operation factories' }
