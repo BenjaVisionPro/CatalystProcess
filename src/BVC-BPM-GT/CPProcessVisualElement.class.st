@@ -1397,10 +1397,71 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds | self resizeShape: aShape toBounds: proposedBounds ]
-		geometryChanged: [
+		geometryChanged: [ :proposedBounds |
+			self
+				updateAttachedBoundaryEventGeometryForActivity: aModelElement
+				proposedBounds: proposedBounds.
 			self updateIncidentEdgeLabelsFor: aModelElement.
 			self updateIncidentReconnectHandlesFor: aModelElement ].
 	handles do: [ :aHandle | aShapeElement addChild: aHandle ]
+]
+
+{ #category : 'private - resizing' }
+CPProcessVisualElement >> updateAttachedBoundaryEventGeometryForActivity: anActivity proposedBounds: proposedActivityBounds [
+	| flowContext currentActivityBounds |
+	flowContext := CPProcessFlowContainerContext
+		containingFlowElement: anActivity
+		inRootMemento: processMemento.
+	flowContext ifNil: [ ^ self ].
+	currentActivityBounds := self stagedBoundsOf: (self diagramShapeForModelElement: anActivity).
+	(flowContext attachedBoundaryEventsFor: anActivity) do: [ :aBoundaryEvent |
+		| boundaryShape boundaryElement currentBoundaryBounds proposedBoundaryBounds |
+		boundaryShape := self diagramShapeForModelElement: aBoundaryEvent.
+		boundaryShape ifNotNil: [
+			boundaryElement := shapeElementsByShape at: boundaryShape ifAbsent: [ nil ].
+			boundaryElement ifNotNil: [
+				currentBoundaryBounds := self stagedBoundsOf: boundaryShape.
+				proposedBoundaryBounds := self
+					boundaryEventBounds: currentBoundaryBounds
+					fromActivityBounds: currentActivityBounds
+					toActivityBounds: proposedActivityBounds.
+				boundaryElement externalLabelHost ifNotNil: [ :aLabel |
+					aLabel relocate: aLabel position + (proposedBoundaryBounds origin - boundaryElement position) ].
+				boundaryElement relocate: proposedBoundaryBounds origin.
+				self updateIncidentEdgeLabelsFor: aBoundaryEvent.
+				self updateIncidentReconnectHandlesFor: aBoundaryEvent ] ] ]
+]
+
+{ #category : 'private - geometry' }
+CPProcessVisualElement >> boundaryEventBounds: eventBounds fromActivityBounds: currentActivityBounds toActivityBounds: proposedActivityBounds [
+	| center leftDistance rightDistance topDistance bottomDistance minimum verticalSide ratio proposedCenter |
+	center := eventBounds center.
+	leftDistance := (center x - currentActivityBounds left) abs.
+	rightDistance := (center x - currentActivityBounds right) abs.
+	topDistance := (center y - currentActivityBounds top) abs.
+	bottomDistance := (center y - currentActivityBounds bottom) abs.
+	minimum := { leftDistance. rightDistance. topDistance. bottomDistance } min.
+	verticalSide := leftDistance = minimum or: [ rightDistance = minimum ].
+	verticalSide
+		ifTrue: [
+			ratio := currentActivityBounds height isZero
+				ifTrue: [ 0.5 ]
+				ifFalse: [ (center y - currentActivityBounds top) / currentActivityBounds height ].
+			ratio := (ratio max: 0) min: 1.
+			proposedCenter := ((leftDistance = minimum)
+				ifTrue: [ proposedActivityBounds left ]
+				ifFalse: [ proposedActivityBounds right ])
+				@ (proposedActivityBounds top + (proposedActivityBounds height * ratio)) ]
+		ifFalse: [
+			ratio := currentActivityBounds width isZero
+				ifTrue: [ 0.5 ]
+				ifFalse: [ (center x - currentActivityBounds left) / currentActivityBounds width ].
+			ratio := (ratio max: 0) min: 1.
+			proposedCenter := (proposedActivityBounds left + (proposedActivityBounds width * ratio))
+				@ ((topDistance = minimum)
+					ifTrue: [ proposedActivityBounds top ]
+					ifFalse: [ proposedActivityBounds bottom ]) ].
+	^ (proposedCenter - (eventBounds extent / 2)) extent: eventBounds extent
 ]
 
 { #category : 'private - layout' }

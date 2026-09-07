@@ -386,7 +386,7 @@ CPProcessShapeElement >> newResizeHandleCursor: aCursor constraints: aConstraint
 						value: originalBounds
 						value: anEvent position - dragStartEventPosition.
 					self relocate: proposedBounds origin; extent: proposedBounds extent.
-					aGeometryChangedBlock ifNotNil: [ aGeometryChangedBlock value ].
+					aGeometryChangedBlock ifNotNil: [ aGeometryChangedBlock value: proposedBounds ].
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDragEndEvent

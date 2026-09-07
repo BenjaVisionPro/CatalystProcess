@@ -2056,3 +2056,21 @@ CPProcessVisualElementExamples >> boundaryEventBoundsStayCenteredOnActivityBorde
 	self assert: constrained center equals: 240 @ 140.
 	^ constrained
 ]
+
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventResizeGeometryPreservesHostSideAndRelativePosition [
+	<gtExample>
+	| visual eventBounds currentActivityBounds proposedActivityBounds resized |
+	visual := CPProcessVisualElement new.
+	eventBounds := 79 @ 119 extent: 42 @ 42.
+	currentActivityBounds := 100 @ 100 extent: 140 @ 80.
+	proposedActivityBounds := 120 @ 90 extent: 200 @ 120.
+	resized := visual
+		boundaryEventBounds: eventBounds
+		fromActivityBounds: currentActivityBounds
+		toActivityBounds: proposedActivityBounds.
+
+	self assert: resized extent equals: 42 @ 42.
+	self assert: resized center equals: 120 @ 150.
+	^ resized
+]

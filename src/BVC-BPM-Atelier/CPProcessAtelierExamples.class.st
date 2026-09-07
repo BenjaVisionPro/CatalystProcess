@@ -1957,6 +1957,32 @@ CPProcessAtelierExamples >> movingActivityCarriesAttachedBoundaryEventAndItsEdge
 ]
 
 { #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> resizingActivityPreservesAttachedBoundaryEventSideAndRelativePosition [
+	<gtExample>
+	| fixture memento diagramDescription operation assessment |
+	fixture := self boundaryEventFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierResizeShape
+		shape: (fixture at: 8)
+		bounds: (120 @ 90 extent: 200 @ 120)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (self stagedBoundsOf: (fixture at: 8) processMemento: memento)
+		equals: (120 @ 90 extent: 200 @ 120).
+	self assert: (self stagedBoundsOf: (fixture at: 9) processMemento: memento)
+		equals: (99 @ 129 extent: 42 @ 42).
+	self assert: (self stagedWaypointsOf: (fixture at: 11) processMemento: memento)
+		equals: ({ 120 @ 150. 350 @ 140 } asOrderedCollection).
+	self assert: (fixture at: 9) bounds equals: (79 @ 119 extent: 42 @ 42).
+	^ assessment
+]
+
+{ #category : 'examples - boundary events' }
 CPProcessAtelierExamples >> removingActivityOwnsAttachedBoundaryEventAndIncidentSequenceFlow [
 	<gtExample>
 	| fixture memento diagramDescription operation assessment context diagramContext |
