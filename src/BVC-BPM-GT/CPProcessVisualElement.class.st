@@ -15,6 +15,7 @@ Class {
 		'diagramDescription',
 		'diagramContext',
 		'planeGeometry',
+		'diagramViewport',
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'edgeVisualsByEdge',
@@ -56,6 +57,9 @@ CPProcessVisualElement >> initialize [
 	collaborationHosted := false.
 	collaborationVisual := nil.
 	viewportExtent := 1280 @ 700.
+	diagramViewport := CPDiagramViewport
+		viewportExtent: viewportExtent
+		diagramExtent: 0 @ 0.
 	diagramBounds := 0 @ 0 extent: 0 @ 0.
 	diagramExtent := 0 @ 0.
 	canvasExtent := 1280 @ 700.
@@ -152,13 +156,11 @@ CPProcessVisualElement >> viewportExtent: anExtent [
 CPProcessVisualElement >> updateCanvasExtent [
 	(parentProcessVisual isNil and: [ collaborationHosted not ])
 		ifTrue: [
-			cameraSlack := (viewportExtent - diagramExtent) max: 0 @ 0.
-			diagramExtent = (0 @ 0)
-				ifTrue: [
-					cameraSlack := 0 @ 0.
-					canvasExtent := viewportExtent ]
-				ifFalse: [
-					canvasExtent := diagramExtent + (cameraSlack * 2) ].
+			diagramViewport := CPDiagramViewport
+				viewportExtent: viewportExtent
+				diagramExtent: diagramExtent.
+			cameraSlack := diagramViewport cameraSlack.
+			canvasExtent := diagramViewport canvasExtent.
 			self constraintsDo: [ :c |
 				c horizontal exact: canvasExtent x.
 				c vertical exact: canvasExtent y ].

@@ -1680,6 +1680,31 @@ CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
 
 
 { #category : 'examples - scrolling' }
+CPProcessVisualElementExamples >> diagramViewportComputesExactBoundedTravel [
+	<gtExample>
+	| fitting oversized empty |
+	fitting := CPDiagramViewport
+		viewportExtent: 1000 @ 600
+		diagramExtent: 400 @ 200.
+	self assert: fitting cameraSlack equals: 600 @ 400.
+	self assert: fitting canvasExtent equals: 1600 @ 1000.
+
+	oversized := CPDiagramViewport
+		viewportExtent: 1000 @ 600
+		diagramExtent: 1400 @ 300.
+	self assert: oversized cameraSlack equals: 0 @ 300.
+	self assert: oversized canvasExtent equals: 1400 @ 900.
+
+	empty := CPDiagramViewport
+		viewportExtent: 1000 @ 600
+		diagramExtent: 0 @ 0.
+	self assert: empty cameraSlack equals: 0 @ 0.
+	self assert: empty canvasExtent equals: 1000 @ 600.
+	^ fitting
+]
+
+
+{ #category : 'examples - scrolling' }
 CPProcessVisualElementExamples >> processDiagramUsesExactBoundedCameraTravel [
 	<gtExample>
 	| fixture visual shape originalBounds viewport slack expectedExtent |
