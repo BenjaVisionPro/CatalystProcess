@@ -2113,28 +2113,31 @@ CPProcessVisualElement >> addPaletteDropSurface [
 ]
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
-	| sourceElement candidate proposedBounds assessment |
+	| sourceElement candidate proposedBounds operation assessment |
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 
 	candidate isParticipant ifTrue: [
-		diagramEditing createParticipantOperation ifNil: [ ^ false ].
 		parentProcessVisual ifNotNil: [ ^ false ].
 		collaborationVisual ifNotNil: [ ^ false ].
 		proposedBounds := self firstParticipantBoundsCenteredAt: 0 @ 0.
-		assessment := (diagramEditing createParticipantOperation
-			value: candidate
-			value: proposedBounds) assess.
+		operation := diagramEditing
+			create: candidate
+			bounds: proposedBounds
+			flowContainer: nil.
+		operation ifNil: [ ^ false ].
+		assessment := operation assess.
 		^ assessment isApplicable ].
 
-	diagramEditing createFlowNodeOperation ifNil: [ ^ false ].
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
-	assessment := (diagramEditing createFlowNodeOperation
-		value: candidate
-		value: proposedBounds
-		value: flowContainer) assess.
+	operation := diagramEditing
+		create: candidate
+		bounds: proposedBounds
+		flowContainer: flowContainer.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
 	^ assessment isApplicable
 ]
 { #category : 'private - creation' }
@@ -2155,7 +2158,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
-	| candidate elementExtent bounds assessment |
+	| candidate elementExtent bounds operation assessment |
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
@@ -2165,10 +2168,12 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		boundsCenteredAtRootDiagramPoint: aRootPoint
 		extent: elementExtent.
 	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
-	assessment := (diagramEditing createFlowNodeOperation
-		value: candidate
-		value: bounds
-		value: flowContainer) apply.
+	operation := diagramEditing
+		create: candidate
+		bounds: bounds
+		flowContainer: flowContainer.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifTrue: [
 		selectedModelElements removeAll.
 		selectedModelElements add: candidate.
@@ -2177,20 +2182,20 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
 	^ assessment
 ]
-
 { #category : 'private - creation' }
 CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagramPoint: aRootPoint [
-	| bounds assessment |
-	diagramEditing createParticipantOperation ifNil: [ ^ nil ].
+	| bounds operation assessment |
 	bounds := self firstParticipantBoundsCenteredAt: aRootPoint.
-	assessment := (diagramEditing createParticipantOperation
-		value: aParticipant
-		value: bounds) apply.
+	operation := diagramEditing
+		create: aParticipant
+		bounds: bounds
+		flowContainer: nil.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifTrue: [
 		collaborationChangedBlock ifNotNil: [ :aBlock | aBlock value ] ].
 	^ assessment
 ]
-
 { #category : 'private - creation' }
 CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
 	| inset horizontalMargin extent origin |

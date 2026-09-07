@@ -26,9 +26,18 @@ CPProcessAtelierDiagramEditing >> processMemento: aMemento [ processMemento := a
 CPProcessAtelierDiagramEditing >> diagramDescription: aDescription [ diagramDescription := aDescription ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> createParticipantOperation [
-	^ [ :aParticipant :proposedBounds |
-		CPAtelierCreateParticipant participant: aParticipant bounds: proposedBounds processMemento: processMemento ]
+CPProcessAtelierDiagramEditing >> create: aModelElement bounds: proposedBounds flowContainer: aFlowContainer [
+	aModelElement isParticipant ifTrue: [
+		^ CPAtelierCreateParticipant
+			participant: aModelElement
+			bounds: proposedBounds
+			processMemento: processMemento ].
+	^ CPAtelierCreateFlowNode
+		flowNode: aModelElement
+		bounds: proposedBounds
+		flowContainer: aFlowContainer
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 
@@ -130,12 +139,6 @@ CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 		bounds: proposedBounds
 		processMemento: processMemento
 		diagramDescription: diagramDescription
-]
-
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> createFlowNodeOperation [
-	^ [ :aFlowNode :proposedBounds :aFlowContainer |
-		CPAtelierCreateFlowNode flowNode: aFlowNode bounds: proposedBounds flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
 ]
 
 { #category : 'operation factories' }

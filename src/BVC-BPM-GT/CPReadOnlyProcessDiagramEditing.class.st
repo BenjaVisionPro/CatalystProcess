@@ -8,7 +8,7 @@ Class {
 }
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> createParticipantOperation [
+CPReadOnlyProcessDiagramEditing >> create: aModelElement bounds: proposedBounds flowContainer: aFlowContainer [
 	^ nil
 ]
 
@@ -30,11 +30,6 @@ CPReadOnlyProcessDiagramEditing >> removeParticipantOperation [
 
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> createFlowNodeOperation [
 	^ nil
 ]
 

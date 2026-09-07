@@ -530,22 +530,23 @@ CPCollaborationVisualElement >> installPaletteDropHandler [
 
 { #category : 'private - creation' }
 CPCollaborationVisualElement >> acceptsParticipantPaletteDragItem: aDragItem [
-	| sourceElement candidate assessment |
-	diagramEditing createParticipantOperation ifNil: [ ^ false ].
+	| sourceElement candidate operation assessment |
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifFalse: [ ^ false ].
-	assessment := (diagramEditing createParticipantOperation
-		value: candidate
-		value: (0 @ 0 extent: self defaultBlackBoxParticipantExtent)) assess.
+	operation := diagramEditing
+		create: candidate
+		bounds: (0 @ 0 extent: self defaultBlackBoxParticipantExtent)
+		flowContainer: nil.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
 	^ assessment isApplicable
 ]
-
 { #category : 'private - creation' }
 CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
-	| dragItem participant dropPoint bounds assessment |
+	| dragItem participant dropPoint bounds operation assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	participant := dragItem domainObject.
@@ -554,9 +555,12 @@ CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
 		(anEvent currentTarget localPointToGlobal: anEvent position).
 	bounds := (dropPoint - (self defaultBlackBoxParticipantExtent / 2))
 		extent: self defaultBlackBoxParticipantExtent.
-	assessment := (diagramEditing createParticipantOperation
-		value: participant
-		value: bounds) apply.
+	operation := diagramEditing
+		create: participant
+		bounds: bounds
+		flowContainer: nil.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifTrue: [ self refresh ].
 	^ assessment
 ]

@@ -10,7 +10,7 @@ Class {
 }
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> createParticipantOperation [
+CPProcessDiagramEditing >> create: aModelElement bounds: proposedBounds flowContainer: aFlowContainer [
 	^ self subclassResponsibility
 ]
 
@@ -32,11 +32,6 @@ CPProcessDiagramEditing >> removeParticipantOperation [
 
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
-	^ self subclassResponsibility
-]
-
-{ #category : 'operation factories' }
-CPProcessDiagramEditing >> createFlowNodeOperation [
 	^ self subclassResponsibility
 ]
 
