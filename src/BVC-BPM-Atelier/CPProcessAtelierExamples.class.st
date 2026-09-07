@@ -1987,7 +1987,7 @@ CPProcessAtelierExamples >> removingActivityOwnsAttachedBoundaryEventAndIncident
 	self assert: (diagramContext elements identityIncludes: fixture eighth) not.
 	self assert: (diagramContext elements identityIncludes: fixture ninth) not.
 	self assert: (diagramContext elements identityIncludes: (fixture at: 11)) not.
-	self assert: (diagramContext elements identityIncludes: fixture tenth).
+	self assert: (diagramContext elements identityIncludes: (fixture at: 10)).
 	^ assessment
 ]
 
