@@ -29,7 +29,7 @@ CPReadOnlyProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds 
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer [
+CPReadOnlyProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: proposedBounds [
 	^ nil
 ]
 
@@ -39,7 +39,7 @@ CPReadOnlyProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape wa
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> insertFlowNode: aFlowNode intoSequenceFlow: aSequenceFlow bounds: proposedBounds flowContainer: aFlowContainer [
+CPReadOnlyProcessDiagramEditing >> insertFlowNode: aFlowNode intoEdge: anEdge bounds: proposedBounds [
 	^ nil
 ]
 
@@ -49,7 +49,7 @@ CPReadOnlyProcessDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer [
+CPReadOnlyProcessDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape [
 	^ nil
 ]
 

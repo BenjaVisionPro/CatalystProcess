@@ -599,16 +599,17 @@ CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape
 
 { #category : 'private - type selection' }
 CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass shape: aShape [
-	| replacement proposedBounds assessment |
+	| replacement proposedBounds operation assessment |
 	diagramEditing allowsEditing ifFalse: [ ^ nil ].
 	replacement := aFlowNodeClass new.
 	proposedBounds := self stagedBoundsOf: aShape.
 
-	assessment := (diagramEditing
-		replaceFlowNode: aFlowNode
+	operation := diagramEditing
+		replaceShape: aShape
 		with: replacement
-		bounds: proposedBounds
-		flowContainer: (self stagedFlowContainerContaining: aFlowNode)) apply.
+		bounds: proposedBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 
 	assessment isApplicable ifTrue: [
 		diagramSelection selectOnly: aShape.
@@ -1508,15 +1509,15 @@ CPProcessVisualElement >> distanceFrom: aPoint toRenderedEdge: anEdge [
 
 { #category : 'private - insertion' }
 CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEdge: anEdge atBounds: proposedBounds [
-	| assessment constrainedBounds flowContainer |
+	| operation assessment constrainedBounds |
 	diagramEditing allowsEditing ifFalse: [ ^ nil ].
-	flowContainer := self stagedFlowContainerContaining: anEdge modelElement.
 	constrainedBounds := self constrainedBounds: proposedBounds forFlowContainer: flowContainer.
-	assessment := (diagramEditing
+	operation := diagramEditing
 		insertFlowNode: aFlowNode
-		intoSequenceFlow: anEdge modelElement
-		bounds: constrainedBounds
-		flowContainer: flowContainer) apply.
+		intoEdge: anEdge
+		bounds: constrainedBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable
 		ifTrue: [
 			diagramSelection selectOnly: aShape.
@@ -1920,7 +1921,7 @@ CPProcessVisualElement >> installPaletteInsertionOn: anEdgeElement for: anEdge [
 
 { #category : 'private - insertion' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdge [
-	| sourceElement candidate proposedBounds assessment |
+	| sourceElement candidate proposedBounds operation assessment |
 	diagramEditing allowsEditing ifFalse: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
@@ -1928,17 +1929,18 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdg
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [ ^ false ].
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
-	assessment := (diagramEditing
+	operation := diagramEditing
 		insertFlowNode: candidate
-		intoSequenceFlow: anEdge modelElement
-		bounds: proposedBounds
-		flowContainer: (self stagedFlowContainerContaining: anEdge modelElement)) assess.
+		intoEdge: anEdge
+		bounds: proposedBounds.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
 	^ assessment isApplicable
 ]
 
 { #category : 'private - insertion' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
-	| dragItem candidate elementExtent dropPoint origin bounds assessment |
+	| dragItem candidate elementExtent dropPoint origin bounds operation assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	candidate := dragItem domainObject.
@@ -1951,12 +1953,13 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 	bounds := origin extent: elementExtent.
 	bounds := self
 		constrainedBounds: bounds
-		forFlowContainer: (self stagedFlowContainerContaining: anEdge modelElement).
-	assessment := (diagramEditing
+		forFlowContainer: flowContainer.
+	operation := diagramEditing
 		insertFlowNode: candidate
-		intoSequenceFlow: anEdge modelElement
-		bounds: bounds
-		flowContainer: (self stagedFlowContainerContaining: anEdge modelElement)) apply.
+		intoEdge: anEdge
+		bounds: bounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifTrue: [
 		self refresh.
 		(self diagramShapeForModelElement: candidate) ifNotNil: [ :aShape |
@@ -2297,7 +2300,7 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 
 { #category : 'private - replacement' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape [
-	| sourceElement candidate proposedBounds assessment |
+	| sourceElement candidate proposedBounds operation assessment |
 	diagramEditing allowsEditing ifFalse: [ ^ false ].
 	aFlowNode == self selectedModelElement ifFalse: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
@@ -2307,26 +2310,28 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 	candidate isParticipant ifTrue: [ ^ false ].
 	candidate class = aFlowNode class ifTrue: [ ^ false ].
 	proposedBounds := self replacementBoundsFor: candidate shape: aShape.
-	assessment := (diagramEditing
-		replaceFlowNode: aFlowNode
+	operation := diagramEditing
+		replaceShape: aShape
 		with: candidate
-		bounds: proposedBounds
-		flowContainer: (self stagedFlowContainerContaining: aFlowNode)) assess.
+		bounds: proposedBounds.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
 	^ assessment isApplicable
 ]
 
 { #category : 'private - replacement' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape [
-	| dragItem candidate proposedBounds assessment |
+	| dragItem candidate proposedBounds operation assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	candidate := dragItem domainObject.
 	proposedBounds := self replacementBoundsFor: candidate shape: aShape.
-	assessment := (diagramEditing
-		replaceFlowNode: aFlowNode
+	operation := diagramEditing
+		replaceShape: aShape
 		with: candidate
-		bounds: proposedBounds
-		flowContainer: (self stagedFlowContainerContaining: aFlowNode)) apply.
+		bounds: proposedBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable ifTrue: [
 		diagramSelection selectOnly: aShape.
 		self refresh.
@@ -2991,24 +2996,19 @@ CPProcessVisualElement >> edgeForSequenceFlow: aSequenceFlow ifFound: aFoundBloc
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> validReconnectTargetAtGlobalPoint: aPoint for: aSequenceFlow movingSource: movesSource [
-	| candidate source target assessment |
+	| candidate operation assessment |
 	candidate := self
 		connectionTargetAtGlobalPoint: aPoint
 		excluding: nil.
 	candidate ifNil: [ ^ nil ].
 	diagramEditing allowsEditing ifFalse: [ ^ nil ].
 
-	source := self stagedSourceOf: aSequenceFlow.
-	target := self stagedTargetOf: aSequenceFlow.
-	movesSource
-		ifTrue: [ source := candidate ]
-		ifFalse: [ target := candidate ].
-
-	assessment := (diagramEditing
-		reconnectSequenceFlow: aSequenceFlow
-		source: source
-		target: target
-		flowContainer: (self stagedFlowContainerContaining: aSequenceFlow)) assess.
+	operation := self
+		reconnectOperationFor: aSequenceFlow
+		movingSource: movesSource
+		candidate: candidate.
+	operation ifNil: [ ^ nil ].
+	assessment := operation assess.
 	^ assessment isApplicable
 		ifTrue: [ candidate ]
 		ifFalse: [ nil ]
@@ -3231,14 +3231,44 @@ CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement towar
 
 
 { #category : 'private - reconnecting' }
+CPProcessVisualElement >> reconnectOperationFor: aSequenceFlow movingSource: movesSource candidate: aCandidate [
+	| edge source target sourceShape targetShape |
+	edge := self
+		edgeForSequenceFlow: aSequenceFlow
+		ifFound: [ :anEdge | anEdge ]
+		ifNone: [ ^ nil ].
+	source := self stagedSourceOf: aSequenceFlow.
+	target := self stagedTargetOf: aSequenceFlow.
+	movesSource
+		ifTrue: [ source := aCandidate ]
+		ifFalse: [ target := aCandidate ].
+	sourceShape := self diagramShapeForModelElement: source.
+	targetShape := self diagramShapeForModelElement: target.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ nil ].
+	^ diagramEditing
+		reconnectEdge: edge
+		sourceShape: sourceShape
+		targetShape: targetShape
+]
+
+
+{ #category : 'private - reconnecting' }
 CPProcessVisualElement >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget [
-	| assessment |
+	| edge sourceShape targetShape operation assessment |
 	diagramEditing allowsEditing ifFalse: [ ^ nil ].
-	assessment := (diagramEditing
-		reconnectSequenceFlow: aSequenceFlow
-		source: aSource
-		target: aTarget
-		flowContainer: (self stagedFlowContainerContaining: aSequenceFlow)) apply.
+	edge := self
+		edgeForSequenceFlow: aSequenceFlow
+		ifFound: [ :anEdge | anEdge ]
+		ifNone: [ ^ nil ].
+	sourceShape := self diagramShapeForModelElement: aSource.
+	targetShape := self diagramShapeForModelElement: aTarget.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ nil ].
+	operation := diagramEditing
+		reconnectEdge: edge
+		sourceShape: sourceShape
+		targetShape: targetShape.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
 		ifFalse: [ self updateDiagramAppearance ].

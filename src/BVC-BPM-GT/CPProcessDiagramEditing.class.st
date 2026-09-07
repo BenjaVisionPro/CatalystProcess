@@ -31,7 +31,7 @@ CPProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer [
+CPProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: proposedBounds [
 	^ self subclassResponsibility
 ]
 
@@ -41,7 +41,7 @@ CPProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints:
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> insertFlowNode: aFlowNode intoSequenceFlow: aSequenceFlow bounds: proposedBounds flowContainer: aFlowContainer [
+CPProcessDiagramEditing >> insertFlowNode: aFlowNode intoEdge: anEdge bounds: proposedBounds [
 	^ self subclassResponsibility
 ]
 
@@ -51,7 +51,7 @@ CPProcessDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer [
+CPProcessDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape [
 	^ self subclassResponsibility
 ]
 

@@ -136,12 +136,17 @@ CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer [
+CPProcessAtelierDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: proposedBounds [
+	| flowNode flowContainer |
+	flowNode := self modelElementOfDiagramElement: aShape.
+	flowNode ifNil: [ ^ nil ].
+	flowContainer := self flowContainerContaining: flowNode.
+	flowContainer ifNil: [ ^ nil ].
 	^ CPAtelierReplaceFlowNode
-		flowNode: aFlowNode
+		flowNode: flowNode
 		with: aReplacementNode
 		bounds: proposedBounds
-		flowContainer: aFlowContainer
+		flowContainer: flowContainer
 		processMemento: processMemento
 		diagramDescription: diagramDescription
 ]
@@ -149,8 +154,8 @@ CPProcessAtelierDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementN
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
 	| source target sourceContainer targetContainer |
-	source := self modelElementOfShape: aSourceShape.
-	target := self modelElementOfShape: aTargetShape.
+	source := self modelElementOfDiagramElement: aSourceShape.
+	target := self modelElementOfDiagramElement: aTargetShape.
 	(source isNil or: [ target isNil ]) ifTrue: [ ^ nil ].
 	sourceContainer := self flowContainerContaining: source.
 	targetContainer := self flowContainerContaining: target.
@@ -178,29 +183,34 @@ CPProcessAtelierDiagramEditing >> flowContainerContaining: aModelElement [
 ]
 
 { #category : 'private - staged state' }
-CPProcessAtelierDiagramEditing >> modelElementOfShape: aShape [
+CPProcessAtelierDiagramEditing >> modelElementOfDiagramElement: aDiagramElement [
 	| collaborationContext collaborationDiagramContext processDiagramContext |
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
 	(collaborationContext notNil
-		and: [ collaborationContext elements identityIncludes: aShape ]) ifTrue: [
+		and: [ collaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
 		collaborationDiagramContext := CPDiagramMementoContext
 			diagram: collaborationContext diagram
 			memento: collaborationContext diagramMemento
 			elementsDescription: collaborationContext elementsDescription.
-		^ collaborationDiagramContext modelElementOf: aShape ].
+		^ collaborationDiagramContext modelElementOf: aDiagramElement ].
 	processDiagramContext := self processDiagramContext.
-	(processDiagramContext elements identityIncludes: aShape) ifTrue: [
-		^ processDiagramContext modelElementOf: aShape ].
+	(processDiagramContext elements identityIncludes: aDiagramElement) ifTrue: [
+		^ processDiagramContext modelElementOf: aDiagramElement ].
 	^ nil
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> insertFlowNode: aFlowNode intoSequenceFlow: aSequenceFlow bounds: proposedBounds flowContainer: aFlowContainer [
+CPProcessAtelierDiagramEditing >> insertFlowNode: aFlowNode intoEdge: anEdge bounds: proposedBounds [
+	| sequenceFlow flowContainer |
+	sequenceFlow := self modelElementOfDiagramElement: anEdge.
+	sequenceFlow ifNil: [ ^ nil ].
+	flowContainer := self flowContainerContaining: sequenceFlow.
+	flowContainer ifNil: [ ^ nil ].
 	^ CPAtelierInsertFlowNode
-		sequenceFlow: aSequenceFlow
+		sequenceFlow: sequenceFlow
 		flowNode: aFlowNode
 		bounds: proposedBounds
-		flowContainer: aFlowContainer
+		flowContainer: flowContainer
 		processMemento: processMemento
 		diagramDescription: diagramDescription
 ]
@@ -215,12 +225,19 @@ CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer [
+CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape [
+	| sequenceFlow source target flowContainer |
+	sequenceFlow := self modelElementOfDiagramElement: anEdge.
+	source := self modelElementOfDiagramElement: aSourceShape.
+	target := self modelElementOfDiagramElement: aTargetShape.
+	(sequenceFlow isNil or: [ source isNil or: [ target isNil ] ]) ifTrue: [ ^ nil ].
+	flowContainer := self flowContainerContaining: sequenceFlow.
+	flowContainer ifNil: [ ^ nil ].
 	^ CPAtelierReconnectSequenceFlow
-		sequenceFlow: aSequenceFlow
-		source: aSource
-		target: aTarget
-		flowContainer: aFlowContainer
+		sequenceFlow: sequenceFlow
+		source: source
+		target: target
+		flowContainer: flowContainer
 		processMemento: processMemento
 		diagramDescription: diagramDescription
 ]
