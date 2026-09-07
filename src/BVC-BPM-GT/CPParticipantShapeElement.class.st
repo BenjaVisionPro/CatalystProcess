@@ -124,6 +124,12 @@ CPParticipantShapeElement >> bodyCursor [
 	^ BlHandCursor new
 ]
 
+
+{ #category : 'private - appearance' }
+CPParticipantShapeElement >> borderForColor: aColor width: aWidth [
+	^ BlBorder paint: aColor width: aWidth
+]
+
 { #category : 'private - appearance' }
 CPParticipantShapeElement >> normalBorderWidth [
 	^ 1.5
