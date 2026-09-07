@@ -208,20 +208,12 @@ CPAtelierReconnectSequenceFlow >> stagedTopologyFrom: flowElements excluding: ex
 
 { #category : 'private - staged topology' }
 CPAtelierReconnectSequenceFlow >> stagedSourceOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	^ flowMemento readUsing: description
+	^ flowContainerContext stagedSourceOf: aSequenceFlow
 ]
 
 { #category : 'private - staged topology' }
 CPAtelierReconnectSequenceFlow >> stagedTargetOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	^ flowMemento readUsing: description
+	^ flowContainerContext stagedTargetOf: aSequenceFlow
 ]
 
 { #category : 'private - staged topology' }

@@ -105,6 +105,26 @@ CPProcessFlowContainerContext >> childMementoFor: aFlowElement [
 		inRelation: flowElementsDescription
 ]
 
+
+{ #category : 'staged state' }
+CPProcessFlowContainerContext >> stagedSourceOf: aSequenceFlow [
+	| flowMemento description |
+	flowMemento := self childMementoFor: aSequenceFlow.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #sourceRef ].
+	^ flowMemento readUsing: description
+]
+
+
+{ #category : 'staged state' }
+CPProcessFlowContainerContext >> stagedTargetOf: aSequenceFlow [
+	| flowMemento description |
+	flowMemento := self childMementoFor: aSequenceFlow.
+	description := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #targetRef ].
+	^ flowMemento readUsing: description
+]
+
 { #category : 'staged state' }
 CPProcessFlowContainerContext >> writeFlowElements: aCollection [
 	memento write: aCollection using: flowElementsDescription

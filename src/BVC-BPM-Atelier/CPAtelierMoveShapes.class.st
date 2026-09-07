@@ -127,28 +127,20 @@ CPAtelierMoveShapes >> translateEdge: anEdge forMovedModelElements: movedModelEl
 
 { #category : 'private - staged state' }
 CPAtelierMoveShapes >> stagedSourceOf: aSequenceFlow [
-	| context flowMemento description |
+	| context |
 	context := CPProcessFlowContainerContext
 		containingFlowElement: aSequenceFlow
 		inRootMemento: processMemento.
-	context ifNil: [ ^ nil ].
-	flowMemento := context childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	^ flowMemento readUsing: description
+	^ context ifNotNil: [ context stagedSourceOf: aSequenceFlow ]
 ]
 
 { #category : 'private - staged state' }
 CPAtelierMoveShapes >> stagedTargetOf: aSequenceFlow [
-	| context flowMemento description |
+	| context |
 	context := CPProcessFlowContainerContext
 		containingFlowElement: aSequenceFlow
 		inRootMemento: processMemento.
-	context ifNil: [ ^ nil ].
-	flowMemento := context childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	^ flowMemento readUsing: description
+	^ context ifNotNil: [ context stagedTargetOf: aSequenceFlow ]
 ]
 
 { #category : 'private' }

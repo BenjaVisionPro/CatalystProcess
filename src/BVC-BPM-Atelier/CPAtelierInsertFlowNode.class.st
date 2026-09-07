@@ -238,20 +238,12 @@ CPAtelierInsertFlowNode >> stagedTopologyFrom: flowElements excluding: excludedF
 
 { #category : 'private - staged topology' }
 CPAtelierInsertFlowNode >> stagedSourceOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	^ flowMemento readUsing: description
+	^ flowContainerContext stagedSourceOf: aSequenceFlow
 ]
 
 { #category : 'private - staged topology' }
 CPAtelierInsertFlowNode >> stagedTargetOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	^ flowMemento readUsing: description
+	^ flowContainerContext stagedTargetOf: aSequenceFlow
 ]
 
 { #category : 'private - applying' }

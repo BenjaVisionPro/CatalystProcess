@@ -157,20 +157,13 @@ CPAtelierRemoveDiagramElements >> processDiagramContext [
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> sequenceFlow: aSequenceFlow isIncidentToAny: someFlowNodes [
-	| context flowMemento sourceDescription targetDescription source target |
+	| context |
 	context := CPProcessFlowContainerContext
 		containingFlowElement: aSequenceFlow
 		inRootMemento: processMemento.
 	context ifNil: [ ^ false ].
-	flowMemento := context childMementoFor: aSequenceFlow.
-	sourceDescription := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	targetDescription := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	source := flowMemento readUsing: sourceDescription.
-	target := flowMemento readUsing: targetDescription.
-	^ (someFlowNodes identityIncludes: source)
-		or: [ someFlowNodes identityIncludes: target ]
+	^ (someFlowNodes identityIncludes: (context stagedSourceOf: aSequenceFlow))
+		or: [ someFlowNodes identityIncludes: (context stagedTargetOf: aSequenceFlow) ]
 ]
 
 { #category : 'accessing' }

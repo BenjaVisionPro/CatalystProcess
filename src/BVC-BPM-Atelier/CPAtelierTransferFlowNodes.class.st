@@ -229,18 +229,12 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 
 { #category : 'private - staged state' }
 CPAtelierTransferFlowNodes >> stagedSourceOf: aSequenceFlow in: aContext [
-	| memento description |
-	memento := aContext childMementoFor: aSequenceFlow.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
-	^ memento readUsing: description
+	^ aContext stagedSourceOf: aSequenceFlow
 ]
 
 { #category : 'private - staged state' }
 CPAtelierTransferFlowNodes >> stagedTargetOf: aSequenceFlow in: aContext [
-	| memento description |
-	memento := aContext childMementoFor: aSequenceFlow.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
-	^ memento readUsing: description
+	^ aContext stagedTargetOf: aSequenceFlow
 ]
 
 { #category : 'private - staged state' }

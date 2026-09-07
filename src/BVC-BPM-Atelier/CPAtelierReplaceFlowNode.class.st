@@ -236,20 +236,12 @@ CPAtelierReplaceFlowNode >> stagedLabelOf: aFlowNode [
 
 { #category : 'private - staged state' }
 CPAtelierReplaceFlowNode >> stagedSourceOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	^ flowMemento readUsing: description
+	^ flowContainerContext stagedSourceOf: aSequenceFlow
 ]
 
 { #category : 'private - staged state' }
 CPAtelierReplaceFlowNode >> stagedTargetOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	^ flowMemento readUsing: description
+	^ flowContainerContext stagedTargetOf: aSequenceFlow
 ]
 
 { #category : 'private - staged state' }
