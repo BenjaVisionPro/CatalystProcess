@@ -1967,7 +1967,7 @@ CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle baseSelection: s
 	shapeElementsByShape keysDo: [ :aShape |
 		| bounds |
 		bounds := self stagedBoundsOf: aShape.
-		(self rectangle: aRectangle fullyContainsRectangle: bounds)
+		(bounds intersects: aRectangle)
 			ifTrue: [
 				(selectedDiagramElements identityIncludes: aShape) ifFalse: [
 					selectedDiagramElements add: aShape ] ] ].
@@ -2009,15 +2009,6 @@ CPProcessVisualElement >> edge: anEdge enclosedByRectangle: aRectangle [
 	^ points notEmpty and: [
 		points allSatisfy: [ :aPoint |
 			self rectangle: aRectangle containsPointIncludingBoundary: aPoint ] ]
-]
-
-
-{ #category : 'private - selection' }
-CPProcessVisualElement >> rectangle: anOuterRectangle fullyContainsRectangle: anInnerRectangle [
-	^ anOuterRectangle left <= anInnerRectangle left
-		and: [ anInnerRectangle right <= anOuterRectangle right
-		and: [ anOuterRectangle top <= anInnerRectangle top
-		and: [ anInnerRectangle bottom <= anOuterRectangle bottom ] ] ]
 ]
 
 

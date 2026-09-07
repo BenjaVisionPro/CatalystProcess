@@ -26,7 +26,7 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 ]
 
 { #category : 'examples - selection' }
-CPProcessVisualElementExamples >> marqueeRequiresFullShapeEnclosure [
+CPProcessVisualElementExamples >> marqueeSelectsShapeWhenBoundsIntersect [
 	<gtExample>
 	| fixture visual task taskShape partialRectangle |
 	fixture := self fixture.
@@ -39,8 +39,7 @@ CPProcessVisualElementExamples >> marqueeRequiresFullShapeEnclosure [
 		updateMarqueeSelectionFor: partialRectangle
 		baseSelection: #().
 
-	self assert: (visual selectedDiagramElements identityIncludes: taskShape) not.
-	self assert: visual selectedDiagramElements isEmpty.
+	self assert: (visual selectedDiagramElements identityIncludes: taskShape).
 	^ visual
 ]
 
