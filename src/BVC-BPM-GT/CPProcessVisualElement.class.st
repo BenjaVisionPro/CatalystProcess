@@ -328,7 +328,7 @@ CPProcessVisualElement >> refresh [
 	self bringReconnectHandlesToFront.
 	self bringBendpointHandlesToFront.
 	self bringResizeHandlesToFront.
-	self updateConnectionPortVisibility
+	self updateDiagramAppearance
 ]
 
 
@@ -494,7 +494,7 @@ CPProcessVisualElement >> addShapeFor: aShape [
 			for: modelElement
 			shape: aShape ].
 	self addExternalLabelFor: modelElement bounds: bounds shape: aShape shapeElement: element.
-	self updateSelectionAppearance
+	self updateDiagramAppearance
 ]
 
 { #category : 'private - type selection' }
@@ -617,7 +617,7 @@ CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass s
 	assessment isApplicable ifTrue: [
 		diagramSelection selectOnly: aShape.
 		self refresh.
-		self updateSelectionAppearance.
+		self updateDiagramAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
@@ -758,7 +758,7 @@ CPProcessVisualElement >> setLabelSegmentIndex: aSegmentIndex segmentPosition: a
 		value: anOffset) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
-		ifFalse: [ self updateSelectionAppearance ].
+		ifFalse: [ self updateDiagramAppearance ].
 	^ assessment
 ]
 
@@ -1343,19 +1343,15 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateSelectionAppearance [
-	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
-		| isSelected |
-		isSelected := (diagramSelection includes: anElement diagramShape)
-			or: [ aModelElement == connectionSourceModelElement
-			or: [ aModelElement == connectionTargetModelElement ] ].
+	shapeElementsByShape keysAndValuesDo: [ :aShape :anElement |
 		anElement
-			selected: isSelected
+			selected: (diagramSelection includes: aShape)
 			selectionColor: self selectionColor
 			normalColor: self shapeBorderColor ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual
 			selected: (diagramSelection includes: anEdge)
-			insertionTarget: anEdge == insertionTargetEdge
+			insertionTarget: false
 			selectionColor: self selectionColor
 			normalColor: self shapeBorderColor ].
 	self updateReconnectHandlePositions.
@@ -1364,10 +1360,36 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			(anEdge == diagramSelection soleDiagramElement) ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual bendpointHandlesVisible:
-			(anEdge == diagramSelection soleDiagramElement) ].
-	self updateConnectionPortVisibility
+			(anEdge == diagramSelection soleDiagramElement) ]
 ]
 
+
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> updateTransientInteractionAppearance [
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+		| isEmphasized |
+		isEmphasized := (diagramSelection includes: anElement diagramShape)
+			or: [ aModelElement == connectionSourceModelElement
+			or: [ aModelElement == connectionTargetModelElement ] ].
+		anElement
+			selected: isEmphasized
+			selectionColor: self selectionColor
+			normalColor: self shapeBorderColor ].
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		anEdgeVisual
+			selected: (diagramSelection includes: anEdge)
+			insertionTarget: anEdge == insertionTargetEdge
+			selectionColor: self selectionColor
+			normalColor: self shapeBorderColor ]
+]
+
+
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> updateDiagramAppearance [
+	self updateSelectionAppearance.
+	self updateTransientInteractionAppearance.
+	self updateConnectionPortVisibility
+]
 
 { #category : 'operations' }
 CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
@@ -1435,7 +1457,7 @@ CPProcessVisualElement >> moveShapesToBounds: boundsByShape [
 CPProcessVisualElement >> insertionTargetEdge: anEdge [
 	insertionTargetEdge == anEdge ifTrue: [ ^ self ].
 	insertionTargetEdge := anEdge.
-	self updateSelectionAppearance
+	self updateDiagramAppearance
 ]
 
 { #category : 'private - insertion' }
@@ -1503,7 +1525,7 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 		ifTrue: [
 			diagramSelection selectOnly: aShape.
 			self refresh.
-			self updateSelectionAppearance.
+			self updateDiagramAppearance.
 			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aShape ] ]
 		ifFalse: [
 			self moveShape: aShape toBounds: proposedBounds ].
@@ -1943,7 +1965,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 		self refresh.
 		(self diagramShapeForModelElement: candidate) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
-		self updateSelectionAppearance.
+		self updateDiagramAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
@@ -1979,7 +2001,7 @@ CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle baseSelection: s
 					selectedDiagramElements add: anEdge ] ] ].
 
 	diagramSelection replaceWith: selectedDiagramElements.
-	self updateSelectionAppearance
+	self updateDiagramAppearance
 ]
 
 
@@ -2119,7 +2141,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 					relocate: marqueeOrigin;
 					extent: 0 @ 0.
 				self addDiagramChild: marqueeElement.
-				self updateSelectionAppearance.
+				self updateDiagramAppearance.
 				self requestFocus.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -2312,7 +2334,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: 
 	assessment isApplicable ifTrue: [
 		diagramSelection selectOnly: aShape.
 		self refresh.
-		self updateSelectionAppearance.
+		self updateDiagramAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
@@ -2484,7 +2506,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						border: (BlBorder paint: self selectionColor width: 1.5)).
 					self addDiagramChild: previewCursor.
 					self addDiagramChildFirst: previewLine.
-					self updateSelectionAppearance ] ]
+					self updateDiagramAppearance ] ]
 		dragged: [ :anEvent |
 			collaborationVisual
 				ifNotNil: [
@@ -2525,7 +2547,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 					self clearConnectionTarget.
 					target
 						ifNotNil: [ self connectFrom: aFlowNode to: target ]
-						ifNil: [ self updateSelectionAppearance ] ] ]
+						ifNil: [ self updateDiagramAppearance ] ] ]
 ]
 { #category : 'private - connection' }
 CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
@@ -2572,7 +2594,7 @@ CPProcessVisualElement >> validConnectionTargetAtGlobalPoint: aPoint from: aSour
 CPProcessVisualElement >> connectionTargetModelElement: aFlowNode [
 	connectionTargetModelElement == aFlowNode ifTrue: [ ^ self ].
 	connectionTargetModelElement := aFlowNode.
-	self updateSelectionAppearance
+	self updateDiagramAppearance
 ]
 
 { #category : 'private - connection' }
@@ -2627,7 +2649,7 @@ CPProcessVisualElement >> connectFrom: aSource to: aTarget [
 	assessment := operation apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
-		ifFalse: [ self updateSelectionAppearance ].
+		ifFalse: [ self updateDiagramAppearance ].
 	^ assessment
 ]
 
@@ -2644,7 +2666,7 @@ CPProcessVisualElement >> updateConnectionPortVisibility [
 CPProcessVisualElement >> beginConnectionFrom: aFlowNode [
 	connectionSourceModelElement := aFlowNode.
 	self clearConnectionTarget.
-	self updateSelectionAppearance
+	self updateDiagramAppearance
 ]
 
 { #category : 'private - connection' }
@@ -2655,7 +2677,7 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 	self clearConnectionTarget.
 	self updateConnectionPortVisibility.
 	source ifNil: [ ^ self ].
-	source == aFlowNode ifTrue: [ self updateSelectionAppearance. ^ self ].
+	source == aFlowNode ifTrue: [ self updateDiagramAppearance. ^ self ].
 	^ self connectFrom: source to: aFlowNode
 ]
 
@@ -2718,7 +2740,7 @@ CPProcessVisualElement >> setWaypoints: somePoints forEdge: anEdge [
 						value: segmentPlacement second
 						value: offset) apply ] ].
 			self refresh ]
-		ifFalse: [ self updateSelectionAppearance ].
+		ifFalse: [ self updateDiagramAppearance ].
 	^ assessment
 ]
 
@@ -3224,7 +3246,7 @@ CPProcessVisualElement >> reconnectSequenceFlow: aSequenceFlow source: aSource t
 		value: (self stagedFlowContainerContaining: aSequenceFlow)) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
-		ifFalse: [ self updateSelectionAppearance ].
+		ifFalse: [ self updateDiagramAppearance ].
 	^ assessment
 ]
 
@@ -3326,7 +3348,7 @@ CPProcessVisualElement >> cancelInteraction [
 		connectionSourceModelElement := nil.
 		connectionTargetModelElement := nil.
 		insertionTargetEdge := nil.
-		self updateSelectionAppearance.
+		self updateDiagramAppearance.
 		^ self ].
 	self clearInteractionAndSelection
 ]
@@ -3487,7 +3509,7 @@ CPProcessVisualElement >> setShape: aShape expanded: aBoolean [
 		value: aBoolean) apply.
 	assessment isApplicable
 		ifTrue: [ self refresh ]
-		ifFalse: [ self updateSelectionAppearance ].
+		ifFalse: [ self updateDiagramAppearance ].
 	^ assessment
 ]
 
@@ -3565,8 +3587,9 @@ CPProcessVisualElement >> toggleSelectionOfDiagramElement: aDiagramElement [
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateSelectionAppearanceRecursively [
-	self updateSelectionAppearance.
+	self updateDiagramAppearance.
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
 		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
 			aNestedVisual updateSelectionAppearanceRecursively ] ]
 ]
+

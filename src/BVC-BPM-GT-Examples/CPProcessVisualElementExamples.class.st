@@ -26,6 +26,31 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 ]
 
 { #category : 'examples - selection' }
+CPProcessVisualElementExamples >> transientConnectionStateDoesNotChangeDiagramSelection [
+	<gtExample>
+	| fixture visual start task taskShape |
+	fixture := self fixture.
+	start := fixture third.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+
+	visual selectOnly: task.
+	visual beginConnectionFrom: start.
+	visual connectionTargetModelElement: task.
+
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == taskShape.
+
+	visual clearConnectionTarget.
+	visual cancelInteraction.
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == taskShape.
+	^ visual
+]
+
+
+{ #category : 'examples - selection' }
 CPProcessVisualElementExamples >> marqueeSelectsShapeWhenBoundsIntersect [
 	<gtExample>
 	| fixture visual task taskShape partialRectangle |
