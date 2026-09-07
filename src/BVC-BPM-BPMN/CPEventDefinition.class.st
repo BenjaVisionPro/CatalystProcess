@@ -15,3 +15,19 @@ CPEventDefinition class >> eventTypeLabel [
 CPEventDefinition class >> eventTypeIcon [
 	^ self subclassResponsibility
 ]
+
+{ #category : 'event type' }
+CPEventDefinition >> eventTypeLabel [
+	^ self class eventTypeLabel
+]
+
+{ #category : 'descriptions' }
+CPEventDefinition >> eventTypeLabelDescription [
+	<magritteDescription>
+	^ MAStringDescription new
+		accessor: #eventTypeLabel;
+		label: 'Type';
+		priority: 20;
+		beReadOnly;
+		yourself
+]

@@ -62,6 +62,7 @@ CPBoundaryEvent >> eventDefinitionsDescription [
 	^ MAToManyRelationDescription new
 		accessor: #eventDefinitions;
 		classes: { CPEventDefinition };
+		reference: CPEventDefinition new eventTypeLabelDescription;
 		label: 'Event definitions';
 		priority: 125;
 		group: 'Event';
