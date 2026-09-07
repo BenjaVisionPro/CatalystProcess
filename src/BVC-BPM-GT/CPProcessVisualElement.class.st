@@ -333,6 +333,7 @@ CPProcessVisualElement >> refresh [
 	self updateCanvasExtent.
 	self addPaletteDropSurface.
 	shapes do: [ :each | self addShapeFor: each ].
+	self hostBoundaryEventShapeElements.
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
 	self bringReconnectHandlesToFront.
@@ -1213,22 +1214,39 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
-	"Boundary Events must be painted after their host Activities. Besides the
-	visible attachment overlap, BlBlurBelowEffect can only filter content that
-	has already been painted. IdentityDictionary iteration is intentionally not
-	a presentation-order contract, so establish the dependency explicitly."
+	"Only top-level diagram shapes participate in diagram-layer ordering.
+	Boundary Event visuals are native children of their attached Activity and
+	must stay there; re-adding them to the diagram layer would destroy the
+	confirmed Bloc containment relationship."
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
 		aModelElement isBoundaryEvent ifFalse: [
-			anElement removeFromParent.
-			self addDiagramChild: anElement ] ].
-	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
-		aModelElement isBoundaryEvent ifTrue: [
 			anElement removeFromParent.
 			self addDiagramChild: anElement ] ].
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
 		aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
 		anEdgeVisual bringLabelToFrontIn: self diagramPresentationParent ]
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> hostBoundaryEventShapeElements [
+	"BPMN-DI keeps Boundary Event shapes in diagram coordinates, while Bloc
+	represents the visual attachment through native containment. Keep the DI
+	bounds absolute and convert only the child's displayed origin to the host
+	Activity's local coordinates."
+	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :aBoundaryElement |
+		aModelElement isBoundaryEvent ifTrue: [
+			| activity activityElement boundaryBounds activityBounds |
+			activity := self stagedAttachedActivityOf: aModelElement.
+			activityElement := activity ifNotNil: [
+				shapeElementsByModelElement at: activity ifAbsent: [ nil ] ].
+			activityElement ifNotNil: [
+				boundaryBounds := self stagedBoundsOf: aBoundaryElement diagramShape.
+				activityBounds := self stagedBoundsOf: activityElement diagramShape.
+				(boundaryBounds notNil and: [ activityBounds notNil ]) ifTrue: [
+					aBoundaryElement removeFromParent.
+					activityElement addChild: aBoundaryElement.
+					aBoundaryElement relocate: boundaryBounds origin - activityBounds origin ] ] ] ]
 ]
 
 { #category : 'private - layout' }
@@ -1567,10 +1585,7 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 		moveShapes: boundsByShape
 		toProcessHostedBy: hostShape
 		waypointsByEdge: IdentityDictionary new) apply.
-	assessment isApplicable
-		ifFalse: [ self refresh ]
-		ifTrue: [
-			(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [ self refresh ] ].
+	assessment isApplicable ifFalse: [ self refresh ].
 	^ assessment
 ]
 
@@ -1724,7 +1739,7 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 				ifNotNil: [ :aLabel | aLabel position ].
 			candidateActivityShape := attachedActivityShape.
 			self clearInsertionTarget ]
-		dragStartPosition: [ dragStartBounds origin ]
+		dragStartPosition: [ aShapeElement position ]
 		dragged: [ :anEvent :delta |
 			| candidateBounds targetActivityShape targetActivityBounds |
 			candidateBounds := dragStartBounds translateBy: delta.
@@ -1737,7 +1752,7 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 				boundaryEventBounds: dragStartBounds
 				constrainedToActivityBounds: targetActivityBounds
 				nearCenter: candidateBounds center.
-			aShapeElement relocate: snappedBounds origin.
+			aShapeElement relocate: snappedBounds origin - (self stagedBoundsOf: attachedActivityShape) origin.
 			dragStartLabelPosition ifNotNil: [
 				aShapeElement externalLabelHost relocate: (self
 					boundaryEventHoverLabelOriginForEventBounds: snappedBounds
