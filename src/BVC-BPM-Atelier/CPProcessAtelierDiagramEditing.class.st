@@ -119,12 +119,6 @@ CPProcessAtelierDiagramEditing >> processDiagramContext [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> removeParticipantOperation [
-	^ [ :aParticipant |
-		CPAtelierRemoveParticipant participant: aParticipant processMemento: processMemento ]
-]
-
-{ #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 	| collaborationContext |
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
@@ -202,15 +196,12 @@ CPProcessAtelierDiagramEditing >> insertFlowNodeOperation [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> removeFlowNodeOperation [
-	^ [ :aFlowNode :aFlowContainer |
-		CPAtelierRemoveFlowNode flowNode: aFlowNode flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
-]
-
-{ #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> removeSequenceFlowOperation [
-	^ [ :aSequenceFlow :aFlowContainer |
-		CPAtelierRemoveSequenceFlow sequenceFlow: aSequenceFlow flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
+	someDiagramElements ifEmpty: [ ^ nil ].
+	^ CPAtelierRemoveDiagramElements
+		diagramElements: someDiagramElements
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }

@@ -24,11 +24,6 @@ CPReadOnlyProcessDiagramEditing >> moveShapes: boundsByShape toFlowContainer: aF
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> removeParticipantOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 	^ nil
 ]
@@ -49,12 +44,7 @@ CPReadOnlyProcessDiagramEditing >> insertFlowNodeOperation [
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> removeFlowNodeOperation [
-	^ nil
-]
-
-{ #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> removeSequenceFlowOperation [
+CPReadOnlyProcessDiagramEditing >> remove: someDiagramElements [
 	^ nil
 ]
 

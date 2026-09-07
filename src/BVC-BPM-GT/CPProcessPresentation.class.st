@@ -44,7 +44,7 @@ CPProcessPresentation >> prepareHostElement [
 		ifNotNil: [
 			collaborationDiagramElement := CPCollaborationVisualElement new
 			diagramEditing: diagramEditing;
-				removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
+				removeDiagramElementsDo: [ :someDiagramElements | self removeDiagramElements: someDiagramElements ];
 				selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
 				processMemento: self memento
 				processVisual: processDiagramElement;
@@ -151,7 +151,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			newConfiguredProcessDiagramElementCollaborationHosted: true.
 		collaborationDiagramElement := CPCollaborationVisualElement new
 			diagramEditing: diagramEditing;
-			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
+			removeDiagramElementsDo: [ :someDiagramElements | self removeDiagramElements: someDiagramElements ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
 			processMemento: self memento
@@ -212,10 +212,10 @@ CPProcessPresentation >> refreshCollaborationDiagramPreservingCamera [
 ]
 
 { #category : 'private - collaboration' }
-CPProcessPresentation >> removeParticipant: aParticipant [
+CPProcessPresentation >> removeDiagramElements: someDiagramElements [
 	| operation assessment |
-	diagramEditing removeParticipantOperation ifNil: [ ^ self ].
-	operation := diagramEditing removeParticipantOperation value: aParticipant.
+	operation := diagramEditing remove: someDiagramElements.
+	operation ifNil: [ ^ self ].
 	assessment := operation assess.
 	assessment isApplicable ifFalse: [ ^ assessment ].
 

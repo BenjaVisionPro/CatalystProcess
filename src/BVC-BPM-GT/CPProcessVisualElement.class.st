@@ -3224,44 +3224,33 @@ CPProcessVisualElement >> installKeyboardHandler [
 
 { #category : 'private - removal' }
 CPProcessVisualElement >> removeSelection [
-	| selectedNodes selectedFlows edgeForFlow assessments rejected |
+	| selectedDiagramElements operation assessment |
 	selectedModelElements isEmpty ifTrue: [ ^ self ].
 
-	selectedNodes := selectedModelElements select: [ :each |
-		shapeElementsByModelElement includesKey: each ].
-	selectedFlows := selectedModelElements select: [ :each |
-		edgeForFlow := edgeVisualsByEdge keys
-			detect: [ :anEdge | anEdge modelElement == each ]
-			ifNone: [ nil ].
-		edgeForFlow notNil and: [
-			selectedNodes noneSatisfy: [ :aNode |
-				self edge: edgeForFlow isIncidentTo: aNode ] ] ].
+	selectedDiagramElements := OrderedCollection new.
+	selectedModelElements do: [ :aModelElement |
+		(shapeElementsByModelElement at: aModelElement ifAbsent: [ nil ])
+			ifNotNil: [ :aShapeElement |
+				selectedDiagramElements add: aShapeElement diagramShape ].
+		(edgeVisualsByEdge keys
+			detect: [ :anEdge | anEdge modelElement == aModelElement ]
+			ifNone: [ nil ])
+			ifNotNil: [ :anEdge | selectedDiagramElements add: anEdge ] ].
 
-	assessments := OrderedCollection new.
-	selectedNodes do: [ :aNode |
-		diagramEditing removeFlowNodeOperation ifNotNil: [
-			assessments add: (diagramEditing removeFlowNodeOperation
-				value: aNode
-				value: (self stagedFlowContainerContaining: aNode)) ] ].
-	selectedFlows do: [ :aFlow |
-		diagramEditing removeSequenceFlowOperation ifNotNil: [
-			assessments add: (diagramEditing removeSequenceFlowOperation
-				value: aFlow
-				value: (self stagedFlowContainerContaining: aFlow)) ] ].
+	operation := diagramEditing remove: selectedDiagramElements.
+	operation ifNil: [ ^ self ].
+	assessment := operation assess.
+	assessment isApplicable ifFalse: [ ^ assessment ].
+	operation apply.
 
-	rejected := assessments
-		detect: [ :anOperation | anOperation assess isApplicable not ]
-		ifNone: [ nil ].
-	rejected ifNotNil: [ ^ rejected assess ].
-
-	assessments do: [ :anOperation | anOperation apply ].
 	selectedModelElements removeAll.
 	selectedModelElement := nil.
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
 	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
-	self refresh
+	self refresh.
+	^ assessment
 ]
 
 { #category : 'selection' }

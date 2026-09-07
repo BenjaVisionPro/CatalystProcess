@@ -16,7 +16,7 @@ Class {
 		'messageFlowsDescription',
 		'diagramEditing',
 		'refreshAfterGeometryChangeBlock',
-		'removeParticipantBlock',
+		'removeDiagramElementsBlock',
 		'selectionChangedBlock',
 		'selectedParticipant',
 		'participantElementsByParticipant',
@@ -181,8 +181,13 @@ CPCollaborationVisualElement >> installKeyboardHandler [
 						or: [ anEvent key = BlKeyboardKey backspace ] ])
 				ifTrue: [
 					selectedParticipant ifNotNil: [
-						removeParticipantBlock ifNotNil: [ :aBlock |
-							aBlock value: selectedParticipant ] ].
+						| participantElement |
+						participantElement := participantElementsByParticipant
+							at: selectedParticipant
+							ifAbsent: [ nil ].
+						participantElement ifNotNil: [
+							removeDiagramElementsBlock ifNotNil: [ :aBlock |
+								aBlock value: { participantElement diagramShape } ] ] ].
 					anEvent consumed: true ] ])
 ]
 
@@ -271,8 +276,8 @@ CPCollaborationVisualElement >> refreshAfterGeometryChangeDo: aBlock [
 ]
 
 { #category : 'configuration' }
-CPCollaborationVisualElement >> removeParticipantDo: aBlock [
-	removeParticipantBlock := aBlock
+CPCollaborationVisualElement >> removeDiagramElementsDo: aBlock [
+	removeDiagramElementsBlock := aBlock
 ]
 
 { #category : 'selection' }

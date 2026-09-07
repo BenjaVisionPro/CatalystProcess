@@ -463,6 +463,37 @@ CPProcessAtelierExamples >> removeFlowNodeStagesIncidentFlowsAndDiagramElementsT
 ]
 
 { #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> removeDiagramSelectionSuppressesSelectedIncidentSequenceFlow [
+	<gtExample>
+	| fixture memento taskShape firstEdge diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements |
+	fixture := self fixture.
+	memento := fixture second.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { taskShape. firstEdge }
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: assessment operations size equals: 1.
+	self assert: (stagedFlowElements identityIncludes: fixture fourth) not.
+	self assert: (stagedFlowElements identityIncludes: fixture sixth) not.
+	self assert: (stagedFlowElements identityIncludes: fixture seventh) not.
+	self assert: (stagedElements identityIncludes: taskShape) not.
+	self assert: (stagedElements identityIncludes: firstEdge) not.
+	self assert: (stagedElements identityIncludes: (fixture at: 13)) not.
+	^ assessment
+]
+
+{ #category : 'examples - semantic topology' }
 CPProcessAtelierExamples >> replaceFlowNodePreservesShapeAndIncidentFlowIdentity [
 	<gtExample>
 	| fixture memento task taskShape firstFlow secondFlow replacement flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription shapeMemento firstFlowMemento secondFlowMemento |
@@ -1346,6 +1377,36 @@ CPProcessAtelierExamples >> removeBlackBoxParticipantStagesPoolAndIncidentMessag
 	self assert: (context elements identityIncludes: connectAssessment edge) not.
 	self assert: context participants size equals: 1.
 	self assert: context messageFlows isEmpty.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> removeDiagramSelectionDoesNotDoubleRemoveParticipantMessageFlow [
+	<gtExample>
+	| fixture memento externalPool connectAssessment diagramDescription operation assessment context |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	externalPool := fixture at: 9.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { externalPool. connectAssessment edge }
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: assessment operations size equals: 1.
+	self assert: (context participants identityIncludes: (fixture at: 6)) not.
+	self assert: (context messageFlows identityIncludes: connectAssessment messageFlow) not.
+	self assert: (context elements identityIncludes: externalPool) not.
+	self assert: (context elements identityIncludes: connectAssessment edge) not.
 	^ assessment
 ]
 
