@@ -14,16 +14,13 @@ Class {
 		'diagramContext',
 		'participantsDescription',
 		'messageFlowsDescription',
-		'createParticipantOperationBlock',
-		'moveParticipantShapeOperationBlock',
-		'resizeParticipantShapeOperationBlock',
+		'diagramEditing',
 		'refreshAfterGeometryChangeBlock',
 		'removeParticipantBlock',
 		'selectionChangedBlock',
 		'selectedParticipant',
 		'participantElementsByParticipant',
 		'messageFlowVisualsByEdge',
-		'connectMessageFlowOperationBlock',
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
 		'viewportExtent',
@@ -41,6 +38,7 @@ Class {
 { #category : 'initialization' }
 CPCollaborationVisualElement >> initialize [
 	super initialize.
+	diagramEditing := CPReadOnlyProcessDiagramEditing new.
 	participantElementsByParticipant := IdentityDictionary new.
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
@@ -61,10 +59,23 @@ CPCollaborationVisualElement >> initialize [
 		installPaletteDropHandler
 ]
 
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> diagramEditing: anEditing [
+	diagramEditing := anEditing.
+	processVisual ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ]
+]
+
+{ #category : 'accessing' }
+CPCollaborationVisualElement >> diagramEditing [
+	^ diagramEditing
+]
+
 { #category : 'configuration' }
 CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcessVisual [
 	processMemento := aMemento.
 	processVisual := aProcessVisual.
+	processVisual diagramEditing: diagramEditing.
 	self refresh
 ]
 
@@ -199,7 +210,7 @@ CPCollaborationVisualElement >> updateParticipantSelectionAppearance [
 
 { #category : 'private - positioning' }
 CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElement shape: aShape [
-	moveParticipantShapeOperationBlock ifNil: [ ^ self ].
+	diagramEditing moveParticipantShapeOperation ifNil: [ ^ self ].
 	anElement
 		installPositioningFrom: anElement labelBand
 		stagedBounds: [ self stagedBoundsOf: aShape ]
@@ -210,7 +221,7 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 		dragged: [ :anEvent :delta | ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			| assessment |
-			assessment := (moveParticipantShapeOperationBlock
+			assessment := (diagramEditing moveParticipantShapeOperation
 				value: aShape
 				value: proposedBounds) apply.
 			self refreshAfterGeometryChange ]
@@ -219,12 +230,12 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 { #category : 'private - resizing' }
 CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement shape: aShape [
 	| handles |
-	resizeParticipantShapeOperationBlock ifNil: [ ^ self ].
+	diagramEditing resizeParticipantShapeOperation ifNil: [ ^ self ].
 	handles := anElement
 		installResizeHandleMinimumExtent: self minimumParticipantExtent
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds |
-			(resizeParticipantShapeOperationBlock
+			(diagramEditing resizeParticipantShapeOperation
 				value: aShape
 				value: proposedBounds) apply.
 			self refreshAfterGeometryChange ]
@@ -250,27 +261,6 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 		label: (self stagedLabelOfMessageFlow: messageFlow)
 		in: self diagramPresentationParent.
 	messageFlowVisualsByEdge at: anEdge put: visual
-]
-
-{ #category : 'configuration' }
-CPCollaborationVisualElement >> connectMessageFlowOperationFor: aBlock [
-	connectMessageFlowOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPCollaborationVisualElement >> createParticipantOperationFor: aBlock [
-	createParticipantOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPCollaborationVisualElement >> moveParticipantShapeOperationFor: aBlock [
-	moveParticipantShapeOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPCollaborationVisualElement >> resizeParticipantShapeOperationFor: aBlock [
-	resizeParticipantShapeOperationBlock := aBlock
 ]
 
 { #category : 'configuration' }
@@ -377,8 +367,8 @@ CPCollaborationVisualElement >> endConnectionDragFrom: aSource sourceVisual: aSo
 		^ aSourceVisual
 			connectSequenceFlowFrom: aSource
 			to: target modelElement ].
-	connectMessageFlowOperationBlock ifNil: [ ^ nil ].
-	assessment := (connectMessageFlowOperationBlock
+	diagramEditing connectMessageFlowOperation ifNil: [ ^ nil ].
+	assessment := (diagramEditing connectMessageFlowOperation
 		value: aSource
 		value: target modelElement
 		value: (self
@@ -539,13 +529,13 @@ CPCollaborationVisualElement >> installPaletteDropHandler [
 { #category : 'private - creation' }
 CPCollaborationVisualElement >> acceptsParticipantPaletteDragItem: aDragItem [
 	| sourceElement candidate assessment |
-	createParticipantOperationBlock ifNil: [ ^ false ].
+	diagramEditing createParticipantOperation ifNil: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifFalse: [ ^ false ].
-	assessment := (createParticipantOperationBlock
+	assessment := (diagramEditing createParticipantOperation
 		value: candidate
 		value: (0 @ 0 extent: self defaultBlackBoxParticipantExtent)) assess.
 	^ assessment isApplicable
@@ -562,7 +552,7 @@ CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
 		(anEvent currentTarget localPointToGlobal: anEvent position).
 	bounds := (dropPoint - (self defaultBlackBoxParticipantExtent / 2))
 		extent: self defaultBlackBoxParticipantExtent.
-	assessment := (createParticipantOperationBlock
+	assessment := (diagramEditing createParticipantOperation
 		value: participant
 		value: bounds) apply.
 	assessment isApplicable ifTrue: [ self refresh ].

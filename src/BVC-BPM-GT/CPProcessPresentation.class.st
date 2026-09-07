@@ -13,32 +13,19 @@ Class {
 		'detailScrollElement',
 		'workspaceElement',
 		'selectedModelElement',
-		'moveShapeOperationBlock',
-		'transferFlowNodeOperationBlock',
-		'transferFlowNodesOperationBlock',
-		'moveShapesOperationBlock',
-		'resizeShapeOperationBlock',
-		'createFlowNodeOperationBlock',
-		'createParticipantOperationBlock',
-		'moveParticipantShapeOperationBlock',
-		'resizeParticipantShapeOperationBlock',
-		'removeParticipantOperationBlock',
-		'replaceFlowNodeOperationBlock',
-		'connectFlowNodesOperationBlock',
-		'connectMessageFlowOperationBlock',
-		'insertFlowNodeOperationBlock',
-		'removeFlowNodeOperationBlock',
-		'removeSequenceFlowOperationBlock',
-		'reconnectSequenceFlowOperationBlock',
-		'setEdgeWaypointsOperationBlock',
-		'setShapeExpandedOperationBlock',
-		'setEdgeLabelPlacementOperationBlock',
+		'diagramEditing',
 		'diagramCameraInitialized'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
 }
+
+{ #category : 'initialization' }
+CPProcessPresentation >> initialize [
+	super initialize.
+	diagramEditing := CPReadOnlyProcessDiagramEditing new
+]
 
 { #category : 'private - building' }
 CPProcessPresentation >> prepareHostElement [
@@ -56,10 +43,7 @@ CPProcessPresentation >> prepareHostElement [
 		ifNil: [ processDiagramElement ]
 		ifNotNil: [
 			collaborationDiagramElement := CPCollaborationVisualElement new
-				connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
-				createParticipantOperationFor: createParticipantOperationBlock;
-				moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
-				resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			diagramEditing: diagramEditing;
 				removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 				selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
 				processMemento: self memento
@@ -123,23 +107,8 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 	aBoolean ifTrue: [ visual beCollaborationHosted ].
 	visual
 		selectionChangedDo: [ :aModelElement | self processSelectionChanged: aModelElement ];
-		moveShapeOperationFor: moveShapeOperationBlock;
-		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
-		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
-		moveShapesOperationFor: moveShapesOperationBlock;
-		resizeShapeOperationFor: resizeShapeOperationBlock;
-		createFlowNodeOperationFor: createFlowNodeOperationBlock;
-		createParticipantOperationFor: createParticipantOperationBlock;
+		diagramEditing: diagramEditing;
 		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
-		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
-		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
-		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
-		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
-		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
-		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
-		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
-		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
-		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock;
 		memento: self memento.
 	^ visual
 ]
@@ -181,10 +150,7 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 		processDiagramElement := self
 			newConfiguredProcessDiagramElementCollaborationHosted: true.
 		collaborationDiagramElement := CPCollaborationVisualElement new
-			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
-			createParticipantOperationFor: createParticipantOperationBlock;
-			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
-			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
+			diagramEditing: diagramEditing;
 			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
@@ -248,8 +214,8 @@ CPProcessPresentation >> refreshCollaborationDiagramPreservingCamera [
 { #category : 'private - collaboration' }
 CPProcessPresentation >> removeParticipant: aParticipant [
 	| operation assessment |
-	removeParticipantOperationBlock ifNil: [ ^ self ].
-	operation := removeParticipantOperationBlock value: aParticipant.
+	diagramEditing removeParticipantOperation ifNil: [ ^ self ].
+	operation := diagramEditing removeParticipantOperation value: aParticipant.
 	assessment := operation assess.
 	assessment isApplicable ifFalse: [ ^ assessment ].
 
@@ -399,6 +365,19 @@ CPProcessPresentation >> collaborationDiagramElement [
 	^ collaborationDiagramElement
 ]
 
+
+{ #category : 'configuration' }
+CPProcessPresentation >> diagramEditing: anEditing [
+	diagramEditing := anEditing.
+	processDiagramElement ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ].
+	collaborationDiagramElement ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ]
+]
+
+{ #category : 'accessing' }
+CPProcessPresentation >> diagramEditing [
+	^ diagramEditing
+]
+
 { #category : 'accessing - testing' }
 CPProcessPresentation >> processDiagramElement [
 	^ processDiagramElement
@@ -417,133 +396,4 @@ CPProcessPresentation >> selectedModelElement [
 { #category : 'accessing - testing' }
 CPProcessPresentation >> workspaceElement [
 	^ workspaceElement
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> moveShapeOperationFor: aBlock [
-	moveShapeOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> moveShapesOperationFor: aBlock [
-	moveShapesOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> synchronizeEditingConfiguration [
-	processDiagramElement ifNil: [ ^ self ].
-	processDiagramElement
-		moveShapeOperationFor: moveShapeOperationBlock;
-		transferFlowNodeOperationFor: transferFlowNodeOperationBlock;
-		transferFlowNodesOperationFor: transferFlowNodesOperationBlock;
-		moveShapesOperationFor: moveShapesOperationBlock;
-		resizeShapeOperationFor: resizeShapeOperationBlock;
-		createFlowNodeOperationFor: createFlowNodeOperationBlock;
-		createParticipantOperationFor: createParticipantOperationBlock;
-		replaceFlowNodeOperationFor: replaceFlowNodeOperationBlock;
-		connectFlowNodesOperationFor: connectFlowNodesOperationBlock;
-		insertFlowNodeOperationFor: insertFlowNodeOperationBlock;
-		removeFlowNodeOperationFor: removeFlowNodeOperationBlock;
-		removeSequenceFlowOperationFor: removeSequenceFlowOperationBlock;
-		reconnectSequenceFlowOperationFor: reconnectSequenceFlowOperationBlock;
-		setEdgeWaypointsOperationFor: setEdgeWaypointsOperationBlock;
-		setShapeExpandedOperationFor: setShapeExpandedOperationBlock;
-		setEdgeLabelPlacementOperationFor: setEdgeLabelPlacementOperationBlock.
-	processDiagramElement refresh.
-	collaborationDiagramElement ifNotNil: [
-		collaborationDiagramElement
-			connectMessageFlowOperationFor: connectMessageFlowOperationBlock;
-			createParticipantOperationFor: createParticipantOperationBlock;
-			moveParticipantShapeOperationFor: moveParticipantShapeOperationBlock;
-			resizeParticipantShapeOperationFor: resizeParticipantShapeOperationBlock;
-			removeParticipantDo: [ :aParticipant | self removeParticipant: aParticipant ];
-			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
-			selectionChangedDo: [ :aModelElement | self collaborationSelectionChanged: aModelElement ];
-			refresh ]
-]
-{ #category : 'configuration' }
-CPProcessPresentation >> createFlowNodeOperationFor: aBlock [ createFlowNodeOperationBlock := aBlock ]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> createParticipantOperationFor: aBlock [
-	createParticipantOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> moveParticipantShapeOperationFor: aBlock [
-	moveParticipantShapeOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> resizeParticipantShapeOperationFor: aBlock [
-	resizeParticipantShapeOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> removeParticipantOperationFor: aBlock [
-	removeParticipantOperationBlock := aBlock
-]
-{ #category : 'configuration' }
-CPProcessPresentation >> replaceFlowNodeOperationFor: aBlock [ replaceFlowNodeOperationBlock := aBlock ]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> connectFlowNodesOperationFor: aBlock [ connectFlowNodesOperationBlock := aBlock ]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> connectMessageFlowOperationFor: aBlock [
-	connectMessageFlowOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> removeFlowNodeOperationFor: aBlock [ removeFlowNodeOperationBlock := aBlock ]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> removeSequenceFlowOperationFor: aBlock [ removeSequenceFlowOperationBlock := aBlock ]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> reconnectSequenceFlowOperationFor: aBlock [
-	reconnectSequenceFlowOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> setEdgeWaypointsOperationFor: aBlock [
-	setEdgeWaypointsOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> insertFlowNodeOperationFor: aBlock [
-	insertFlowNodeOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> resizeShapeOperationFor: aBlock [
-	resizeShapeOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> setEdgeLabelPlacementOperationFor: aBlock [
-	setEdgeLabelPlacementOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> setShapeExpandedOperationFor: aBlock [
-	setShapeExpandedOperationBlock := aBlock
-]
-
-
-{ #category : 'configuration' }
-CPProcessPresentation >> transferFlowNodeOperationFor: aBlock [
-	transferFlowNodeOperationBlock := aBlock
-]
-
-{ #category : 'configuration' }
-CPProcessPresentation >> transferFlowNodesOperationFor: aBlock [
-	transferFlowNodesOperationBlock := aBlock
 ]

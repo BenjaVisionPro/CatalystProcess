@@ -13,115 +13,15 @@ Class {
 
 { #category : 'private - fixture' }
 CPProcessVisualElementExamples >> visualElementForFixture: fixture [
-	| memento diagramDescription flowElementsDescription visual |
+	| memento diagramDescription visual |
 	memento := fixture second.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	flowElementsDescription := self descriptionFor: #flowElements in: memento.
 	visual := CPProcessVisualElement new.
 	visual
-		moveShapeOperationFor: [ :aShape :proposedBounds |
-			CPAtelierMoveShape
-				shape: aShape
-				bounds: proposedBounds
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		transferFlowNodeOperationFor: [ :aFlowNode :aFlowContainer :proposedBounds |
-			CPAtelierTransferFlowNode
-				flowNode: aFlowNode
-				targetContainer: aFlowContainer
-				bounds: proposedBounds
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		transferFlowNodesOperationFor: [ :someFlowNodes :aFlowContainer :boundsByFlowNode :waypointsBySequenceFlow |
-			CPAtelierTransferFlowNodes
-				flowNodes: someFlowNodes
-				targetContainer: aFlowContainer
-				boundsByFlowNode: boundsByFlowNode
-				waypointsBySequenceFlow: waypointsBySequenceFlow
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		moveShapesOperationFor: [ :boundsByShape |
-			CPAtelierMoveShapes
-				boundsByShape: boundsByShape
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		resizeShapeOperationFor: [ :aShape :proposedBounds |
-			CPAtelierResizeShape
-				shape: aShape
-				bounds: proposedBounds
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		createFlowNodeOperationFor: [ :aFlowNode :proposedBounds :aFlowContainer |
-			CPAtelierCreateFlowNode
-				flowNode: aFlowNode
-				bounds: proposedBounds
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		replaceFlowNodeOperationFor: [ :aFlowNode :aReplacementNode :proposedBounds :aFlowContainer |
-			CPAtelierReplaceFlowNode
-				flowNode: aFlowNode
-				with: aReplacementNode
-				bounds: proposedBounds
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		connectFlowNodesOperationFor: [ :aSource :aTarget :aFlowContainer |
-			CPAtelierConnectFlowNodes
-				source: aSource
-				target: aTarget
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		insertFlowNodeOperationFor: [ :aSequenceFlow :aFlowNode :proposedBounds :aFlowContainer |
-			CPAtelierInsertFlowNode
-				sequenceFlow: aSequenceFlow
-				flowNode: aFlowNode
-				bounds: proposedBounds
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		removeFlowNodeOperationFor: [ :aFlowNode :aFlowContainer |
-			CPAtelierRemoveFlowNode
-				flowNode: aFlowNode
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		removeSequenceFlowOperationFor: [ :aSequenceFlow :aFlowContainer |
-			CPAtelierRemoveSequenceFlow
-				sequenceFlow: aSequenceFlow
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		reconnectSequenceFlowOperationFor: [ :aSequenceFlow :aSource :aTarget :aFlowContainer |
-			CPAtelierReconnectSequenceFlow
-				sequenceFlow: aSequenceFlow
-				source: aSource
-				target: aTarget
-				flowContainer: aFlowContainer
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		setShapeExpandedOperationFor: [ :aShape :isExpanded |
-			CPAtelierSetShapeExpanded
-				shape: aShape
-				expanded: isExpanded
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		setEdgeWaypointsOperationFor: [ :anEdge :someWaypoints |
-			CPAtelierSetEdgeWaypoints
-				edge: anEdge
-				waypoints: someWaypoints
-				processMemento: memento
-				diagramDescription: diagramDescription ];
-		setEdgeLabelPlacementOperationFor: [ :anEdge :segmentIndex :segmentPosition :offset |
-			CPAtelierSetEdgeLabelPlacement
-				edge: anEdge
-				segmentIndex: segmentIndex
-				segmentPosition: segmentPosition
-				offset: offset
-				processMemento: memento
-				diagramDescription: diagramDescription ].
-	visual memento: memento.
+		diagramEditing: (CPProcessAtelierDiagramEditing
+			processMemento: memento
+			diagramDescription: diagramDescription);
+		memento: memento.
 	^ visual
 ]
 
@@ -1263,7 +1163,7 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 	| process start task finish firstFlow secondFlow processDiagram
 	  startShape taskShape finishShape firstEdge secondEdge collaboration localParticipant
 	  externalParticipant collaborationDiagram localPool externalPool messageFlow messageEdge
-	  memento processVisual collaborationVisual |
+	  memento diagramDescription processVisual collaborationVisual |
 
 	process := CPProcess new label: 'Seller process'; yourself.
 	start := CPNoneStartEvent new label: 'Start'; yourself.
@@ -1344,27 +1244,15 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 	process definitionalCollaborationRef: collaboration.
 
 	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
 	processVisual := CPProcessVisualElement new
 		beCollaborationHosted;
 		memento: memento;
 		yourself.
 	collaborationVisual := CPCollaborationVisualElement new
-		connectMessageFlowOperationFor: [ :aSource :aTarget :someWaypoints |
-			CPAtelierConnectMessageFlow
-				source: aSource
-				target: aTarget
-				waypoints: someWaypoints
-				processMemento: memento ];
-		moveParticipantShapeOperationFor: [ :aShape :proposedBounds |
-			CPAtelierMoveParticipantShape
-				shape: aShape
-				bounds: proposedBounds
-				processMemento: memento ];
-		resizeParticipantShapeOperationFor: [ :aShape :proposedBounds |
-			CPAtelierResizeParticipantShape
-				shape: aShape
-				bounds: proposedBounds
-				processMemento: memento ];
+		diagramEditing: (CPProcessAtelierDiagramEditing
+			processMemento: memento
+			diagramDescription: diagramDescription);
 		processMemento: memento
 		processVisual: processVisual;
 		yourself.
