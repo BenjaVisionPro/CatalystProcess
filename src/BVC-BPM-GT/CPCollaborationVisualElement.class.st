@@ -2,7 +2,7 @@
 
 The enclosing Atelier transaction remains rooted at that CPProcess. I read the Process's definitionalCollaborationRef and its Collaboration DI, render each Participant as a CPParticipantShapeElement, and host the already-configured root CPProcessVisualElement inside the Participant whose processRef is the edited Process.
 
-Black-box Participants render as Pools without Process content. Participant editing and MessageFlow rendering are separate subsequent capabilities."
+Black-box Participants render as Pools without Process content. Participant editing and MessageFlow rendering use the shared staged Collaboration and diagram contexts."
 Class {
 	#name : 'CPCollaborationVisualElement',
 	#superclass : 'BlElement',
@@ -754,13 +754,6 @@ CPCollaborationVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
 	^ diagramLayer
 		ifNil: [ self globalPointToLocal: aGlobalPoint ]
 		ifNotNil: [ diagramLayer globalPointToLocal: aGlobalPoint ]
-]
-
-{ #category : 'private - coordinates' }
-CPCollaborationVisualElement >> globalPointForDiagramPoint: aPoint [
-	^ diagramLayer
-		ifNil: [ self localPointToGlobal: aPoint ]
-		ifNotNil: [ diagramLayer localPointToGlobal: aPoint ]
 ]
 
 { #category : 'private - building' }

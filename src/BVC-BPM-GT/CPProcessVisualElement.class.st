@@ -215,13 +215,6 @@ CPProcessVisualElement >> diagramPointForGlobalPoint: aGlobalPoint [
 		ifNotNil: [ diagramLayer globalPointToLocal: aGlobalPoint ]
 ]
 
-{ #category : 'private - coordinates' }
-CPProcessVisualElement >> globalPointForDiagramPoint: aPoint [
-	^ diagramLayer
-		ifNil: [ self localPointToGlobal: aPoint ]
-		ifNotNil: [ diagramLayer localPointToGlobal: aPoint ]
-]
-
 { #category : 'private - building' }
 CPProcessVisualElement >> addDiagramChild: anElement [
 	diagramLayer
@@ -3409,12 +3402,6 @@ CPProcessVisualElement >> flowContainerContextContaining: aFlowElement [
 CPProcessVisualElement >> flowElementMementoFor: aFlowElement [
 	^ (self flowContainerContextContaining: aFlowElement)
 		ifNotNil: [ :aContext | aContext childMementoFor: aFlowElement ]
-]
-
-{ #category : 'private - staged state' }
-CPProcessVisualElement >> stagedFlowContainerContaining: aFlowElement [
-	^ (self flowContainerContextContaining: aFlowElement)
-		ifNotNil: [ :aContext | aContext container ]
 ]
 
 
