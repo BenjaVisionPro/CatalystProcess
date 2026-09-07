@@ -157,9 +157,7 @@ CPProcessShapeElement >> addCallActivityDecorationForBounds: aRectangle [
 CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
 	| innerRing ringInset |
 	modelElement isIntermediateEvent ifFalse: [ ^ self ].
-	ringInset := modelElement isBoundaryEvent
-		ifTrue: [ 12 @ 12 ]
-		ifFalse: [ 8 @ 8 ].
+	ringInset := 8 @ 8.
 	innerRing := BlElement new
 		extent: aRectangle extent - ringInset;
 		geometry: BlCircleGeometry new;
