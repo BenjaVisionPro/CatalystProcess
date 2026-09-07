@@ -92,24 +92,20 @@ CPAtelierResizeShape >> edge: anEdge isIncidentTo: aModelElement [
 
 { #category : 'private - staged state' }
 CPAtelierResizeShape >> stagedSourceOf: aSequenceFlow [
-	| flowElementsDescription flowMemento description |
-	flowElementsDescription := processMemento magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ].
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	^ flowMemento readUsing: description
+	| context |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aSequenceFlow
+		inRootMemento: processMemento.
+	^ context ifNotNil: [ context stagedSourceOf: aSequenceFlow ]
 ]
 
 { #category : 'private - staged state' }
 CPAtelierResizeShape >> stagedTargetOf: aSequenceFlow [
-	| flowElementsDescription flowMemento description |
-	flowElementsDescription := processMemento magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ].
-	flowMemento := processMemento childMementoFor: aSequenceFlow inRelation: flowElementsDescription.
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	^ flowMemento readUsing: description
+	| context |
+	context := CPProcessFlowContainerContext
+		containingFlowElement: aSequenceFlow
+		inRootMemento: processMemento.
+	^ context ifNotNil: [ context stagedTargetOf: aSequenceFlow ]
 ]
 
 { #category : 'private - applying' }

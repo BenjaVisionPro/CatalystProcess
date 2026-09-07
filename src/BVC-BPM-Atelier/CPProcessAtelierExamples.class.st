@@ -199,6 +199,68 @@ CPProcessAtelierExamples >> resizeShapeStagesBoundsAndMovesIncidentEndpointsByCe
 	^ memento
 ]
 
+
+{ #category : 'examples - nested containers' }
+CPProcessAtelierExamples >> resizeShapeInsideSubProcessMovesNestedIncidentEndpoints [
+	<gtExample>
+	| fixture memento start task finish firstFlow secondFlow rootDescription diagramDescription
+	  subProcess rootElements subMemento subDescription boundsByNode waypointsByFlow
+	  transferAssessment resizeAssessment |
+
+	fixture := self fixture.
+	memento := fixture second.
+	start := fixture third.
+	task := fixture fourth.
+	finish := fixture fifth.
+	firstFlow := fixture sixth.
+	secondFlow := fixture seventh.
+	rootDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	rootElements := (memento readUsing: rootDescription) asOrderedCollection copy.
+	rootElements add: subProcess.
+	memento write: rootElements using: rootDescription.
+	subMemento := memento childMementoFor: subProcess inRelation: rootDescription.
+	subDescription := self descriptionFor: #flowElements in: subMemento.
+	subMemento write: OrderedCollection new using: subDescription.
+
+	boundsByNode := IdentityDictionary new.
+	boundsByNode
+		at: start put: (40 @ 60 extent: 42 @ 42);
+		at: task put: (140 @ 54 extent: 132 @ 54);
+		at: finish put: (330 @ 60 extent: 42 @ 42).
+	waypointsByFlow := IdentityDictionary new.
+	waypointsByFlow
+		at: firstFlow put: ({ 82 @ 81. 140 @ 81 } asOrderedCollection);
+		at: secondFlow put: ({ 272 @ 81. 330 @ 81 } asOrderedCollection).
+
+	transferAssessment := (CPAtelierTransferFlowNodes
+		flowNodes: { start. task. finish }
+		targetContainer: subProcess
+		boundsByFlowNode: boundsByNode
+		waypointsBySequenceFlow: waypointsByFlow
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+	self assert: transferAssessment isApplicable.
+
+	resizeAssessment := (CPAtelierResizeShape
+		shape: (fixture at: 10)
+		bounds: (160 @ 64 extent: 152 @ 74)
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+
+	self assert: resizeAssessment isApplicable.
+	self assert: (self stagedBoundsOf: (fixture at: 10) processMemento: memento)
+		equals: (160 @ 64 extent: 152 @ 74).
+	self assert: (self stagedWaypointsOf: (fixture at: 12) processMemento: memento)
+		equals: ({ 82 @ 81. 170 @ 101 } asOrderedCollection).
+	self assert: (self stagedWaypointsOf: (fixture at: 13) processMemento: memento)
+		equals: ({ 302 @ 101. 330 @ 81 } asOrderedCollection).
+	^ resizeAssessment
+]
+
+
 { #category : 'examples - routing' }
 CPProcessAtelierExamples >> setEdgeWaypointsStagesRoutingWithoutMutatingModel [
 	<gtExample>
