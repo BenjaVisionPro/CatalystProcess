@@ -1645,6 +1645,30 @@ CPProcessVisualElementExamples >> collaborationMessageFlowParticipatesInDiagramS
 ]
 
 
+{ #category : 'examples - geometry' }
+CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
+	<gtExample>
+	| fixture visual geometry |
+	fixture := self fixture.
+	visual := self visualElementForFixture: fixture.
+	geometry := CPDiagramPlaneGeometry
+		shapes: {
+			fixture at: 9.
+			fixture at: 10.
+			fixture at: 11 }
+		edges: {
+			fixture at: 12.
+			fixture at: 13 }
+		context: visual diagramContext.
+
+	self assert: geometry diagramBounds equals: (100 @ 94 corner: 472 @ 148).
+	self assert: geometry diagramExtent equals: 372 @ 54.
+	self assert: geometry normalizationOffset equals: -100 @ -94.
+	self assert: geometry layerExtent equals: 472 @ 148.
+	^ geometry
+]
+
+
 { #category : 'examples - scrolling' }
 CPProcessVisualElementExamples >> processDiagramUsesExactBoundedCameraTravel [
 	<gtExample>

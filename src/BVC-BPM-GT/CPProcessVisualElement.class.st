@@ -14,6 +14,7 @@ Class {
 		'hostShape',
 		'diagramDescription',
 		'diagramContext',
+		'planeGeometry',
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
 		'edgeVisualsByEdge',
@@ -175,12 +176,13 @@ CPProcessVisualElement >> updateCanvasExtent [
 CPProcessVisualElement >> updateDiagramLayerGeometry [
 	| layerOrigin |
 	diagramLayer ifNil: [ ^ self ].
+	planeGeometry ifNil: [ ^ self ].
 	layerOrigin := collaborationHosted
-		ifTrue: [ self hostedDiagramInset - diagramBounds origin ]
-		ifFalse: [ cameraSlack - diagramBounds origin ].
+		ifTrue: [ self hostedDiagramInset + planeGeometry normalizationOffset ]
+		ifFalse: [ cameraSlack + planeGeometry normalizationOffset ].
 	diagramLayer
 		constraintsDo: [ :c | c ignoreByLayout ];
-		extent: (diagramBounds corner max: 1 @ 1);
+		extent: planeGeometry layerExtent;
 		relocate: layerOrigin
 ]
 
@@ -314,8 +316,12 @@ CPProcessVisualElement >> refresh [
 		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
-	diagramBounds := self diagramBoundsFor: shapes, edges.
-	diagramExtent := diagramBounds extent.
+	planeGeometry := CPDiagramPlaneGeometry
+		shapes: shapes
+		edges: edges
+		context: diagramContext.
+	diagramBounds := planeGeometry diagramBounds.
+	diagramExtent := planeGeometry diagramExtent.
 	diagramLayer := parentProcessVisual isNil
 		ifTrue: [ BlElement new layout: BlFrameLayout new; clipChildren: false; yourself ]
 		ifFalse: [ nil ].
@@ -396,32 +402,6 @@ CPProcessVisualElement >> nestingDepthOfFlowElement: aFlowElement inContainerCon
 			nestedDepth ifNotNil: [ ^ nestedDepth ] ] ].
 	^ nil
 ]
-
-{ #category : 'private - layout' }
-CPProcessVisualElement >> diagramBoundsFor: someDiagramElements [
-	| minimumX minimumY maximumX maximumY hasContent |
-	hasContent := false.
-	someDiagramElements do: [ :each |
-		each isShape ifTrue: [
-			| bounds |
-			bounds := self stagedBoundsOf: each.
-			bounds ifNotNil: [
-				hasContent := true.
-				minimumX := minimumX ifNil: [ bounds left ] ifNotNil: [ minimumX min: bounds left ].
-				minimumY := minimumY ifNil: [ bounds top ] ifNotNil: [ minimumY min: bounds top ].
-				maximumX := maximumX ifNil: [ bounds right ] ifNotNil: [ maximumX max: bounds right ].
-				maximumY := maximumY ifNil: [ bounds bottom ] ifNotNil: [ maximumY max: bounds bottom ] ] ].
-		each isEdge ifTrue: [
-			(self stagedWaypointsOf: each) do: [ :aPoint |
-				hasContent := true.
-				minimumX := minimumX ifNil: [ aPoint x ] ifNotNil: [ minimumX min: aPoint x ].
-				minimumY := minimumY ifNil: [ aPoint y ] ifNotNil: [ minimumY min: aPoint y ].
-				maximumX := maximumX ifNil: [ aPoint x ] ifNotNil: [ maximumX max: aPoint x ].
-				maximumY := maximumY ifNil: [ aPoint y ] ifNotNil: [ maximumY max: aPoint y ] ] ] ].
-	hasContent ifFalse: [ ^ 0 @ 0 extent: 0 @ 0 ].
-	^ minimumX @ minimumY corner: maximumX @ maximumY
-]
-
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedBoundsOf: aShape [
