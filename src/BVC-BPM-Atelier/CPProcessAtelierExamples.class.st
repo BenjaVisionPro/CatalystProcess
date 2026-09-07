@@ -1157,6 +1157,32 @@ CPProcessAtelierExamples >> connectMessageFlowStagesSemanticAndDiagramStateToget
 ]
 
 { #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> collaborationContextReadsCurrentStagedCollections [
+	<gtExample>
+	| fixture memento context operation assessment |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: context messageFlows isEmpty.
+	self assert: context elements size equals: 2.
+
+	operation := CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: context messageFlows size equals: 1.
+	self assert: context messageFlows first == assessment messageFlow.
+	self assert: context elements size equals: 3.
+	self assert: (context elements identityIncludes: assessment edge).
+	^ context
+]
+
+{ #category : 'examples - collaboration message flow' }
 CPProcessAtelierExamples >> connectMessageFlowRejectsEndpointsInsideSameParticipant [
 	<gtExample>
 	| fixture operation assessment |
