@@ -72,12 +72,13 @@ CPAtelierRemoveDiagramElements >> participantRemovalOperations [
 		memento: collaborationContext diagramMemento
 		elementsDescription: collaborationContext elementsDescription.
 	diagramElements do: [ :aDiagramElement |
-		(collaborationContext elements identityIncludes: aDiagramElement) ifTrue: [
-			| modelElement |
-			modelElement := collaborationDiagramContext modelElementOf: aDiagramElement.
-			(modelElement notNil and: [ modelElement isParticipant ]) ifTrue: [
+		((collaborationContext elements identityIncludes: aDiagramElement)
+			and: [ aDiagramElement isShape ]) ifTrue: [
+			| participant |
+			participant := collaborationDiagramContext modelElementOf: aDiagramElement.
+			participant ifNotNil: [
 				operations add: (CPAtelierRemoveParticipant
-					participant: modelElement
+					participant: participant
 					processMemento: processMemento) ] ] ].
 	^ operations
 ]
