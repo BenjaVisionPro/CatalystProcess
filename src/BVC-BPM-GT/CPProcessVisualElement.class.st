@@ -1415,7 +1415,7 @@ CPProcessVisualElement >> updateAttachedBoundaryEventGeometryForActivity: anActi
 	| flowContext currentActivityBounds |
 	flowContext := CPProcessFlowContainerContext
 		containingFlowElement: anActivity
-		inRootMemento: processMemento.
+		inRootMemento: memento.
 	flowContext ifNil: [ ^ self ].
 	currentActivityBounds := self stagedBoundsOf: (self diagramShapeForModelElement: anActivity).
 	(flowContext attachedBoundaryEventsFor: anActivity) do: [ :aBoundaryEvent |
@@ -1611,7 +1611,7 @@ CPProcessVisualElement >> stagedAttachedActivityOf: aBoundaryEvent [
 	| context |
 	context := CPProcessFlowContainerContext
 		containingFlowElement: aBoundaryEvent
-		inRootMemento: processMemento.
+		inRootMemento: memento.
 	^ context ifNotNil: [ context stagedAttachedToOf: aBoundaryEvent ]
 ]
 
