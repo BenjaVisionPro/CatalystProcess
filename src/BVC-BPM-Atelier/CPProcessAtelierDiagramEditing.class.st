@@ -136,9 +136,14 @@ CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> replaceFlowNodeOperation [
-	^ [ :aFlowNode :aReplacementNode :proposedBounds :aFlowContainer |
-		CPAtelierReplaceFlowNode flowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer [
+	^ CPAtelierReplaceFlowNode
+		flowNode: aFlowNode
+		with: aReplacementNode
+		bounds: proposedBounds
+		flowContainer: aFlowContainer
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }
@@ -190,9 +195,14 @@ CPProcessAtelierDiagramEditing >> modelElementOfShape: aShape [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> insertFlowNodeOperation [
-	^ [ :aSequenceFlow :aFlowNode :proposedBounds :aFlowContainer |
-		CPAtelierInsertFlowNode sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: proposedBounds flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> insertFlowNode: aFlowNode intoSequenceFlow: aSequenceFlow bounds: proposedBounds flowContainer: aFlowContainer [
+	^ CPAtelierInsertFlowNode
+		sequenceFlow: aSequenceFlow
+		flowNode: aFlowNode
+		bounds: proposedBounds
+		flowContainer: aFlowContainer
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }
@@ -205,26 +215,42 @@ CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> reconnectSequenceFlowOperation [
-	^ [ :aSequenceFlow :aSource :aTarget :aFlowContainer |
-		CPAtelierReconnectSequenceFlow sequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer [
+	^ CPAtelierReconnectSequenceFlow
+		sequenceFlow: aSequenceFlow
+		source: aSource
+		target: aTarget
+		flowContainer: aFlowContainer
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> setShapeExpandedOperation [
-	^ [ :aShape :isExpanded |
-		CPAtelierSetShapeExpanded shape: aShape expanded: isExpanded processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> setShape: aShape expanded: aBoolean [
+	^ CPAtelierSetShapeExpanded
+		shape: aShape
+		expanded: aBoolean
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> setEdgeWaypointsOperation [
-	^ [ :anEdge :someWaypoints |
-		CPAtelierSetEdgeWaypoints edge: anEdge waypoints: someWaypoints processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> setWaypoints: someWaypoints forEdge: anEdge [
+	^ CPAtelierSetEdgeWaypoints
+		edge: anEdge
+		waypoints: someWaypoints
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> setEdgeLabelPlacementOperation [
-	^ [ :anEdge :segmentIndex :segmentPosition :offset |
-		CPAtelierSetEdgeLabelPlacement edge: anEdge segmentIndex: segmentIndex segmentPosition: segmentPosition offset: offset processMemento: processMemento diagramDescription: diagramDescription ]
+CPProcessAtelierDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset forEdge: anEdge [
+	^ CPAtelierSetEdgeLabelPlacement
+		edge: anEdge
+		segmentIndex: aSegmentIndex
+		segmentPosition: aSegmentPosition
+		offset: anOffset
+		processMemento: processMemento
+		diagramDescription: diagramDescription
 ]
 

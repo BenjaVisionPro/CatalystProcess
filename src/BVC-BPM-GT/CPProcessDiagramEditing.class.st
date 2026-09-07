@@ -31,7 +31,7 @@ CPProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> replaceFlowNodeOperation [
+CPProcessDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer [
 	^ self subclassResponsibility
 ]
 
@@ -41,7 +41,7 @@ CPProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints:
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> insertFlowNodeOperation [
+CPProcessDiagramEditing >> insertFlowNode: aFlowNode intoSequenceFlow: aSequenceFlow bounds: proposedBounds flowContainer: aFlowContainer [
 	^ self subclassResponsibility
 ]
 
@@ -51,22 +51,22 @@ CPProcessDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> reconnectSequenceFlowOperation [
+CPProcessDiagramEditing >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer [
 	^ self subclassResponsibility
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> setShapeExpandedOperation [
+CPProcessDiagramEditing >> setShape: aShape expanded: aBoolean [
 	^ self subclassResponsibility
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> setEdgeWaypointsOperation [
+CPProcessDiagramEditing >> setWaypoints: someWaypoints forEdge: anEdge [
 	^ self subclassResponsibility
 ]
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> setEdgeLabelPlacementOperation [
+CPProcessDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset forEdge: anEdge [
 	^ self subclassResponsibility
 ]
 

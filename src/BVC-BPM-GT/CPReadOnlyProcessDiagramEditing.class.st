@@ -29,7 +29,7 @@ CPReadOnlyProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds 
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> replaceFlowNodeOperation [
+CPReadOnlyProcessDiagramEditing >> replaceFlowNode: aFlowNode with: aReplacementNode bounds: proposedBounds flowContainer: aFlowContainer [
 	^ nil
 ]
 
@@ -39,7 +39,7 @@ CPReadOnlyProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape wa
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> insertFlowNodeOperation [
+CPReadOnlyProcessDiagramEditing >> insertFlowNode: aFlowNode intoSequenceFlow: aSequenceFlow bounds: proposedBounds flowContainer: aFlowContainer [
 	^ nil
 ]
 
@@ -49,22 +49,22 @@ CPReadOnlyProcessDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> reconnectSequenceFlowOperation [
+CPReadOnlyProcessDiagramEditing >> reconnectSequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aFlowContainer [
 	^ nil
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> setShapeExpandedOperation [
+CPReadOnlyProcessDiagramEditing >> setShape: aShape expanded: aBoolean [
 	^ nil
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> setEdgeWaypointsOperation [
+CPReadOnlyProcessDiagramEditing >> setWaypoints: someWaypoints forEdge: anEdge [
 	^ nil
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> setEdgeLabelPlacementOperation [
+CPReadOnlyProcessDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset forEdge: anEdge [
 	^ nil
 ]
 
