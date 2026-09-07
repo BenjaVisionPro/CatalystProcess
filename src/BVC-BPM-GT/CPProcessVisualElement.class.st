@@ -1567,7 +1567,10 @@ CPProcessVisualElement >> moveShape: aShape toBounds: aRectangle [
 		moveShapes: boundsByShape
 		toProcessHostedBy: hostShape
 		waypointsByEdge: IdentityDictionary new) apply.
-	assessment isApplicable ifFalse: [ self refresh ].
+	assessment isApplicable
+		ifFalse: [ self refresh ]
+		ifTrue: [
+			(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [ self refresh ] ].
 	^ assessment
 ]
 
