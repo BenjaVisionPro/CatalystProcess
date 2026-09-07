@@ -2293,12 +2293,37 @@ CPProcessVisualElement >> boundaryEventPaletteTargetModelElement: aModelElement 
 	self updateDiagramAppearance
 ]
 
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> updateBoundaryEventPaletteTargetFor: anEvent [
+	| dragItem globalPoint diagramPoint activityShape activity |
+	anEvent items size = 1 ifFalse: [
+		^ self boundaryEventPaletteTargetModelElement: nil ].
+	dragItem := anEvent items first.
+	(self isBoundaryEventPaletteDragItem: dragItem) ifFalse: [
+		^ self boundaryEventPaletteTargetModelElement: nil ].
+	globalPoint := anEvent currentTarget localPointToGlobal: anEvent position.
+	diagramPoint := self diagramPointForGlobalPoint: globalPoint.
+	activityShape := self activityShapeAtDiagramPoint: diagramPoint.
+	activityShape ifNil: [ ^ self boundaryEventPaletteTargetModelElement: nil ].
+	activity := self stagedModelElementOf: activityShape.
+	self boundaryEventPaletteTargetModelElement: activity
+]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> installPaletteDropHandler [
 	self addEventHandler: (CPProcessPaletteDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			self acceptsPaletteDragItem: aDragItem ];
+		whenDragEnteredDo: [ :anEvent |
+			self updateBoundaryEventPaletteTargetFor: anEvent ];
+		whenDragOverDo: [ :anEvent |
+			self updateBoundaryEventPaletteTargetFor: anEvent ];
+		whenDragLeftDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement ifNotNil: [
+				self boundaryEventPaletteTargetModelElement: nil ] ];
 		whenDroppedDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement ifNotNil: [
+				self boundaryEventPaletteTargetModelElement: nil ].
 			self dropPaletteEvent: anEvent ];
 		yourself)
 ]
@@ -2407,7 +2432,24 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		assessment := operation assess.
 		^ assessment isApplicable ].
 
-	candidate isBoundaryEvent ifTrue: [ ^ false ].
+	candidate isBoundaryEvent ifTrue: [
+		| activityShape activityBounds extent proposedBounds operation assessment |
+		activityShape := shapeElementsByShape keys
+			detect: [ :aShape |
+				| modelElement |
+				modelElement := self stagedModelElementOf: aShape.
+				modelElement notNil and: [ modelElement isActivity ] ]
+			ifNone: [ ^ false ].
+		activityBounds := self stagedBoundsOf: activityShape.
+		extent := self extentForModelElement: candidate.
+		proposedBounds := ((self nearestPointOnBoundaryOf: activityBounds to: activityBounds center) - (extent / 2)) extent: extent.
+		operation := diagramEditing
+			createBoundaryEvent: candidate
+			attachedToShape: activityShape
+			bounds: proposedBounds.
+		operation ifNil: [ ^ false ].
+		assessment := operation assess.
+		^ assessment isApplicable ].
 
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
@@ -2440,7 +2482,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
-	candidate isBoundaryEvent ifTrue: [ ^ nil ].
+	candidate isBoundaryEvent ifTrue: [ ^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self
@@ -2571,43 +2613,11 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: anActivity shape: anActivityShape [
-	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
-		acceptItemsSuchThat: [ :aDragItem :aDropArea |
-			(self isBoundaryEventPaletteDragItem: aDragItem)
-				ifTrue: [
-					self
-						acceptsBoundaryEventPaletteDragItem: aDragItem
-						attachedToShape: anActivityShape ]
-				ifFalse: [
-					self
-						acceptsPaletteDragItem: aDragItem
-						replacing: anActivity
-						shape: anActivityShape ] ];
-		whenDragEnteredDo: [ :anEvent |
-			(anEvent mayAcceptItems and: [
-				anEvent items size = 1 and: [
-					self isBoundaryEventPaletteDragItem: anEvent items first ] ]) ifTrue: [
-				self boundaryEventPaletteTargetModelElement: anActivity ] ];
-		whenDragLeftDo: [ :anEvent |
-			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
-				self boundaryEventPaletteTargetModelElement: nil ] ];
-		whenDroppedDo: [ :anEvent |
-			| candidate |
-			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
-				self boundaryEventPaletteTargetModelElement: nil ].
-			anEvent items size = 1 ifTrue: [
-				candidate := anEvent items first domainObject.
-				(self isBoundaryEventPaletteDragItem: anEvent items first)
-					ifTrue: [
-						self
-							dropBoundaryEventPaletteEvent: anEvent
-							attachedToShape: anActivityShape ]
-					ifFalse: [
-						self
-							dropPaletteEvent: anEvent
-							replacing: anActivity
-							shape: anActivityShape ] ] ];
-		yourself)
+	anActivityElement
+		installPaletteReplacementAccepting: [ :aDragItem |
+			self acceptsPaletteDragItem: aDragItem replacing: anActivity shape: anActivityShape ]
+		dropped: [ :anEvent |
+			self dropPaletteEvent: anEvent replacing: anActivity shape: anActivityShape ]
 ]
 
 { #category : 'private - replacement' }
