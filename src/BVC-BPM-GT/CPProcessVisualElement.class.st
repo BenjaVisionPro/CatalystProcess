@@ -28,6 +28,7 @@ Class {
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
 		'insertionTargetEdge',
+		'boundaryEventPaletteTargetModelElement',
 		'collaborationHosted',
 		'collaborationVisual',
 		'collaborationChangedBlock',
@@ -47,6 +48,7 @@ CPProcessVisualElement >> initialize [
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
+	boundaryEventPaletteTargetModelElement := nil.
 	rootVisual := self.
 	parentProcessVisual := nil.
 	hostShape := nil.
@@ -304,6 +306,7 @@ CPProcessVisualElement >> refresh [
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
 	connectionTargetModelElement := nil.
+	boundaryEventPaletteTargetModelElement := nil.
 	diagram := memento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self ].
 
@@ -451,6 +454,11 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installPositioningOn: element for: aShape.
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
 		self installReplacementOnShape: element for: modelElement shape: aShape ].
+	modelElement isActivity ifTrue: [
+		self
+			installBoundaryEventPaletteAttachmentOn: element
+			for: modelElement
+			shape: aShape ].
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
@@ -1357,7 +1365,8 @@ CPProcessVisualElement >> updateTransientInteractionAppearance [
 		| isEmphasized |
 		isEmphasized := (diagramSelection includes: anElement diagramShape)
 			or: [ aModelElement == connectionSourceModelElement
-			or: [ aModelElement == connectionTargetModelElement ] ].
+			or: [ aModelElement == connectionTargetModelElement
+			or: [ aModelElement == boundaryEventPaletteTargetModelElement ] ] ].
 		anElement
 			selected: isEmphasized
 			selectionColor: self selectionColor
@@ -2227,6 +2236,81 @@ CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowEle
 
 
 
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> installBoundaryEventPaletteAttachmentOn: anActivityElement for: anActivity shape: anActivityShape [
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self
+				acceptsBoundaryEventPaletteDragItem: aDragItem
+				attachedToShape: anActivityShape ];
+		whenDragEnteredDo: [ :anEvent |
+			self boundaryEventPaletteTargetModelElement: anActivity ];
+		whenDragLeftDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
+				self boundaryEventPaletteTargetModelElement: nil ] ];
+		whenDroppedDo: [ :anEvent |
+			self boundaryEventPaletteTargetModelElement: nil.
+			self
+				dropBoundaryEventPaletteEvent: anEvent
+				attachedToShape: anActivityShape ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> acceptsBoundaryEventPaletteDragItem: aDragItem attachedToShape: anActivityShape [
+	| sourceElement candidate activityBounds extent proposedBounds operation assessment |
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	candidate isBoundaryEvent ifFalse: [ ^ false ].
+	activityBounds := self stagedBoundsOf: anActivityShape.
+	extent := self extentForModelElement: candidate.
+	proposedBounds := ((self nearestPointOnBoundaryOf: activityBounds to: activityBounds center) - (extent / 2)) extent: extent.
+	operation := diagramEditing
+		createBoundaryEvent: candidate
+		attachedToShape: anActivityShape
+		bounds: proposedBounds.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> dropBoundaryEventPaletteEvent: anEvent attachedToShape: anActivityShape [
+	| dragItem candidate globalPoint localPoint activityBounds extent boundaryBounds operation assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	candidate := dragItem domainObject.
+	globalPoint := anEvent currentTarget localPointToGlobal: anEvent position.
+	localPoint := self diagramPointForGlobalPoint: globalPoint.
+	activityBounds := self stagedBoundsOf: anActivityShape.
+	extent := self extentForModelElement: candidate.
+	boundaryBounds := ((self nearestPointOnBoundaryOf: activityBounds to: localPoint) - (extent / 2)) extent: extent.
+	operation := diagramEditing
+		createBoundaryEvent: candidate
+		attachedToShape: anActivityShape
+		bounds: boundaryBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: candidate) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]
+
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> boundaryEventPaletteTargetModelElement: aModelElement [
+	boundaryEventPaletteTargetModelElement == aModelElement ifTrue: [ ^ self ].
+	boundaryEventPaletteTargetModelElement := aModelElement.
+	self updateDiagramAppearance
+]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> installPaletteDropHandler [
 	self addEventHandler: (CPProcessPaletteDropHandler new
@@ -2341,8 +2425,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		assessment := operation assess.
 		^ assessment isApplicable ].
 
-	candidate isBoundaryEvent ifTrue: [
-		^ shapeElementsByModelElement keys anySatisfy: [ :each | each isActivity ] ].
+	candidate isBoundaryEvent ifTrue: [ ^ false ].
 
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
@@ -2375,8 +2458,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
-	candidate isBoundaryEvent ifTrue: [
-		^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
+	candidate isBoundaryEvent ifTrue: [ ^ nil ].
 
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self
@@ -2508,6 +2590,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [ ^ false ].
+	candidate isBoundaryEvent ifTrue: [ ^ false ].
 	candidate class = aFlowNode class ifTrue: [ ^ false ].
 	proposedBounds := self replacementBoundsFor: candidate shape: aShape.
 	operation := diagramEditing
@@ -3587,6 +3670,7 @@ CPProcessVisualElement >> clearLocalSelection [
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
+	boundaryEventPaletteTargetModelElement := nil.
 	diagramSelection clear.
 	rootVisual updateSelectionAppearanceRecursively
 ]
@@ -3597,6 +3681,7 @@ CPProcessVisualElement >> clearInteractionAndSelection [
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
+	boundaryEventPaletteTargetModelElement := nil.
 	diagramSelection clear.
 	rootVisual updateSelectionAppearanceRecursively.
 	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ]
@@ -3609,6 +3694,7 @@ CPProcessVisualElement >> cancelInteraction [
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
+	boundaryEventPaletteTargetModelElement := nil.
 	self updateDiagramAppearance
 ]
 
@@ -3617,7 +3703,8 @@ CPProcessVisualElement >> cancelInteraction [
 CPProcessVisualElement >> hasActiveTransientInteraction [
 	^ connectionSourceModelElement notNil
 		or: [ connectionTargetModelElement notNil
-		or: [ insertionTargetEdge notNil ] ]
+		or: [ insertionTargetEdge notNil
+		or: [ boundaryEventPaletteTargetModelElement notNil ] ] ]
 ]
 
 { #category : 'private - labels' }

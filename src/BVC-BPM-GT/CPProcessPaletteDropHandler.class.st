@@ -4,10 +4,32 @@ BlDropHandler consumes every drag that crosses its target. Process nodes are the
 Class {
 	#name : 'CPProcessPaletteDropHandler',
 	#superclass : 'BlDropHandler',
+	#instVars : [
+		'acceptsCurrentDrag'
+	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
 }
+
+
+{ #category : 'initialization' }
+CPProcessPaletteDropHandler >> initialize [
+	super initialize.
+	acceptsCurrentDrag := false
+]
+
+{ #category : 'event handling' }
+CPProcessPaletteDropHandler >> itemsEnteredEvent: anEvent [
+	acceptsCurrentDrag := anEvent mayAcceptItems.
+	super itemsEnteredEvent: anEvent
+]
+
+{ #category : 'event handling' }
+CPProcessPaletteDropHandler >> itemsLeftEvent: anEvent [
+	acceptsCurrentDrag := false.
+	super itemsLeftEvent: anEvent
+]
 
 { #category : 'private - testing' }
 CPProcessPaletteDropHandler >> isPaletteDragEvent: aDragEvent [
@@ -24,7 +46,8 @@ CPProcessPaletteDropHandler >> dragEnterEvent: anEvent [
 
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> dragEvent: anEvent [
-	(self isPaletteDragEvent: anEvent) ifTrue: [ super dragEvent: anEvent ]
+	((self isPaletteDragEvent: anEvent) and: [ acceptsCurrentDrag ])
+		ifTrue: [ super dragEvent: anEvent ]
 ]
 
 { #category : 'event handling' }
@@ -34,5 +57,6 @@ CPProcessPaletteDropHandler >> dragLeaveEvent: anEvent [
 
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> dropEvent: anEvent [
-	(self isPaletteDragEvent: anEvent) ifTrue: [ super dropEvent: anEvent ]
+	((self isPaletteDragEvent: anEvent) and: [ acceptsCurrentDrag ])
+		ifTrue: [ super dropEvent: anEvent ]
 ]
