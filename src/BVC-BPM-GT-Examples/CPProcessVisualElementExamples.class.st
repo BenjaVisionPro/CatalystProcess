@@ -1500,6 +1500,45 @@ CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomai
 
 
 
+{ #category : 'examples - selection' }
+CPProcessVisualElementExamples >> collaborationAndProcessShareDiagramSelection [
+	<gtExample>
+	| fixture processVisual collaborationVisual task taskShape externalPool |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	task := fixture at: 13.
+	taskShape := processVisual diagramShapeForModelElement: task.
+	externalPool := fixture at: 8.
+
+	self assert: processVisual diagramSelection == collaborationVisual diagramSelection.
+	processVisual selectOnly: task.
+	self assert: collaborationVisual diagramSelection soleDiagramElement == taskShape.
+
+	collaborationVisual selectOnlyDiagramElement: externalPool.
+	self assert: processVisual selectedDiagramElements size equals: 1.
+	self assert: processVisual selectedDiagramElements first == externalPool.
+	^ collaborationVisual
+]
+
+
+{ #category : 'examples - selection' }
+CPProcessVisualElementExamples >> collaborationMessageFlowParticipatesInDiagramSelection [
+	<gtExample>
+	| fixture processVisual collaborationVisual messageEdge |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+
+	collaborationVisual selectOnlyDiagramElement: messageEdge.
+	self assert: processVisual selectedDiagramElements size equals: 1.
+	self assert: processVisual selectedDiagramElements first == messageEdge.
+	self assert: collaborationVisual diagramSelection soleDiagramElement == messageEdge.
+	^ collaborationVisual
+]
+
+
 { #category : 'examples - scrolling' }
 CPProcessVisualElementExamples >> processDiagramUsesExactBoundedCameraTravel [
 	<gtExample>

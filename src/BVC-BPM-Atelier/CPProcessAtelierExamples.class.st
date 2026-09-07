@@ -1381,6 +1381,33 @@ CPProcessAtelierExamples >> removeBlackBoxParticipantStagesPoolAndIncidentMessag
 ]
 
 { #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> removeDiagramSelectionRemovesMessageFlow [
+	<gtExample>
+	| fixture memento connectAssessment diagramDescription operation assessment context |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { connectAssessment edge }
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: (context messageFlows identityIncludes: connectAssessment messageFlow) not.
+	self assert: (context elements identityIncludes: connectAssessment edge) not.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration participants' }
 CPProcessAtelierExamples >> removeDiagramSelectionDoesNotDoubleRemoveParticipantMessageFlow [
 	<gtExample>
 	| fixture memento externalPool connectAssessment diagramDescription operation assessment context |

@@ -25,29 +25,21 @@ CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements pro
 
 { #category : 'assessing' }
 CPAtelierRemoveDiagramElements >> assess [
-	| participantOperations flowOperations operations participantAssessments flowAssessments operationAssessments rejectedAssessment unsupportedMessageFlows |
+	| participantOperations flowOperations messageFlowOperations operations operationAssessments rejectedAssessment |
 	diagramElements ifEmpty: [
 		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'At least one diagram element is required.' ].
 
 	participantOperations := self participantRemovalOperations.
 	flowOperations := self flowRemovalOperations.
-	operations := participantOperations , flowOperations.
-	participantAssessments := participantOperations collect: [ :anOperation | anOperation assess ].
-	flowAssessments := flowOperations collect: [ :anOperation | anOperation assess ].
-	operationAssessments := participantAssessments , flowAssessments.
+	messageFlowOperations := self messageFlowRemovalOperationsExcludingThoseOwnedBy: participantOperations.
+	operations := participantOperations , flowOperations , messageFlowOperations.
+	operationAssessments := operations collect: [ :anOperation | anOperation assess ].
 	rejectedAssessment := operationAssessments
 		detect: [ :anAssessment | anAssessment isApplicable not ]
 		ifNone: [ nil ].
 	rejectedAssessment ifNotNil: [
 		^ CPAtelierRemoveDiagramElementsAssessment
 			rejectedBecause: rejectedAssessment rejectionMessage ].
-
-	unsupportedMessageFlows := self selectedMessageFlows reject: [ :aMessageFlow |
-		participantAssessments anySatisfy: [ :anAssessment |
-			anAssessment removedMessageFlows identityIncludes: aMessageFlow ] ].
-	unsupportedMessageFlows ifNotEmpty: [
-		^ CPAtelierRemoveDiagramElementsAssessment
-			rejectedBecause: 'Removing a MessageFlow directly is not implemented yet.' ].
 
 	operations ifEmpty: [
 		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'The selected diagram elements are not removable.' ].
@@ -76,7 +68,8 @@ CPAtelierRemoveDiagramElements >> participantRemovalOperations [
 			and: [ aDiagramElement isShape ]) ifTrue: [
 			| participant |
 			participant := collaborationDiagramContext modelElementOf: aDiagramElement.
-			participant ifNotNil: [
+			(participant notNil and: [
+				collaborationContext participants identityIncludes: participant ]) ifTrue: [
 				operations add: (CPAtelierRemoveParticipant
 					participant: participant
 					processMemento: processMemento) ] ] ].
@@ -129,19 +122,33 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 ]
 
 { #category : 'private - resolving' }
-CPAtelierRemoveDiagramElements >> selectedMessageFlows [
-	| context diagramContext |
+CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwnedBy: participantOperations [
+	| context diagramContext participantAssessments ownedMessageFlows operations |
 	context := CPProcessCollaborationContext inRootMemento: processMemento.
 	context ifNil: [ ^ #() ].
 	diagramContext := CPDiagramMementoContext
 		diagram: context diagram
 		memento: context diagramMemento
 		elementsDescription: context elementsDescription.
-	^ diagramElements
-		select: [ :aDiagramElement |
-			(context elements identityIncludes: aDiagramElement)
-				and: [ aDiagramElement isEdge ] ]
-		thenCollect: [ :anEdge | diagramContext modelElementOf: anEdge ]
+	participantAssessments := participantOperations collect: [ :anOperation | anOperation assess ].
+	ownedMessageFlows := IdentitySet new.
+	participantAssessments do: [ :anAssessment |
+		anAssessment isApplicable ifTrue: [
+			ownedMessageFlows addAll: anAssessment removedMessageFlows ] ].
+	operations := OrderedCollection new.
+	diagramElements do: [ :aDiagramElement |
+		((context elements identityIncludes: aDiagramElement)
+			and: [ aDiagramElement isEdge ]) ifTrue: [
+			| messageFlow |
+			messageFlow := diagramContext modelElementOf: aDiagramElement.
+			(messageFlow notNil and: [
+				(context messageFlows identityIncludes: messageFlow)
+					and: [ (ownedMessageFlows identityIncludes: messageFlow) not ] ])
+				ifTrue: [
+					operations add: (CPAtelierRemoveMessageFlow
+						messageFlow: messageFlow
+						processMemento: processMemento) ] ] ].
+	^ operations
 ]
 
 { #category : 'private - resolving' }

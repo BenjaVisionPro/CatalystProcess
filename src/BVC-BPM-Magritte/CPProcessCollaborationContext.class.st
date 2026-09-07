@@ -105,3 +105,15 @@ CPProcessCollaborationContext >> mementoForMember: aModelElement [
 			inRelation: messageFlowsDescription ].
 	^ nil
 ]
+
+
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> processRefOf: aParticipant [
+	| participantMemento description |
+	participantMemento := collaborationMemento
+		childMementoFor: aParticipant
+		inRelation: participantsDescription.
+	description := participantMemento magritteDescription
+		detect: [ :each | each handlesSelector: #processRef ].
+	^ participantMemento readUsing: description
+]

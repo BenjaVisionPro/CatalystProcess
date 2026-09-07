@@ -22,6 +22,7 @@ Class {
 		'diagramSelection',
 		'selectionChangedBlock',
 		'diagramEditing',
+		'removeDiagramElementsBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
 		'insertionTargetEdge',
@@ -347,6 +348,18 @@ CPProcessVisualElement >> shouldRenderDiagramElement: aDiagramElement [
 
 
 { #category : 'private - visibility' }
+CPProcessVisualElement >> visualContainingDiagramElement: aDiagramElement [
+	(diagramElements notNil and: [ diagramElements identityIncludes: aDiagramElement ])
+		ifTrue: [ ^ self ].
+	shapeElementsByModelElement valuesDo: [ :aShapeElement |
+		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
+			(aNestedVisual visualContainingDiagramElement: aDiagramElement)
+				ifNotNil: [ :anOwner | ^ anOwner ] ] ].
+	^ nil
+]
+
+
+{ #category : 'private - visibility' }
 CPProcessVisualElement >> diagramShapeForModelElement: aModelElement [
 	| matches |
 	matches := diagramElements select: [ :each |
@@ -605,7 +618,7 @@ CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass s
 		diagramSelection selectOnly: aShape.
 		self refresh.
 		self updateSelectionAppearance.
-		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: replacement ] ].
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
 
@@ -1311,6 +1324,12 @@ CPProcessVisualElement >> selectedModelElement [
 ]
 
 
+{ #category : 'configuration' }
+CPProcessVisualElement >> removeDiagramElementsDo: aBlock [
+	removeDiagramElementsBlock := aBlock
+]
+
+
 { #category : 'selection' }
 CPProcessVisualElement >> selectionChangedDo: aBlock [
 	selectionChangedBlock := aBlock
@@ -1485,7 +1504,7 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 			diagramSelection selectOnly: aShape.
 			self refresh.
 			self updateSelectionAppearance.
-			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aFlowNode ] ]
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ]
 		ifFalse: [
 			self moveShape: aShape toBounds: proposedBounds ].
 	^ assessment
@@ -1925,7 +1944,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 		(self diagramShapeForModelElement: candidate) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		self updateSelectionAppearance.
-		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
 
@@ -2095,7 +2114,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 					marqueeElement := nil.
 					marqueeOrigin := nil.
 					selectionChangedBlock ifNotNil: [
-						:aBlock | aBlock value: self selectedModelElement ].
+						:aBlock | aBlock value: diagramSelection soleDiagramElement ].
 					anEvent consumed: true ] ]);
 		yourself.
 	self addChildFirst: dropSurface
@@ -2168,7 +2187,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		(rootVisual diagramElementForModelElementInTree: candidate) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
-		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
 { #category : 'private - creation' }
@@ -2254,7 +2273,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: 
 		diagramSelection selectOnly: aShape.
 		self refresh.
 		self updateSelectionAppearance.
-		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
 
@@ -3213,6 +3232,8 @@ CPProcessVisualElement >> installKeyboardHandler [
 CPProcessVisualElement >> removeSelection [
 	| operation assessment |
 	diagramSelection isEmpty ifTrue: [ ^ self ].
+	removeDiagramElementsBlock ifNotNil: [ :aBlock |
+		^ aBlock value: diagramSelection diagramElements ].
 
 	operation := diagramEditing remove: diagramSelection diagramElements.
 	operation ifNil: [ ^ self ].
@@ -3405,6 +3426,7 @@ CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 		rootVisual: rootVisual;
 		diagramSelection: diagramSelection;
 		selectionChangedDo: selectionChangedBlock;
+		removeDiagramElementsDo: removeDiagramElementsBlock;
 		diagramEditing: diagramEditing
 ]
 
@@ -3441,8 +3463,28 @@ CPProcessVisualElement >> diagramSelection: aDiagramSelection [
 ]
 
 { #category : 'selection' }
+CPProcessVisualElement >> diagramElementsInTree [
+	| elements |
+	elements := OrderedCollection new.
+	diagramElements ifNotNil: [ elements addAll: diagramElements ].
+	shapeElementsByModelElement valuesDo: [ :aShapeElement |
+		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
+			elements addAll: aNestedVisual diagramElementsInTree ] ].
+	^ elements
+]
+
+
+{ #category : 'selection' }
 CPProcessVisualElement >> selectedDiagramElements [
 	^ diagramSelection diagramElements
+]
+
+
+{ #category : 'selection' }
+CPProcessVisualElement >> stagedModelElementOfDiagramElement: aDiagramElement [
+	| owner |
+	owner := rootVisual visualContainingDiagramElement: aDiagramElement.
+	^ owner ifNotNil: [ :aVisual | aVisual stagedModelElementOf: aDiagramElement ]
 ]
 
 { #category : 'private - selection' }
@@ -3470,7 +3512,7 @@ CPProcessVisualElement >> selectOnlyDiagramElement: aDiagramElement [
 	diagramSelection selectOnly: aDiagramElement.
 	rootVisual updateSelectionAppearanceRecursively.
 	selectionChangedBlock ifNotNil: [ :aBlock |
-		aBlock value: self selectedModelElement ]
+		aBlock value: diagramSelection soleDiagramElement ]
 ]
 
 { #category : 'private - selection' }
@@ -3478,7 +3520,7 @@ CPProcessVisualElement >> toggleSelectionOfDiagramElement: aDiagramElement [
 	diagramSelection toggle: aDiagramElement.
 	rootVisual updateSelectionAppearanceRecursively.
 	selectionChangedBlock ifNotNil: [ :aBlock |
-		aBlock value: self selectedModelElement ]
+		aBlock value: diagramSelection soleDiagramElement ]
 ]
 
 { #category : 'private - selection' }

@@ -17,8 +17,8 @@ Class {
 		'diagramEditing',
 		'refreshAfterGeometryChangeBlock',
 		'removeDiagramElementsBlock',
+		'diagramSelection',
 		'selectionChangedBlock',
-		'selectedParticipant',
 		'participantElementsByParticipant',
 		'messageFlowVisualsByEdge',
 		'connectionPreviewLine',
@@ -39,11 +39,11 @@ Class {
 CPCollaborationVisualElement >> initialize [
 	super initialize.
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
+	diagramSelection := CPDiagramSelection new.
 	participantElementsByParticipant := IdentityDictionary new.
 	messageFlowVisualsByEdge := IdentityDictionary new.
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
-	selectedParticipant := nil.
 	viewportExtent := 1360 @ 800.
 	diagramBounds := 0 @ 0 extent: 0 @ 0.
 	diagramExtent := 0 @ 0.
@@ -75,6 +75,7 @@ CPCollaborationVisualElement >> diagramEditing [
 CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcessVisual [
 	processMemento := aMemento.
 	processVisual := aProcessVisual.
+	diagramSelection := processVisual diagramSelection.
 	processVisual diagramEditing: diagramEditing.
 	self refresh
 ]
@@ -139,7 +140,7 @@ CPCollaborationVisualElement >> refresh [
 	self updateCanvasExtent.
 	participantShapes do: [ :each | self addParticipantShape: each ].
 	messageFlowEdges do: [ :each | self addMessageFlowEdge: each ].
-	self updateParticipantSelectionAppearance
+	self updateSelectionAppearance
 ]
 
 { #category : 'private - building' }
@@ -180,35 +181,48 @@ CPCollaborationVisualElement >> installKeyboardHandler [
 					anEvent key = BlKeyboardKey delete
 						or: [ anEvent key = BlKeyboardKey backspace ] ])
 				ifTrue: [
-					selectedParticipant ifNotNil: [
-						| participantElement |
-						participantElement := participantElementsByParticipant
-							at: selectedParticipant
-							ifAbsent: [ nil ].
-						participantElement ifNotNil: [
-							removeDiagramElementsBlock ifNotNil: [ :aBlock |
-								aBlock value: { participantElement diagramShape } ] ] ].
+					removeDiagramElementsBlock ifNotNil: [ :aBlock |
+						diagramSelection isEmpty ifFalse: [
+							aBlock value: diagramSelection diagramElements ] ].
 					anEvent consumed: true ] ])
 ]
+
+{ #category : 'private - selection' }
+CPCollaborationVisualElement >> installSelectionOnMessageFlowElement: anElement edge: anEdge [
+	anElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			anEvent modifiers isShift
+				ifTrue: [ self toggleSelectionOfDiagramElement: anEdge ]
+				ifFalse: [ self selectOnlyDiagramElement: anEdge ].
+			self requestFocus.
+			anEvent consumed: true ])
+]
+
 
 { #category : 'private - selection' }
 CPCollaborationVisualElement >> installSelectionOnParticipantElement: anElement participant: aParticipant [
 	anElement addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
-			selectedParticipant := aParticipant.
-			self updateParticipantSelectionAppearance.
-			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aParticipant ].
+			anEvent modifiers isShift
+				ifTrue: [ self toggleSelectionOfDiagramElement: anElement diagramShape ]
+				ifFalse: [ self selectOnlyDiagramElement: anElement diagramShape ].
 			self requestFocus.
 			anEvent consumed: true ]).
 	anElement installBodyCursor
 ]
 
 { #category : 'private - selection' }
-CPCollaborationVisualElement >> updateParticipantSelectionAppearance [
-	participantElementsByParticipant keysAndValuesDo: [ :aParticipant :anElement |
+CPCollaborationVisualElement >> updateSelectionAppearance [
+	participantElementsByParticipant valuesDo: [ :anElement |
 		anElement
-			selected: aParticipant == selectedParticipant
+			selected: (diagramSelection includes: anElement diagramShape)
+			selectionColor: self selectionColor
+			normalColor: self poolBorderColor ].
+	messageFlowVisualsByEdge keysAndValuesDo: [ :anEdge :aVisual |
+		aVisual
+			selected: (diagramSelection includes: anEdge)
 			selectionColor: self selectionColor
 			normalColor: self poolBorderColor ]
 ]
@@ -220,8 +234,10 @@ CPCollaborationVisualElement >> installPositioningOnParticipantElement: anElemen
 		installPositioningFrom: anElement labelBand
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
-			selectedParticipant := anElement participant.
-			self updateParticipantSelectionAppearance ]
+			diagramSelection selectOnly: aShape.
+			self updateSelectionAppearance.
+			selectionChangedBlock ifNotNil: [ :aBlock |
+				aBlock value: diagramSelection soleDiagramElement ] ]
 		dragStartPosition: [ (self stagedBoundsOf: aShape) origin ]
 		dragged: [ :anEvent :delta | ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
@@ -267,7 +283,9 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 		color: self poolBorderColor
 		label: (self stagedLabelOfMessageFlow: messageFlow)
 		in: self diagramPresentationParent.
-	messageFlowVisualsByEdge at: anEdge put: visual
+	messageFlowVisualsByEdge at: anEdge put: visual.
+	visual hitElements do: [ :anElement |
+		self installSelectionOnMessageFlowElement: anElement edge: anEdge ]
 ]
 
 { #category : 'configuration' }
@@ -280,12 +298,38 @@ CPCollaborationVisualElement >> removeDiagramElementsDo: aBlock [
 	removeDiagramElementsBlock := aBlock
 ]
 
+
+
 { #category : 'selection' }
-CPCollaborationVisualElement >> clearParticipantSelection [
-	selectedParticipant ifNil: [ ^ self ].
-	selectedParticipant := nil.
-	self updateParticipantSelectionAppearance
+CPCollaborationVisualElement >> selectOnlyDiagramElement: aDiagramElement [
+	diagramSelection selectOnly: aDiagramElement.
+	self updateSelectionAppearance.
+	selectionChangedBlock ifNotNil: [ :aBlock |
+		aBlock value: diagramSelection soleDiagramElement ]
 ]
+
+
+{ #category : 'selection' }
+CPCollaborationVisualElement >> toggleSelectionOfDiagramElement: aDiagramElement [
+	diagramSelection toggle: aDiagramElement.
+	self updateSelectionAppearance.
+	selectionChangedBlock ifNotNil: [ :aBlock |
+		aBlock value: diagramSelection soleDiagramElement ]
+]
+
+
+{ #category : 'selection' }
+CPCollaborationVisualElement >> diagramSelection [
+	^ diagramSelection
+]
+
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> diagramSelection: aDiagramSelection [
+	diagramSelection := aDiagramSelection.
+	processVisual ifNotNil: [ :aVisual | aVisual diagramSelection: aDiagramSelection ]
+]
+
 
 { #category : 'configuration' }
 CPCollaborationVisualElement >> selectionChangedDo: aBlock [

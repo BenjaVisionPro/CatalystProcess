@@ -1,12 +1,13 @@
 "I render one Collaboration-owned CPMessageFlow CPEdge.
 
-For this first vertical slice the CPEdge waypoints are authoritative Collaboration DI. I render a dashed path, an open source circle, an open target arrow, and an optional label. I own presentation only; selection, editing, reconnect and Atelier operations are later slices."
+For this first vertical slice the CPEdge waypoints are authoritative Collaboration DI. I render a dashed path, an open source circle, an open target arrow, and an optional label. I own Collaboration edge presentation and its pointer hit surface. Selection itself is shared editor state; reconnect and direct edge editing remain later slices."
 Class {
 	#name : 'CPCollaborationMessageFlowVisual',
 	#superclass : 'Object',
 	#instVars : [
 		'diagramEdge',
 		'lineElements',
+		'hitElements',
 		'sourceMarker',
 		'labelHost'
 	],
@@ -26,6 +27,7 @@ CPCollaborationMessageFlowVisual class >> edge: anEdge [
 CPCollaborationMessageFlowVisual >> edge: anEdge [
 	diagramEdge := anEdge.
 	lineElements := OrderedCollection new.
+	hitElements := OrderedCollection new.
 	sourceMarker := nil.
 	labelHost := nil
 ]
@@ -56,9 +58,21 @@ CPCollaborationMessageFlowVisual >> renderWaypoints: someWaypoints color: aColor
 { #category : 'private - rendering' }
 CPCollaborationMessageFlowVisual >> addDashedPathFor: someWaypoints color: aColor in: aParent [
 	1 to: someWaypoints size - 1 do: [ :index |
+		| start finish hitLine |
+		start := someWaypoints at: index.
+		finish := someWaypoints at: index + 1.
+		hitLine := BlLineElement new
+			fromAnchor: (BlAbsolutePositionAnchor position: start);
+			toAnchor: (BlAbsolutePositionAnchor position: finish);
+			border: (BlBorder paint: Color transparent width: 8);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			yourself.
+		self identify: hitLine.
+		hitElements add: hitLine.
+		aParent addChild: hitLine.
 		self
-			addDashedSegmentFrom: (someWaypoints at: index)
-			to: (someWaypoints at: index + 1)
+			addDashedSegmentFrom: start
+			to: finish
 			color: aColor
 			in: aParent ]
 ]
@@ -171,4 +185,23 @@ CPCollaborationMessageFlowVisual >> sourceMarker [
 { #category : 'accessing - testing' }
 CPCollaborationMessageFlowVisual >> labelHost [
 	^ labelHost
+]
+
+
+{ #category : 'accessing - testing' }
+CPCollaborationMessageFlowVisual >> hitElements [
+	^ hitElements
+]
+
+
+{ #category : 'appearance' }
+CPCollaborationMessageFlowVisual >> selected: isSelected selectionColor: aSelectionColor normalColor: aNormalColor [
+	lineElements allButLast do: [ :aLine |
+		aLine border: (BlBorder
+			paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
+			width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ].
+	sourceMarker ifNotNil: [
+		sourceMarker border: (BlBorder
+			paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
+			width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ]
 ]
