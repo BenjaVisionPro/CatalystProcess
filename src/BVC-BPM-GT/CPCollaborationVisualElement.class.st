@@ -26,11 +26,7 @@ Class {
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
 		'viewportExtent',
-		'diagramBounds',
-		'diagramExtent',
-		'canvasExtent',
-		'diagramLayer',
-		'cameraSlack'
+		'diagramLayer'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -47,14 +43,11 @@ CPCollaborationVisualElement >> initialize [
 	connectionPreviewLine := nil.
 	connectionPreviewCursor := nil.
 	viewportExtent := 1360 @ 800.
+	planeGeometry := CPDiagramPlaneGeometry new.
 	diagramViewport := CPDiagramViewport
 		viewportExtent: viewportExtent
-		diagramExtent: 0 @ 0.
-	diagramBounds := 0 @ 0 extent: 0 @ 0.
-	diagramExtent := 0 @ 0.
-	canvasExtent := 1360 @ 800.
+		diagramExtent: planeGeometry diagramExtent.
 	diagramLayer := nil.
-	cameraSlack := 0 @ 0.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -137,8 +130,6 @@ CPCollaborationVisualElement >> refresh [
 		shapes: participantShapes
 		edges: messageFlowEdges
 		context: diagramContext.
-	diagramBounds := planeGeometry diagramBounds.
-	diagramExtent := planeGeometry diagramExtent.
 	diagramLayer := BlElement new
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -727,7 +718,7 @@ CPCollaborationVisualElement >> resolvedThemeColor: aThemeableColor [
 
 { #category : 'accessing - presentation' }
 CPCollaborationVisualElement >> canvasExtent [
-	^ canvasExtent
+	^ diagramViewport canvasExtent
 ]
 
 { #category : 'accessing - presentation' }
@@ -737,7 +728,7 @@ CPCollaborationVisualElement >> viewportExtent [
 
 { #category : 'accessing - presentation' }
 CPCollaborationVisualElement >> diagramExtent [
-	^ diagramExtent
+	^ planeGeometry diagramExtent
 ]
 
 { #category : 'configuration' }
@@ -750,12 +741,10 @@ CPCollaborationVisualElement >> viewportExtent: anExtent [
 CPCollaborationVisualElement >> updateCanvasExtent [
 	diagramViewport := CPDiagramViewport
 		viewportExtent: viewportExtent
-		diagramExtent: diagramExtent.
-	cameraSlack := diagramViewport cameraSlack.
-	canvasExtent := diagramViewport canvasExtent.
+		diagramExtent: planeGeometry diagramExtent.
 	self constraintsDo: [ :c |
-		c horizontal exact: canvasExtent x.
-		c vertical exact: canvasExtent y ].
+		c horizontal exact: diagramViewport canvasExtent x.
+		c vertical exact: diagramViewport canvasExtent y ].
 	self updateDiagramLayerGeometry
 ]
 
@@ -771,25 +760,24 @@ CPCollaborationVisualElement >> updateDiagramLayerGeometry [
 
 { #category : 'accessing - presentation' }
 CPCollaborationVisualElement >> cameraSlack [
-	^ cameraSlack
+	^ diagramViewport cameraSlack
 ]
 
 
 { #category : 'geometry' }
 CPCollaborationVisualElement >> diagramContentOffset [
-	planeGeometry ifNil: [ ^ 0 @ 0 ].
-	^ cameraSlack + planeGeometry normalizationOffset
+	^ diagramViewport cameraSlack + planeGeometry normalizationOffset
 ]
 
 
 { #category : 'geometry' }
 CPCollaborationVisualElement >> diagramBoundsOriginInContent [
-	^ self diagramContentOffset + diagramBounds origin
+	^ self diagramContentOffset + planeGeometry diagramBounds origin
 ]
 
 { #category : 'accessing - presentation' }
 CPCollaborationVisualElement >> diagramBounds [
-	^ diagramBounds
+	^ planeGeometry diagramBounds
 ]
 
 { #category : 'private - coordinates' }
