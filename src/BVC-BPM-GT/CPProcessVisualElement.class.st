@@ -1872,22 +1872,20 @@ CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedSourceOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := self flowElementMementoFor: aSequenceFlow.
-	flowMemento ifNil: [
+	| context |
+	context := self flowContainerContextContaining: aSequenceFlow.
+	context ifNil: [
 		self error: 'Sequence flow is not present in the staged Process/Sub-Process hierarchy.' ].
-	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
-	^ flowMemento readUsing: description
+	^ context stagedSourceOf: aSequenceFlow
 ]
 
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedTargetOf: aSequenceFlow [
-	| flowMemento description |
-	flowMemento := self flowElementMementoFor: aSequenceFlow.
-	flowMemento ifNil: [
+	| context |
+	context := self flowContainerContextContaining: aSequenceFlow.
+	context ifNil: [
 		self error: 'Sequence flow is not present in the staged Process/Sub-Process hierarchy.' ].
-	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
-	^ flowMemento readUsing: description
+	^ context stagedTargetOf: aSequenceFlow
 ]
 
 { #category : 'configuration' }
