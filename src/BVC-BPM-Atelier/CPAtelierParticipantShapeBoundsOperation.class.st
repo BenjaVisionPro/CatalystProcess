@@ -105,40 +105,23 @@ CPAtelierParticipantShapeBoundsOperation >> translateEndpointOfMessageFlowEdge: 
 
 { #category : 'private - staged state' }
 CPAtelierParticipantShapeBoundsOperation >> stagedSourceOf: aMessageFlow in: context [
-	| memento description |
-	memento := context collaborationMemento
-		childMementoFor: aMessageFlow
-		inRelation: context messageFlowsDescription.
-	description := memento magritteDescription
-		detect: [ :each | each handlesSelector: #sourceRef ].
-	^ memento readUsing: description
+	^ context stagedSourceOf: aMessageFlow
 ]
 
 { #category : 'private - staged state' }
 CPAtelierParticipantShapeBoundsOperation >> stagedTargetOf: aMessageFlow in: context [
-	| memento description |
-	memento := context collaborationMemento
-		childMementoFor: aMessageFlow
-		inRelation: context messageFlowsDescription.
-	description := memento magritteDescription
-		detect: [ :each | each handlesSelector: #targetRef ].
-	^ memento readUsing: description
+	^ context stagedTargetOf: aMessageFlow
 ]
 
 { #category : 'private - resolving' }
 CPAtelierParticipantShapeBoundsOperation >> endpoint: anEndpoint isRepresentedBy: aParticipant in: context [
-	| process participantMemento processRefDescription |
+	| process |
 	anEndpoint ifNil: [ ^ false ].
 	anEndpoint == aParticipant ifTrue: [ ^ true ].
 	anEndpoint isParticipant ifTrue: [ ^ false ].
 	process := anEndpoint owningProcess.
 	process ifNil: [ ^ false ].
-	participantMemento := context collaborationMemento
-		childMementoFor: aParticipant
-		inRelation: context participantsDescription.
-	processRefDescription := participantMemento magritteDescription
-		detect: [ :each | each handlesSelector: #processRef ].
-	^ (participantMemento readUsing: processRefDescription) == process
+	^ (context processRefOf: aParticipant) == process
 ]
 
 { #category : 'private - subclass responsibility' }

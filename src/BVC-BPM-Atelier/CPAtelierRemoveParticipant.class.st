@@ -89,34 +89,22 @@ CPAtelierRemoveParticipant >> applyAssessment: anAssessment [
 
 { #category : 'private - staged state' }
 CPAtelierRemoveParticipant >> stagedSourceOf: aMessageFlow in: context [
-	| memento description |
-	memento := context collaborationMemento childMementoFor: aMessageFlow inRelation: context messageFlowsDescription.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
-	^ memento readUsing: description
+	^ context stagedSourceOf: aMessageFlow
 ]
 
 { #category : 'private - staged state' }
 CPAtelierRemoveParticipant >> stagedTargetOf: aMessageFlow in: context [
-	| memento description |
-	memento := context collaborationMemento childMementoFor: aMessageFlow inRelation: context messageFlowsDescription.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
-	^ memento readUsing: description
+	^ context stagedTargetOf: aMessageFlow
 ]
 
 { #category : 'private - staged state' }
 CPAtelierRemoveParticipant >> stagedProcessRefOf: aParticipant in: context [
-	| memento description |
-	memento := context collaborationMemento childMementoFor: aParticipant inRelation: context participantsDescription.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #processRef ].
-	^ memento readUsing: description
+	^ context processRefOf: aParticipant
 ]
 
 { #category : 'private - staged state' }
 CPAtelierRemoveParticipant >> stagedModelElementOf: aDiagramElement in: context [
-	| memento description |
-	memento := context diagramMemento childMementoFor: aDiagramElement inRelation: context elementsDescription.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #modelElement ].
-	^ memento readUsing: description
+	^ context diagramContext modelElementOf: aDiagramElement
 ]
 
 { #category : 'private - resolving' }

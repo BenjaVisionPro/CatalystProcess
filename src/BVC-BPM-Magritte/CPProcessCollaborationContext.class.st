@@ -102,6 +102,28 @@ CPProcessCollaborationContext >> mementoForMember: aModelElement [
 ]
 
 
+{ #category : 'staged state' }
+CPProcessCollaborationContext >> stagedSourceOf: aMessageFlow [
+	| messageFlowMemento description |
+	messageFlowMemento := self mementoForMember: aMessageFlow.
+	messageFlowMemento ifNil: [ ^ nil ].
+	description := messageFlowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #sourceRef ].
+	^ messageFlowMemento readUsing: description
+]
+
+
+{ #category : 'staged state' }
+CPProcessCollaborationContext >> stagedTargetOf: aMessageFlow [
+	| messageFlowMemento description |
+	messageFlowMemento := self mementoForMember: aMessageFlow.
+	messageFlowMemento ifNil: [ ^ nil ].
+	description := messageFlowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #targetRef ].
+	^ messageFlowMemento readUsing: description
+]
+
+
 { #category : 'accessing' }
 CPProcessCollaborationContext >> processRefOf: aParticipant [
 	| participantMemento description |

@@ -1270,6 +1270,8 @@ CPProcessAtelierExamples >> collaborationContextReadsCurrentStagedCollections [
 	self assert: assessment isApplicable.
 	self assert: context messageFlows size equals: 1.
 	self assert: context messageFlows first == assessment messageFlow.
+	self assert: (context stagedSourceOf: assessment messageFlow) == (fixture at: 3).
+	self assert: (context stagedTargetOf: assessment messageFlow) == (fixture at: 6).
 	self assert: context elements size equals: 3.
 	self assert: (context elements identityIncludes: assessment edge).
 	^ context
