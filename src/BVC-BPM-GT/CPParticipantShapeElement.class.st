@@ -139,3 +139,10 @@ CPParticipantShapeElement >> normalBorderWidth [
 CPParticipantShapeElement >> selectedBorderWidth [
 	^ 3
 ]
+
+{ #category : 'appearance' }
+CPParticipantShapeElement >> selected: isSelected selectionColor: aSelectionColor normalColor: aNormalColor [
+	self border: (BlBorder
+		paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
+		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
+]
