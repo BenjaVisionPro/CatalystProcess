@@ -91,3 +91,17 @@ CPProcessCollaborationContext >> elementsDescription: anObject [ elementsDescrip
 CPProcessCollaborationContext >> elements [
 	^ diagramMemento readUsing: elementsDescription
 ]
+
+
+{ #category : 'resolving' }
+CPProcessCollaborationContext >> mementoForMember: aModelElement [
+	(self participants identityIncludes: aModelElement) ifTrue: [
+		^ collaborationMemento
+			childMementoFor: aModelElement
+			inRelation: participantsDescription ].
+	(self messageFlows identityIncludes: aModelElement) ifTrue: [
+		^ collaborationMemento
+			childMementoFor: aModelElement
+			inRelation: messageFlowsDescription ].
+	^ nil
+]

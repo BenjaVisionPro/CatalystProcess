@@ -42,12 +42,11 @@ Class {
 
 { #category : 'private - building' }
 CPProcessPresentation >> prepareHostElement [
-	| surfaceColor collaboration collaborationDiagram |
+	| surfaceColor collaborationContext collaborationDiagram |
 	diagramCameraInitialized := false.
 	surfaceColor := self workspaceSurfaceColor.
-	collaboration := self stagedDefinitionalCollaboration.
-	collaborationDiagram := collaboration ifNotNil: [
-		self stagedDiagramOfDefinitionalCollaboration: collaboration ].
+	collaborationContext := self collaborationContext.
+	collaborationDiagram := collaborationContext ifNotNil: [ :aContext | aContext diagram ].
 
 	processDiagramElement := self
 		newConfiguredProcessDiagramElementCollaborationHosted: collaborationDiagram notNil.
@@ -159,11 +158,10 @@ CPProcessPresentation >> updateDiagramViewportExtent [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> ensureCollaborationDiagramPresentation [
-	| collaboration collaborationDiagram scrollable previousGraphViewportOrigin viewport newGraphContentOrigin targetScrollPosition scrollDelta |
-	collaboration := self stagedDefinitionalCollaboration.
-	collaboration ifNil: [ ^ self ].
-	collaborationDiagram := self stagedDiagramOfDefinitionalCollaboration: collaboration.
-	collaborationDiagram ifNil: [ ^ self ].
+	| collaborationContext collaborationDiagram scrollable previousGraphViewportOrigin viewport newGraphContentOrigin targetScrollPosition scrollDelta |
+	collaborationContext := self collaborationContext.
+	collaborationContext ifNil: [ ^ self ].
+	collaborationDiagram := collaborationContext diagram.
 
 	collaborationDiagramElement ifNil: [
 		"The first Pool changes presentation topology but must not change the
@@ -294,25 +292,17 @@ CPProcessPresentation >> restoreStandaloneProcessDiagramPreservingCamera [
 ]
 
 { #category : 'private - collaboration' }
-CPProcessPresentation >> stagedDefinitionalCollaboration [
-	| description |
-	description := self memento magritteDescription
-		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
-	^ self memento readUsing: description
+CPProcessPresentation >> collaborationContext [
+	^ CPProcessCollaborationContext inRootMemento: self memento
 ]
 
 { #category : 'private - collaboration' }
-CPProcessPresentation >> stagedDiagramOfDefinitionalCollaboration: aCollaboration [
-	| collaborationDescription collaborationMemento diagramDescription |
-	collaborationDescription := self memento magritteDescription
-		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
-	collaborationMemento := self memento
-		childMementoFor: aCollaboration
-		inRelation: collaborationDescription.
-	diagramDescription := collaborationMemento magritteDescription
-		detect: [ :each | each handlesSelector: #diagram ].
-	^ collaborationMemento readUsing: diagramDescription
+CPProcessPresentation >> stagedDefinitionalCollaboration [
+	^ self collaborationContext
+		ifNil: [ nil ]
+		ifNotNil: [ :aContext | aContext collaboration ]
 ]
+
 
 
 { #category : 'private - selection' }
@@ -353,62 +343,21 @@ CPProcessPresentation >> processSelectionChanged: aModelElement [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> mementoForModelElement: aModelElement [
-	| selectedMemento |
+	| flowContext selectedMemento collaborationContext |
 	aModelElement == self memento model ifTrue: [ ^ self memento ].
-	selectedMemento := self
-		mementoForFlowElement: aModelElement
-		inContainerMemento: self memento.
-	selectedMemento ifNil: [
-		selectedMemento := self mementoForParticipant: aModelElement ].
-	selectedMemento ifNil: [
-		self error: 'Selected model element is not part of the staged Process, Sub-Process, or definitional Collaboration.' ].
-	^ selectedMemento
+
+	flowContext := CPProcessFlowContainerContext rootFor: self memento.
+	selectedMemento := flowContext mementoForFlowElement: aModelElement.
+	selectedMemento ifNotNil: [ ^ selectedMemento ].
+
+	collaborationContext := self collaborationContext.
+	selectedMemento := collaborationContext ifNotNil: [ :aContext |
+		aContext mementoForMember: aModelElement ].
+	selectedMemento ifNotNil: [ ^ selectedMemento ].
+
+	self error: 'Selected model element is not part of the staged Process, Sub-Process, or definitional Collaboration.'
 ]
 
-{ #category : 'private - selection' }
-CPProcessPresentation >> mementoForParticipant: aModelElement [
-	| collaborationDescription collaboration collaborationMemento participantsDescription participants |
-	collaborationDescription := self memento magritteDescription
-		detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
-	collaboration := self memento readUsing: collaborationDescription.
-	collaboration ifNil: [ ^ nil ].
-	collaborationMemento := self memento
-		childMementoFor: collaboration
-		inRelation: collaborationDescription.
-	participantsDescription := collaborationMemento magritteDescription
-		detect: [ :each | each handlesSelector: #participants ].
-	participants := collaborationMemento readUsing: participantsDescription.
-	(participants identityIncludes: aModelElement) ifFalse: [ ^ nil ].
-	^ collaborationMemento
-		childMementoFor: aModelElement
-		inRelation: participantsDescription
-]
-
-{ #category : 'private - selection' }
-CPProcessPresentation >> mementoForFlowElement: aFlowElement inContainerMemento: aContainerMemento [
-	| relationDescription stagedFlowElements |
-	relationDescription := aContainerMemento magritteDescription
-		detect: [ :each | each handlesSelector: #flowElements ].
-	stagedFlowElements := aContainerMemento readUsing: relationDescription.
-
-	(stagedFlowElements identityIncludes: aFlowElement) ifTrue: [
-		^ aContainerMemento
-			childMementoFor: aFlowElement
-			inRelation: relationDescription ].
-
-	stagedFlowElements do: [ :each |
-		each isSubProcess ifTrue: [
-			| subProcessMemento nestedMemento |
-			subProcessMemento := aContainerMemento
-				childMementoFor: each
-				inRelation: relationDescription.
-			nestedMemento := self
-				mementoForFlowElement: aFlowElement
-				inContainerMemento: subProcessMemento.
-			nestedMemento ifNotNil: [ ^ nestedMemento ] ] ].
-
-	^ nil
-]
 
 { #category : 'private - selection' }
 CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [

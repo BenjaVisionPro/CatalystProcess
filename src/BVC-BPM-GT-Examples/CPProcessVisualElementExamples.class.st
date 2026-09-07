@@ -1739,3 +1739,63 @@ CPProcessVisualElementExamples >> collaborationGeometryRefreshCanBeDelegated [
 	^ visual
 ]
 
+
+
+{ #category : 'examples - presentation' }
+CPProcessVisualElementExamples >> processPresentationResolvesNestedFlowElementThroughStagedContext [
+	<gtExample>
+	| fixture memento flowElementsDescription subProcess task subProcessMemento nestedDescription presentation resolvedMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+
+	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
+	task := CPUserTask new label: 'Inner task'; yourself.
+	subProcess addFlowElement: task.
+	memento
+		write: ((memento readUsing: flowElementsDescription) asOrderedCollection copy
+			add: subProcess;
+			yourself)
+		using: flowElementsDescription.
+	subProcessMemento := memento
+		childMementoFor: subProcess
+		inRelation: flowElementsDescription.
+	nestedDescription := self descriptionFor: #flowElements in: subProcessMemento.
+	subProcessMemento write: subProcess flowElements using: nestedDescription.
+
+	presentation := CPProcessPresentation new.
+	presentation memento: memento.
+	resolvedMemento := presentation mementoForModelElement: task.
+
+	self assert: resolvedMemento model == task.
+	self assert: resolvedMemento == (subProcessMemento
+		childMementoFor: task
+		inRelation: nestedDescription).
+	^ resolvedMemento
+]
+
+{ #category : 'examples - presentation' }
+CPProcessVisualElementExamples >> processPresentationResolvesStagedMessageFlowThroughCollaborationContext [
+	<gtExample>
+	| fixture memento operation assessment presentation resolvedMemento context |
+	fixture := self collaborationFixture.
+	memento := fixture at: 2.
+	operation := CPAtelierConnectMessageFlow
+		source: (fixture at: 3)
+		target: (fixture at: 6)
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+
+	presentation := CPProcessPresentation new.
+	presentation memento: memento.
+	resolvedMemento := presentation mementoForModelElement: assessment messageFlow.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: resolvedMemento model == assessment messageFlow.
+	self assert: resolvedMemento == (context collaborationMemento
+		childMementoFor: assessment messageFlow
+		inRelation: context messageFlowsDescription).
+	^ resolvedMemento
+]

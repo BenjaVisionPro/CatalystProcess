@@ -70,6 +70,15 @@ CPProcessFlowContainerContext >> contextContainingFlowElement: aFlowElement [
 	^ nil
 ]
 
+
+{ #category : 'resolving' }
+CPProcessFlowContainerContext >> mementoForFlowElement: aFlowElement [
+	| context |
+	context := self contextContainingFlowElement: aFlowElement.
+	context ifNil: [ ^ nil ].
+	^ context childMementoFor: aFlowElement
+]
+
 { #category : 'resolving' }
 CPProcessFlowContainerContext >> childContextForSubProcess: aSubProcess [
 	| childMemento childDescription |
