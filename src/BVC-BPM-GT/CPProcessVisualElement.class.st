@@ -322,6 +322,11 @@ CPProcessVisualElement >> refresh [
 		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
+	"Boundary Event presentation depends on the attached Activity presentation.
+	Build host shapes first regardless of DI collection order."
+	shapes :=
+		(shapes reject: [ :each | (self stagedModelElementOf: each) isBoundaryEvent ]),
+		(shapes select: [ :each | (self stagedModelElementOf: each) isBoundaryEvent ]).
 	planeGeometry := CPDiagramPlaneGeometry
 		shapes: shapes
 		edges: edges
@@ -1693,14 +1698,16 @@ CPProcessVisualElement >> stagedAttachedActivityOf: aBoundaryEvent [
 
 { #category : 'private - geometry' }
 CPProcessVisualElement >> displayBoundsForBoundaryEvent: aBoundaryEvent stagedBounds: stagedBounds [
-	| attachedActivity attachedActivityShape activityBounds center extent |
+	| attachedActivity attachedActivityElement activityBounds center extent |
 	extent := self extentForModelElement: aBoundaryEvent.
 	center := stagedBounds center.
 	attachedActivity := self stagedAttachedActivityOf: aBoundaryEvent.
 	attachedActivity ifNil: [ ^ (center - (extent / 2)) extent: extent ].
-	attachedActivityShape := self diagramShapeForModelElement: attachedActivity.
-	attachedActivityShape ifNil: [ ^ (center - (extent / 2)) extent: extent ].
-	activityBounds := self stagedBoundsOf: attachedActivityShape.
+	attachedActivityElement := shapeElementsByModelElement
+		at: attachedActivity
+		ifAbsent: [ nil ].
+	attachedActivityElement ifNil: [ ^ (center - (extent / 2)) extent: extent ].
+	activityBounds := self stagedBoundsOf: attachedActivityElement diagramShape.
 	center := self nearestPointOnBoundaryOf: activityBounds to: center.
 	^ (center - (extent / 2)) extent: extent
 ]
