@@ -454,11 +454,6 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	self installPositioningOn: element for: aShape.
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
 		self installReplacementOnShape: element for: modelElement shape: aShape ].
-	modelElement isActivity ifTrue: [
-		self
-			installBoundaryEventPaletteAttachmentOn: element
-			for: modelElement
-			shape: aShape ].
 	self installConnectionOn: element for: modelElement.
 	self installTaskTypePopupOn: element for: modelElement shape: aShape.
 	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
@@ -2238,24 +2233,11 @@ CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowEle
 
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> installBoundaryEventPaletteAttachmentOn: anActivityElement for: anActivity shape: anActivityShape [
-	diagramEditing allowsEditing ifFalse: [ ^ self ].
-	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
-		acceptItemsSuchThat: [ :aDragItem :aDropArea |
-			self
-				acceptsBoundaryEventPaletteDragItem: aDragItem
-				attachedToShape: anActivityShape ];
-		whenDragEnteredDo: [ :anEvent |
-			self boundaryEventPaletteTargetModelElement: anActivity ];
-		whenDragLeftDo: [ :anEvent |
-			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
-				self boundaryEventPaletteTargetModelElement: nil ] ];
-		whenDroppedDo: [ :anEvent |
-			self boundaryEventPaletteTargetModelElement: nil.
-			self
-				dropBoundaryEventPaletteEvent: anEvent
-				attachedToShape: anActivityShape ];
-		yourself)
+CPProcessVisualElement >> isBoundaryEventPaletteDragItem: aDragItem [
+	| candidate |
+	candidate := aDragItem domainObject.
+	candidate isParticipant ifTrue: [ ^ false ].
+	^ candidate isBoundaryEvent
 ]
 
 { #category : 'private - creation' }
@@ -2573,11 +2555,59 @@ CPProcessVisualElement >> defaultParticipantExtent [
 { #category : 'private - replacement' }
 CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNode shape: aShape [
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
-	aShapeElement
-		installPaletteReplacementAccepting: [ :aDragItem |
-			self acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape ]
-		dropped: [ :anEvent |
-			self dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape ]
+	aFlowNode isActivity
+		ifTrue: [
+			self
+				installActivityPaletteDropOn: aShapeElement
+				for: aFlowNode
+				shape: aShape ]
+		ifFalse: [
+			aShapeElement
+				installPaletteReplacementAccepting: [ :aDragItem |
+					self acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape ]
+				dropped: [ :anEvent |
+					self dropPaletteEvent: anEvent replacing: aFlowNode shape: aShape ] ]
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: anActivity shape: anActivityShape [
+	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			(self isBoundaryEventPaletteDragItem: aDragItem)
+				ifTrue: [
+					self
+						acceptsBoundaryEventPaletteDragItem: aDragItem
+						attachedToShape: anActivityShape ]
+				ifFalse: [
+					self
+						acceptsPaletteDragItem: aDragItem
+						replacing: anActivity
+						shape: anActivityShape ] ];
+		whenDragEnteredDo: [ :anEvent |
+			(anEvent mayAcceptItems and: [
+				anEvent items size = 1 and: [
+					self isBoundaryEventPaletteDragItem: anEvent items first ] ]) ifTrue: [
+				self boundaryEventPaletteTargetModelElement: anActivity ] ];
+		whenDragLeftDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
+				self boundaryEventPaletteTargetModelElement: nil ] ];
+		whenDroppedDo: [ :anEvent |
+			| candidate |
+			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
+				self boundaryEventPaletteTargetModelElement: nil ].
+			anEvent items size = 1 ifTrue: [
+				candidate := anEvent items first domainObject.
+				(self isBoundaryEventPaletteDragItem: anEvent items first)
+					ifTrue: [
+						self
+							dropBoundaryEventPaletteEvent: anEvent
+							attachedToShape: anActivityShape ]
+					ifFalse: [
+						self
+							dropPaletteEvent: anEvent
+							replacing: anActivity
+							shape: anActivityShape ] ] ];
+		yourself)
 ]
 
 { #category : 'private - replacement' }

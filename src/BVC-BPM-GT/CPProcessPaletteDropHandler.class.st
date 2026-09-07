@@ -1,39 +1,15 @@
 "I adapt Bloc drop handling for Process palette targets.
 
-BlDropHandler consumes every drag that crosses its target. Process nodes are themselves draggable, so I enter the inherited drop protocol only for drags originating from the single enclosing Atelier palette."
+BlDropHandler consumes every drag that crosses its target. Process nodes are themselves draggable, so I enter the inherited drop protocol only for drags originating from the single enclosing Atelier palette.
+
+I do not cache delegate acceptance from BlItemsEnteredEvent. Bloc dispatches that event on the target element, so every BlDropHandler installed on that element receives it regardless of which delegate produced it. Process therefore installs one palette drop handler per concrete element drop surface and composes competing meanings inside that handler."
 Class {
 	#name : 'CPProcessPaletteDropHandler',
 	#superclass : 'BlDropHandler',
-	#instVars : [
-		'acceptsCurrentDrag'
-	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
 }
-
-
-{ #category : 'initialization' }
-CPProcessPaletteDropHandler >> initialize [
-	super initialize.
-	acceptsCurrentDrag := false
-]
-
-{ #category : 'event handling' }
-CPProcessPaletteDropHandler >> itemsEnteredEvent: anEvent [
-	acceptsCurrentDrag := anEvent mayAcceptItems.
-	super itemsEnteredEvent: anEvent
-]
-
-{ #category : 'event handling' }
-CPProcessPaletteDropHandler >> itemsLeftEvent: anEvent [
-	"Do not clear acceptsCurrentDrag here. Bloc may emit ItemsLeft as part of
-	the drop lifecycle before BlDropEvent is delivered to this handler. The
-	compatibility belongs to this drag/target pair and is refreshed by the next
-	ItemsEnteredEvent. Clearing it here makes an accepted hover impossible to
-	drop."
-	super itemsLeftEvent: anEvent
-]
 
 { #category : 'private - testing' }
 CPProcessPaletteDropHandler >> isPaletteDragEvent: aDragEvent [
@@ -50,8 +26,7 @@ CPProcessPaletteDropHandler >> dragEnterEvent: anEvent [
 
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> dragEvent: anEvent [
-	((self isPaletteDragEvent: anEvent) and: [ acceptsCurrentDrag ])
-		ifTrue: [ super dragEvent: anEvent ]
+	(self isPaletteDragEvent: anEvent) ifTrue: [ super dragEvent: anEvent ]
 ]
 
 { #category : 'event handling' }
@@ -61,8 +36,5 @@ CPProcessPaletteDropHandler >> dragLeaveEvent: anEvent [
 
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> dropEvent: anEvent [
-	((self isPaletteDragEvent: anEvent) and: [ acceptsCurrentDrag ])
-		ifTrue: [
-			super dropEvent: anEvent.
-			acceptsCurrentDrag := false ]
+	(self isPaletteDragEvent: anEvent) ifTrue: [ super dropEvent: anEvent ]
 ]
