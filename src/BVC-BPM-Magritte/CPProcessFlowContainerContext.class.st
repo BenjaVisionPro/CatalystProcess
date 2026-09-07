@@ -9,8 +9,8 @@ Class {
 		'memento',
 		'flowElementsDescription'
 	],
-	#category : 'BVC-BPM-Atelier-Diagram',
-	#package : 'BVC-BPM-Atelier',
+	#category : 'BVC-BPM-Magritte-Diagram',
+	#package : 'BVC-BPM-Magritte',
 	#tag : 'Diagram'
 }
 
