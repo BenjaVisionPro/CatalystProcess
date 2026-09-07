@@ -1950,7 +1950,7 @@ CPProcessAtelierExamples >> movingActivityCarriesAttachedBoundaryEventAndItsEdge
 		equals: (140 @ 130 extent: 140 @ 80).
 	self assert: (self stagedBoundsOf: fixture ninth processMemento: memento)
 		equals: (119 @ 149 extent: 42 @ 42).
-	self assert: (self stagedWaypointsOf: fixture eleventh processMemento: memento)
+	self assert: (self stagedWaypointsOf: (fixture at: 11) processMemento: memento)
 		equals: ({ 140 @ 170. 350 @ 140 } asOrderedCollection).
 	self assert: fixture ninth bounds equals: (79 @ 119 extent: 42 @ 42).
 	^ assessment
@@ -1986,7 +1986,7 @@ CPProcessAtelierExamples >> removingActivityOwnsAttachedBoundaryEventAndIncident
 	self assert: (context stagedFlowElements identityIncludes: fixture fifth).
 	self assert: (diagramContext elements identityIncludes: fixture eighth) not.
 	self assert: (diagramContext elements identityIncludes: fixture ninth) not.
-	self assert: (diagramContext elements identityIncludes: fixture eleventh) not.
+	self assert: (diagramContext elements identityIncludes: (fixture at: 11)) not.
 	self assert: (diagramContext elements identityIncludes: fixture tenth).
 	^ assessment
 ]
@@ -1999,7 +1999,7 @@ CPProcessAtelierExamples >> removingSelectedActivitySuppressesDependentBoundaryE
 	memento := fixture second.
 	diagramDescription := self descriptionFor: #diagram in: memento.
 	operation := CPAtelierRemoveDiagramElements
-		diagramElements: { fixture eighth. fixture ninth. fixture eleventh }
+		diagramElements: { fixture eighth. fixture ninth. (fixture at: 11) }
 		processMemento: memento
 		diagramDescription: diagramDescription.
 

@@ -119,8 +119,9 @@ CPProcessFlowContainerContext >> stagedAttachedToOf: aBoundaryEvent [
 { #category : 'staged state' }
 CPProcessFlowContainerContext >> attachedBoundaryEventsFor: anActivity [
 	^ self stagedFlowElements select: [ :each |
-		each isBoundaryEvent and: [
-			(self stagedAttachedToOf: each) == anActivity ] ]
+		each isSequenceFlow not and: [
+			each isBoundaryEvent and: [
+				(self stagedAttachedToOf: each) == anActivity ] ] ]
 ]
 
 { #category : 'staged state' }
