@@ -3344,13 +3344,19 @@ CPProcessVisualElement >> clearInteractionAndSelection [
 
 { #category : 'private - interaction' }
 CPProcessVisualElement >> cancelInteraction [
-	connectionSourceModelElement ifNotNil: [
-		connectionSourceModelElement := nil.
-		connectionTargetModelElement := nil.
-		insertionTargetEdge := nil.
-		self updateDiagramAppearance.
-		^ self ].
-	self clearInteractionAndSelection
+	(self hasActiveTransientInteraction) ifFalse: [ ^ self ].
+	connectionSourceModelElement := nil.
+	connectionTargetModelElement := nil.
+	insertionTargetEdge := nil.
+	self updateDiagramAppearance
+]
+
+
+{ #category : 'private - interaction' }
+CPProcessVisualElement >> hasActiveTransientInteraction [
+	^ connectionSourceModelElement notNil
+		or: [ connectionTargetModelElement notNil
+		or: [ insertionTargetEdge notNil ] ]
 ]
 
 { #category : 'private - labels' }

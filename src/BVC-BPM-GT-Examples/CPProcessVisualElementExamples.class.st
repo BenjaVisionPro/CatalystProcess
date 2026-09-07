@@ -26,6 +26,24 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 ]
 
 { #category : 'examples - selection' }
+CPProcessVisualElementExamples >> idleEscapePreservesDiagramSelection [
+	<gtExample>
+	| fixture visual task taskShape |
+	fixture := self fixture.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+
+	visual selectOnly: task.
+	visual cancelInteraction.
+
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == taskShape.
+	^ visual
+]
+
+
+{ #category : 'examples - selection' }
 CPProcessVisualElementExamples >> transientConnectionStateDoesNotChangeDiagramSelection [
 	<gtExample>
 	| fixture visual start task taskShape |
