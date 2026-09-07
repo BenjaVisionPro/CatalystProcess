@@ -2260,32 +2260,6 @@ CPProcessVisualElement >> acceptsBoundaryEventPaletteDragItem: aDragItem attache
 	^ assessment isApplicable
 ]
 
-{ #category : 'private - creation' }
-CPProcessVisualElement >> dropBoundaryEventPaletteEvent: anEvent attachedToShape: anActivityShape [
-	| dragItem candidate globalPoint localPoint activityBounds extent boundaryBounds operation assessment |
-	anEvent items size = 1 ifFalse: [ ^ self ].
-	dragItem := anEvent items first.
-	candidate := dragItem domainObject.
-	globalPoint := anEvent currentTarget localPointToGlobal: anEvent position.
-	localPoint := self diagramPointForGlobalPoint: globalPoint.
-	activityBounds := self stagedBoundsOf: anActivityShape.
-	extent := self extentForModelElement: candidate.
-	boundaryBounds := ((self nearestPointOnBoundaryOf: activityBounds to: localPoint) - (extent / 2)) extent: extent.
-	operation := diagramEditing
-		createBoundaryEvent: candidate
-		attachedToShape: anActivityShape
-		bounds: boundaryBounds.
-	operation ifNil: [ ^ nil ].
-	assessment := operation apply.
-	assessment isApplicable ifTrue: [
-		self refreshEditor.
-		(rootVisual diagramElementForModelElementInTree: candidate) ifNotNil: [ :aShape |
-			diagramSelection selectOnly: aShape ].
-		rootVisual updateSelectionAppearanceRecursively.
-		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
-	^ assessment
-]
-
 { #category : 'private - interaction' }
 CPProcessVisualElement >> boundaryEventPaletteTargetModelElement: aModelElement [
 	boundaryEventPaletteTargetModelElement == aModelElement ifTrue: [ ^ self ].
@@ -2407,7 +2381,8 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		assessment := operation assess.
 		^ assessment isApplicable ].
 
-	candidate isBoundaryEvent ifTrue: [ ^ false ].
+	candidate isBoundaryEvent ifTrue: [
+		^ shapeElementsByModelElement keys anySatisfy: [ :each | each isActivity ] ].
 
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
@@ -2571,24 +2546,6 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: anActivity shape: anActivityShape [
-	| installBoundaryDropOn |
-	installBoundaryDropOn := [ :aTargetElement |
-		aTargetElement addEventHandler: (CPProcessPaletteDropHandler new
-			acceptItemsSuchThat: [ :aDragItem :aDropArea |
-				self
-					acceptsBoundaryEventPaletteDragItem: aDragItem
-					attachedToShape: anActivityShape ];
-			whenDragEnteredDo: [ :anEvent |
-				(anEvent mayAcceptItems and: [
-					anEvent items size = 1 ]) ifTrue: [
-					self boundaryEventPaletteTargetModelElement: anActivity ] ];
-			whenDroppedDo: [ :anEvent |
-				self boundaryEventPaletteTargetModelElement: nil.
-				self
-					dropBoundaryEventPaletteEvent: anEvent
-					attachedToShape: anActivityShape ];
-			yourself) ].
-
 	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			(self isBoundaryEventPaletteDragItem: aDragItem)
@@ -2610,43 +2567,17 @@ CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: a
 			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
 				self boundaryEventPaletteTargetModelElement: nil ] ];
 		whenDroppedDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
+				self boundaryEventPaletteTargetModelElement: nil ].
 			anEvent items size = 1 ifTrue: [
 				(self isBoundaryEventPaletteDragItem: anEvent items first)
-					ifTrue: [
-						self boundaryEventPaletteTargetModelElement: nil.
-						self
-							dropBoundaryEventPaletteEvent: anEvent
-							attachedToShape: anActivityShape ]
+					ifTrue: [ self dropPaletteEvent: anEvent ]
 					ifFalse: [
 						self
 							dropPaletteEvent: anEvent
 							replacing: anActivity
 							shape: anActivityShape ] ] ];
-		yourself).
-
-	(self boundaryEventPaletteDropHaloForExtent: anActivityElement extent) do: [ :eachBounds |
-		| halo |
-		halo := BlElement new
-			geometry: BlRectangleGeometry new;
-			background: Color transparent;
-			constraintsDo: [ :c | c ignoreByLayout ];
-			relocate: eachBounds origin;
-			extent: eachBounds extent;
-			yourself.
-		installBoundaryDropOn value: halo.
-		anActivityElement addChildFirst: halo ]
-]
-
-{ #category : 'private - geometry' }
-CPProcessVisualElement >> boundaryEventPaletteDropHaloForExtent: anExtent [
-	| halfWidth fullWidth |
-	halfWidth := 8.
-	fullWidth := halfWidth * 2.
-	^ {
-		0 @ halfWidth negated extent: anExtent x @ fullWidth.
-		0 @ (anExtent y - halfWidth) extent: anExtent x @ fullWidth.
-		halfWidth negated @ 0 extent: fullWidth @ anExtent y.
-		(anExtent x - halfWidth) @ 0 extent: fullWidth @ anExtent y }
+		yourself)
 ]
 
 { #category : 'private - replacement' }

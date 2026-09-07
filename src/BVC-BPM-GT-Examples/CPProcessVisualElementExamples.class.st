@@ -2076,17 +2076,4 @@ CPProcessVisualElementExamples >> boundaryEventResizeGeometryPreservesHostSideAn
 ]
 
 
-{ #category : 'examples - boundary events' }
-CPProcessVisualElementExamples >> boundaryEventPaletteDropHaloStraddlesActivityBorder [
-	<gtExample>
-	| visual zones |
-	visual := CPProcessVisualElement new.
-	zones := visual boundaryEventPaletteDropHaloForExtent: 140 @ 80.
 
-	self assert: zones size equals: 4.
-	self assert: zones first equals: (0 @ -8 extent: 140 @ 16).
-	self assert: zones second equals: (0 @ 72 extent: 140 @ 16).
-	self assert: zones third equals: (-8 @ 0 extent: 16 @ 80).
-	self assert: zones fourth equals: (132 @ 0 extent: 16 @ 80).
-	^ zones
-]
