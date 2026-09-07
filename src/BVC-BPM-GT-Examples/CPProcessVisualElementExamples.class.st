@@ -73,13 +73,13 @@ CPProcessVisualElementExamples >> marqueeRequiresFullEdgeEnclosure [
 	firstEdge := fixture at: 12.
 	visual := self visualElementForFixture: fixture.
 
-	partialRectangle := 120 @ 80 corner: 150 @ 100.
+	partialRectangle := 140 @ 110 corner: 180 @ 130.
 	visual
 		updateMarqueeSelectionFor: partialRectangle
 		baseSelection: #().
 	self assert: (visual selectedDiagramElements identityIncludes: firstEdge) not.
 
-	fullRectangle := 120 @ 80 corner: 182 @ 102.
+	fullRectangle := 140 @ 110 corner: 222 @ 130.
 	visual
 		updateMarqueeSelectionFor: fullRectangle
 		baseSelection: #().
