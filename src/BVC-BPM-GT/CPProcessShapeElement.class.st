@@ -673,6 +673,15 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 	aParent addChild: externalLabelHost
 ]
 
+{ #category : 'containment' }
+CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalPosition: aPoint [
+	aBoundaryElement
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: aPoint.
+	self addChild: aBoundaryElement
+]
+
+
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
 	modelElement isSubProcess ifFalse: [ ^ self ].

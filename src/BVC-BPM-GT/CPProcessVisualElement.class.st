@@ -298,7 +298,7 @@ CPProcessVisualElement >> memento [
 
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram elements shapes edges |
+	| diagram elements shapes edges ordinaryShapes boundaryShapes |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
@@ -332,8 +332,16 @@ CPProcessVisualElement >> refresh [
 	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
 	self updateCanvasExtent.
 	self addPaletteDropSurface.
-	shapes do: [ :each | self addShapeFor: each ].
-	self hostBoundaryEventShapeElements.
+	ordinaryShapes := shapes reject: [ :each |
+		| modelElement |
+		modelElement := self stagedModelElementOf: each.
+		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
+	boundaryShapes := shapes select: [ :each |
+		| modelElement |
+		modelElement := self stagedModelElementOf: each.
+		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
+	ordinaryShapes do: [ :each | self addShapeFor: each ].
+	boundaryShapes do: [ :each | self addShapeFor: each ].
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
 	self bringReconnectHandlesToFront.
@@ -469,7 +477,9 @@ CPProcessVisualElement >> addShapeFor: aShape [
 		shapeElement: element.
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
-	self addDiagramChild: element.
+	modelElement isBoundaryEvent
+		ifTrue: [ self hostBoundaryEventShapeElement: element for: modelElement bounds: bounds ]
+		ifFalse: [ self addDiagramChild: element ].
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifTrue: [
 		self
 			installNestedProcessVisualIn: element
@@ -1229,25 +1239,19 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 ]
 
 { #category : 'private - containment' }
-CPProcessVisualElement >> hostBoundaryEventShapeElements [
-	"BPMN-DI keeps Boundary Event shapes in diagram coordinates, while Bloc
-	represents the visual attachment through native containment. Keep the DI
-	bounds absolute and convert only the child's displayed origin to the host
-	Activity's local coordinates."
-	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :aBoundaryElement |
-		aModelElement isBoundaryEvent ifTrue: [
-			| activity activityElement boundaryBounds activityBounds |
-			activity := self stagedAttachedActivityOf: aModelElement.
-			activityElement := activity ifNotNil: [
-				shapeElementsByModelElement at: activity ifAbsent: [ nil ] ].
-			activityElement ifNotNil: [
-				boundaryBounds := self stagedBoundsOf: aBoundaryElement diagramShape.
-				activityBounds := self stagedBoundsOf: activityElement diagramShape.
-				(boundaryBounds notNil and: [ activityBounds notNil ]) ifTrue: [
-					aBoundaryElement removeFromParent.
-					activityElement addChild: aBoundaryElement.
-					aBoundaryElement relocate: boundaryBounds origin - activityBounds origin ] ] ] ]
+CPProcessVisualElement >> hostBoundaryEventShapeElement: aBoundaryElement for: aBoundaryEvent bounds: boundaryBounds [
+	| activity activityElement activityBounds |
+	activity := self stagedAttachedActivityOf: aBoundaryEvent.
+	activity ifNil: [ ^ self addDiagramChild: aBoundaryElement ].
+	activityElement := shapeElementsByModelElement at: activity ifAbsent: [ nil ].
+	activityElement ifNil: [ ^ self addDiagramChild: aBoundaryElement ].
+	activityBounds := self stagedBoundsOf: activityElement diagramShape.
+	activityBounds ifNil: [ ^ self addDiagramChild: aBoundaryElement ].
+	activityElement
+		hostBoundaryEventElement: aBoundaryElement
+		atLocalPosition: boundaryBounds origin - activityBounds origin
 ]
+
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringReconnectHandlesToFront [
@@ -1527,7 +1531,7 @@ CPProcessVisualElement >> updateAttachedBoundaryEventGeometryForActivity: anActi
 						boundaryEventHoverLabelOriginForEventBounds: proposedBoundaryBounds
 						activityBounds: proposedActivityBounds
 						labelExtent: aLabel extent) ].
-				boundaryElement relocate: proposedBoundaryBounds origin.
+				boundaryElement relocate: proposedBoundaryBounds origin - proposedActivityBounds origin.
 				self updateIncidentEdgeLabelsFor: aBoundaryEvent.
 				self updateIncidentReconnectHandlesFor: aBoundaryEvent ] ] ]
 ]
