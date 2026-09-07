@@ -1,6 +1,6 @@
 "I render and coordinate one BPMN flow-container editing surface inside the single enclosing Atelier editor.
 
-For the root I render CPProcess. For an expanded Sub-Process, its CPProcessShapeElement hosts another instance of me configured for that CPSubProcess. The nested instance uses the same root memento, operation configuration, selection notification and diagram state; it is a Bloc child of the Sub-Process node, not another Atelier.
+For the root I render CPProcess. For an expanded Sub-Process, its CPProcessShapeElement hosts another instance of me configured for that CPSubProcess. The nested instance uses the same root memento, editing collaborator, authoritative DI selection and diagram state; it is a Bloc child of the Sub-Process node, not another Atelier.
 
 Each instance renders only the flow elements directly owned by its configured flow container. Natural Bloc containment therefore supplies nested movement and clipping. Each process surface owns its own local BPMN-DI coordinate space. Nested DI therefore remains unchanged when its hosting Sub-Process node moves."
 Class {
@@ -19,8 +19,7 @@ Class {
 		'edgeVisualsByEdge',
 		'hoveredModelElement',
 		'diagramElements',
-		'selectedModelElement',
-		'selectedModelElements',
+		'diagramSelection',
 		'selectionChangedBlock',
 		'diagramEditing',
 		'connectionSourceModelElement',
@@ -45,7 +44,7 @@ Class {
 CPProcessVisualElement >> initialize [
 	super initialize.
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
-	selectedModelElements := IdentitySet new.
+	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
@@ -603,9 +602,7 @@ CPProcessVisualElement >> replaceFlowNode: aFlowNode withClass: aFlowNodeClass s
 		value: (self stagedFlowContainerContaining: aFlowNode)) apply.
 
 	assessment isApplicable ifTrue: [
-		selectedModelElements removeAll.
-		selectedModelElements add: replacement.
-		selectedModelElement := replacement.
+		diagramSelection selectOnly: aShape.
 		self refresh.
 		self updateSelectionAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: replacement ] ].
@@ -1287,38 +1284,32 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> selectOnly: aModelElement [
-	selectedModelElements removeAll.
-	selectedModelElements add: aModelElement.
-	selectedModelElement := aModelElement.
-	self updateSelectionAppearance.
-	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aModelElement ]
+	(self diagramElementForModelElement: aModelElement)
+		ifNotNil: [ :aDiagramElement | self selectOnlyDiagramElement: aDiagramElement ]
 ]
+
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> toggleSelectionOf: aModelElement [
-	(selectedModelElements includes: aModelElement)
-		ifTrue: [
-			selectedModelElements remove: aModelElement.
-			selectedModelElement == aModelElement ifTrue: [
-				selectedModelElement := selectedModelElements
-					ifEmpty: [ nil ]
-					ifNotEmpty: [ selectedModelElements anyOne ] ] ]
-		ifFalse: [
-			selectedModelElements add: aModelElement.
-			selectedModelElement := aModelElement ].
-	self updateSelectionAppearance.
-	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: selectedModelElement ]
+	(self diagramElementForModelElement: aModelElement)
+		ifNotNil: [ :aDiagramElement | self toggleSelectionOfDiagramElement: aDiagramElement ]
 ]
+
 
 { #category : 'selection' }
 CPProcessVisualElement >> selectedModelElements [
-	^ selectedModelElements copy
+	^ diagramSelection diagramElements collect: [ :each |
+		self stagedModelElementOf: each ]
 ]
+
 
 { #category : 'selection' }
 CPProcessVisualElement >> selectedModelElement [
-	^ selectedModelElement
+	^ diagramSelection soleDiagramElement
+		ifNil: [ nil ]
+		ifNotNil: [ :each | self stagedModelElementOf: each ]
 ]
+
 
 { #category : 'selection' }
 CPProcessVisualElement >> selectionChangedDo: aBlock [
@@ -1335,7 +1326,7 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 CPProcessVisualElement >> updateSelectionAppearance [
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
 		| isSelected |
-		isSelected := (selectedModelElements includes: aModelElement)
+		isSelected := (diagramSelection includes: anElement diagramShape)
 			or: [ aModelElement == connectionSourceModelElement
 			or: [ aModelElement == connectionTargetModelElement ] ].
 		anElement
@@ -1344,19 +1335,20 @@ CPProcessVisualElement >> updateSelectionAppearance [
 			normalColor: self shapeBorderColor ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual
-			selected: (selectedModelElements includes: anEdge modelElement)
+			selected: (diagramSelection includes: anEdge)
 			insertionTarget: anEdge == insertionTargetEdge
 			selectionColor: self selectionColor
 			normalColor: self shapeBorderColor ].
 	self updateReconnectHandlePositions.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual reconnectHandlesVisible:
-			(anEdge modelElement == selectedModelElement) ].
+			(anEdge == diagramSelection soleDiagramElement) ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual bendpointHandlesVisible:
-			(anEdge modelElement == selectedModelElement) ].
+			(anEdge == diagramSelection soleDiagramElement) ].
 	self updateConnectionPortVisibility
 ]
+
 
 { #category : 'operations' }
 CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
@@ -1490,9 +1482,7 @@ CPProcessVisualElement >> insertExistingFlowNode: aFlowNode shape: aShape intoEd
 		value: flowContainer) apply.
 	assessment isApplicable
 		ifTrue: [
-			selectedModelElements removeAll.
-			selectedModelElements add: aFlowNode.
-			selectedModelElement := aFlowNode.
+			diagramSelection selectOnly: aShape.
 			self refresh.
 			self updateSelectionAppearance.
 			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: aFlowNode ] ]
@@ -1521,13 +1511,14 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedModelElement [
-	| entries |
-	(selectedModelElements includes: draggedModelElement) ifFalse: [ ^ #() ].
+	| entries draggedShape |
+	draggedShape := self diagramShapeForModelElement: draggedModelElement.
+	(draggedShape notNil and: [ diagramSelection includes: draggedShape ]) ifFalse: [ ^ #() ].
 	entries := OrderedCollection new.
 	shapeElementsByShape keysAndValuesDo: [ :aShape :anElement |
 		| modelElement |
 		modelElement := self stagedModelElementOf: aShape.
-		(selectedModelElements includes: modelElement) ifTrue: [
+		(diagramSelection includes: aShape) ifTrue: [
 			| label |
 			label := anElement externalLabelHost.
 			entries add: {
@@ -1930,10 +1921,9 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent insertingInto: anEdge [
 		value: bounds
 		value: (self stagedFlowContainerContaining: anEdge modelElement)) apply.
 	assessment isApplicable ifTrue: [
-		selectedModelElements removeAll.
-		selectedModelElements add: candidate.
-		selectedModelElement := candidate.
 		self refresh.
+		(self diagramShapeForModelElement: candidate) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
 		self updateSelectionAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
 	^ assessment
@@ -1952,21 +1942,21 @@ CPProcessVisualElement >> newSelectionMarqueeElement [
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateMarqueeSelectionFor: aRectangle [
-	selectedModelElements removeAll.
+	| selectedDiagramElements |
+	selectedDiagramElements := OrderedCollection new.
 
-	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
+	shapeElementsByShape keysAndValuesDo: [ :aShape :anElement |
 		((anElement bounds inParent: self diagramPresentationParent) asRectangle intersects: aRectangle)
-			ifTrue: [ selectedModelElements add: aModelElement ] ].
+			ifTrue: [ selectedDiagramElements add: aShape ] ].
 
 	edgeVisualsByEdge keysDo: [ :anEdge |
 		(self edge: anEdge intersectsRectangle: aRectangle)
-			ifTrue: [ selectedModelElements add: anEdge modelElement ] ].
+			ifTrue: [ selectedDiagramElements add: anEdge ] ].
 
-	selectedModelElement := selectedModelElements size = 1
-		ifTrue: [ selectedModelElements anyOne ]
-		ifFalse: [ nil ].
+	diagramSelection replaceWith: selectedDiagramElements.
 	self updateSelectionAppearance
 ]
+
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> edge: anEdge intersectsRectangle: aRectangle [
@@ -2071,8 +2061,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 				connectionSourceModelElement := nil.
 				connectionTargetModelElement := nil.
 				insertionTargetEdge := nil.
-				selectedModelElements removeAll.
-				selectedModelElement := nil.
+				diagramSelection clear.
 				marqueeElement := self newSelectionMarqueeElement.
 				marqueeElement
 					relocate: marqueeOrigin;
@@ -2106,7 +2095,7 @@ CPProcessVisualElement >> addPaletteDropSurface [
 					marqueeElement := nil.
 					marqueeOrigin := nil.
 					selectionChangedBlock ifNotNil: [
-						:aBlock | aBlock value: selectedModelElement ].
+						:aBlock | aBlock value: self selectedModelElement ].
 					anEvent consumed: true ] ]);
 		yourself.
 	self addChildFirst: dropSurface
@@ -2175,10 +2164,10 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
-		selectedModelElements removeAll.
-		selectedModelElements add: candidate.
-		selectedModelElement := candidate.
 		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: candidate) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
 	^ assessment
 ]
@@ -2233,7 +2222,7 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode shape: aShape [
 	| sourceElement candidate proposedBounds assessment |
 	diagramEditing replaceFlowNodeOperation ifNil: [ ^ false ].
-	aFlowNode == selectedModelElement ifFalse: [ ^ false ].
+	aFlowNode == self selectedModelElement ifFalse: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
@@ -2262,9 +2251,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent replacing: aFlowNode shape: 
 		value: proposedBounds
 		value: (self stagedFlowContainerContaining: aFlowNode)) apply.
 	assessment isApplicable ifTrue: [
-		selectedModelElements removeAll.
-		selectedModelElements add: candidate.
-		selectedModelElement := candidate.
+		diagramSelection selectOnly: aShape.
 		self refresh.
 		self updateSelectionAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: candidate ] ].
@@ -2590,7 +2577,7 @@ CPProcessVisualElement >> updateConnectionPortVisibility [
 	shapeElementsByModelElement keysAndValuesDo: [ :aFlowNode :aShapeElement |
 		aShapeElement connectionPortVisible:
 			(aFlowNode == hoveredModelElement
-				or: [ aFlowNode == selectedModelElement
+				or: [ aFlowNode == self selectedModelElement
 				or: [ aFlowNode == connectionSourceModelElement ] ]) ]
 ]
 
@@ -3190,15 +3177,15 @@ CPProcessVisualElement >> installEdgeSelectionOn: aLine for: anEdge [
 			do: [ :anEvent |
 				connectionSourceModelElement ifNil: [
 					anEvent modifiers isShift
-						ifTrue: [ self toggleSelectionOf: anEdge modelElement ]
-						ifFalse: [ self selectOnly: anEdge modelElement ].
+						ifTrue: [ self toggleSelectionOfDiagramElement: anEdge ]
+						ifFalse: [ self selectOnlyDiagramElement: anEdge ].
 					self requestFocus.
 					anEvent consumed: true ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlDoubleClickEvent
 			do: [ :anEvent |
 				connectionSourceModelElement ifNil: [
-					self selectOnly: anEdge modelElement.
+					self selectOnlyDiagramElement: anEdge.
 					self beginEditingLabelForEdge: anEdge.
 					anEvent consumed: true ] ])
 ]
@@ -3224,27 +3211,16 @@ CPProcessVisualElement >> installKeyboardHandler [
 
 { #category : 'private - removal' }
 CPProcessVisualElement >> removeSelection [
-	| selectedDiagramElements operation assessment |
-	selectedModelElements isEmpty ifTrue: [ ^ self ].
+	| operation assessment |
+	diagramSelection isEmpty ifTrue: [ ^ self ].
 
-	selectedDiagramElements := OrderedCollection new.
-	selectedModelElements do: [ :aModelElement |
-		(shapeElementsByModelElement at: aModelElement ifAbsent: [ nil ])
-			ifNotNil: [ :aShapeElement |
-				selectedDiagramElements add: aShapeElement diagramShape ].
-		(edgeVisualsByEdge keys
-			detect: [ :anEdge | anEdge modelElement == aModelElement ]
-			ifNone: [ nil ])
-			ifNotNil: [ :anEdge | selectedDiagramElements add: anEdge ] ].
-
-	operation := diagramEditing remove: selectedDiagramElements.
+	operation := diagramEditing remove: diagramSelection diagramElements.
 	operation ifNil: [ ^ self ].
 	assessment := operation assess.
 	assessment isApplicable ifFalse: [ ^ assessment ].
 	operation apply.
 
-	selectedModelElements removeAll.
-	selectedModelElement := nil.
+	diagramSelection clear.
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
@@ -3253,37 +3229,35 @@ CPProcessVisualElement >> removeSelection [
 	^ assessment
 ]
 
+
 { #category : 'selection' }
 CPProcessVisualElement >> clearDiagramSelection [
-	"Clear selection throughout this Process visual tree without reporting a new
-	selection upward. The caller is transferring selection ownership elsewhere
-	in the diagram."
-	self clearLocalSelection.
-	shapeElementsByModelElement valuesDo: [ :aShapeElement |
-		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
-			aNestedVisual clearDiagramSelection ] ]
+	"Clear the shared Process-tree selection without reporting a new selection upward."
+	diagramSelection clear.
+	rootVisual updateSelectionAppearanceRecursively
 ]
+
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> clearLocalSelection [
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
-	selectedModelElements removeAll.
-	selectedModelElement := nil.
-	self updateSelectionAppearance
+	diagramSelection clear.
+	rootVisual updateSelectionAppearanceRecursively
 ]
+
 
 { #category : 'private - interaction' }
 CPProcessVisualElement >> clearInteractionAndSelection [
 	connectionSourceModelElement := nil.
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
-	selectedModelElements removeAll.
-	selectedModelElement := nil.
-	self updateSelectionAppearance.
+	diagramSelection clear.
+	rootVisual updateSelectionAppearanceRecursively.
 	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ]
 ]
+
 
 { #category : 'private - interaction' }
 CPProcessVisualElement >> cancelInteraction [
@@ -3429,6 +3403,7 @@ CPProcessVisualElement >> installExpandedSubProcessBorderInteractionOn: aShapeEl
 CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 	aVisual
 		rootVisual: rootVisual;
+		diagramSelection: diagramSelection;
 		selectionChangedDo: selectionChangedBlock;
 		diagramEditing: diagramEditing
 ]
@@ -3454,3 +3429,62 @@ CPProcessVisualElement >> setShape: aShape expanded: aBoolean [
 	^ assessment
 ]
 
+
+{ #category : 'selection' }
+CPProcessVisualElement >> diagramSelection [
+	^ diagramSelection
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> diagramSelection: aDiagramSelection [
+	diagramSelection := aDiagramSelection
+]
+
+{ #category : 'selection' }
+CPProcessVisualElement >> selectedDiagramElements [
+	^ diagramSelection diagramElements
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> diagramElementForModelElement: aModelElement [
+	(shapeElementsByModelElement at: aModelElement ifAbsent: [ nil ])
+		ifNotNil: [ :aShapeElement | ^ aShapeElement diagramShape ].
+	^ edgeVisualsByEdge keys
+		detect: [ :anEdge | (self stagedModelElementOf: anEdge) == aModelElement ]
+		ifNone: [ nil ]
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> diagramElementForModelElementInTree: aModelElement [
+	(self diagramElementForModelElement: aModelElement)
+		ifNotNil: [ :aDiagramElement | ^ aDiagramElement ].
+	shapeElementsByModelElement valuesDo: [ :aShapeElement |
+		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
+			(aNestedVisual diagramElementForModelElementInTree: aModelElement)
+				ifNotNil: [ :aDiagramElement | ^ aDiagramElement ] ] ].
+	^ nil
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> selectOnlyDiagramElement: aDiagramElement [
+	diagramSelection selectOnly: aDiagramElement.
+	rootVisual updateSelectionAppearanceRecursively.
+	selectionChangedBlock ifNotNil: [ :aBlock |
+		aBlock value: self selectedModelElement ]
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> toggleSelectionOfDiagramElement: aDiagramElement [
+	diagramSelection toggle: aDiagramElement.
+	rootVisual updateSelectionAppearanceRecursively.
+	selectionChangedBlock ifNotNil: [ :aBlock |
+		aBlock value: self selectedModelElement ]
+]
+
+{ #category : 'private - selection' }
+CPProcessVisualElement >> updateSelectionAppearanceRecursively [
+	self updateSelectionAppearance.
+	shapeElementsByModelElement valuesDo: [ :aShapeElement |
+		aShapeElement nestedProcessVisual ifNotNil: [ :aNestedVisual |
+			aNestedVisual updateSelectionAppearanceRecursively ] ]
+]

@@ -26,27 +26,30 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 ]
 
 { #category : 'examples - selection' }
-CPProcessVisualElementExamples >> selectionSupportsExclusiveAndAdditiveSemanticSelection [
+CPProcessVisualElementExamples >> selectionSupportsExclusiveAndAdditiveDiagramSelection [
 	<gtExample>
-	| fixture visual start task firstFlow |
+	| fixture visual start task firstFlow startShape taskShape firstEdge |
 	fixture := self fixture.
 	start := fixture third.
 	task := fixture fourth.
 	firstFlow := fixture sixth.
+	startShape := fixture at: 9.
+	taskShape := fixture at: 10.
+	firstEdge := fixture at: 12.
 	visual := self visualElementForFixture: fixture.
 
 	visual selectOnly: task.
-	self assert: visual selectedModelElements size equals: 1.
-	self assert: (visual selectedModelElements identityIncludes: task).
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == taskShape.
 
 	visual toggleSelectionOf: firstFlow.
-	self assert: visual selectedModelElements size equals: 2.
-	self assert: (visual selectedModelElements identityIncludes: task).
-	self assert: (visual selectedModelElements identityIncludes: firstFlow).
+	self assert: visual selectedDiagramElements size equals: 2.
+	self assert: (visual selectedDiagramElements identityIncludes: taskShape).
+	self assert: (visual selectedDiagramElements identityIncludes: firstEdge).
 
 	visual selectOnly: start.
-	self assert: visual selectedModelElements size equals: 1.
-	self assert: (visual selectedModelElements identityIncludes: start).
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == startShape.
 	^ visual
 ]
 
@@ -947,8 +950,11 @@ CPProcessVisualElementExamples >> nestedBackgroundSelectionTargetsHostingSubProc
 	nestedVisual clearLocalSelection.
 	visual selectOnly: subProcess.
 
+	self assert: visual diagramSelection == nestedVisual diagramSelection.
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == shapeElement diagramShape.
 	self assert: visual selectedModelElement == subProcess.
-	self assert: nestedVisual selectedModelElement isNil.
+	self assert: nestedVisual selectedModelElement == subProcess.
 	^ nestedVisual
 ]
 
