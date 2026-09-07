@@ -2556,6 +2556,17 @@ CPProcessVisualElement >> sequenceFlowTargetAtGlobalPoint: aPoint from: aSource 
 ]
 
 { #category : 'collaboration connection' }
+CPProcessVisualElement >> messageFlowEndpointAtGlobalPoint: aPoint excluding: anEndpoint [
+	| candidate |
+	candidate := self connectionTargetAtGlobalPoint: aPoint excluding: anEndpoint.
+	candidate ifNil: [ ^ nil ].
+	^ candidate canBeMessageFlowEndpoint
+		ifTrue: [ candidate ]
+		ifFalse: [ nil ]
+]
+
+
+{ #category : 'collaboration connection' }
 CPProcessVisualElement >> connectSequenceFlowFrom: aSource to: aTarget [
 	^ self connectFrom: aSource to: aTarget
 ]
@@ -3230,6 +3241,27 @@ CPProcessVisualElement >> reconnectOperationFor: aSequenceFlow movingSource: mov
 		reconnectEdge: edge
 		sourceShape: sourceShape
 		targetShape: targetShape
+		waypoints: (self
+			proposedReconnectWaypointsFor: edge
+			source: source
+			target: target)
+]
+
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> proposedReconnectWaypointsFor: anEdge source: aSource target: aTarget [
+	| waypoints sourceShape targetShape sourceBounds targetBounds |
+	waypoints := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+	waypoints size < 2 ifTrue: [ ^ waypoints ].
+	sourceShape := self diagramShapeForModelElement: aSource.
+	targetShape := self diagramShapeForModelElement: aTarget.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ waypoints ].
+	sourceBounds := self stagedBoundsOf: sourceShape.
+	targetBounds := self stagedBoundsOf: targetShape.
+	waypoints
+		at: 1 put: sourceBounds center;
+		at: waypoints size put: targetBounds center.
+	^ waypoints species withAll: waypoints
 ]
 
 
@@ -3247,7 +3279,11 @@ CPProcessVisualElement >> reconnectSequenceFlow: aSequenceFlow source: aSource t
 	operation := diagramEditing
 		reconnectEdge: edge
 		sourceShape: sourceShape
-		targetShape: targetShape.
+		targetShape: targetShape
+		waypoints: (self
+			proposedReconnectWaypointsFor: edge
+			source: aSource
+			target: aTarget).
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable

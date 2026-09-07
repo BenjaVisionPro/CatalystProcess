@@ -1923,3 +1923,119 @@ CPProcessVisualElementExamples >> processPresentationResolvesStagedMessageFlowTh
 		inRelation: context messageFlowsDescription).
 	^ resolvedMemento
 ]
+
+
+{ #category : 'examples - collaboration message flow reconnect' }
+CPProcessVisualElementExamples >> selectedCollaborationMessageFlowShowsReconnectHandles [
+	<gtExample>
+	| fixture collaborationVisual messageEdge messageVisual |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+	messageVisual := collaborationVisual messageFlowVisualsByEdge at: messageEdge.
+
+	self assert: messageVisual reconnectHandles size equals: 2.
+	messageVisual reconnectHandles do: [ :each |
+		self assert: each visibility equals: BlVisibility hidden ].
+	collaborationVisual selectOnlyDiagramElement: messageEdge.
+	messageVisual reconnectHandles do: [ :each |
+		self assert: each visibility equals: BlVisibility visible ].
+	^ messageVisual
+]
+
+{ #category : 'examples - collaboration message flow reconnect' }
+CPProcessVisualElementExamples >> collaborationMessageFlowReconnectWaypointsAreAuthoredInCollaborationCoordinates [
+	<gtExample>
+	| fixture collaborationVisual messageEdge externalParticipant task waypoints |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+	externalParticipant := fixture at: 5.
+	task := fixture at: 13.
+
+	waypoints := collaborationVisual
+		proposedMessageFlowWaypointsFor: messageEdge
+		source: task
+		target: externalParticipant.
+
+	self assert: waypoints size equals: 2.
+	self assert: waypoints first y < waypoints second y.
+	self assert: waypoints second y equals: 320.
+	^ waypoints
+]
+
+{ #category : 'examples - collaboration message flow reconnect' }
+CPProcessVisualElementExamples >> collaborationMessageFlowReconnectOperationUsesExistingEdgeIdentity [
+	<gtExample>
+	| fixture collaborationVisual messageEdge externalParticipant task operation assessment context |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+	externalParticipant := fixture at: 5.
+	task := fixture at: 13.
+
+	operation := collaborationVisual
+		messageFlowReconnectOperationFor: messageEdge
+		movingSource: true
+		candidate: task.
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: fixture second.
+
+	self assert: assessment isApplicable.
+	self assert: (context elements identityIncludes: messageEdge).
+	self assert: (context stagedSourceOf: (fixture at: 11)) == task.
+	self assert: (context stagedTargetOf: (fixture at: 11)) == externalParticipant.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration message flow editing' }
+CPProcessVisualElementExamples >> collaborationMessageFlowUsesEditableMementoBackedLabel [
+	<gtExample>
+	| fixture messageVisual label |
+	fixture := self collaborationVisualFixture.
+	messageVisual := (fixture at: 10) messageFlowVisualsByEdge at: (fixture at: 12).
+	label := messageVisual labelHost children first.
+
+	self assert: label text asString equals: 'Order'.
+	^ label
+]
+
+{ #category : 'examples - collaboration message flow editing' }
+CPProcessVisualElementExamples >> collaborationMessageFlowLabelPlacementUsesStagedDI [
+	<gtExample>
+	| fixture collaborationVisual messageEdge assessment context |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+	assessment := collaborationVisual
+		setMessageFlowLabelSegmentIndex: 1
+		segmentPosition: 0.25
+		offset: -24.0
+		forEdge: messageEdge.
+	context := CPProcessCollaborationContext inRootMemento: fixture second.
+
+	self assert: assessment isApplicable.
+	self assert: (context diagramContext labelSegmentIndexOf: messageEdge) equals: 1.
+	self assert: (context diagramContext labelSegmentPositionOf: messageEdge) equals: 0.25.
+	self assert: (context diagramContext labelOffsetOf: messageEdge) equals: -24.0.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration message flow editing' }
+CPProcessVisualElementExamples >> collaborationMessageFlowBendpointEditUsesSharedDIEditingContract [
+	<gtExample>
+	| fixture collaborationVisual messageEdge assessment messageVisual context proposed |
+	fixture := self collaborationVisualFixture.
+	collaborationVisual := fixture at: 10.
+	messageEdge := fixture at: 12.
+	proposed := { 350 @ 270. 500 @ 295. 350 @ 320 } asOrderedCollection.
+	assessment := collaborationVisual setMessageFlowWaypoints: proposed forEdge: messageEdge.
+	context := CPProcessCollaborationContext inRootMemento: fixture second.
+	messageVisual := collaborationVisual messageFlowVisualsByEdge at: messageEdge.
+
+	self assert: assessment isApplicable.
+	self assert: (context diagramContext waypointsOf: messageEdge) equals: proposed.
+	self assert: messageVisual bendpointHandles size equals: 1.
+	^ messageVisual
+]

@@ -55,7 +55,7 @@ CPReadOnlyProcessDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape [
+CPReadOnlyProcessDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape waypoints: someWaypoints [
 	^ nil
 ]
 

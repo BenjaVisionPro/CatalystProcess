@@ -181,14 +181,21 @@ CPCollaborationVisualElement >> installKeyboardHandler [
 
 { #category : 'private - selection' }
 CPCollaborationVisualElement >> installSelectionOnMessageFlowElement: anElement edge: anEdge [
-	anElement addEventHandler: (BlEventHandler
-		on: BlClickEvent
-		do: [ :anEvent |
-			anEvent modifiers isShift
-				ifTrue: [ self toggleSelectionOfDiagramElement: anEdge ]
-				ifFalse: [ self selectOnlyDiagramElement: anEdge ].
-			self requestFocus.
-			anEvent consumed: true ])
+	anElement
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent |
+				anEvent modifiers isShift
+					ifTrue: [ self toggleSelectionOfDiagramElement: anEdge ]
+					ifFalse: [ self selectOnlyDiagramElement: anEdge ].
+				self requestFocus.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDoubleClickEvent
+			do: [ :anEvent |
+				self selectOnlyDiagramElement: anEdge.
+				self beginEditingMessageFlowLabelForEdge: anEdge.
+				anEvent consumed: true ])
 ]
 
 
@@ -273,11 +280,13 @@ CPCollaborationVisualElement >> addMessageFlowEdge: anEdge [
 	visual
 		renderWaypoints: waypoints
 		color: self poolBorderColor
-		label: (self stagedLabelOfMessageFlow: messageFlow)
 		in: self diagramPresentationParent.
 	messageFlowVisualsByEdge at: anEdge put: visual.
+	self addExternalLabelForMessageFlow: messageFlow edge: anEdge visual: visual.
 	visual hitElements do: [ :anElement |
-		self installSelectionOnMessageFlowElement: anElement edge: anEdge ]
+		self installSelectionOnMessageFlowElement: anElement edge: anEdge ].
+	self installReconnectHandlesForMessageFlowEdge: anEdge visual: visual.
+	self installBendpointHandlesForMessageFlowEdge: anEdge visual: visual
 ]
 
 { #category : 'configuration' }
@@ -572,6 +581,540 @@ CPCollaborationVisualElement >> removeConnectionPreview [
 	connectionPreviewCursor := nil
 ]
 
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edge: anEdge visual: aVisual [
+	| labelHost label |
+	labelHost := BlElement new
+		clipChildren: false;
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c horizontal exact: 180.
+			c vertical fitContent.
+			c ignoreByLayout ];
+		yourself.
+	label := self newEditableLabelForMessageFlow: aMessageFlow.
+	label hFitContentLimited.
+	label vFitContent.
+	label constraintsDo: [ :c |
+		c maxWidth: 180.
+		c frame horizontal alignCenter.
+		c frame vertical alignCenter ].
+	labelHost addChild: label.
+	aVisual labelHost: labelHost.
+	self addDiagramChild: labelHost.
+	self installMessageFlowLabelEditingOn: labelHost label: label.
+	self installSelectionOnMessageFlowElement: labelHost edge: anEdge.
+	self installMessageFlowLabelPositioningOn: labelHost for: anEdge.
+	self positionMessageFlowLabelFor: anEdge
+]
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> newEditableLabelForMessageFlow: aMessageFlow [
+	| flowMemento description label |
+	flowMemento := collaborationContext mementoForMember: aMessageFlow.
+	flowMemento ifNil: [ self error: 'MessageFlow is not present in the staged Collaboration.' ].
+	description := flowMemento magritteDescription detect: [ :each | each handlesSelector: #label ].
+	label := CFEditableLabel new
+		aptitude: CPProcessLabelAptitude new;
+		text: ((flowMemento readUsing: description) ifNil: [ '' ]);
+		padding: BlInsets empty;
+		margin: BlInsets empty;
+		background: Color transparent;
+		border: BlBorder empty;
+		yourself.
+	label editor
+		when: BrTextEditorModifiedEvent
+		do: [ :anEvent |
+			GtMagritteBuilderUtility
+				writeText: anEvent text
+				using: description
+				memento: flowMemento
+				element: label ].
+	label
+		when: BrEditorAcceptWish
+		do: [ :aWish | self finishEditingMessageFlowLabel: label ];
+		when: BrEditorCancelWish
+		do: [ :aWish |
+			GtMagritteBuilderUtility
+				writeText: label text
+				using: description
+				memento: flowMemento
+				element: label.
+			self finishEditingMessageFlowLabel: label ].
+	label preventMeAndChildrenMouseEvents.
+	^ label
+]
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> installMessageFlowLabelEditingOn: anInteractionElement label: anEditableLabel [
+	anInteractionElement addEventHandler: (BlEventHandler
+		on: BlDoubleClickEvent
+		do: [ :anEvent |
+			anEditableLabel allowMeAndChildrenMouseEvents.
+			anEditableLabel switchToEditor.
+			anEditableLabel enqueueTask: (BlTaskAction new action: [ anEditableLabel requestFocus ]).
+			anEvent consumed: true ])
+]
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> finishEditingMessageFlowLabel: anEditableLabel [
+	anEditableLabel preventMeAndChildrenMouseEvents.
+	anEditableLabel loseFocus.
+	self enqueueTask: (BlTaskAction new action: [ self requestFocus ])
+]
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> beginEditingMessageFlowLabelForEdge: anEdge [
+	| visual labelHost label |
+	visual := messageFlowVisualsByEdge at: anEdge ifAbsent: [ ^ self ].
+	labelHost := visual labelHost.
+	labelHost ifNil: [ ^ self ].
+	labelHost children isEmpty ifTrue: [ ^ self ].
+	label := labelHost children first.
+	label allowMeAndChildrenMouseEvents.
+	label switchToEditor.
+	label enqueueTask: (BlTaskAction new action: [ label requestFocus ])
+]
+
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> installMessageFlowLabelPositioningOn: aLabelHost for: anEdge [
+	| isDragging lastPlacement |
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	isDragging := false.
+	lastPlacement := nil.
+	aLabelHost
+		addEventHandler: (BlEventHandler on: BlDragStartEvent do: [ :anEvent |
+			isDragging := true.
+			lastPlacement := nil.
+			anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler on: BlDragEvent do: [ :anEvent |
+			isDragging ifTrue: [
+				lastPlacement := (CPProcessEdgeLabelPath points: (self stagedWaypointsOf: anEdge))
+					nearestPlacementTo: (self diagramPointForGlobalPoint: anEvent position).
+				(self messageFlowVisualsByEdge at: anEdge)
+					positionLabelCenteredAt: lastPlacement fourth.
+				anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler on: BlDragEndEvent do: [ :anEvent |
+			isDragging ifTrue: [
+				isDragging := false.
+				lastPlacement ifNotNil: [
+					self
+						setMessageFlowLabelSegmentIndex: lastPlacement first
+						segmentPosition: lastPlacement second
+						offset: lastPlacement third
+						forEdge: anEdge ].
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> positionMessageFlowLabelFor: anEdge [
+	| path segmentIndex segmentPosition offset placement |
+	path := CPProcessEdgeLabelPath points: (self stagedWaypointsOf: anEdge).
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge) ifNil: [ path defaultSegmentIndex ].
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -12.0 ].
+	placement := path
+		placementAtSegmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset.
+	(messageFlowVisualsByEdge at: anEdge ifAbsent: [ ^ self ])
+		positionLabelCenteredAt: placement first
+]
+
+{ #category : 'operations' }
+CPCollaborationVisualElement >> setMessageFlowLabelSegmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset forEdge: anEdge [
+	| operation assessment |
+	diagramEditing allowsEditing ifFalse: [ ^ nil ].
+	operation := diagramEditing
+		setLabelSegmentIndex: aSegmentIndex
+		segmentPosition: aSegmentPosition
+		offset: anOffset
+		forEdge: anEdge.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [ self refresh ].
+	^ assessment
+]
+
+{ #category : 'operations' }
+CPCollaborationVisualElement >> setMessageFlowWaypoints: someWaypoints forEdge: anEdge [
+	| operation assessment currentWaypoints topologyChanges pathFraction segmentPlacement offset |
+	diagramEditing allowsEditing ifFalse: [ ^ nil ].
+	currentWaypoints := self stagedWaypointsOf: anEdge.
+	topologyChanges := currentWaypoints size ~= someWaypoints size.
+	topologyChanges ifTrue: [
+		| path segmentIndex segmentPosition |
+		path := CPProcessEdgeLabelPath points: currentWaypoints.
+		segmentIndex := (self stagedLabelSegmentIndexOf: anEdge) ifNil: [ path defaultSegmentIndex ].
+		segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+		pathFraction := path
+			pathFractionForSegmentIndex: segmentIndex
+			segmentPosition: segmentPosition ].
+	operation := diagramEditing setWaypoints: someWaypoints forEdge: anEdge.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		topologyChanges ifTrue: [
+			segmentPlacement := (CPProcessEdgeLabelPath points: someWaypoints)
+				segmentPlacementAtFraction: pathFraction.
+			offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -12.0 ].
+			(diagramEditing
+				setLabelSegmentIndex: segmentPlacement first
+				segmentPosition: segmentPlacement second
+				offset: offset
+				forEdge: anEdge) apply ].
+		self refresh ].
+	^ assessment
+]
+
+{ #category : 'private - bendpoints' }
+CPCollaborationVisualElement >> installBendpointHandlesForMessageFlowEdge: anEdge visual: aVisual [
+	| waypoints handles |
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	waypoints := self stagedWaypointsOf: anEdge.
+	handles := OrderedCollection new.
+	waypoints size >= 3 ifTrue: [
+		2 to: waypoints size - 1 do: [ :index |
+			handles add: (self
+				newMessageFlowBendpointHandleFor: anEdge
+				visual: aVisual
+				waypointIndex: index
+				at: (waypoints at: index)) ] ].
+	aVisual bendpointHandles: handles.
+	handles do: [ :aHandle | self addDiagramChild: aHandle ].
+	1 to: aVisual hitElements size do: [ :segmentIndex |
+		self
+			installMessageFlowBendpointInsertionOn: (aVisual hitElements at: segmentIndex)
+			for: anEdge
+			segmentIndex: segmentIndex ]
+]
+
+{ #category : 'private - bendpoints' }
+CPCollaborationVisualElement >> newMessageFlowBendpointHandleFor: anEdge visual: aVisual waypointIndex: waypointIndex at: aPoint [
+	| previewLines |
+	previewLines := #().
+	^ aVisual
+		newBendpointHandleAt: aPoint
+		waypointIndex: waypointIndex
+		selectionColor: self selectionColor
+		removeRequested: [ :anIndex |
+			| proposed |
+			proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+			proposed size > 2 ifTrue: [
+				proposed removeAt: anIndex.
+				self setMessageFlowWaypoints: proposed forEdge: anEdge ] ]
+		dragged: [ :anEvent :newPoint |
+			| proposed |
+			proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+			proposed at: waypointIndex put: newPoint.
+			previewLines do: [ :aLine | aLine removeFromParent ].
+			previewLines := self newMessageFlowPreviewLinesForWaypoints: proposed.
+			previewLines do: [ :aLine | self addDiagramChild: aLine ].
+			self positionMessageFlowLabelFor: anEdge usingWaypoints: proposed ]
+		dragEnded: [ :anEvent :newPoint |
+			| proposed |
+			proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+			proposed at: waypointIndex put: newPoint.
+			previewLines do: [ :aLine | aLine removeFromParent ].
+			self setMessageFlowWaypoints: proposed forEdge: anEdge ]
+]
+
+{ #category : 'private - bendpoints' }
+CPCollaborationVisualElement >> installMessageFlowBendpointInsertionOn: anElement for: anEdge segmentIndex: aSegmentIndex [
+	| isDragging dragStartEventPosition insertedPoint previewLines |
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	isDragging := false.
+	previewLines := #().
+	anElement
+		addEventHandler: (BlEventHandler on: BlDragStartEvent do: [ :anEvent |
+			isDragging := true.
+			dragStartEventPosition := anEvent position.
+			insertedPoint := self diagramPointForGlobalPoint: anEvent position.
+			anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler on: BlDragEvent do: [ :anEvent |
+			isDragging ifTrue: [
+				| currentPoint proposed |
+				currentPoint := insertedPoint + (anEvent position - dragStartEventPosition).
+				proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+				proposed add: currentPoint beforeIndex: aSegmentIndex + 1.
+				previewLines do: [ :aLine | aLine removeFromParent ].
+				previewLines := self newMessageFlowPreviewLinesForWaypoints: proposed.
+				previewLines do: [ :aLine | self addDiagramChild: aLine ].
+				self positionMessageFlowLabelFor: anEdge usingWaypoints: proposed.
+				anEvent consumed: true ] ]);
+		addEventHandler: (BlEventHandler on: BlDragEndEvent do: [ :anEvent |
+			isDragging ifTrue: [
+				| currentPoint proposed |
+				isDragging := false.
+				currentPoint := insertedPoint + (anEvent position - dragStartEventPosition).
+				proposed := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+				proposed add: currentPoint beforeIndex: aSegmentIndex + 1.
+				previewLines do: [ :aLine | aLine removeFromParent ].
+				self setMessageFlowWaypoints: proposed forEdge: anEdge.
+				anEvent consumed: true ] ])
+]
+
+{ #category : 'private - bendpoints' }
+CPCollaborationVisualElement >> newMessageFlowPreviewLinesForWaypoints: someWaypoints [
+	| lines |
+	lines := OrderedCollection new.
+	1 to: someWaypoints size - 1 do: [ :index |
+		lines add: (BlLineElement new
+			fromAnchor: (BlAbsolutePositionAnchor position: (someWaypoints at: index));
+			toAnchor: (BlAbsolutePositionAnchor position: (someWaypoints at: index + 1));
+			border: (BlBorder paint: self selectionColor width: 1.5);
+			constraintsDo: [ :c | c ignoreByLayout ];
+			preventMeAndChildrenMouseEvents;
+			yourself) ].
+	^ lines
+]
+
+{ #category : 'private - labels' }
+CPCollaborationVisualElement >> positionMessageFlowLabelFor: anEdge usingWaypoints: someWaypoints [
+	| path segmentIndex segmentPosition offset placement |
+	path := CPProcessEdgeLabelPath points: someWaypoints.
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge) ifNil: [ path defaultSegmentIndex ].
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -12.0 ].
+	placement := path
+		placementAtSegmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset.
+	(messageFlowVisualsByEdge at: anEdge ifAbsent: [ ^ self ])
+		positionLabelCenteredAt: placement first
+]
+
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> installReconnectHandlesForMessageFlowEdge: anEdge visual: aVisual [
+	| sourceHandle targetHandle waypoints |
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	sourceHandle := aVisual
+		newReconnectHandleMovingSource: true
+		selectionColor: self selectionColor
+		dragStarted: [ :anEvent :handle |
+			self beginMessageFlowReconnectFor: anEdge movingSource: true event: anEvent ]
+		dragged: [ :anEvent :handle |
+			self updateMessageFlowReconnectFor: anEdge movingSource: true event: anEvent ]
+		dragEnded: [ :anEvent :handle |
+			self endMessageFlowReconnectFor: anEdge movingSource: true event: anEvent ].
+	targetHandle := aVisual
+		newReconnectHandleMovingSource: false
+		selectionColor: self selectionColor
+		dragStarted: [ :anEvent :handle |
+			self beginMessageFlowReconnectFor: anEdge movingSource: false event: anEvent ]
+		dragged: [ :anEvent :handle |
+			self updateMessageFlowReconnectFor: anEdge movingSource: false event: anEvent ]
+		dragEnded: [ :anEvent :handle |
+			self endMessageFlowReconnectFor: anEdge movingSource: false event: anEvent ].
+	aVisual reconnectHandles: { sourceHandle. targetHandle }.
+	self addDiagramChild: sourceHandle.
+	self addDiagramChild: targetHandle.
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size >= 2 ifTrue: [
+		aVisual positionReconnectHandlesAtSource: waypoints first target: waypoints last ]
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> beginMessageFlowReconnectFor: anEdge movingSource: movesSource event: anEvent [
+	| waypoints fixedPoint pointer |
+	self removeConnectionPreview.
+	waypoints := self stagedWaypointsOf: anEdge.
+	waypoints size < 2 ifTrue: [ ^ self ].
+	fixedPoint := movesSource
+		ifTrue: [ waypoints second ]
+		ifFalse: [ waypoints at: waypoints size - 1 ].
+	pointer := self diagramPointForGlobalPoint: anEvent position.
+	connectionPreviewCursor := BlElement new
+		extent: 1 @ 1;
+		background: Color transparent;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: pointer;
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	connectionPreviewLine := BlLineElement new
+		fromAnchor: (BlAbsolutePositionAnchor position: (movesSource ifTrue: [ pointer ] ifFalse: [ fixedPoint ]));
+		toAnchor: (BlAbsolutePositionAnchor position: (movesSource ifTrue: [ fixedPoint ] ifFalse: [ pointer ]));
+		border: (BlBorder paint: self selectionColor width: 1.5);
+		constraintsDo: [ :c | c ignoreByLayout ];
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	self addDiagramChild: connectionPreviewCursor.
+	self addDiagramChild: connectionPreviewLine
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> updateMessageFlowReconnectFor: anEdge movingSource: movesSource event: anEvent [
+	| candidate proposedWaypoints endpoint |
+	connectionPreviewLine ifNil: [
+		^ self beginMessageFlowReconnectFor: anEdge movingSource: movesSource event: anEvent ].
+	connectionPreviewCursor relocate: (self diagramPointForGlobalPoint: anEvent position).
+	candidate := self
+		validMessageFlowReconnectTargetAtGlobalPoint: anEvent position
+		forEdge: anEdge
+		movingSource: movesSource.
+	candidate ifNil: [
+		endpoint := self diagramPointForGlobalPoint: anEvent position.
+		movesSource
+			ifTrue: [ connectionPreviewLine fromAnchor: (BlAbsolutePositionAnchor position: endpoint) ]
+			ifFalse: [ connectionPreviewLine toAnchor: (BlAbsolutePositionAnchor position: endpoint) ].
+		^ self ].
+	proposedWaypoints := self
+		proposedMessageFlowWaypointsFor: anEdge
+		movingSource: movesSource
+		to: candidate.
+	proposedWaypoints ifNil: [ ^ self ].
+	movesSource
+		ifTrue: [ connectionPreviewLine fromAnchor: (BlAbsolutePositionAnchor position: proposedWaypoints first) ]
+		ifFalse: [ connectionPreviewLine toAnchor: (BlAbsolutePositionAnchor position: proposedWaypoints last) ]
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> endMessageFlowReconnectFor: anEdge movingSource: movesSource event: anEvent [
+	| candidate operation assessment |
+	candidate := self
+		validMessageFlowReconnectTargetAtGlobalPoint: anEvent position
+		forEdge: anEdge
+		movingSource: movesSource.
+	self removeConnectionPreview.
+	candidate ifNil: [
+		self updateSelectionAppearance.
+		^ nil ].
+	operation := self
+		messageFlowReconnectOperationFor: anEdge
+		movingSource: movesSource
+		candidate: candidate.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable
+		ifTrue: [ self refresh ]
+		ifFalse: [ self updateSelectionAppearance ].
+	^ assessment
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> validMessageFlowReconnectTargetAtGlobalPoint: aGlobalPoint forEdge: anEdge movingSource: movesSource [
+	| messageFlow currentEndpoint candidate operation assessment |
+	messageFlow := self stagedModelElementOf: anEdge.
+	currentEndpoint := movesSource
+		ifTrue: [ collaborationContext stagedSourceOf: messageFlow ]
+		ifFalse: [ collaborationContext stagedTargetOf: messageFlow ].
+	candidate := self messageFlowEndpointAtGlobalPoint: aGlobalPoint excluding: currentEndpoint.
+	candidate ifNil: [ ^ nil ].
+	operation := self
+		messageFlowReconnectOperationFor: anEdge
+		movingSource: movesSource
+		candidate: candidate.
+	operation ifNil: [ ^ nil ].
+	assessment := operation assess.
+	^ assessment isApplicable ifTrue: [ candidate ] ifFalse: [ nil ]
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> messageFlowReconnectOperationFor: anEdge movingSource: movesSource candidate: aCandidate [
+	| messageFlow source target sourceShape targetShape proposedWaypoints |
+	messageFlow := self stagedModelElementOf: anEdge.
+	messageFlow ifNil: [ ^ nil ].
+	source := collaborationContext stagedSourceOf: messageFlow.
+	target := collaborationContext stagedTargetOf: messageFlow.
+	movesSource ifTrue: [ source := aCandidate ] ifFalse: [ target := aCandidate ].
+	sourceShape := self diagramShapeForMessageFlowEndpoint: source.
+	targetShape := self diagramShapeForMessageFlowEndpoint: target.
+	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ nil ].
+	proposedWaypoints := self
+		proposedMessageFlowWaypointsFor: anEdge
+		source: source
+		target: target.
+	proposedWaypoints ifNil: [ ^ nil ].
+	^ diagramEditing
+		reconnectEdge: anEdge
+		sourceShape: sourceShape
+		targetShape: targetShape
+		waypoints: proposedWaypoints
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> messageFlowEndpointAtGlobalPoint: aGlobalPoint excluding: anEndpoint [
+	| processCandidate participantCandidate |
+	processCandidate := processVisual
+		ifNil: [ nil ]
+		ifNotNil: [ :aVisual |
+			aVisual messageFlowEndpointAtGlobalPoint: aGlobalPoint excluding: anEndpoint ].
+	processCandidate ifNotNil: [ ^ processCandidate ].
+	participantCandidate := self
+		participantAtCollaborationPoint: (self diagramPointForGlobalPoint: aGlobalPoint)
+		excludingEndpoint: nil.
+	^ participantCandidate
+]
+
+{ #category : 'private - reconnecting' }
+CPCollaborationVisualElement >> diagramShapeForMessageFlowEndpoint: anEndpoint [
+	anEndpoint ifNil: [ ^ nil ].
+	anEndpoint isParticipant ifTrue: [ ^ self participantShapeFor: anEndpoint ].
+	processVisual ifNil: [ ^ nil ].
+	^ processVisual diagramShapeForModelElement: anEndpoint
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> proposedMessageFlowWaypointsFor: anEdge movingSource: movesSource to: aCandidate [
+	| messageFlow source target |
+	messageFlow := self stagedModelElementOf: anEdge.
+	messageFlow ifNil: [ ^ nil ].
+	source := collaborationContext stagedSourceOf: messageFlow.
+	target := collaborationContext stagedTargetOf: messageFlow.
+	movesSource ifTrue: [ source := aCandidate ] ifFalse: [ target := aCandidate ].
+	^ self proposedMessageFlowWaypointsFor: anEdge source: source target: target
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> proposedMessageFlowWaypointsFor: anEdge source: aSource target: aTarget [
+	| waypoints sourceToward targetToward sourcePoint targetPoint |
+	waypoints := (self stagedWaypointsOf: anEdge) asOrderedCollection copy.
+	waypoints size < 2 ifTrue: [ ^ nil ].
+	waypoints size = 2
+		ifTrue: [
+			sourceToward := self collaborationCenterForMessageFlowEndpoint: aTarget.
+			targetToward := self collaborationCenterForMessageFlowEndpoint: aSource ]
+		ifFalse: [
+			sourceToward := waypoints second.
+			targetToward := waypoints at: waypoints size - 1 ].
+	(sourceToward isNil or: [ targetToward isNil ]) ifTrue: [ ^ nil ].
+	sourcePoint := self collaborationDockingPointForMessageFlowEndpoint: aSource toward: sourceToward.
+	targetPoint := self collaborationDockingPointForMessageFlowEndpoint: aTarget toward: targetToward.
+	(sourcePoint isNil or: [ targetPoint isNil ]) ifTrue: [ ^ nil ].
+	waypoints at: 1 put: sourcePoint.
+	waypoints at: waypoints size put: targetPoint.
+	^ waypoints species withAll: waypoints
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> collaborationCenterForMessageFlowEndpoint: anEndpoint [
+	| shape bounds |
+	anEndpoint ifNil: [ ^ nil ].
+	anEndpoint isParticipant ifTrue: [
+		shape := self participantShapeFor: anEndpoint.
+		shape ifNil: [ ^ nil ].
+		^ (self stagedBoundsOf: shape) center ].
+	processVisual ifNil: [ ^ nil ].
+	shape := processVisual diagramShapeForModelElement: anEndpoint.
+	shape ifNil: [ ^ nil ].
+	bounds := processVisual stagedBoundsOf: shape.
+	^ self collaborationPointForProcessRootPoint:
+		(processVisual rootDiagramPointForLocalPoint: bounds center)
+]
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> collaborationDockingPointForMessageFlowEndpoint: anEndpoint toward: aPoint [
+	anEndpoint ifNil: [ ^ nil ].
+	anEndpoint isParticipant ifTrue: [
+		^ self dockingPointForParticipant: anEndpoint toward: aPoint ].
+	processVisual ifNil: [ ^ nil ].
+	(processVisual diagramShapeForModelElement: anEndpoint) ifNil: [ ^ nil ].
+	^ self collaborationDockingPointForFlowNode: anEndpoint inVisual: processVisual toward: aPoint
+]
+
+
 { #category : 'private - creation' }
 CPCollaborationVisualElement >> installPaletteDropHandler [
 	self addEventHandler: (CPProcessPaletteDropHandler new
@@ -646,14 +1189,20 @@ CPCollaborationVisualElement >> stagedWaypointsOf: anEdge [
 ]
 
 { #category : 'private - staged state' }
-CPCollaborationVisualElement >> stagedLabelOfMessageFlow: aMessageFlow [
-	| flowMemento description |
-	flowMemento := collaborationContext mementoForMember: aMessageFlow.
-	flowMemento ifNil: [ ^ nil ].
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #label ].
-	^ flowMemento readUsing: description
+CPCollaborationVisualElement >> stagedLabelSegmentIndexOf: anEdge [
+	^ diagramContext labelSegmentIndexOf: anEdge
 ]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedLabelSegmentPositionOf: anEdge [
+	^ diagramContext labelSegmentPositionOf: anEdge
+]
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedLabelOffsetOf: anEdge [
+	^ diagramContext labelOffsetOf: anEdge
+]
+
 
 { #category : 'private - staged state' }
 CPCollaborationVisualElement >> stagedBoundsOf: aShape [

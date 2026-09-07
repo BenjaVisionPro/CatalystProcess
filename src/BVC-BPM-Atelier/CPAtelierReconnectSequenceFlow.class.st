@@ -8,6 +8,7 @@ Class {
 		'sequenceFlow',
 		'proposedSource',
 		'proposedTarget',
+		'proposedWaypoints',
 		'processMemento',
 		'flowContainerContext',
 		'diagramDescription'
@@ -18,11 +19,12 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
+CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
 	^ self new
 		sequenceFlow: aSequenceFlow;
 		proposedSource: aSource;
 		proposedTarget: aTarget;
+		proposedWaypoints: someWaypoints;
 		processMemento: aMemento;
 		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
 		diagramDescription: aDiagramDescription;
@@ -30,11 +32,12 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 ]
 
 { #category : 'instance creation' }
-CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
+CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new
 		sequenceFlow: aSequenceFlow;
 		proposedSource: aSource;
 		proposedTarget: aTarget;
+		proposedWaypoints: someWaypoints;
 		processMemento: aMemento;
 		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
@@ -49,6 +52,8 @@ CPAtelierReconnectSequenceFlow >> assess [
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
+	proposedWaypoints ifNil: [ ^ self rejectedBecause: 'Reconnect waypoints are required.' ].
+	proposedWaypoints size < 2 ifTrue: [ ^ self rejectedBecause: 'A reconnectable sequence-flow edge requires at least two waypoints.' ].
 	flowElements := flowContainerContext stagedFlowElements.
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: sequenceFlow) ifFalse: [
@@ -114,8 +119,9 @@ CPAtelierReconnectSequenceFlow >> assess [
 	edgeMatches size = 1 ifFalse: [
 		^ self rejectedBecause: 'The sequence flow requires exactly one staged diagram edge.' ].
 	edge := edgeMatches first.
-	(edge waypointsDescription validate: edge waypoints)
-		ifNotNil: [ :ignored | ignored ].
+	[ edge waypointsDescription validate: proposedWaypoints ]
+		on: MAValidationError do: [ :anException |
+			^ self rejectedBecause: anException printString ].
 
 	^ CPAtelierReconnectSequenceFlowAssessment
 		sequenceFlow: sequenceFlow
@@ -127,10 +133,7 @@ CPAtelierReconnectSequenceFlow >> assess [
 
 { #category : 'applying' }
 CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
-	| flowMemento sourceDescription targetDescription
-	  diagram diagramMemento elementsDescription elements edge
-	  edgeMemento waypointsDescription sourceShape targetShape
-	  sourceBounds targetBounds proposedWaypoints diagramContext |
+	| flowMemento sourceDescription targetDescription diagramContext edgeMatches edge edgeMemento waypointsDescription |
 
 	flowMemento := flowContainerContext childMementoFor: sequenceFlow.
 	sourceDescription := flowMemento magritteDescription
@@ -148,48 +151,19 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 		self stageIncomingIncluding: sequenceFlow for: anAssessment proposedTarget.
 		flowMemento write: anAssessment proposedTarget using: targetDescription ].
 
-	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
-		diagram: diagram
+		diagram: (processMemento readUsing: diagramDescription)
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
-
-	edge := (elements select: [
-		:each | each isEdge and: [ each modelElement == sequenceFlow ] ]) first.
-	sourceShape := self
-		shapeFor: anAssessment proposedSource
-		in: elements
-		diagramMemento: diagramMemento
-		elementsDescription: elementsDescription.
-	targetShape := self
-		shapeFor: anAssessment proposedTarget
-		in: elements
-		diagramMemento: diagramMemento
-		elementsDescription: elementsDescription.
-	sourceBounds := self
-		stagedBoundsOf: sourceShape
-		in: diagramMemento
-		elementsDescription: elementsDescription.
-	targetBounds := self
-		stagedBoundsOf: targetShape
-		in: diagramMemento
-		elementsDescription: elementsDescription.
-
-	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
+	edgeMatches := diagramContext elements select: [
+		:each | each isEdge and: [ (diagramContext modelElementOf: each) == sequenceFlow ] ].
+	edge := edgeMatches first.
+	edgeMemento := diagramContext diagramMemento
+		childMementoFor: edge
+		inRelation: diagramContext elementsDescription.
 	waypointsDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #waypoints ].
-	proposedWaypoints := (edgeMemento readUsing: waypointsDescription) asOrderedCollection copy.
-	proposedWaypoints size < 2 ifTrue: [
-		self error: 'A reconnectable sequence-flow edge requires source and target waypoints' ].
-	proposedWaypoints
-		at: 1 put: sourceBounds center;
-		at: proposedWaypoints size put: targetBounds center.
-	edgeMemento
-		write: (proposedWaypoints species withAll: proposedWaypoints)
-		using: waypointsDescription
+	edgeMemento write: proposedWaypoints using: waypointsDescription
 ]
 
 { #category : 'private - staged topology' }
@@ -320,3 +294,6 @@ CPAtelierReconnectSequenceFlow >> processMemento: aMemento [ processMemento := a
 CPAtelierReconnectSequenceFlow >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierReconnectSequenceFlow >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'accessing' }
+CPAtelierReconnectSequenceFlow >> proposedWaypoints: aCollection [ proposedWaypoints := aCollection asOrderedCollection ]

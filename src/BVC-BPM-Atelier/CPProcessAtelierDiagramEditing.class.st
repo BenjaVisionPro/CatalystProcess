@@ -257,18 +257,29 @@ CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape [
-	| sequenceFlow source target flowContainer |
-	sequenceFlow := self modelElementOfDiagramElement: anEdge.
+CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape waypoints: someWaypoints [
+	| collaborationContext modelEdge source target flowContainer |
+	modelEdge := self modelElementOfDiagramElement: anEdge.
 	source := self modelElementOfDiagramElement: aSourceShape.
 	target := self modelElementOfDiagramElement: aTargetShape.
-	(sequenceFlow isNil or: [ source isNil or: [ target isNil ] ]) ifTrue: [ ^ nil ].
-	flowContainer := self flowContainerContaining: sequenceFlow.
+	(modelEdge isNil or: [ source isNil or: [ target isNil ] ]) ifTrue: [ ^ nil ].
+
+	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	(collaborationContext notNil and: [ collaborationContext elements identityIncludes: anEdge ]) ifTrue: [
+		^ CPAtelierReconnectMessageFlow
+			messageFlow: modelEdge
+			source: source
+			target: target
+			waypoints: someWaypoints
+			processMemento: processMemento ].
+
+	flowContainer := self flowContainerContaining: modelEdge.
 	flowContainer ifNil: [ ^ nil ].
 	^ CPAtelierReconnectSequenceFlow
-		sequenceFlow: sequenceFlow
+		sequenceFlow: modelEdge
 		source: source
 		target: target
+		waypoints: someWaypoints
 		flowContainer: flowContainer
 		processMemento: processMemento
 		diagramDescription: diagramDescription

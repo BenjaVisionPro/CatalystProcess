@@ -400,6 +400,7 @@ CPProcessAtelierExamples >> reconnectSequenceFlowPreservesFlowAndEdgeIdentity [
 		sequenceFlow: firstFlow
 		source: start
 		target: finish
+		waypoints: ({ 121 @ 121. 451 @ 121 } asOrderedCollection)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
 		diagramDescription: diagramDescription.
@@ -1759,5 +1760,94 @@ CPProcessAtelierExamples >> removingHostedParticipantWithOtherPoolsIsRejected [
 	self assert: assessment isApplicable not.
 	self assert: assessment rejectionMessage
 		equals: 'The Participant that hosts the edited Process cannot be removed while other Participants remain.'.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> reconnectMessageFlowPreservesSemanticAndDiagramIdentity [
+	<gtExample>
+	| fixture memento context connectAssessment operation assessment flowMemento sourceDescription targetDescription |
+	fixture := self collaborationFixture.
+	memento := fixture second.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: fixture third
+		target: fixture sixth
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+	operation := CPAtelierReconnectMessageFlow
+		messageFlow: connectAssessment messageFlow
+		source: fixture fifth
+		target: fixture sixth
+		waypoints: { 180 @ 270. 180 @ 320 }
+		processMemento: memento.
+
+	assessment := operation apply.
+	flowMemento := context mementoForMember: connectAssessment messageFlow.
+	sourceDescription := self descriptionFor: #sourceRef in: flowMemento.
+	targetDescription := self descriptionFor: #targetRef in: flowMemento.
+
+	self assert: assessment isApplicable.
+	self assert: (context messageFlows identityIncludes: connectAssessment messageFlow).
+	self assert: (context elements identityIncludes: connectAssessment edge).
+	self assert: (flowMemento readUsing: sourceDescription) == fixture fifth.
+	self assert: (flowMemento readUsing: targetDescription) == fixture sixth.
+	self assert: (context diagramContext waypointsOf: connectAssessment edge)
+		equals: ({ 180 @ 270. 180 @ 320 } asOrderedCollection).
+	^ assessment
+]
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> reconnectMessageFlowRejectsEndpointsInSameParticipant [
+	<gtExample>
+	| fixture memento connectAssessment operation assessment |
+	fixture := self collaborationFixture.
+	memento := fixture second.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: fixture third
+		target: fixture sixth
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	operation := CPAtelierReconnectMessageFlow
+		messageFlow: connectAssessment messageFlow
+		source: fixture third
+		target: fixture fifth
+		waypoints: { 250 @ 270. 300 @ 270 }
+		processMemento: memento.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable not.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> diagramEditingReconnectsCollaborationEdgeThroughMessageFlowOperation [
+	<gtExample>
+	| fixture memento diagramDescription context connectAssessment editing operation assessment |
+	fixture := self collaborationFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: fixture third
+		target: fixture sixth
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	operation := editing
+		reconnectEdge: connectAssessment edge
+		sourceShape: fixture eighth
+		targetShape: fixture ninth
+		waypoints: { 300 @ 270. 300 @ 320 }.
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: (context stagedSourceOf: connectAssessment messageFlow) == fixture fifth.
+	self assert: (context stagedTargetOf: connectAssessment messageFlow) == fixture sixth.
+	self assert: (context diagramContext waypointsOf: connectAssessment edge)
+		equals: ({ 300 @ 270. 300 @ 320 } asOrderedCollection).
 	^ assessment
 ]
