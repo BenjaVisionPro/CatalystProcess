@@ -24,7 +24,7 @@ Class {
 		'diagramSelection',
 		'selectionChangedBlock',
 		'diagramEditing',
-		'removeDiagramElementsBlock',
+		'diagramElementsRemovedBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
 		'insertionTargetEdge',
@@ -1328,8 +1328,8 @@ CPProcessVisualElement >> selectedModelElement [
 
 
 { #category : 'configuration' }
-CPProcessVisualElement >> removeDiagramElementsDo: aBlock [
-	removeDiagramElementsBlock := aBlock
+CPProcessVisualElement >> diagramElementsRemovedDo: aBlock [
+	diagramElementsRemovedBlock := aBlock
 ]
 
 
@@ -3321,12 +3321,10 @@ CPProcessVisualElement >> installKeyboardHandler [
 
 { #category : 'private - removal' }
 CPProcessVisualElement >> removeSelection [
-	| operation assessment |
+	| diagramElements operation assessment |
 	diagramSelection isEmpty ifTrue: [ ^ self ].
-	removeDiagramElementsBlock ifNotNil: [ :aBlock |
-		^ aBlock value: diagramSelection diagramElements ].
-
-	operation := diagramEditing remove: diagramSelection diagramElements.
+	diagramElements := diagramSelection diagramElements.
+	operation := diagramEditing remove: diagramElements.
 	operation ifNil: [ ^ self ].
 	assessment := operation assess.
 	assessment isApplicable ifFalse: [ ^ assessment ].
@@ -3337,7 +3335,9 @@ CPProcessVisualElement >> removeSelection [
 	connectionTargetModelElement := nil.
 	insertionTargetEdge := nil.
 	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
-	self refresh.
+	diagramElementsRemovedBlock
+		ifNil: [ self refresh ]
+		ifNotNil: [ :aBlock | aBlock value: diagramElements ].
 	^ assessment
 ]
 
@@ -3523,7 +3523,7 @@ CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 		rootVisual: rootVisual;
 		diagramSelection: diagramSelection;
 		selectionChangedDo: selectionChangedBlock;
-		removeDiagramElementsDo: removeDiagramElementsBlock;
+		diagramElementsRemovedDo: diagramElementsRemovedBlock;
 		diagramEditing: diagramEditing
 ]
 

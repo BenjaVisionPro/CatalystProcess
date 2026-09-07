@@ -18,7 +18,7 @@ Class {
 		'messageFlowsDescription',
 		'diagramEditing',
 		'refreshAfterGeometryChangeBlock',
-		'removeDiagramElementsBlock',
+		'diagramElementsRemovedBlock',
 		'diagramSelection',
 		'selectionChangedBlock',
 		'participantElementsByParticipant',
@@ -178,6 +178,26 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		element hostProcessVisual: processVisual ]
 ]
 
+{ #category : 'private - removal' }
+CPCollaborationVisualElement >> removeSelection [
+	| diagramElements operation assessment |
+	diagramSelection isEmpty ifTrue: [ ^ self ].
+	diagramElements := diagramSelection diagramElements.
+	operation := diagramEditing remove: diagramElements.
+	operation ifNil: [ ^ self ].
+	assessment := operation assess.
+	assessment isApplicable ifFalse: [ ^ assessment ].
+	operation apply.
+
+	diagramSelection clear.
+	selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: nil ].
+	diagramElementsRemovedBlock
+		ifNil: [ self refresh ]
+		ifNotNil: [ :aBlock | aBlock value: diagramElements ].
+	^ assessment
+]
+
+
 { #category : 'private - installing' }
 CPCollaborationVisualElement >> installKeyboardHandler [
 	self addEventHandler: (BlEventHandler
@@ -188,9 +208,7 @@ CPCollaborationVisualElement >> installKeyboardHandler [
 					anEvent key = BlKeyboardKey delete
 						or: [ anEvent key = BlKeyboardKey backspace ] ])
 				ifTrue: [
-					removeDiagramElementsBlock ifNotNil: [ :aBlock |
-						diagramSelection isEmpty ifFalse: [
-							aBlock value: diagramSelection diagramElements ] ].
+					self removeSelection.
 					anEvent consumed: true ] ])
 ]
 
@@ -301,8 +319,8 @@ CPCollaborationVisualElement >> refreshAfterGeometryChangeDo: aBlock [
 ]
 
 { #category : 'configuration' }
-CPCollaborationVisualElement >> removeDiagramElementsDo: aBlock [
-	removeDiagramElementsBlock := aBlock
+CPCollaborationVisualElement >> diagramElementsRemovedDo: aBlock [
+	diagramElementsRemovedBlock := aBlock
 ]
 
 
