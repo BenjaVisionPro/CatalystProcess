@@ -155,10 +155,13 @@ CPProcessShapeElement >> addCallActivityDecorationForBounds: aRectangle [
 
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
-	| innerRing |
+	| innerRing ringInset |
 	modelElement isIntermediateEvent ifFalse: [ ^ self ].
+	ringInset := modelElement isBoundaryEvent
+		ifTrue: [ 12 @ 12 ]
+		ifFalse: [ 8 @ 8 ].
 	innerRing := BlElement new
-		extent: aRectangle extent - (8 @ 8);
+		extent: aRectangle extent - ringInset;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
 		border: (BlBorder paint: self normalBorderColor width: 1.5);
@@ -267,7 +270,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 	definition := modelElement eventDefinitions first.
 	marker := FontAwesomeIcons icon: definition class eventTypeIcon.
 	marker
-		height: 16;
+		extent: 22 @ 22;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];

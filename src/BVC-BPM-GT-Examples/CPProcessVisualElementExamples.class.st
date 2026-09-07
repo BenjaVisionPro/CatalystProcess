@@ -2075,5 +2075,23 @@ CPProcessVisualElementExamples >> boundaryEventResizeGeometryPreservesHostSideAn
 	^ resized
 ]
 
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventHoverLabelStaysOutsideAttachedActivity [
+	<gtExample>
+	| visual activityBounds labelExtent topOrigin rightOrigin |
+	visual := CPProcessVisualElement new.
+	activityBounds := 100 @ 100 extent: 140 @ 80.
+	labelExtent := 180 @ 44.
+	topOrigin := visual
+		boundaryEventHoverLabelOriginForEventBounds: (149 @ 79 extent: 42 @ 42)
+		activityBounds: activityBounds
+		labelExtent: labelExtent.
+	rightOrigin := visual
+		boundaryEventHoverLabelOriginForEventBounds: (219 @ 119 extent: 42 @ 42)
+		activityBounds: activityBounds
+		labelExtent: labelExtent.
 
-
+	self assert: topOrigin y + labelExtent y < activityBounds top.
+	self assert: rightOrigin x > activityBounds right.
+	^ { topOrigin. rightOrigin }
+]
