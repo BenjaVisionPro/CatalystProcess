@@ -1,35 +1,32 @@
 Class {
 	#name : 'CPAtelierSetEdgeWaypoints',
 	#superclass : 'CFAtelierOperation',
-	#instVars : [ 'edge', 'waypoints', 'processMemento', 'diagramDescription' ],
+	#instVars : [ 'edge', 'waypoints', 'diagramContext' ],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
 
 { #category : 'instance creation' }
-CPAtelierSetEdgeWaypoints class >> edge: anEdge waypoints: somePoints processMemento: aMemento diagramDescription: aDescription [
-	^ self new edge: anEdge; waypoints: somePoints; processMemento: aMemento; diagramDescription: aDescription; yourself
+CPAtelierSetEdgeWaypoints class >> edge: anEdge waypoints: somePoints diagramContext: aDiagramContext [
+	^ self new
+		edge: anEdge;
+		waypoints: somePoints;
+		diagramContext: aDiagramContext;
+		yourself
 ]
 
 { #category : 'assessing' }
 CPAtelierSetEdgeWaypoints >> assess [
-	| diagram diagramMemento elementsDescription elements occurrences edgeMemento waypointsDescription currentWaypoints proposed diagramContext |
+	| elements occurrences edgeMemento waypointsDescription currentWaypoints proposed |
 	edge ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'A diagram edge is required.' ].
 	waypoints ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'Edge waypoints are required.' ].
 	waypoints size < 2 ifTrue: [ ^ self rejectedWithCurrentWaypoints: nil because: 'An edge requires at least two waypoints.' ].
-	diagram := processMemento readUsing: diagramDescription.
-	diagram ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	diagramContext ifNil: [ ^ self rejectedWithCurrentWaypoints: nil because: 'A staged diagram context is required.' ].
+	elements := diagramContext elements.
 	occurrences := elements count: [ :each | each == edge ].
 	occurrences = 1 ifFalse: [ ^ self rejectedWithCurrentWaypoints: nil because: 'The edge must occur exactly once in the staged diagram.' ].
-	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
+	edgeMemento := diagramContext mementoFor: edge.
 	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
 	currentWaypoints := edgeMemento readUsing: waypointsDescription.
 	proposed := waypoints asOrderedCollection.
@@ -42,15 +39,8 @@ CPAtelierSetEdgeWaypoints >> assess [
 
 { #category : 'applying' }
 CPAtelierSetEdgeWaypoints >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription edgeMemento waypointsDescription diagramContext |
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
+	| edgeMemento waypointsDescription |
+	edgeMemento := diagramContext mementoFor: edge.
 	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
 	edgeMemento write: anAssessment proposedWaypoints using: waypointsDescription
 ]
@@ -65,6 +55,4 @@ CPAtelierSetEdgeWaypoints >> edge: anObject [ edge := anObject ]
 { #category : 'accessing' }
 CPAtelierSetEdgeWaypoints >> waypoints: aCollection [ waypoints := aCollection ]
 { #category : 'accessing' }
-CPAtelierSetEdgeWaypoints >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierSetEdgeWaypoints >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+CPAtelierSetEdgeWaypoints >> diagramContext: aDiagramContext [ diagramContext := aDiagramContext ]

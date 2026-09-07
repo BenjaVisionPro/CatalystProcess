@@ -115,13 +115,7 @@ CPAtelierParticipantShapeBoundsOperation >> stagedTargetOf: aMessageFlow in: con
 
 { #category : 'private - resolving' }
 CPAtelierParticipantShapeBoundsOperation >> endpoint: anEndpoint isRepresentedBy: aParticipant in: context [
-	| process |
-	anEndpoint ifNil: [ ^ false ].
-	anEndpoint == aParticipant ifTrue: [ ^ true ].
-	anEndpoint isParticipant ifTrue: [ ^ false ].
-	process := anEndpoint owningProcess.
-	process ifNil: [ ^ false ].
-	^ (context processRefOf: aParticipant) == process
+	^ (context participantForEndpoint: anEndpoint) == aParticipant
 ]
 
 { #category : 'private - subclass responsibility' }

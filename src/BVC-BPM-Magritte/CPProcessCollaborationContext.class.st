@@ -5,6 +5,7 @@ Class {
 	#name : 'CPProcessCollaborationContext',
 	#superclass : 'Object',
 	#instVars : [
+		'rootProcessMemento',
 		'collaboration',
 		'collaborationMemento',
 		'participantsDescription',
@@ -39,6 +40,7 @@ CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 		inMemento: collaborationMemento
 		using: diagramDescription.
 	^ self new
+		rootProcessMemento: aProcessMemento;
 		collaboration: collaboration;
 		collaborationMemento: collaborationMemento;
 		participantsDescription: participantsDescription;
@@ -46,6 +48,11 @@ CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 		diagramContext: diagramContext;
 		yourself
 ]
+
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> rootProcessMemento [ ^ rootProcessMemento ]
+{ #category : 'accessing' }
+CPProcessCollaborationContext >> rootProcessMemento: aMemento [ rootProcessMemento := aMemento ]
 
 { #category : 'accessing' }
 CPProcessCollaborationContext >> collaboration [ ^ collaboration ]
@@ -133,4 +140,37 @@ CPProcessCollaborationContext >> processRefOf: aParticipant [
 	description := participantMemento magritteDescription
 		detect: [ :each | each handlesSelector: #processRef ].
 	^ participantMemento readUsing: description
+]
+
+
+{ #category : 'resolving' }
+CPProcessCollaborationContext >> participantForEndpoint: anEndpoint [
+	| process |
+	anEndpoint ifNil: [ ^ nil ].
+	anEndpoint isParticipant ifTrue: [
+		^ (self participants identityIncludes: anEndpoint)
+			ifTrue: [ anEndpoint ]
+			ifFalse: [ nil ] ].
+	process := self processForEndpoint: anEndpoint.
+	^ self participantForProcess: process
+]
+
+
+{ #category : 'resolving' }
+CPProcessCollaborationContext >> participantForProcess: aProcess [
+	aProcess ifNil: [ ^ nil ].
+	^ self participants
+		detect: [ :each | (self processRefOf: each) == aProcess ]
+		ifNone: [ nil ]
+]
+
+
+{ #category : 'private - resolving' }
+CPProcessCollaborationContext >> processForEndpoint: anEndpoint [
+	| stagedContext |
+	stagedContext := CPProcessFlowContainerContext
+		containingFlowElement: anEndpoint
+		inRootMemento: rootProcessMemento.
+	stagedContext ifNotNil: [ ^ rootProcessMemento model ].
+	^ anEndpoint owningProcess
 ]

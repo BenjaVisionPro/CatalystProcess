@@ -457,7 +457,7 @@ CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from
 { #category : 'connection' }
 CPCollaborationVisualElement >> participantAtCollaborationPoint: aPoint excludingEndpoint: anEndpoint [
 	| endpointParticipant |
-	endpointParticipant := collaborationContext collaboration participantForEndpoint: anEndpoint.
+	endpointParticipant := collaborationContext participantForEndpoint: anEndpoint.
 	^ self stagedParticipants
 		detect: [ :each |
 			each ~~ endpointParticipant and: [

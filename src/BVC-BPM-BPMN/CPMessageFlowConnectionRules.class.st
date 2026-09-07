@@ -19,7 +19,50 @@ CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget in: aC
 
 { #category : 'assessing' }
 CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget participants: someParticipants [
-	| sourceParticipant targetParticipant |
+	| rejection sourceParticipant targetParticipant |
+	rejection := self endpointRejectionFrom: aSource to: aTarget.
+	rejection ifNotNil: [ ^ rejection ].
+	sourceParticipant := self
+		participantForEndpoint: aSource
+		in: someParticipants.
+	targetParticipant := self
+		participantForEndpoint: aTarget
+		in: someParticipants.
+	^ self
+		assessResolvedConnectionFrom: aSource
+		to: aTarget
+		sourceParticipant: sourceParticipant
+		targetParticipant: targetParticipant
+]
+
+
+{ #category : 'assessing' }
+CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget sourceParticipant: aSourceParticipant targetParticipant: aTargetParticipant [
+	| rejection |
+	rejection := self endpointRejectionFrom: aSource to: aTarget.
+	rejection ifNotNil: [ ^ rejection ].
+	^ self
+		assessResolvedConnectionFrom: aSource
+		to: aTarget
+		sourceParticipant: aSourceParticipant
+		targetParticipant: aTargetParticipant
+]
+
+
+{ #category : 'private - assessing' }
+CPMessageFlowConnectionRules >> assessResolvedConnectionFrom: aSource to: aTarget sourceParticipant: aSourceParticipant targetParticipant: aTargetParticipant [
+	aSourceParticipant ifNil: [
+		^ self rejectedBecause: 'The source is not represented by a Participant in the Collaboration.' ].
+	aTargetParticipant ifNil: [
+		^ self rejectedBecause: 'The target is not represented by a Participant in the Collaboration.' ].
+	aSourceParticipant == aTargetParticipant ifTrue: [
+		^ self rejectedBecause: 'A MessageFlow must connect two separate Participants.' ].
+	^ CPMessageFlowConnectionRuleResult allowed
+]
+
+
+{ #category : 'private - assessing' }
+CPMessageFlowConnectionRules >> endpointRejectionFrom: aSource to: aTarget [
 	aSource ifNil: [ ^ self rejectedBecause: 'A MessageFlow source is required.' ].
 	aTarget ifNil: [ ^ self rejectedBecause: 'A MessageFlow target is required.' ].
 	aSource == aTarget ifTrue: [
@@ -28,20 +71,7 @@ CPMessageFlowConnectionRules >> assessConnectionFrom: aSource to: aTarget partic
 		^ self rejectedBecause: 'The source cannot participate in a MessageFlow.' ].
 	aTarget canBeMessageFlowEndpoint ifFalse: [
 		^ self rejectedBecause: 'The target cannot participate in a MessageFlow.' ].
-
-	sourceParticipant := self
-		participantForEndpoint: aSource
-		in: someParticipants.
-	targetParticipant := self
-		participantForEndpoint: aTarget
-		in: someParticipants.
-	sourceParticipant ifNil: [
-		^ self rejectedBecause: 'The source is not represented by a Participant in the Collaboration.' ].
-	targetParticipant ifNil: [
-		^ self rejectedBecause: 'The target is not represented by a Participant in the Collaboration.' ].
-	sourceParticipant == targetParticipant ifTrue: [
-		^ self rejectedBecause: 'A MessageFlow must connect two separate Participants.' ].
-	^ CPMessageFlowConnectionRuleResult allowed
+	^ nil
 ]
 
 { #category : 'private - resolving' }

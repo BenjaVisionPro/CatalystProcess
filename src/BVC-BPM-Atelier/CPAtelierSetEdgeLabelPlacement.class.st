@@ -6,8 +6,7 @@ Class {
 		'segmentIndex',
 		'segmentPosition',
 		'offset',
-		'processMemento',
-		'diagramDescription'
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -15,20 +14,19 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierSetEdgeLabelPlacement class >> edge: anEdge segmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset processMemento: aMemento diagramDescription: aDescription [
+CPAtelierSetEdgeLabelPlacement class >> edge: anEdge segmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset diagramContext: aDiagramContext [
 	^ self new
 		edge: anEdge;
 		segmentIndex: aSegmentIndex;
 		segmentPosition: aSegmentPosition;
 		offset: anOffset;
-		processMemento: aMemento;
-		diagramDescription: aDescription;
+		diagramContext: aDiagramContext;
 		yourself
 ]
 
 { #category : 'assessing' }
 CPAtelierSetEdgeLabelPlacement >> assess [
-	| diagram diagramMemento elementsDescription elements edgeMemento segmentDescription positionDescription offsetDescription currentSegment currentPosition currentOffset waypointsDescription waypoints segmentCount diagramContext |
+	| elements edgeMemento segmentDescription positionDescription offsetDescription currentSegment currentPosition currentOffset waypointsDescription waypoints segmentCount |
 	edge ifNil: [ ^ self rejectedBecause: 'A diagram edge is required.' ].
 	segmentIndex ifNil: [ ^ self rejectedBecause: 'A label segment is required.' ].
 	segmentPosition ifNil: [ ^ self rejectedBecause: 'A label segment position is required.' ].
@@ -36,19 +34,12 @@ CPAtelierSetEdgeLabelPlacement >> assess [
 	(segmentPosition between: 0.0 and: 1.0) ifFalse: [
 		^ self rejectedBecause: 'Label segment position must be between 0 and 1.' ].
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	diagramContext ifNil: [ ^ self rejectedBecause: 'A staged diagram context is required.' ].
+	elements := diagramContext elements.
 	(elements identityIncludes: edge) ifFalse: [
 		^ self rejectedBecause: 'The edge does not belong to the staged diagram.' ].
 
-	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
+	edgeMemento := diagramContext mementoFor: edge.
 	waypointsDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #waypoints ].
 	waypoints := edgeMemento readUsing: waypointsDescription.
@@ -85,15 +76,8 @@ CPAtelierSetEdgeLabelPlacement >> assess [
 
 { #category : 'applying' }
 CPAtelierSetEdgeLabelPlacement >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription edgeMemento segmentDescription positionDescription offsetDescription diagramContext |
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
+	| edgeMemento segmentDescription positionDescription offsetDescription |
+	edgeMemento := diagramContext mementoFor: edge.
 	segmentDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #labelSegmentIndex ].
 	positionDescription := edgeMemento magritteDescription
@@ -127,6 +111,4 @@ CPAtelierSetEdgeLabelPlacement >> segmentPosition: aNumber [ segmentPosition := 
 { #category : 'accessing' }
 CPAtelierSetEdgeLabelPlacement >> offset: aNumber [ offset := aNumber ]
 { #category : 'accessing' }
-CPAtelierSetEdgeLabelPlacement >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierSetEdgeLabelPlacement >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+CPAtelierSetEdgeLabelPlacement >> diagramContext: aDiagramContext [ diagramContext := aDiagramContext ]

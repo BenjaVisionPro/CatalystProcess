@@ -27,7 +27,7 @@ CPAtelierConnectMessageFlow class >> source: aSource target: aTarget waypoints: 
 
 { #category : 'assessing' }
 CPAtelierConnectMessageFlow >> assess [
-	| collaborationContext collaboration ruleResult messageFlow sourceDescription targetDescription edge proposedMessageFlows proposedElements |
+	| collaborationContext ruleResult sourceParticipant targetParticipant messageFlow sourceDescription targetDescription edge proposedMessageFlows proposedElements |
 	collaborationContext := self collaborationContext.
 	collaborationContext ifNil: [
 		^ self rejectedBecause: 'The Process has no staged definitional Collaboration.' ].
@@ -36,11 +36,13 @@ CPAtelierConnectMessageFlow >> assess [
 	waypoints size < 2 ifTrue: [
 		^ self rejectedBecause: 'A MessageFlow edge requires at least two waypoints.' ].
 
-	collaboration := collaborationContext collaboration.
+	sourceParticipant := collaborationContext participantForEndpoint: source.
+	targetParticipant := collaborationContext participantForEndpoint: target.
 	ruleResult := CPMessageFlowConnectionRules new
 		assessConnectionFrom: source
 		to: target
-		participants: collaborationContext participants.
+		sourceParticipant: sourceParticipant
+		targetParticipant: targetParticipant.
 	ruleResult isAllowed ifFalse: [
 		^ self rejectedBecause: ruleResult message ].
 

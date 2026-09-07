@@ -1239,8 +1239,8 @@ CPProcessVisualElement >> anchorReferenceElementAt: aPoint [
 CPProcessVisualElement >> edge: anEdge isIncidentTo: aModelElement [
 	| sequenceFlow |
 	sequenceFlow := anEdge modelElement.
-	^ sequenceFlow sourceRef == aModelElement
-		or: [ sequenceFlow targetRef == aModelElement ]
+	^ (self stagedSourceOf: sequenceFlow) == aModelElement
+		or: [ (self stagedTargetOf: sequenceFlow) == aModelElement ]
 ]
 
 

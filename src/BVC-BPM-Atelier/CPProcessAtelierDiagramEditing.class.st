@@ -124,6 +124,21 @@ CPProcessAtelierDiagramEditing >> processDiagramContext [
 		using: diagramDescription
 ]
 
+
+
+{ #category : 'private - staged state' }
+CPProcessAtelierDiagramEditing >> diagramContextContaining: aDiagramElement [
+	| collaborationContext processDiagramContext |
+	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	(collaborationContext notNil
+		and: [ collaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
+		^ collaborationContext diagramContext ].
+	processDiagramContext := self processDiagramContext.
+	(processDiagramContext elements identityIncludes: aDiagramElement) ifTrue: [
+		^ processDiagramContext ].
+	^ nil
+]
+
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 	| collaborationContext |
@@ -270,21 +285,25 @@ CPProcessAtelierDiagramEditing >> setShape: aShape expanded: aBoolean [
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> setWaypoints: someWaypoints forEdge: anEdge [
+	| edgeDiagramContext |
+	edgeDiagramContext := self diagramContextContaining: anEdge.
+	edgeDiagramContext ifNil: [ ^ nil ].
 	^ CPAtelierSetEdgeWaypoints
 		edge: anEdge
 		waypoints: someWaypoints
-		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: edgeDiagramContext
 ]
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPosition: aSegmentPosition offset: anOffset forEdge: anEdge [
+	| edgeDiagramContext |
+	edgeDiagramContext := self diagramContextContaining: anEdge.
+	edgeDiagramContext ifNil: [ ^ nil ].
 	^ CPAtelierSetEdgeLabelPlacement
 		edge: anEdge
 		segmentIndex: aSegmentIndex
 		segmentPosition: aSegmentPosition
 		offset: anOffset
-		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: edgeDiagramContext
 ]
 

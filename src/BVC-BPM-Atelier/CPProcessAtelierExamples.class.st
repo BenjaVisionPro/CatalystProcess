@@ -264,17 +264,18 @@ CPProcessAtelierExamples >> resizeShapeInsideSubProcessMovesNestedIncidentEndpoi
 { #category : 'examples - routing' }
 CPProcessAtelierExamples >> setEdgeWaypointsStagesRoutingWithoutMutatingModel [
 	<gtExample>
-	| fixture memento firstEdge diagramDescription proposed operation assessment |
+	| fixture memento firstEdge diagramDescription diagram diagramContext proposed operation assessment |
 	fixture := self fixture.
 	memento := fixture second.
 	firstEdge := fixture at: 12.
 	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagram := memento readUsing: diagramDescription.
+	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: memento using: diagramDescription.
 	proposed := { 142 @ 121. 180 @ 170. 220 @ 121 } asOrderedCollection.
 	operation := CPAtelierSetEdgeWaypoints
 		edge: firstEdge
 		waypoints: proposed
-		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: diagramContext.
 
 	assessment := operation apply.
 
@@ -287,18 +288,19 @@ CPProcessAtelierExamples >> setEdgeWaypointsStagesRoutingWithoutMutatingModel [
 { #category : 'examples - labels' }
 CPProcessAtelierExamples >> setEdgeLabelPlacementStagesAllPlacementValues [
 	<gtExample>
-	| fixture memento firstEdge diagramDescription operation assessment diagramMemento elementsDescription edgeMemento |
+	| fixture memento firstEdge diagramDescription diagram diagramContext operation assessment diagramMemento elementsDescription edgeMemento |
 	fixture := self fixture.
 	memento := fixture second.
 	firstEdge := fixture at: 12.
 	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagram := memento readUsing: diagramDescription.
+	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: memento using: diagramDescription.
 	operation := CPAtelierSetEdgeLabelPlacement
 		edge: firstEdge
 		segmentIndex: 1
 		segmentPosition: 0.35
 		offset: 18
-		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: diagramContext.
 
 	assessment := operation apply.
 	diagramMemento := self diagramMementoFor: memento.
@@ -1277,6 +1279,82 @@ CPProcessAtelierExamples >> collaborationContextReadsCurrentStagedCollections [
 	^ context
 ]
 
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> collaborationContextResolvesFreshStagedFlowNodeToRootParticipant [
+	<gtExample>
+	| fixture process memento localParticipant freshTask diagramDescription createAssessment context |
+	fixture := self collaborationFixture.
+	process := fixture first.
+	memento := fixture second.
+	localParticipant := fixture fifth.
+	freshTask := CPUserTask new label: 'Pack order'; yourself.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+
+	createAssessment := (CPAtelierCreateFlowNode
+		flowNode: freshTask
+		bounds: (300 @ 80 extent: 132 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: createAssessment isApplicable.
+	self assert: freshTask owningProcess isNil.
+	self assert: (context participantForEndpoint: freshTask) == localParticipant.
+	^ context
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> collaborationContextUsesCommittedOwnershipForExternalProcessEndpoint [
+	<gtExample>
+	| fixture memento externalParticipant externalProcess externalTask context |
+	fixture := self collaborationFixture.
+	memento := fixture second.
+	externalParticipant := fixture sixth.
+	externalProcess := CPProcess new label: 'Buyer'; yourself.
+	externalTask := CPUserTask new label: 'Receive order'; yourself.
+	externalProcess addFlowElement: externalTask.
+	externalParticipant processRef: externalProcess.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: externalTask owningProcess == externalProcess.
+	self assert: (context participantForEndpoint: externalTask) == externalParticipant.
+	^ context
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> connectMessageFlowObservesFreshStagedFlowNodeContainment [
+	<gtExample>
+	| fixture process memento externalParticipant freshTask diagramDescription createAssessment operation assessment |
+	fixture := self collaborationFixture.
+	process := fixture first.
+	memento := fixture second.
+	externalParticipant := fixture sixth.
+	freshTask := CPUserTask new label: 'Pack order'; yourself.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	createAssessment := (CPAtelierCreateFlowNode
+		flowNode: freshTask
+		bounds: (300 @ 80 extent: 132 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+
+	operation := CPAtelierConnectMessageFlow
+		source: freshTask
+		target: externalParticipant
+		waypoints: { 430 @ 107. 430 @ 320 }
+		processMemento: memento.
+	assessment := operation assess.
+
+	self assert: createAssessment isApplicable.
+	self assert: freshTask owningProcess isNil.
+	self assert: assessment isApplicable.
+	^ assessment
+]
+
+
 { #category : 'examples - staged diagram context' }
 CPProcessAtelierExamples >> diagramMementoContextReadsCurrentStagedDiagramState [
 	<gtExample>
@@ -1322,6 +1400,68 @@ CPProcessAtelierExamples >> connectMessageFlowRejectsEndpointsInsideSameParticip
 	self assert: assessment isApplicable not.
 	self assert: assessment rejectionMessage
 		equals: 'A MessageFlow must connect two separate Participants.'.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> diagramEditingStagesMessageFlowWaypointsInCollaborationDiagram [
+	<gtExample>
+	| fixture memento diagramDescription connectAssessment editing proposed operation assessment context |
+	fixture := self collaborationFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: fixture third
+		target: fixture sixth
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	proposed := { 250 @ 270. 360 @ 290. 250 @ 320 } asOrderedCollection.
+	operation := editing setWaypoints: proposed forEdge: connectAssessment edge.
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: (context diagramContext waypointsOf: connectAssessment edge) equals: proposed.
+	self assert: connectAssessment edge waypoints equals: ({ 250 @ 270. 250 @ 320 } asOrderedCollection).
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration message flow' }
+CPProcessAtelierExamples >> diagramEditingStagesMessageFlowLabelPlacementInCollaborationDiagram [
+	<gtExample>
+	| fixture memento diagramDescription connectAssessment editing operation assessment context edge |
+	fixture := self collaborationFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	connectAssessment := (CPAtelierConnectMessageFlow
+		source: fixture third
+		target: fixture sixth
+		waypoints: { 250 @ 270. 250 @ 320 }
+		processMemento: memento) apply.
+	edge := connectAssessment edge.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	operation := editing
+		setLabelSegmentIndex: 1
+		segmentPosition: 0.4
+		offset: 16
+		forEdge: edge.
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: (context diagramContext labelSegmentIndexOf: edge) equals: 1.
+	self assert: (context diagramContext labelSegmentPositionOf: edge) equals: 0.4.
+	self assert: (context diagramContext labelOffsetOf: edge) equals: 16.
+	self assert: edge labelSegmentIndex isNil.
+	self assert: edge labelSegmentPosition isNil.
+	self assert: edge labelOffset isNil.
 	^ assessment
 ]
 
@@ -1381,7 +1521,8 @@ CPProcessAtelierExamples >> createFirstParticipantStagesCollaborationPoolAndProc
 	self assert: context elements first == assessment shape.
 	self assert: assessment shape modelElement == participant.
 	self assert: assessment shape bounds equals: (40 @ 40 extent: 620 @ 230).
-	self assert: participant processRef == process.
+	self assert: (context processRefOf: participant) == process.
+	self assert: participant processRef isNil.
 	self assert: process definitionalCollaborationRef isNil.
 	^ assessment
 ]
@@ -1411,6 +1552,85 @@ CPProcessAtelierExamples >> createSecondParticipantDefaultsToBlackBox [
 	self assert: secondParticipant processRef isNil.
 	^ assessment
 ]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> createParticipantObservesStagedParticipantProcessReference [
+	<gtExample>
+	| fixture process memento localParticipant replacementParticipant context localMemento processRefDescription operation assessment |
+	fixture := self collaborationFixture.
+	process := fixture first.
+	memento := fixture second.
+	localParticipant := fixture fifth.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+	localMemento := context mementoForMember: localParticipant.
+	processRefDescription := self descriptionFor: #processRef in: localMemento.
+	localMemento write: nil using: processRefDescription.
+	replacementParticipant := CPParticipant new label: 'Replacement seller'; yourself.
+
+	operation := CPAtelierCreateParticipant
+		participant: replacementParticipant
+		bounds: (40 @ 460 extent: 620 @ 100)
+		processMemento: memento.
+	assessment := operation apply.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+
+	self assert: assessment isApplicable.
+	self assert: assessment referencesProcess.
+	self assert: (context processRefOf: localParticipant) isNil.
+	self assert: localParticipant processRef == process.
+	self assert: (context processRefOf: replacementParticipant) == process.
+	self assert: replacementParticipant processRef isNil.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> createFirstParticipantCommitPersistsStagedProcessReference [
+	<gtExample>
+	| process memento participant operation assessment |
+	process := CPProcess new label: 'Process'; yourself.
+	process diagram: CPDiagram new.
+	memento := CFMaMemento model: process.
+	participant := CPParticipant new label: 'Pool'; yourself.
+	operation := CPAtelierCreateParticipant
+		participant: participant
+		bounds: (40 @ 40 extent: 620 @ 230)
+		processMemento: memento.
+
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	self assert: participant processRef isNil.
+	memento commit.
+	self assert: process definitionalCollaborationRef == assessment collaboration.
+	self assert: participant processRef == process.
+	^ assessment
+]
+
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> createFirstParticipantResetDiscardsStagedProcessReference [
+	<gtExample>
+	| process memento participant operation assessment collaborationDescription |
+	process := CPProcess new label: 'Process'; yourself.
+	process diagram: CPDiagram new.
+	memento := CFMaMemento model: process.
+	participant := CPParticipant new label: 'Pool'; yourself.
+	operation := CPAtelierCreateParticipant
+		participant: participant
+		bounds: (40 @ 40 extent: 620 @ 230)
+		processMemento: memento.
+
+	assessment := operation apply.
+	collaborationDescription := self descriptionFor: #definitionalCollaborationRef in: memento.
+	self assert: assessment isApplicable.
+	self assert: participant processRef isNil.
+	memento reset.
+	self assert: (memento readUsing: collaborationDescription) isNil.
+	self assert: process definitionalCollaborationRef isNil.
+	self assert: participant processRef isNil.
+	^ assessment
+]
+
 
 { #category : 'examples - collaboration participants' }
 CPProcessAtelierExamples >> removeBlackBoxParticipantStagesPoolAndIncidentMessageFlowRemoval [

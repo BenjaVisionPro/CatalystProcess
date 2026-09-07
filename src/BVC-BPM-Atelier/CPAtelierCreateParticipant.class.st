@@ -53,8 +53,9 @@ CPAtelierCreateParticipant >> assess [
 
 	(participants identityIncludes: participant) ifTrue: [
 		^ self rejectedBecause: 'The Participant is already present in the Collaboration.' ].
-	referencesProcess := (participants anySatisfy: [ :each |
-		each processRef == processMemento model ]) not.
+	referencesProcess := context
+		ifNil: [ true ]
+		ifNotNil: [ (context participantForProcess: processMemento model) isNil ].
 
 	shape := CPShape new
 		modelElement: participant;
@@ -90,9 +91,7 @@ CPAtelierCreateParticipant >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateParticipant >> applyAssessment: anAssessment [
-	| collaborationDescription collaborationMemento participantsDescription diagramDescription diagramMemento elementsDescription |
-	anAssessment referencesProcess ifTrue: [
-		anAssessment participant processRef: processMemento model ].
+	| collaborationDescription collaborationMemento participantsDescription participantMemento processRefDescription diagramDescription diagramMemento elementsDescription |
 
 	anAssessment createsCollaboration ifTrue: [
 		collaborationDescription := processMemento magritteDescription
@@ -119,6 +118,15 @@ CPAtelierCreateParticipant >> applyAssessment: anAssessment [
 	collaborationMemento
 		write: anAssessment proposedParticipants
 		using: participantsDescription.
+	anAssessment referencesProcess ifTrue: [
+		participantMemento := collaborationMemento
+			childMementoFor: anAssessment participant
+			inRelation: participantsDescription.
+		processRefDescription := participantMemento magritteDescription
+			detect: [ :each | each handlesSelector: #processRef ].
+		participantMemento
+			write: processMemento model
+			using: processRefDescription ].
 
 	diagramMemento := collaborationMemento
 		childMementoFor: anAssessment diagram

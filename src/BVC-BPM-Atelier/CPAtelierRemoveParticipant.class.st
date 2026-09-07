@@ -109,13 +109,7 @@ CPAtelierRemoveParticipant >> stagedModelElementOf: aDiagramElement in: context 
 
 { #category : 'private - resolving' }
 CPAtelierRemoveParticipant >> endpoint: anEndpoint isRepresentedBy: aParticipant in: context [
-	| process |
-	anEndpoint ifNil: [ ^ false ].
-	anEndpoint == aParticipant ifTrue: [ ^ true ].
-	anEndpoint isParticipant ifTrue: [ ^ false ].
-	process := anEndpoint owningProcess.
-	process ifNil: [ ^ false ].
-	^ (self stagedProcessRefOf: aParticipant in: context) == process
+	^ (context participantForEndpoint: anEndpoint) == aParticipant
 ]
 
 { #category : 'private' }

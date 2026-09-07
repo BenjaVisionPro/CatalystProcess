@@ -273,6 +273,8 @@ CPProcessVisualElementExamples >> reconnectDelegatesWithoutReplacingFlowOrEdgeId
 	self assert: (flowMemento readUsing: targetDescription) == finish.
 	self assert: firstFlow targetRef == fixture fourth.
 	self assert: firstEdge modelElement == firstFlow.
+	self assert: (visual edge: firstEdge isIncidentTo: finish).
+	self assert: (visual edge: firstEdge isIncidentTo: fixture fourth) not.
 	^ visual
 ]
 
