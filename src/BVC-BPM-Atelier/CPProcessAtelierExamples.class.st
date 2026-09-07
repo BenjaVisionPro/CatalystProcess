@@ -2036,3 +2036,81 @@ CPProcessAtelierExamples >> removingSelectedActivitySuppressesDependentBoundaryE
 	self assert: assessment operationAssessments first removedFlowNodes size equals: 2.
 	^ assessment
 ]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> reattachingBoundaryEventStagesNewActivityBoundsAndIncidentEdgeEndpoint [
+	<gtExample>
+	| fixture process memento diagramDescription secondTask secondTaskShape context diagramContext eventMemento attachedDescription operation assessment stagedElements |
+	fixture := self boundaryEventFixture.
+	process := fixture first.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	context := CPProcessFlowContainerContext rootFor: memento.
+	diagramContext := CPDiagramMementoContext
+		diagram: (memento readUsing: diagramDescription)
+		inMemento: memento
+		using: diagramDescription.
+
+	secondTask := CPUserTask new label: 'Other work'; yourself.
+	secondTaskShape := CPShape new
+		modelElement: secondTask;
+		bounds: (220 @ 260 extent: 160 @ 90);
+		yourself.
+	context writeFlowElements: (context stagedFlowElements asOrderedCollection copy add: secondTask; yourself).
+	context childMementoFor: secondTask.
+	stagedElements := diagramContext elements asOrderedCollection copy
+		add: secondTaskShape;
+		yourself.
+	diagramContext diagramMemento write: stagedElements using: diagramContext elementsDescription.
+
+	operation := CPAtelierReattachBoundaryEvent
+		boundaryEvent: fixture fourth
+		shape: (fixture at: 9)
+		attachedTo: secondTask
+		bounds: (199 @ 284 extent: 42 @ 42)
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	eventMemento := context childMementoFor: fixture fourth.
+	attachedDescription := eventMemento magritteDescription detect: [ :each | each handlesSelector: #attachedToRef ].
+	self assert: (eventMemento readUsing: attachedDescription) == secondTask.
+	self assert: fixture fourth attachedToRef == fixture third.
+	self assert: (diagramContext boundsOf: (fixture at: 9)) equals: (199 @ 284 extent: 42 @ 42).
+	self assert: (diagramContext waypointsOf: (fixture at: 11))
+		equals: ({ 220 @ 305. 350 @ 140 } asOrderedCollection).
+	^ assessment
+]
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> diagramEditingBuildsBoundaryEventReattachmentOperation [
+	<gtExample>
+	| fixture memento diagramDescription secondTask secondTaskShape context diagramContext editing operation assessment |
+	fixture := self boundaryEventFixture.
+	memento := fixture second.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	context := CPProcessFlowContainerContext rootFor: memento.
+	diagramContext := CPDiagramMementoContext
+		diagram: (memento readUsing: diagramDescription)
+		inMemento: memento
+		using: diagramDescription.
+	secondTask := CPUserTask new label: 'Other work'; yourself.
+	secondTaskShape := CPShape new modelElement: secondTask; bounds: (220 @ 260 extent: 160 @ 90); yourself.
+	context writeFlowElements: (context stagedFlowElements asOrderedCollection copy add: secondTask; yourself).
+	context childMementoFor: secondTask.
+	diagramContext diagramMemento
+		write: (diagramContext elements asOrderedCollection copy add: secondTaskShape; yourself)
+		using: diagramContext elementsDescription.
+
+	editing := CPProcessAtelierDiagramEditing processMemento: memento diagramDescription: diagramDescription.
+	operation := editing
+		reattachBoundaryEvent: (fixture at: 9)
+		toActivityShape: secondTaskShape
+		bounds: (199 @ 284 extent: 42 @ 42).
+	self assert: operation notNil.
+	assessment := operation assess.
+	self assert: assessment isApplicable.
+	^ assessment
+]

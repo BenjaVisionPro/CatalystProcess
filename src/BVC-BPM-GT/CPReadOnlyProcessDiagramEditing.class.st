@@ -41,6 +41,11 @@ CPReadOnlyProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds 
 ]
 
 { #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> reattachBoundaryEvent: aBoundaryEventShape toActivityShape: anActivityShape bounds: proposedBounds [
+	^ nil
+]
+
+{ #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: proposedBounds [
 	^ nil
 ]

@@ -43,6 +43,11 @@ CPProcessDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 ]
 
 { #category : 'operation factories' }
+CPProcessDiagramEditing >> reattachBoundaryEvent: aBoundaryEventShape toActivityShape: anActivityShape bounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
+{ #category : 'operation factories' }
 CPProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: proposedBounds [
 	^ self subclassResponsibility
 ]

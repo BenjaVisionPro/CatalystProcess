@@ -152,6 +152,30 @@ CPProcessAtelierDiagramEditing >> diagramContextContaining: aDiagramElement [
 ]
 
 { #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> reattachBoundaryEvent: aBoundaryEventShape toActivityShape: anActivityShape bounds: proposedBounds [
+	| diagramContext boundaryEvent activity boundaryContext activityContext |
+	diagramContext := self processDiagramContext.
+	((diagramContext elements identityIncludes: aBoundaryEventShape)
+		and: [ diagramContext elements identityIncludes: anActivityShape ]) ifFalse: [ ^ nil ].
+	boundaryEvent := diagramContext modelElementOf: aBoundaryEventShape.
+	activity := diagramContext modelElementOf: anActivityShape.
+	(boundaryEvent notNil and: [ boundaryEvent isBoundaryEvent ]) ifFalse: [ ^ nil ].
+	(activity notNil and: [ activity isActivity ]) ifFalse: [ ^ nil ].
+	boundaryContext := CPProcessFlowContainerContext containingFlowElement: boundaryEvent inRootMemento: processMemento.
+	activityContext := CPProcessFlowContainerContext containingFlowElement: activity inRootMemento: processMemento.
+	(boundaryContext notNil and: [ activityContext notNil ]) ifFalse: [ ^ nil ].
+	boundaryContext container == activityContext container ifFalse: [ ^ nil ].
+	^ CPAtelierReattachBoundaryEvent
+		boundaryEvent: boundaryEvent
+		shape: aBoundaryEventShape
+		attachedTo: activity
+		bounds: proposedBounds
+		flowContainer: boundaryContext container
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
+
+{ #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 	| collaborationContext |
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.

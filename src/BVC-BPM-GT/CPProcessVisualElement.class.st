@@ -1620,15 +1620,15 @@ CPProcessVisualElement >> boundaryEventBounds: eventBounds constrainedToActivity
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| boundaryEvent attachedActivity activityShape activityBounds dragStartBounds dragStartLabelPosition snappedBounds |
+	| boundaryEvent attachedActivity attachedActivityShape dragStartBounds dragStartLabelPosition snappedBounds candidateActivityShape |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	boundaryEvent := self stagedModelElementOf: aShape.
 	attachedActivity := self stagedAttachedActivityOf: boundaryEvent.
 	attachedActivity ifNil: [ ^ self ].
-	activityShape := self diagramShapeForModelElement: attachedActivity.
-	activityShape ifNil: [ ^ self ].
-	activityBounds := self stagedBoundsOf: activityShape.
+	attachedActivityShape := self diagramShapeForModelElement: attachedActivity.
+	attachedActivityShape ifNil: [ ^ self ].
 	snappedBounds := self stagedBoundsOf: aShape.
+	candidateActivityShape := attachedActivityShape.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
 		stagedBounds: [ self stagedBoundsOf: aShape ]
@@ -1636,14 +1636,20 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 			dragStartBounds := originalBounds.
 			dragStartLabelPosition := aShapeElement externalLabelHost
 				ifNotNil: [ :aLabel | aLabel position ].
+			candidateActivityShape := attachedActivityShape.
 			self clearInsertionTarget ]
 		dragStartPosition: [ dragStartBounds origin ]
 		dragged: [ :anEvent :delta |
-			| candidateBounds translatedDelta |
+			| candidateBounds targetActivityShape targetActivityBounds translatedDelta |
 			candidateBounds := dragStartBounds translateBy: delta.
+			targetActivityShape := self activityShapeAtDiagramPoint:
+				(self diagramPointForGlobalPoint: anEvent position).
+			targetActivityShape ifNil: [ targetActivityShape := attachedActivityShape ].
+			candidateActivityShape := targetActivityShape.
+			targetActivityBounds := self stagedBoundsOf: targetActivityShape.
 			snappedBounds := self
 				boundaryEventBounds: dragStartBounds
-				constrainedToActivityBounds: activityBounds
+				constrainedToActivityBounds: targetActivityBounds
 				nearCenter: candidateBounds center.
 			aShapeElement relocate: snappedBounds origin.
 			translatedDelta := snappedBounds origin - dragStartBounds origin.
@@ -1652,14 +1658,23 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 			self updateIncidentEdgeLabelsFor: boundaryEvent.
 			self updateIncidentReconnectHandlesFor: boundaryEvent ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
-			| boundsByShape operation assessment |
-			boundsByShape := IdentityDictionary new
-				at: aShape put: snappedBounds;
-				yourself.
-			operation := diagramEditing
-				moveShapes: boundsByShape
-				toProcessHostedBy: hostShape
-				waypointsByEdge: IdentityDictionary new.
+			| operation assessment |
+			candidateActivityShape ifNil: [ candidateActivityShape := attachedActivityShape ].
+			candidateActivityShape == attachedActivityShape
+				ifTrue: [
+					| boundsByShape |
+					boundsByShape := IdentityDictionary new
+						at: aShape put: snappedBounds;
+						yourself.
+					operation := diagramEditing
+						moveShapes: boundsByShape
+						toProcessHostedBy: hostShape
+						waypointsByEdge: IdentityDictionary new ]
+				ifFalse: [
+					operation := diagramEditing
+						reattachBoundaryEvent: aShape
+						toActivityShape: candidateActivityShape
+						bounds: snappedBounds ].
 			operation
 				ifNil: [ self refresh ]
 				ifNotNil: [
