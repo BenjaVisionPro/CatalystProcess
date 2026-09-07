@@ -32,11 +32,7 @@ Class {
 		'collaborationVisual',
 		'collaborationChangedBlock',
 		'viewportExtent',
-		'diagramBounds',
-		'diagramExtent',
-		'canvasExtent',
-		'diagramLayer',
-		'cameraSlack'
+		'diagramLayer'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -57,14 +53,11 @@ CPProcessVisualElement >> initialize [
 	collaborationHosted := false.
 	collaborationVisual := nil.
 	viewportExtent := 1280 @ 700.
+	planeGeometry := CPDiagramPlaneGeometry new.
 	diagramViewport := CPDiagramViewport
 		viewportExtent: viewportExtent
-		diagramExtent: 0 @ 0.
-	diagramBounds := 0 @ 0 extent: 0 @ 0.
-	diagramExtent := 0 @ 0.
-	canvasExtent := 1280 @ 700.
+		diagramExtent: planeGeometry diagramExtent.
 	diagramLayer := nil.
-	cameraSlack := 0 @ 0.
 	self
 		layout: BlFrameLayout new;
 		clipChildren: false;
@@ -133,7 +126,7 @@ CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 
 { #category : 'accessing - presentation' }
 CPProcessVisualElement >> canvasExtent [
-	^ canvasExtent
+	^ diagramViewport canvasExtent
 ]
 
 { #category : 'accessing - presentation' }
@@ -143,7 +136,7 @@ CPProcessVisualElement >> viewportExtent [
 
 { #category : 'accessing - presentation' }
 CPProcessVisualElement >> diagramExtent [
-	^ diagramExtent
+	^ planeGeometry diagramExtent
 ]
 
 { #category : 'configuration' }
@@ -158,16 +151,15 @@ CPProcessVisualElement >> updateCanvasExtent [
 		ifTrue: [
 			diagramViewport := CPDiagramViewport
 				viewportExtent: viewportExtent
-				diagramExtent: diagramExtent.
-			cameraSlack := diagramViewport cameraSlack.
-			canvasExtent := diagramViewport canvasExtent.
+				diagramExtent: planeGeometry diagramExtent.
 			self constraintsDo: [ :c |
-				c horizontal exact: canvasExtent x.
-				c vertical exact: canvasExtent y ].
+				c horizontal exact: diagramViewport canvasExtent x.
+				c vertical exact: diagramViewport canvasExtent y ].
 			self updateDiagramLayerGeometry ]
 		ifFalse: [
-			cameraSlack := 0 @ 0.
-			canvasExtent := viewportExtent.
+			diagramViewport := CPDiagramViewport
+				viewportExtent: viewportExtent
+				diagramExtent: 0 @ 0.
 			self constraintsDo: [ :c |
 				c horizontal matchParent.
 				c vertical matchParent ].
@@ -188,28 +180,27 @@ CPProcessVisualElement >> updateDiagramLayerGeometry [
 
 { #category : 'accessing - presentation' }
 CPProcessVisualElement >> cameraSlack [
-	^ cameraSlack
+	^ diagramViewport cameraSlack
 ]
 
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramContentOffset [
-	planeGeometry ifNil: [ ^ 0 @ 0 ].
 	^ (collaborationHosted
 		ifTrue: [ self hostedDiagramInset ]
-		ifFalse: [ cameraSlack ])
+		ifFalse: [ diagramViewport cameraSlack ])
 		+ planeGeometry normalizationOffset
 ]
 
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramBoundsOriginInContent [
-	^ self diagramContentOffset + diagramBounds origin
+	^ self diagramContentOffset + planeGeometry diagramBounds origin
 ]
 
 { #category : 'accessing - presentation' }
 CPProcessVisualElement >> diagramBounds [
-	^ diagramBounds
+	^ planeGeometry diagramBounds
 ]
 
 { #category : 'accessing - presentation' }
@@ -342,8 +333,6 @@ CPProcessVisualElement >> refresh [
 		shapes: shapes
 		edges: edges
 		context: diagramContext.
-	diagramBounds := planeGeometry diagramBounds.
-	diagramExtent := planeGeometry diagramExtent.
 	diagramLayer := parentProcessVisual isNil
 		ifTrue: [ BlElement new layout: BlFrameLayout new; clipChildren: false; yourself ]
 		ifFalse: [ nil ].
@@ -2272,12 +2261,12 @@ CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagr
 { #category : 'private - creation' }
 CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
 	| inset horizontalMargin extent origin |
-	diagramExtent = (0 @ 0) ifTrue: [
+	planeGeometry diagramExtent = (0 @ 0) ifTrue: [
 		origin := (aRootPoint - (self defaultParticipantExtent / 2)) max: 0 @ 0.
 		^ origin extent: self defaultParticipantExtent ].
 	inset := self hostedDiagramInset.
 	horizontalMargin := CPParticipantShapeElement processContentOriginOffset x + (inset x * 2).
-	extent := diagramExtent + (horizontalMargin @ (inset y * 2)).
+	extent := planeGeometry diagramExtent + (horizontalMargin @ (inset y * 2)).
 
 	"The Collaboration plane is a different BPMNPlane from the Process plane.
 	The first Pool therefore derives its size from the Process graph, but never
