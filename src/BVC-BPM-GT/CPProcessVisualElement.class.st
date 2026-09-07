@@ -3455,7 +3455,3 @@ CPProcessVisualElement >> setShape: aShape expanded: aBoolean [
 	^ assessment
 ]
 
-
-
-{ #category : 'operations' }
-
