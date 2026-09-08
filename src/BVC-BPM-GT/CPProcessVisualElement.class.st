@@ -325,15 +325,9 @@ CPProcessVisualElement >> installMementoObserver [
 		memento overallStatus observe: anElementSink ]
 ]
 
-{ #category : #'private - testing' }
-CPProcessVisualElement >> isBoundaryEventModelElement: aModelElement [
-	^ aModelElement notNil
-		and: [ aModelElement isBoundaryEvent ]
-]
-
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram elements shapes edges lanes laneShapes ordinaryShapes boundaryShapes |
+	| diagram elements shapes edges lanes laneShapes flowShapes ordinaryShapes boundaryShapes |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
@@ -376,15 +370,16 @@ CPProcessVisualElement >> refresh [
 	lanes := self lanesForCurrentProcess.
 	laneShapes := shapes select: [ :each |
 		lanes identityIncludes: (self stagedModelElementOf: each) ].
-	ordinaryShapes := shapes reject: [ :each |
+	flowShapes := shapes reject: [ :each |
+		lanes identityIncludes: (self stagedModelElementOf: each) ].
+	ordinaryShapes := flowShapes reject: [ :each |
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
-		(lanes identityIncludes: modelElement)
-			or: [ self isBoundaryEventModelElement: modelElement ] ].
-	boundaryShapes := shapes select: [ :each |
+		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
+	boundaryShapes := flowShapes select: [ :each |
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
-		self isBoundaryEventModelElement: modelElement ].
+		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
 	laneShapes do: [ :each | self addLaneShape: each ].
 	ordinaryShapes do: [ :each | self addShapeFor: each ].
 	self addBoundaryShapes: boundaryShapes.
