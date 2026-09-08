@@ -35,6 +35,8 @@ CPAtelierTransferFlowNode >> assess [
 	  boundsDescription currentBounds proposedSource proposedTarget diagramContext |
 
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
+	flowNode isBoundaryEvent ifTrue: [
+		^ self rejectedBecause: 'A Boundary Event transfers with its attached Activity.' ].
 	targetContainer ifNil: [ ^ self rejectedBecause: 'A target flow container is required.' ].
 	proposedBounds ifNil: [ ^ self rejectedBecause: 'Proposed diagram bounds are required.' ].
 

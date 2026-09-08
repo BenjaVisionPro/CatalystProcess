@@ -68,7 +68,7 @@ CPProcessAtelierDiagramEditing >> createParticipant: aParticipant bounds: propos
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: aHostShape waypointsByEdge: waypointsByEdge [
-	| collaborationContext processDiagramContext modelElements currentContainers targetContainer boundsByFlowNode waypointsBySequenceFlow |
+	| collaborationContext processDiagramContext modelElements currentContainers targetContainer boundsByFlowNode waypointsBySequenceFlow expandedBoundsByShape |
 	boundsByShape ifEmpty: [ ^ nil ].
 
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
@@ -83,7 +83,10 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 	targetContainer := self flowContainerHostedBy: aHostShape.
 	targetContainer ifNil: [ ^ nil ].
 	processDiagramContext := self processDiagramContext.
-	modelElements := boundsByShape keys collect: [ :aShape |
+	expandedBoundsByShape := self
+		boundsByShapeIncludingAttachedBoundaryEvents: boundsByShape
+		diagramContext: processDiagramContext.
+	modelElements := expandedBoundsByShape keys collect: [ :aShape |
 		processDiagramContext modelElementOf: aShape ].
 	currentContainers := IdentitySet new.
 	modelElements do: [ :each |
@@ -96,7 +99,7 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 		and: [ currentContainers size = 1
 		and: [ currentContainers anyOne ~~ targetContainer ] ]) ifTrue: [
 		boundsByFlowNode := IdentityDictionary new.
-		boundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
+		expandedBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
 			boundsByFlowNode
 				at: (processDiagramContext modelElementOf: aShape)
 				put: proposedBounds ].
@@ -121,9 +124,35 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 			diagramDescription: diagramDescription ].
 
 	^ CPAtelierMoveShapes
-		boundsByShape: boundsByShape
+		boundsByShape: expandedBoundsByShape
 		processMemento: processMemento
 		diagramDescription: diagramDescription
+]
+
+{ #category : 'private - containment' }
+CPProcessAtelierDiagramEditing >> boundsByShapeIncludingAttachedBoundaryEvents: boundsByShape diagramContext: aDiagramContext [
+	| expanded |
+	expanded := boundsByShape copy.
+	boundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
+		| modelElement context currentBounds delta |
+		modelElement := aDiagramContext modelElementOf: aShape.
+		(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [
+			context := CPProcessFlowContainerContext
+				containingFlowElement: modelElement
+				inRootMemento: processMemento.
+			context ifNotNil: [
+				currentBounds := aDiagramContext boundsOf: aShape.
+				delta := proposedBounds origin - currentBounds origin.
+				(context attachedBoundaryEventsFor: modelElement) do: [ :aBoundaryEvent |
+					| boundaryShapes boundaryShape |
+					boundaryShapes := aDiagramContext shapesForModelElement: aBoundaryEvent.
+					boundaryShapes size = 1 ifTrue: [
+						boundaryShape := boundaryShapes first.
+						(expanded includesKey: boundaryShape) ifFalse: [
+							expanded
+								at: boundaryShape
+								put: ((aDiagramContext boundsOf: boundaryShape) translateBy: delta) ] ] ] ] ] ].
+	^ expanded
 ]
 
 { #category : 'private - staged state' }
