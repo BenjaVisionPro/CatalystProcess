@@ -318,6 +318,13 @@ CPProcessVisualElement >> installMementoObserver [
 		memento overallStatus observe: anElementSink ]
 ]
 
+{ #category : #'private - testing' }
+CPProcessVisualElement >> isBoundaryEventModelElement: aModelElement [
+	^ aModelElement notNil
+		and: [ aModelElement isFlowNode
+			and: [ aModelElement isBoundaryEvent ] ]
+]
+
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
 	| diagram elements shapes edges lanes laneShapes ordinaryShapes boundaryShapes |
@@ -367,11 +374,11 @@ CPProcessVisualElement >> refresh [
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
 		(lanes identityIncludes: modelElement)
-			or: [ modelElement notNil and: [ modelElement isBoundaryEvent ] ] ].
+			or: [ self isBoundaryEventModelElement: modelElement ] ].
 	boundaryShapes := shapes select: [ :each |
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
-		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
+		self isBoundaryEventModelElement: modelElement ].
 	laneShapes do: [ :each | self addLaneShape: each ].
 	ordinaryShapes do: [ :each | self addShapeFor: each ].
 	self addBoundaryShapes: boundaryShapes.
