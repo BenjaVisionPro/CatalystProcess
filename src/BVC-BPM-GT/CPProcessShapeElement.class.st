@@ -20,7 +20,8 @@ Class {
 		'boundaryInterrupting',
 		'boundaryOuterRing',
 		'boundaryInnerRing',
-		'boundaryEventDefinitionMarker'
+		'boundaryEventDefinitionMarker',
+		'typePopup'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -54,6 +55,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	boundaryOuterRing := nil.
 	boundaryInnerRing := nil.
 	boundaryEventDefinitionMarker := nil.
+	typePopup := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -619,9 +621,11 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 	self installDefaultCursorOn: visibleHost.
 	self addChild: visibleHost.
 
+	typePopup := aPopup.
 	aPopup
 		opacity: 0.0;
-		extent: anExtent.
+		extent: anExtent;
+		preventMeAndChildrenMouseEvents.
 	aConfigureBlock value: aPopup.
 	self installDefaultCursorOn: aPopup.
 	aPopup
@@ -633,6 +637,15 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 				self enqueueTask: (BlTaskAction new action: [
 					aReplacementBlock value: selectedClass ]) ] ].
 	self addChild: aPopup
+]
+
+
+{ #category : 'type selection' }
+CPProcessShapeElement >> typePopupActive: aBoolean [
+	typePopup ifNil: [ ^ self ].
+	aBoolean
+		ifTrue: [ typePopup allowMeAndChildrenMouseEvents ]
+		ifFalse: [ typePopup preventMeAndChildrenMouseEvents ]
 ]
 
 { #category : 'positioning' }

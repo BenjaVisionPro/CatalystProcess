@@ -1551,7 +1551,8 @@ CPProcessVisualElement >> updateSelectionAppearance [
 		anElement
 			selected: (diagramSelection includes: aShape)
 			selectionColor: self selectionColor
-			normalColor: self shapeBorderColor ].
+			normalColor: self shapeBorderColor;
+			typePopupActive: aShape == diagramSelection soleDiagramElement ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual
 			selected: (diagramSelection includes: anEdge)
