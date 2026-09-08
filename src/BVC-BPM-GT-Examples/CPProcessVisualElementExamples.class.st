@@ -2269,8 +2269,8 @@ CPProcessVisualElementExamples >> paletteAndContextualDropHandlersPartitionItemE
 	contextualHandler := CPProcessContextualAppendDropHandler new.
 
 	self assert: (paletteHandler isPaletteItemsEvent: paletteEvent).
-	self deny: (paletteHandler isPaletteItemsEvent: contextualEvent).
+	self assert: (paletteHandler isPaletteItemsEvent: contextualEvent) not.
 	self assert: (contextualHandler isContextualAppendItemsEvent: contextualEvent).
-	self deny: (contextualHandler isContextualAppendItemsEvent: paletteEvent).
+	self assert: (contextualHandler isContextualAppendItemsEvent: paletteEvent) not.
 	^ { paletteHandler. contextualHandler }
 ]
