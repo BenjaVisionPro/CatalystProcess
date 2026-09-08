@@ -2154,3 +2154,29 @@ CPProcessAtelierExamples >> diagramEditingBuildsBoundaryEventReattachmentOperati
 	self assert: assessment isApplicable.
 	^ assessment
 ]
+
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> changingBoundaryEventDefinitionPreservesBoundaryIdentity [
+	<gtExample>
+	| fixture memento context boundary eventMemento description operation assessment definitions |
+	fixture := self boundaryEventFixture.
+	memento := fixture second.
+	boundary := fixture fourth.
+	context := CPProcessFlowContainerContext rootFor: memento.
+	operation := CPAtelierSetBoundaryEventDefinition
+		boundaryEvent: boundary
+		definitionClass: CPEscalationEventDefinition
+		flowContainer: fixture first
+		processMemento: memento.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	eventMemento := context childMementoFor: boundary.
+	description := eventMemento magritteDescription detect: [ :each | each handlesSelector: #eventDefinitions ].
+	definitions := eventMemento readUsing: description.
+	self assert: definitions size equals: 1.
+	self assert: definitions first class equals: CPEscalationEventDefinition.
+	self assert: boundary eventDefinitions first class equals: CPTimerEventDefinition.
+	self assert: (context stagedFlowElements identityIncludes: boundary).
+	^ assessment
+]

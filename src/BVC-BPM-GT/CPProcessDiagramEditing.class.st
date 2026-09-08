@@ -72,6 +72,12 @@ CPProcessDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targe
 	^ self subclassResponsibility
 ]
 
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> setBoundaryEventDefinitionClass: aDefinitionClass forShape: aBoundaryEventShape [
+	^ self subclassResponsibility
+]
+
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> setShape: aShape expanded: aBoolean [
 	^ self subclassResponsibility

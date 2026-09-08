@@ -70,6 +70,12 @@ CPReadOnlyProcessDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceSha
 	^ nil
 ]
 
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> setBoundaryEventDefinitionClass: aDefinitionClass forShape: aBoundaryEventShape [
+	^ nil
+]
+
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> setShape: aShape expanded: aBoolean [
 	^ nil

@@ -19,7 +19,8 @@ Class {
 		'subProcessBorderInteractionElements',
 		'boundaryInterrupting',
 		'boundaryOuterRing',
-		'boundaryInnerRing'
+		'boundaryInnerRing',
+		'boundaryEventDefinitionMarker'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -52,6 +53,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	boundaryInterrupting := true.
 	boundaryOuterRing := nil.
 	boundaryInnerRing := nil.
+	boundaryEventDefinitionMarker := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -313,6 +315,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 	modelElement eventDefinitions ifEmpty: [ ^ self ].
 	definition := modelElement eventDefinitions first.
 	marker := FontAwesomeIcons defaultStyle icon: definition class eventTypeIcon.
+	boundaryEventDefinitionMarker := marker.
 	marker
 		extent: 16 @ 16;
 		constraintsDo: [ :c |
@@ -320,6 +323,23 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 			c frame vertical alignCenter ];
 		preventMeAndChildrenMouseEvents.
 	self addChild: marker
+]
+
+{ #category : 'boundary events' }
+CPProcessShapeElement >> boundaryEventDefinitionClass: aDefinitionClass [
+	modelElement isBoundaryEvent ifFalse: [ ^ self ].
+	boundaryEventDefinitionMarker ifNotNil: [
+		boundaryEventDefinitionMarker removeFromParent.
+		boundaryEventDefinitionMarker := nil ].
+	aDefinitionClass ifNil: [ ^ self ].
+	boundaryEventDefinitionMarker := FontAwesomeIcons defaultStyle icon: aDefinitionClass eventTypeIcon.
+	boundaryEventDefinitionMarker
+		extent: 16 @ 16;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		preventMeAndChildrenMouseEvents.
+	self addChild: boundaryEventDefinitionMarker
 ]
 
 { #category : 'private - appearance' }

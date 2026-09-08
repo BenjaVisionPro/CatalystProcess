@@ -2148,3 +2148,20 @@ CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttache
 	self assert: ((visual stagedBoundsOf: (visual diagramShapeForModelElement: boundary)) center) equals: 100 @ 140.
 	^ boundaryElement
 ]
+
+
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventTypeSelectionUsesRequestedTypes [
+	<gtExample>
+	| selection |
+	selection := CPBoundaryEventTypeSelection typeClass: CPTimerEventDefinition.
+	self assert: selection typeClasses equals: {
+		CPTimerEventDefinition.
+		CPErrorEventDefinition.
+		CPMessageEventDefinition.
+		CPEscalationEventDefinition.
+		CPConditionalEventDefinition }.
+	self assert: (selection typeLabelFor: CPEscalationEventDefinition) equals: 'Escalation'.
+	self assert: (selection typeIconFor: CPEscalationEventDefinition) equals: #chevronsUp.
+	^ selection
+]

@@ -495,6 +495,7 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 	self installSubProcessExpansionOn: element for: modelElement shape: aShape.
 	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
 	self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
+	self installBoundaryEventTypePopupOn: element for: modelElement shape: aShape.
 	self installStartEventTypePopupOn: element for: modelElement shape: aShape.
 	self installEndEventTypePopupOn: element for: modelElement shape: aShape.
 	self
@@ -586,6 +587,25 @@ CPProcessVisualElement >> installIntermediateEventTypePopupOn: aShapeElement for
 ]
 
 { #category : 'private - type selection' }
+CPProcessVisualElement >> installBoundaryEventTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
+	| selectedDefinitionClass |
+	aFlowNode isBoundaryEvent ifFalse: [ ^ self ].
+	selectedDefinitionClass := self stagedBoundaryEventDefinitionClassOf: aFlowNode.
+	selectedDefinitionClass ifNil: [ ^ self ].
+	self
+		installSelectionPopupOn: aShapeElement
+		selection: (CPBoundaryEventTypeSelection typeClass: selectedDefinitionClass)
+		selectedClass: [ self stagedBoundaryEventDefinitionClassOf: aFlowNode ]
+		iconExtent: 22 @ 22
+		configure: [ :anElement |
+			anElement constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ] ]
+		selectionChanged: [ :aDefinitionClass |
+			self setBoundaryEvent: aFlowNode shape: aShape definitionClass: aDefinitionClass ]
+]
+
+{ #category : 'private - type selection' }
 CPProcessVisualElement >> installGatewayTypePopupOn: aShapeElement for: aFlowNode shape: aShape [
 	aFlowNode isGateway ifFalse: [ ^ self ].
 	self
@@ -602,6 +622,21 @@ CPProcessVisualElement >> installGatewayTypePopupOn: aShapeElement for: aFlowNod
 
 { #category : 'private - type selection' }
 CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape: aShape selection: aSelection iconExtent: anExtent configure: aConfigureBlock [
+	self
+		installSelectionPopupOn: aShapeElement
+		selection: aSelection
+		selectedClass: [ aFlowNode class ]
+		iconExtent: anExtent
+		configure: aConfigureBlock
+		selectionChanged: [ :selectedClass |
+			self
+				replaceFlowNode: aFlowNode
+				withClass: selectedClass
+				shape: aShape ]
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> installSelectionPopupOn: aShapeElement selection: aSelection selectedClass: aSelectedClassBlock iconExtent: anExtent configure: aConfigureBlock selectionChanged: aSelectionChangedBlock [
 	| aSelectionMemento aDescription aPresentation aPopup anIconBlock aVisibleIcon |
 	aSelectionMemento := CFMaMemento model: aSelection.
 	aDescription := aSelectionMemento magritteDescription
@@ -616,7 +651,7 @@ CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape
 		values: aDescription options
 		display: [ :aClass | aSelection typeLabelFor: aClass ]
 		icon: anIconBlock.
-	aVisibleIcon := anIconBlock value: aFlowNode class.
+	aVisibleIcon := anIconBlock value: aSelectedClassBlock value.
 	aShapeElement
 		installTypePopup: aPopup
 		visibleIcon: aVisibleIcon
@@ -624,10 +659,25 @@ CPProcessVisualElement >> installTypePopupOn: aShapeElement for: aFlowNode shape
 		configure: aConfigureBlock
 		selectedClass: [ aSelectionMemento readUsing: aDescription ]
 		replacementSelected: [ :selectedClass |
-			self
-				replaceFlowNode: aFlowNode
-				withClass: selectedClass
-				shape: aShape ]
+			selectedClass == aSelectedClassBlock value ifFalse: [
+				aSelectionChangedBlock value: selectedClass ] ]
+]
+
+{ #category : 'private - type selection' }
+CPProcessVisualElement >> setBoundaryEvent: aBoundaryEvent shape: aShape definitionClass: aDefinitionClass [
+	| operation assessment |
+	diagramEditing allowsEditing ifFalse: [ ^ nil ].
+	operation := diagramEditing
+		setBoundaryEventDefinitionClass: aDefinitionClass
+		forShape: aShape.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		diagramSelection selectOnly: aShape.
+		self refresh.
+		self updateDiagramAppearance.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
 ]
 
 { #category : 'private - type selection' }
@@ -732,7 +782,9 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		label: label
 		expanded: (self stagedExpandedOf: aShape).
 	aFlowNode isBoundaryEvent ifTrue: [
-		element boundaryInterrupting: (self stagedCancelActivityOf: aFlowNode) ].
+		element
+			boundaryInterrupting: (self stagedCancelActivityOf: aFlowNode);
+			boundaryEventDefinitionClass: (self stagedBoundaryEventDefinitionClassOf: aFlowNode) ].
 	label ifNotNil: [ self installLabelEditingOn: element label: label ].
 	^ element
 ]
@@ -2165,6 +2217,21 @@ CPProcessVisualElement >> selectionColor [
 { #category : 'private - theme' }
 CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
 	^ aThemeableColor blocResolveColorForTheme: self theme
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedBoundaryEventDefinitionClassOf: aBoundaryEvent [
+	| eventMemento description definitions |
+	eventMemento := self flowElementMementoFor: aBoundaryEvent.
+	eventMemento ifNil: [
+		^ aBoundaryEvent eventDefinitions
+			ifEmpty: [ nil ]
+			ifNotEmpty: [ :someDefinitions | someDefinitions first class ] ].
+	description := eventMemento magritteDescription detect: [ :each | each handlesSelector: #eventDefinitions ].
+	definitions := eventMemento readUsing: description.
+	^ definitions
+		ifEmpty: [ nil ]
+		ifNotEmpty: [ :someDefinitions | someDefinitions first class ]
 ]
 
 { #category : 'private - staged state' }

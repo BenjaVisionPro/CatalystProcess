@@ -350,6 +350,21 @@ CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShap
 		diagramDescription: diagramDescription
 ]
 
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> setBoundaryEventDefinitionClass: aDefinitionClass forShape: aBoundaryEventShape [
+	| boundaryEvent flowContainer |
+	boundaryEvent := self modelElementOfDiagramElement: aBoundaryEventShape.
+	(boundaryEvent notNil and: [ boundaryEvent isBoundaryEvent ]) ifFalse: [ ^ nil ].
+	flowContainer := self flowContainerContaining: boundaryEvent.
+	flowContainer ifNil: [ ^ nil ].
+	^ CPAtelierSetBoundaryEventDefinition
+		boundaryEvent: boundaryEvent
+		definitionClass: aDefinitionClass
+		flowContainer: flowContainer
+		processMemento: processMemento
+]
+
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> setShape: aShape expanded: aBoolean [
 	^ CPAtelierSetShapeExpanded
