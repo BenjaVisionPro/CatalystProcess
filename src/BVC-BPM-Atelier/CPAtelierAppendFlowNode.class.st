@@ -50,7 +50,10 @@ CPAtelierAppendFlowNode >> assess [
 	ruleResult := CPSequenceFlowConnectionRules new assessConnectionFrom: source to: flowNode in: topology.
 	ruleResult isAllowed ifFalse: [ ^ self rejectedBecause: ruleResult message ].
 
-	sequenceFlow := CPSequenceFlow new.
+	sequenceFlow := CPSequenceFlow new
+		sourceRef: source;
+		targetRef: flowNode;
+		yourself.
 	sourceDescription := sequenceFlow magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
 	targetDescription := sequenceFlow magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
 	[ sourceDescription validate: source. targetDescription validate: flowNode ]

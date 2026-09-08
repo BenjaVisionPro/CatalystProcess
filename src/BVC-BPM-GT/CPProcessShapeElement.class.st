@@ -770,9 +770,11 @@ CPProcessShapeElement >> addContextualDragOptionIcon: anIconStencil label: aLabe
 	| option iconElement |
 	contextualDragOptions ifNil: [ ^ nil ].
 	iconElement := anIconStencil asStencil asElement.
-	iconElement constraintsDo: [ :c |
-		c frame horizontal alignCenter.
-		c frame vertical alignCenter ].
+	iconElement
+		height: 9;
+		constraintsDo: [ :c |
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ].
 	option := BlElement new
 		extent: 18 @ 18;
 		background: Color transparent;

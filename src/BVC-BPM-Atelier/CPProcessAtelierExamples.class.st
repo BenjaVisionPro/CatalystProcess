@@ -421,7 +421,7 @@ CPProcessAtelierExamples >> reconnectSequenceFlowPreservesFlowAndEdgeIdentity [
 { #category : 'examples - semantic topology' }
 CPProcessAtelierExamples >> appendFlowNodeCreatesNodeAndConnectionAsOneStagedOperation [
 	<gtExample>
-	| fixture memento task appended flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements taskMemento appendedMemento |
+	| fixture memento task appended flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements taskMemento appendedMemento flowContainerContext |
 	fixture := self fixture.
 	memento := fixture second.
 	task := fixture fourth.
@@ -451,6 +451,11 @@ CPProcessAtelierExamples >> appendFlowNodeCreatesNodeAndConnectionAsOneStagedOpe
 	self assert: (stagedElements identityIncludes: assessment edge).
 	self assert: ((taskMemento readUsing: (self descriptionFor: #outgoing in: taskMemento)) identityIncludes: assessment sequenceFlow).
 	self assert: (appendedMemento readUsing: (self descriptionFor: #incoming in: appendedMemento)) first == assessment sequenceFlow.
+	self assert: (flowContainerContext := CPProcessFlowContainerContext rootFor: memento) notNil.
+	self assert: (flowContainerContext stagedSourceOf: assessment sequenceFlow) == task.
+	self assert: (flowContainerContext stagedTargetOf: assessment sequenceFlow) == appended.
+	self assert: assessment sequenceFlow sourceRef == task.
+	self assert: assessment sequenceFlow targetRef == appended.
 	self assert: fixture first flowElements size equals: 5.
 	self assert: fixture eighth elements size equals: 5.
 	^ memento

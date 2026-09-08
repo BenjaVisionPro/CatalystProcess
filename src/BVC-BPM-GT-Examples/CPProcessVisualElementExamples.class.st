@@ -2226,3 +2226,28 @@ CPProcessVisualElementExamples >> boundaryEventBoundsClampToActivityCorners [
 		bottomRight center y = activityBounds bottom } anySatisfy: [ :each | each ]).
 	^ { topLeft. bottomRight }
 ]
+
+{ #category : 'examples - contextual append' }
+CPProcessVisualElementExamples >> appendedFlowNodeRendersConnectionToSource [
+	<gtExample>
+	| fixture visual memento task taskShape appended operation assessment |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	visual := self visualElementForFixture: fixture.
+	appended := CPUserTask new label: 'Follow up'; yourself.
+
+	operation := visual diagramEditing
+		appendFlowNode: appended
+		fromShape: taskShape
+		bounds: (410 @ 94 extent: 132 @ 54).
+	assessment := operation apply.
+	visual refresh.
+
+	self assert: assessment isApplicable.
+	self assert: (visual lineElementsForEdge: assessment edge) size equals: 1.
+	self assert: (visual stagedSourceOf: assessment sequenceFlow) == task.
+	self assert: (visual stagedTargetOf: assessment sequenceFlow) == appended.
+	^ visual
+]
