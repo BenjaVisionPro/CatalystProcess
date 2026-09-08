@@ -2700,42 +2700,38 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: anActivity shape: anActivityShape [
-	"Keep ordinary Activity replacement on the Activity body. Boundary Events are
-	 owned only by the established leaf border interaction surfaces, mirroring
-	 SequenceFlow insertion where the edge itself is the sole drop target."
 	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
-			(self isBoundaryEventPaletteDragItem: aDragItem) ifTrue: [ false ] ifFalse: [
-				self
-					acceptsPaletteDragItem: aDragItem
-					replacing: anActivity
-					shape: anActivityShape ] ];
-		whenDroppedDo: [ :anEvent |
-			self
-				dropPaletteEvent: anEvent
-				replacing: anActivity
-				shape: anActivityShape ];
-		yourself).
-
-	anActivityElement ensureBorderInteractionElements.
-	anActivityElement borderInteractionElements do: [ :borderElement |
-		borderElement addEventHandler: (CPProcessPaletteDropHandler new
-			acceptItemsSuchThat: [ :aDragItem :aDropArea |
-				(self isBoundaryEventPaletteDragItem: aDragItem) and: [
+			(self isBoundaryEventPaletteDragItem: aDragItem)
+				ifTrue: [
 					self
 						acceptsBoundaryEventPaletteDragItem: aDragItem
-						attachedToShape: anActivityShape ] ];
-			whenDragEnteredDo: [ :anEvent |
-				anEvent mayAcceptItems ifTrue: [
-					self boundaryEventPaletteTargetModelElement: anActivity ] ];
-			whenDragLeftDo: [ :anEvent |
-				boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
-					self boundaryEventPaletteTargetModelElement: nil ] ];
-			whenDroppedDo: [ :anEvent |
-				boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
-					self boundaryEventPaletteTargetModelElement: nil ].
-				self dropPaletteEvent: anEvent ];
-			yourself) ]
+						attachedToShape: anActivityShape ]
+				ifFalse: [
+					self
+						acceptsPaletteDragItem: aDragItem
+						replacing: anActivity
+						shape: anActivityShape ] ];
+		whenDragEnteredDo: [ :anEvent |
+			(anEvent mayAcceptItems and: [
+				anEvent items size = 1 and: [
+					self isBoundaryEventPaletteDragItem: anEvent items first ] ]) ifTrue: [
+				self boundaryEventPaletteTargetModelElement: anActivity ] ];
+		whenDragLeftDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
+				self boundaryEventPaletteTargetModelElement: nil ] ];
+		whenDroppedDo: [ :anEvent |
+			boundaryEventPaletteTargetModelElement == anActivity ifTrue: [
+				self boundaryEventPaletteTargetModelElement: nil ].
+			anEvent items size = 1 ifTrue: [
+				(self isBoundaryEventPaletteDragItem: anEvent items first)
+					ifTrue: [ self dropPaletteEvent: anEvent ]
+					ifFalse: [
+						self
+							dropPaletteEvent: anEvent
+							replacing: anActivity
+							shape: anActivityShape ] ] ];
+		yourself)
 ]
 
 { #category : 'private - replacement' }

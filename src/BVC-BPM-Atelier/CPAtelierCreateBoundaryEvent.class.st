@@ -32,9 +32,11 @@ CPAtelierCreateBoundaryEvent >> assess [
 	shape := CPShape new modelElement: boundaryEvent; bounds: bounds; yourself.
 	boundsDescription := shape magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
-	proposedFlowElements := flowElements asOrderedCollection copy; add: boundaryEvent; yourself.
+	proposedFlowElements := flowElements asOrderedCollection copy.
+	proposedFlowElements add: boundaryEvent.
 	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
-	proposedElements := elements asOrderedCollection copy; add: shape; yourself.
+	proposedElements := elements asOrderedCollection copy.
+	proposedElements add: shape.
 	[ diagramContext elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 	^ CPAtelierCreateBoundaryEventAssessment boundaryEvent: boundaryEvent shape: shape activity: activity proposedFlowElements: proposedFlowElements proposedDiagramElements: proposedElements
 ]

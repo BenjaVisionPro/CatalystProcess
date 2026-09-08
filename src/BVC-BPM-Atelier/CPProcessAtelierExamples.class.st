@@ -1880,6 +1880,45 @@ CPProcessAtelierExamples >> createBoundaryEventStagesAttachmentAndDiagramShape [
 ]
 
 { #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> assessingBoundaryEventCreationDoesNotMutateStagedState [
+	<gtExample>
+	| process task diagram taskShape memento diagramDescription event operation firstAssessment secondAssessment flowContext diagramContext |
+	process := CPProcess new.
+	task := CPUserTask new label: 'Task'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new.
+	taskShape := CPShape new modelElement: task; bounds: (100 @ 100 extent: 140 @ 80); yourself.
+	diagram addElement: taskShape.
+	process diagram: diagram.
+	memento := CFMaMemento model: process.
+	diagramDescription := memento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
+	event := CPBoundaryEvent new eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection; yourself.
+	operation := CPAtelierCreateBoundaryEvent
+		boundaryEvent: event
+		attachedTo: task
+		bounds: (84 @ 124 extent: 32 @ 32)
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	diagramContext := CPDiagramMementoContext
+		diagram: (memento readUsing: diagramDescription)
+		inMemento: memento
+		using: diagramDescription.
+
+	firstAssessment := operation assess.
+	secondAssessment := operation assess.
+
+	self assert: firstAssessment isApplicable.
+	self assert: secondAssessment isApplicable.
+	self assert: (flowContext stagedFlowElements identityIncludes: event) not.
+	self assert: flowContext stagedFlowElements size equals: 1.
+	self assert: diagramContext elements size equals: 1.
+	self assert: (diagramContext elements anySatisfy: [ :each | (diagramContext modelElementOf: each) == event ]) not.
+	^ secondAssessment
+]
+
+{ #category : 'examples - boundary events' }
 CPProcessAtelierExamples >> boundaryEventCannotBeSequenceFlowTarget [
 	<gtExample>
 	| process source boundary topology result |
