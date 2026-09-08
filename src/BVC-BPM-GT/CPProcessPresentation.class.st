@@ -355,6 +355,9 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 	| flowContext selectedMemento collaborationContext |
 	aModelElement == self memento model ifTrue: [ ^ self memento ].
 
+	selectedMemento := processDiagramElement mementoForLane: aModelElement.
+	selectedMemento ifNotNil: [ ^ selectedMemento ].
+
 	flowContext := CPProcessFlowContainerContext rootFor: self memento.
 	selectedMemento := flowContext mementoForFlowElement: aModelElement.
 	selectedMemento ifNotNil: [ ^ selectedMemento ].
