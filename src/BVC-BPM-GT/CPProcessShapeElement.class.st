@@ -16,7 +16,6 @@ Class {
 		'contextualDragOptionsHideTask',
 		'contextualDragOptionsNodeHovered',
 		'contextualDragOptionsPillHovered',
-		'contextualDragOptionsDragActive',
 		'connectionPort',
 		'externalLabelHost',
 		'isExpanded',
@@ -60,7 +59,6 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	contextualDragOptionsHideTask := nil.
 	contextualDragOptionsNodeHovered := false.
 	contextualDragOptionsPillHovered := false.
-	contextualDragOptionsDragActive := false.
 	externalLabelHost := nil.
 	isExpanded := aBoolean.
 	subProcessExpansionMarker := nil.
@@ -560,7 +558,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 	icon := FontAwesomeIcons defaultStyle icon: #arrowRightFromArc.
 	icon
 		color: aBorderColor;
-		size: 7 @ 7;
+		size: 9 @ 9;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
@@ -583,7 +581,6 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			do: [ :anEvent |
 				isDragging := true.
 				didDrag := true.
-				self contextualDragOptionsDragActive: true.
 				aDragStartBlock value: anEvent.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -597,9 +594,6 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			do: [ :anEvent |
 				isDragging ifTrue: [
 					isDragging := false.
-					self contextualDragOptionsPillHovered:
-						(contextualDragOptions containsGlobalPoint: anEvent position).
-					self contextualDragOptionsDragActive: false.
 					aDragEndBlock value: anEvent.
 					anEvent consumed: true ] ]).
 	contextualDragOptions := BlElement new
@@ -626,6 +620,12 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			do: [ :anEvent | self contextualDragOptionsPillHovered: true ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
+			do: [ :anEvent | self contextualDragOptionsPillHovered: false ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEnterEvent
+			do: [ :anEvent | self contextualDragOptionsPillHovered: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragLeaveEvent
 			do: [ :anEvent | self contextualDragOptionsPillHovered: false ]).
 	self addChild: contextualDragOptions.
 	^ connectionPort
@@ -651,17 +651,9 @@ CPProcessShapeElement >> contextualDragOptionsPillHovered: aBoolean [
 ]
 
 { #category : 'contextual drag options' }
-CPProcessShapeElement >> contextualDragOptionsDragActive: aBoolean [
-	contextualDragOptionsDragActive = aBoolean ifTrue: [ ^ self ].
-	contextualDragOptionsDragActive := aBoolean.
-	self updateContextualDragOptionsPresence
-]
-
-{ #category : 'contextual drag options' }
 CPProcessShapeElement >> contextualDragOptionsWantsVisible [
 	^ contextualDragOptionsNodeHovered
-		or: [ contextualDragOptionsPillHovered
-		or: [ contextualDragOptionsDragActive ] ]
+		or: [ contextualDragOptionsPillHovered ]
 ]
 
 { #category : 'contextual drag options' }
@@ -671,8 +663,7 @@ CPProcessShapeElement >> updateContextualDragOptionsPresence [
 		ifTrue: [
 			self cancelContextualDragOptionsHide.
 			(contextualDragOptionsPillHovered
-				or: [ contextualDragOptionsDragActive
-				or: [ contextualDragOptions visibility = BlVisibility visible ] ])
+				or: [ contextualDragOptions visibility = BlVisibility visible ])
 				ifTrue: [
 					self cancelContextualDragOptionsReveal.
 					self revealContextualDragOptions ]
