@@ -454,6 +454,13 @@ CPProcessAtelierExamples >> appendFlowNodeCreatesNodeAndConnectionAsOneStagedOpe
 	self assert: (flowContainerContext := CPProcessFlowContainerContext rootFor: memento) notNil.
 	self assert: (flowContainerContext stagedSourceOf: assessment sequenceFlow) == task.
 	self assert: (flowContainerContext stagedTargetOf: assessment sequenceFlow) == appended.
+	self assert: (diagramMemento childMementoFor: assessment shape inRelation: elementsDescription) notNil.
+	self assert: ((diagramMemento childMementoFor: assessment shape inRelation: elementsDescription)
+		readUsing: (self descriptionFor: #modelElement in: (diagramMemento childMementoFor: assessment shape inRelation: elementsDescription))) == appended.
+	self assert: ((diagramMemento childMementoFor: assessment edge inRelation: elementsDescription)
+		readUsing: (self descriptionFor: #modelElement in: (diagramMemento childMementoFor: assessment edge inRelation: elementsDescription))) == assessment sequenceFlow.
+	self assert: ((diagramMemento childMementoFor: assessment edge inRelation: elementsDescription)
+		readUsing: (self descriptionFor: #waypoints in: (diagramMemento childMementoFor: assessment edge inRelation: elementsDescription))) size equals: 2.
 	self assert: assessment sequenceFlow sourceRef isNil.
 	self assert: assessment sequenceFlow targetRef isNil.
 	self assert: appended incoming isEmpty.

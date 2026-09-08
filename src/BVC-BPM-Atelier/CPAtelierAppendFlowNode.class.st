@@ -101,13 +101,12 @@ CPAtelierAppendFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierAppendFlowNode >> applyAssessment: anAssessment [
-	| flowMemento sourceDescription targetDescription diagram diagramContext diagramMemento elementsDescription |
+	| diagram diagramContext diagramMemento elementsDescription |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
-	flowMemento := flowContainerContext childMementoFor: anAssessment sequenceFlow.
-	sourceDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
-	targetDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
-	flowMemento write: source using: sourceDescription.
-	flowMemento write: flowNode using: targetDescription.
+	self
+		stageEndpointsOf: anAssessment sequenceFlow
+		source: source
+		target: flowNode.
 	self stageOutgoingIncluding: anAssessment sequenceFlow for: source.
 	self stageIncoming: { anAssessment sequenceFlow } outgoing: #() for: flowNode.
 
@@ -115,7 +114,60 @@ CPAtelierAppendFlowNode >> applyAssessment: anAssessment [
 	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
 	diagramMemento := diagramContext diagramMemento.
 	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
+	self
+		stageShape: anAssessment shape
+		modelElement: flowNode
+		bounds: bounds
+		in: diagramMemento
+		relation: elementsDescription.
+	self
+		stageEdge: anAssessment edge
+		modelElement: anAssessment sequenceFlow
+		waypoints: anAssessment edge waypoints
+		in: diagramMemento
+		relation: elementsDescription
+]
+
+
+{ #category : 'private - applying' }
+CPAtelierAppendFlowNode >> stageEndpointsOf: aSequenceFlow source: aSource target: aTarget [
+	| flowMemento sourceDescription targetDescription |
+	flowMemento := flowContainerContext childMementoFor: aSequenceFlow.
+	sourceDescription := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #sourceRef ].
+	targetDescription := flowMemento magritteDescription
+		detect: [ :each | each handlesSelector: #targetRef ].
+	flowMemento write: aSource using: sourceDescription.
+	flowMemento write: aTarget using: targetDescription
+]
+
+{ #category : 'private - applying' }
+CPAtelierAppendFlowNode >> stageShape: aShape modelElement: aModelElement bounds: aRectangle in: aDiagramMemento relation: anElementsDescription [
+	| shapeMemento modelElementDescription boundsDescription |
+	shapeMemento := aDiagramMemento
+		childMementoFor: aShape
+		inRelation: anElementsDescription.
+	modelElementDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	boundsDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
+	shapeMemento write: aModelElement using: modelElementDescription.
+	shapeMemento write: aRectangle using: boundsDescription
+]
+
+{ #category : 'private - applying' }
+CPAtelierAppendFlowNode >> stageEdge: anEdge modelElement: aModelElement waypoints: someWaypoints in: aDiagramMemento relation: anElementsDescription [
+	| edgeMemento modelElementDescription waypointsDescription |
+	edgeMemento := aDiagramMemento
+		childMementoFor: anEdge
+		inRelation: anElementsDescription.
+	modelElementDescription := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #modelElement ].
+	waypointsDescription := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #waypoints ].
+	edgeMemento write: aModelElement using: modelElementDescription.
+	edgeMemento write: someWaypoints asOrderedCollection copy using: waypointsDescription
 ]
 
 { #category : 'private - staged topology' }
