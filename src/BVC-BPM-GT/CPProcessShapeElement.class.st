@@ -597,6 +597,8 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			do: [ :anEvent |
 				isDragging ifTrue: [
 					isDragging := false.
+					self contextualDragOptionsPillHovered:
+						(contextualDragOptions containsGlobalPoint: anEvent position).
 					self contextualDragOptionsDragActive: false.
 					aDragEndBlock value: anEvent.
 					anEvent consumed: true ] ]).
