@@ -2274,3 +2274,52 @@ CPProcessVisualElementExamples >> paletteAndContextualDropHandlersPartitionItemE
 	self assert: (contextualHandler isContextualAppendItemsEvent: paletteEvent) not.
 	^ { paletteHandler. contextualHandler }
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
+	<gtExample>
+	| process laneSet firstLane secondLane task diagram firstLaneShape secondLaneShape taskShape memento visual firstLaneElement |
+	process := CPProcess new label: 'Lane process'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'Reviewer'; yourself.
+	secondLane := CPLane new label: 'Approver'; yourself.
+	firstLane addFlowNodeRef: task.
+	laneSet
+		addLane: firstLane;
+		addLane: secondLane.
+	process addLaneSet: laneSet.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	firstLaneShape := CPShape new
+		modelElement: firstLane;
+		bounds: (40 @ 40 extent: 500 @ 140);
+		yourself.
+	secondLaneShape := CPShape new
+		modelElement: secondLane;
+		bounds: (40 @ 180 extent: 500 @ 140);
+		yourself.
+	taskShape := CPShape new
+		modelElement: task;
+		bounds: (180 @ 82 extent: 132 @ 54);
+		yourself.
+	diagram
+		addElement: firstLaneShape;
+		addElement: secondLaneShape;
+		addElement: taskShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new memento: memento.
+	firstLaneElement := visual laneShapeElementFor: firstLane.
+
+	self assert: firstLaneElement lane == firstLane.
+	self assert: firstLaneElement diagramShape == firstLaneShape.
+	self assert: firstLaneElement extent equals: 500 @ 140.
+	self assert: firstLaneElement labelElement text asString equals: 'Reviewer'.
+	self assert: (visual shapeElementForModelElement: task) modelElement == task.
+	visual selectOnly: firstLane.
+	self assert: visual selectedDiagramElements size equals: 1.
+	self assert: visual selectedDiagramElements first == firstLaneShape.
+	^ visual
+]

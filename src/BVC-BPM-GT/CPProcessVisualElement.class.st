@@ -18,6 +18,8 @@ Class {
 		'diagramViewport',
 		'shapeElementsByShape',
 		'shapeElementsByModelElement',
+		'laneElementsByShape',
+		'laneElementsByLane',
 		'edgeVisualsByEdge',
 		'hoveredModelElement',
 		'diagramElements',
@@ -49,6 +51,8 @@ CPProcessVisualElement >> initialize [
 	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
+	laneElementsByShape := IdentityDictionary new.
+	laneElementsByLane := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
 	boundaryEventPaletteTargetModelElement := nil.
 	rootVisual := self.
@@ -316,10 +320,12 @@ CPProcessVisualElement >> installMementoObserver [
 
 { #category : 'updating' }
 CPProcessVisualElement >> refresh [
-	| diagram elements shapes edges ordinaryShapes boundaryShapes |
+	| diagram elements shapes edges lanes laneShapes ordinaryShapes boundaryShapes |
 	self removeChildren.
 	shapeElementsByShape removeAll.
 	shapeElementsByModelElement removeAll.
+	laneElementsByShape removeAll.
+	laneElementsByLane removeAll.
 	edgeVisualsByEdge removeAll.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
@@ -354,14 +360,19 @@ CPProcessVisualElement >> refresh [
 	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
 	self updateCanvasExtent.
 	self addPaletteDropSurface.
+	lanes := self lanesForCurrentProcess.
+	laneShapes := shapes select: [ :each |
+		lanes identityIncludes: (self stagedModelElementOf: each) ].
 	ordinaryShapes := shapes reject: [ :each |
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
-		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
+		(lanes identityIncludes: modelElement)
+			or: [ modelElement notNil and: [ modelElement isBoundaryEvent ] ] ].
 	boundaryShapes := shapes select: [ :each |
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
 		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
+	laneShapes do: [ :each | self addLaneShape: each ].
 	ordinaryShapes do: [ :each | self addShapeFor: each ].
 	self addBoundaryShapes: boundaryShapes.
 	edges do: [ :each | self addEdgeFor: each ].
@@ -381,6 +392,8 @@ CPProcessVisualElement >> shouldRenderDiagramElement: aDiagramElement [
 		ifTrue: [ self stagedModelElementOf: aDiagramElement ]
 		ifFalse: [ aDiagramElement modelElement ].
 	modelElement ifNil: [ ^ false ].
+	(aDiagramElement isShape and: [
+		self lanesForCurrentProcess identityIncludes: modelElement ]) ifTrue: [ ^ true ].
 	context := CPProcessFlowContainerContext
 		containingFlowElement: modelElement
 		inRootMemento: memento.
@@ -468,6 +481,62 @@ CPProcessVisualElement >> stagedLabelOffsetOf: anEdge [
 	^ diagramContext labelOffsetOf: anEdge
 ]
 
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> lanesForCurrentProcess [
+	| lanes |
+	flowContainer == memento model ifFalse: [ ^ #() ].
+	lanes := OrderedCollection new.
+	flowContainer laneSets do: [ :aLaneSet |
+		self addLanesFrom: aLaneSet to: lanes ].
+	^ lanes
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> addLanesFrom: aLaneSet to: someLanes [
+	aLaneSet lanes do: [ :aLane |
+		someLanes add: aLane.
+		aLane childLaneSet ifNotNil: [ :aChildLaneSet |
+			self addLanesFrom: aChildLaneSet to: someLanes ] ]
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> addLaneShape: aShape [
+	| lane bounds element |
+	lane := self stagedModelElementOf: aShape.
+	bounds := self stagedBoundsOf: aShape.
+	(lane isNil or: [ bounds isNil ]) ifTrue: [ ^ self ].
+	element := CPLaneShapeElement new
+		lane: lane
+		shape: aShape
+		bounds: bounds
+		background: (self shapeBackgroundColor alpha: 0.25)
+		borderColor: self shapeBorderColor.
+	element
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: bounds origin.
+	laneElementsByShape at: aShape put: element.
+	laneElementsByLane at: lane put: element.
+	self addDiagramChild: element.
+	self installSelectionOnLaneElement: element
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> installSelectionOnLaneElement: anElement [
+	anElement addEventHandler: (BlEventHandler
+		on: BlClickEvent
+		do: [ :anEvent |
+			anEvent modifiers isShift
+				ifTrue: [ self toggleSelectionOfDiagramElement: anElement diagramShape ]
+				ifFalse: [ self selectOnlyDiagramElement: anElement diagramShape ].
+			self requestFocus.
+			anEvent consumed: true ])
+]
+
+{ #category : 'accessing - testing' }
+CPProcessVisualElement >> laneShapeElementFor: aLane [
+	^ laneElementsByLane at: aLane
+]
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> addBoundaryShapes: boundaryShapes [
@@ -1560,6 +1629,11 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateSelectionAppearance [
+	laneElementsByShape keysAndValuesDo: [ :aShape :anElement |
+		anElement
+			selected: (diagramSelection includes: aShape)
+			selectionColor: self selectionColor
+			normalColor: self shapeBorderColor ].
 	shapeElementsByShape keysAndValuesDo: [ :aShape :anElement |
 		anElement
 			selected: (diagramSelection includes: aShape)
@@ -4255,6 +4329,8 @@ CPProcessVisualElement >> stagedModelElementOfDiagramElement: aDiagramElement [
 CPProcessVisualElement >> diagramElementForModelElement: aModelElement [
 	(shapeElementsByModelElement at: aModelElement ifAbsent: [ nil ])
 		ifNotNil: [ :aShapeElement | ^ aShapeElement diagramShape ].
+	(laneElementsByLane at: aModelElement ifAbsent: [ nil ])
+		ifNotNil: [ :aLaneElement | ^ aLaneElement diagramShape ].
 	^ edgeVisualsByEdge keys
 		detect: [ :anEdge | (self stagedModelElementOf: anEdge) == aModelElement ]
 		ifNone: [ nil ]
