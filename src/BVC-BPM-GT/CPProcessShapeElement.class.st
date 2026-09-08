@@ -260,7 +260,8 @@ CPProcessShapeElement >> installDefaultCursorOn: anElement [
 { #category : 'private - appearance' }
 CPProcessShapeElement >> borderForColor: aColor width: aWidth [
 	(modelElement isBoundaryEvent and: [ boundaryInterrupting not ]) ifTrue: [
-		^ BlBorder builder dashed
+		^ BlBorder builder
+			dashArray: #(6 2.1);
 			paint: aColor;
 			width: aWidth;
 			build ].
