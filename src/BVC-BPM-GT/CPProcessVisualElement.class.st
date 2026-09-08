@@ -321,8 +321,7 @@ CPProcessVisualElement >> installMementoObserver [
 { #category : #'private - testing' }
 CPProcessVisualElement >> isBoundaryEventModelElement: aModelElement [
 	^ aModelElement notNil
-		and: [ aModelElement isFlowNode
-			and: [ aModelElement isBoundaryEvent ] ]
+		and: [ aModelElement isBoundaryEvent ]
 ]
 
 { #category : 'updating' }
