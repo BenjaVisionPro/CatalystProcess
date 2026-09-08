@@ -36,3 +36,27 @@ CPProcessPaletteDropHandler >> dragLeaveEvent: anEvent [
 CPProcessPaletteDropHandler >> dropEvent: anEvent [
 	(self isPaletteDragEvent: anEvent) ifTrue: [ super dropEvent: anEvent ]
 ]
+
+{ #category : 'private - testing' }
+CPProcessPaletteDropHandler >> isPaletteItemsEvent: anItemsEvent [
+	anItemsEvent items ifEmpty: [ ^ false ].
+	^ anItemsEvent items allSatisfy: [ :aDragItem |
+		| source |
+		source := aDragItem sourceElement.
+		source notNil and: [ source userData includesKey: #atelierPaletteSource ] ]
+]
+
+{ #category : 'event handling' }
+CPProcessPaletteDropHandler >> itemsDroppedEvent: anEvent [
+	(self isPaletteItemsEvent: anEvent) ifTrue: [ super itemsDroppedEvent: anEvent ]
+]
+
+{ #category : 'event handling' }
+CPProcessPaletteDropHandler >> itemsDraggedEvent: anEvent [
+	(self isPaletteItemsEvent: anEvent) ifTrue: [ super itemsDraggedEvent: anEvent ]
+]
+
+{ #category : 'event handling' }
+CPProcessPaletteDropHandler >> itemsEnteredEvent: anEvent [
+	(self isPaletteItemsEvent: anEvent) ifTrue: [ super itemsEnteredEvent: anEvent ]
+]

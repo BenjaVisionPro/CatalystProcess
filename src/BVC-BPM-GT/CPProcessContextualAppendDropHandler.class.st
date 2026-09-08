@@ -31,3 +31,27 @@ CPProcessContextualAppendDropHandler >> dragLeaveEvent: anEvent [
 CPProcessContextualAppendDropHandler >> dropEvent: anEvent [
 	(self isContextualAppendDragEvent: anEvent) ifTrue: [ super dropEvent: anEvent ]
 ]
+
+{ #category : 'private - testing' }
+CPProcessContextualAppendDropHandler >> isContextualAppendItemsEvent: anItemsEvent [
+	anItemsEvent items ifEmpty: [ ^ false ].
+	^ anItemsEvent items allSatisfy: [ :aDragItem |
+		| source |
+		source := aDragItem sourceElement.
+		source notNil and: [ source userData includesKey: #processContextualAppendContext ] ]
+]
+
+{ #category : 'event handling' }
+CPProcessContextualAppendDropHandler >> itemsDroppedEvent: anEvent [
+	(self isContextualAppendItemsEvent: anEvent) ifTrue: [ super itemsDroppedEvent: anEvent ]
+]
+
+{ #category : 'event handling' }
+CPProcessContextualAppendDropHandler >> itemsDraggedEvent: anEvent [
+	(self isContextualAppendItemsEvent: anEvent) ifTrue: [ super itemsDraggedEvent: anEvent ]
+]
+
+{ #category : 'event handling' }
+CPProcessContextualAppendDropHandler >> itemsEnteredEvent: anEvent [
+	(self isContextualAppendItemsEvent: anEvent) ifTrue: [ super itemsEnteredEvent: anEvent ]
+]
