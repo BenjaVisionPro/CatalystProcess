@@ -2531,8 +2531,9 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 		assessment := operation assess.
 		^ assessment isApplicable ].
 
-	candidate isBoundaryEvent ifTrue: [
-		^ shapeElementsByModelElement keys anySatisfy: [ :each | each isActivity ] ].
+	"Boundary Events are owned by Activity drop targets, exactly as edge insertion
+	 is owned by edge drop targets. The Process surface must not also accept them."
+	candidate isBoundaryEvent ifTrue: [ ^ false ].
 
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
@@ -2698,19 +2699,8 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 ]
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> paletteDragEvent: aDragEvent hasLeftShape: aShape [
-	| globalPoint diagramPoint |
-	globalPoint := aDragEvent currentTarget
-		localPointToGlobal: aDragEvent position.
-	diagramPoint := self diagramPointForGlobalPoint: globalPoint.
-	^ ((self stagedBoundsOf: aShape) containsPoint: diagramPoint) not
-]
-
-{ #category : 'private - creation' }
 CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: anActivity shape: anActivityShape [
 	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
-		handleDragLeaveWhen: [ :aDragEvent |
-			self paletteDragEvent: aDragEvent hasLeftShape: anActivityShape ];
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			(self isBoundaryEventPaletteDragItem: aDragItem)
 				ifTrue: [
