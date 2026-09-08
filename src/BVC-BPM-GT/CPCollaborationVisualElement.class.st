@@ -583,7 +583,7 @@ CPCollaborationVisualElement >> removeConnectionPreview [
 
 { #category : 'private - labels' }
 CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edge: anEdge visual: aVisual [
-	| labelHost label |
+	| labelHost dragSurface label |
 	labelHost := BlElement new
 		clipChildren: false;
 		layout: BlFrameLayout new;
@@ -593,6 +593,14 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 			c ignoreByLayout ];
 		preventMouseEvents;
 		yourself.
+	dragSurface := BlElement new
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c horizontal fitContent.
+			c vertical fitContent.
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		yourself.
 	label := self newEditableLabelForMessageFlow: aMessageFlow.
 	label hFitContentLimited.
 	label vFitContent.
@@ -600,10 +608,11 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 		c maxWidth: 180.
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
-	labelHost addChild: label.
+	dragSurface addChild: label.
+	labelHost addChild: dragSurface.
 	aVisual labelHost: labelHost.
 	self addDiagramChild: labelHost.
-	self installMessageFlowLabelPositioningOn: label for: anEdge.
+	self installMessageFlowLabelPositioningOn: dragSurface for: anEdge.
 	self positionMessageFlowLabelFor: anEdge
 ]
 

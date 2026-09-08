@@ -791,7 +791,7 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
-	| labelHost label |
+	| labelHost dragSurface label |
 	labelHost := BlElement new
 		clipChildren: false;
 		layout: BlFrameLayout new;
@@ -801,6 +801,14 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 			c ignoreByLayout ];
 		preventMouseEvents;
 		yourself.
+	dragSurface := BlElement new
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c horizontal fitContent.
+			c vertical fitContent.
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
+		yourself.
 	label := self newEditableLabelFor: anEdge modelElement.
 	label hFitContentLimited.
 	label vFitContent.
@@ -808,10 +816,11 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 		c maxWidth: 180.
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
-	labelHost addChild: label.
+	dragSurface addChild: label.
+	labelHost addChild: dragSurface.
 	(edgeVisualsByEdge at: anEdge) labelHost: labelHost.
 	self addDiagramChild: labelHost.
-	self installEdgeLabelPositioningOn: label for: anEdge.
+	self installEdgeLabelPositioningOn: dragSurface for: anEdge.
 	self positionEdgeLabelFor: anEdge
 ]
 
