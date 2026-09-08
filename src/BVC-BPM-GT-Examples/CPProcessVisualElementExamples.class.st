@@ -2166,3 +2166,61 @@ CPProcessVisualElementExamples >> boundaryEventTypeSelectionUsesRequestedTypes [
 	self assert: (selection typeIconFor: CPEscalationEventDefinition) equals: #chevronsUp.
 	^ selection
 ]
+
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventBoundsSnapToEachActivitySide [
+	<gtExample>
+	| visual eventBounds activityBounds left right top bottom |
+	visual := CPProcessVisualElement new.
+	eventBounds := 84 @ 124 extent: 32 @ 32.
+	activityBounds := 100 @ 100 extent: 140 @ 80.
+	left := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 90 @ 140.
+	right := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 250 @ 140.
+	top := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 170 @ 90.
+	bottom := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 170 @ 190.
+
+	self assert: left center equals: 100 @ 140.
+	self assert: right center equals: 240 @ 140.
+	self assert: top center equals: 170 @ 100.
+	self assert: bottom center equals: 170 @ 180.
+	^ { left. right. top. bottom }
+]
+
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventBoundsClampToActivityCorners [
+	<gtExample>
+	| visual eventBounds activityBounds topLeft bottomRight |
+	visual := CPProcessVisualElement new.
+	eventBounds := 84 @ 124 extent: 32 @ 32.
+	activityBounds := 100 @ 100 extent: 140 @ 80.
+	topLeft := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 70 @ 70.
+	bottomRight := visual
+		boundaryEventBounds: eventBounds
+		constrainedToActivityBounds: activityBounds
+		nearCenter: 270 @ 210.
+
+	self assert: (activityBounds containsPoint: topLeft center).
+	self assert: (activityBounds containsPoint: bottomRight center).
+	self assert: ({
+		topLeft center x = activityBounds left.
+		topLeft center y = activityBounds top } anySatisfy: [ :each | each ]).
+	self assert: ({
+		bottomRight center x = activityBounds right.
+		bottomRight center y = activityBounds bottom } anySatisfy: [ :each | each ]).
+	^ { topLeft. bottomRight }
+]
