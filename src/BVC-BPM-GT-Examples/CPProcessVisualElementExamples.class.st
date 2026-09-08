@@ -2323,3 +2323,43 @@ CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
 	self assert: visual selectedDiagramElements first == firstLaneShape.
 	^ visual
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> lanePaletteDropCreatesAndRendersStagedLane [
+	<gtExample>
+	| process diagram memento diagramDescription editing paletteItem visual source dragItem lane assessment |
+	process := CPProcess new label: 'Lane palette process'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	paletteItem := CFAtelierPaletteItem
+		label: 'Lane'
+		icon: CPLane icon
+		provider: (CFAtelierFactoryProvider factory: [ CPLane new label: 'Lane'; yourself ]).
+	visual := CPProcessVisualElement new
+		diagramEditing: editing;
+		lanePaletteItem: paletteItem;
+		memento: memento;
+		yourself.
+	source := BlElement new.
+	source userData
+		at: #atelierPaletteSource put: true;
+		at: #atelierPaletteItem put: paletteItem.
+	lane := paletteItem materialize.
+	dragItem := BlDragItem new
+		sourceElement: source;
+		domainObject: lane;
+		yourself.
+
+	self assert: (visual acceptsPaletteDragItem: dragItem).
+	assessment := visual createPaletteItem: dragItem atRootDiagramPoint: 300 @ 140.
+	self assert: assessment isApplicable.
+	self assert: (visual laneShapeElementFor: lane) lane == lane.
+	self assert: process laneSets isEmpty.
+	^ visual
+]

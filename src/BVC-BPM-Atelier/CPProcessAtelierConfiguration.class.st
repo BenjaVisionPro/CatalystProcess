@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'diagramDescription',
 		'flowElementsDescription',
-		'contextualAppendPaletteItems'
+		'contextualAppendPaletteItems',
+		'lanePaletteItem'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -37,6 +38,11 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 			icon: CPParticipant icon
 			provider: (CFAtelierFactoryProvider factory: [
 				CPParticipant new label: 'Pool'; yourself ]));
+		add: (lanePaletteItem := CFAtelierPaletteItem
+			label: 'Lane'
+			icon: CPLane icon
+			provider: (CFAtelierFactoryProvider factory: [
+				CPLane new label: 'Lane'; yourself ]));
 		add: (CFAtelierPaletteItem
 			label: 'Start event'
 			icon: CPNoneStartEvent icon
@@ -90,6 +96,7 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
 		aPresentation
+			lanePaletteItem: lanePaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
 				processMemento: aPresentation memento
 				diagramDescription: diagramDescription);

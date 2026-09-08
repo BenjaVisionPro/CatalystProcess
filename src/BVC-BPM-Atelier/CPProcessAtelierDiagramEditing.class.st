@@ -56,6 +56,15 @@ CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBoun
 		diagramDescription: diagramDescription
 ]
 
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> createLane: aLane bounds: proposedBounds [
+	^ CPAtelierCreateLane
+		lane: aLane
+		bounds: proposedBounds
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
+
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [

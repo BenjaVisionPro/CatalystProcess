@@ -14,6 +14,7 @@ Class {
 		'workspaceElement',
 		'diagramEditing',
 		'contextualAppendPaletteItems',
+		'lanePaletteItem',
 		'diagramCameraInitialized'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -25,7 +26,8 @@ Class {
 CPProcessPresentation >> initialize [
 	super initialize.
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
-	contextualAppendPaletteItems := #()
+	contextualAppendPaletteItems := #().
+	lanePaletteItem := nil
 ]
 
 { #category : 'private - building' }
@@ -109,6 +111,7 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 		selectionChangedDo: [ :aDiagramElement | self processDiagramSelectionChanged: aDiagramElement ];
 		diagramElementsRemovedDo: [ :someDiagramElements | self diagramElementsRemoved: someDiagramElements ];
 		diagramEditing: diagramEditing;
+		lanePaletteItem: lanePaletteItem;
 		contextualAppendPaletteItems: contextualAppendPaletteItems;
 		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
 		memento: self memento.
@@ -411,6 +414,13 @@ CPProcessPresentation >> contextualAppendPaletteItems: somePaletteItems [
 	contextualAppendPaletteItems := somePaletteItems ifNil: [ #() ].
 	processDiagramElement ifNotNil: [ :aVisual |
 		aVisual contextualAppendPaletteItems: contextualAppendPaletteItems ]
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> lanePaletteItem: aPaletteItem [
+	lanePaletteItem := aPaletteItem.
+	processDiagramElement ifNotNil: [ :aVisual |
+		aVisual lanePaletteItem: lanePaletteItem ]
 ]
 
 { #category : 'configuration' }

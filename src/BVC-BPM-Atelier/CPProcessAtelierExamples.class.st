@@ -2303,3 +2303,47 @@ CPProcessAtelierExamples >> changingBoundaryEventDefinitionPreservesBoundaryIden
 	self assert: (context stagedFlowElements identityIncludes: boundary).
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessAtelierExamples >> createLaneStagesLaneSetLaneAndShapeAtomically [
+	<gtExample>
+	| process diagram memento diagramDescription lane operation assessment laneSetsDescription stagedLaneSets laneSetMemento lanesDescription stagedLanes diagramMemento elementsDescription stagedElements laneShape |
+	process := CPProcess new label: 'Lane creation'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	lane := CPLane new label: 'Review'; yourself.
+	operation := CPAtelierCreateLane
+		lane: lane
+		bounds: (40 @ 40 extent: 500 @ 140)
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation assess.
+	self assert: assessment isApplicable.
+	self assert: process laneSets isEmpty.
+	self assert: diagram elements isEmpty.
+
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	self assert: process laneSets isEmpty.
+	self assert: diagram elements isEmpty.
+
+	laneSetsDescription := self descriptionFor: #laneSets in: memento.
+	stagedLaneSets := memento readUsing: laneSetsDescription.
+	self assert: stagedLaneSets size equals: 1.
+	laneSetMemento := memento childMementoFor: stagedLaneSets first inRelation: laneSetsDescription.
+	lanesDescription := self descriptionFor: #lanes in: laneSetMemento.
+	stagedLanes := laneSetMemento readUsing: lanesDescription.
+	self assert: stagedLanes size equals: 1.
+	self assert: stagedLanes first == lane.
+
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+	laneShape := stagedElements detect: [ :each | each modelElement == lane ].
+	self assert: laneShape bounds equals: (40 @ 40 extent: 500 @ 140).
+	^ assessment
+]

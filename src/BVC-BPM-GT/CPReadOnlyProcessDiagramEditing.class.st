@@ -18,6 +18,11 @@ CPReadOnlyProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBou
 	^ nil
 ]
 
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> createLane: aLane bounds: proposedBounds [
+	^ nil
+]
+
 
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [

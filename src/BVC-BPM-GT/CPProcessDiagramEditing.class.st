@@ -20,6 +20,11 @@ CPProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inPr
 	^ self subclassResponsibility
 ]
 
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> createLane: aLane bounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
 
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [
