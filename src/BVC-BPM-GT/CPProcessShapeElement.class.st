@@ -741,9 +741,10 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 	self addSubProcessBorderInteractionElements
 ]
 
-{ #category : 'private - subprocess' }
-CPProcessShapeElement >> addSubProcessBorderInteractionElements [
+{ #category : 'private - interaction' }
+CPProcessShapeElement >> ensureBorderInteractionElements [
 	| hitWidth top bottom left right |
+	subProcessBorderInteractionElements ifNotEmpty: [ ^ self ].
 	hitWidth := 8.
 	top := BlElement new
 		extent: 0 @ hitWidth;
@@ -782,12 +783,22 @@ CPProcessShapeElement >> addSubProcessBorderInteractionElements [
 			c frame vertical alignTop ];
 		yourself.
 	subProcessBorderInteractionElements := { top. bottom. left. right }.
+	subProcessBorderInteractionElements do: [ :each | self addChild: each ]
+]
+
+{ #category : 'private - subprocess' }
+CPProcessShapeElement >> addSubProcessBorderInteractionElements [
+	self ensureBorderInteractionElements.
 	subProcessBorderInteractionElements do: [ :each |
 		self
 			installCursor: BlHandCursor new
 			leaving: BlCursor default
-			on: each.
-		self addChild: each ]
+			on: each ]
+]
+
+{ #category : 'accessing - testing' }
+CPProcessShapeElement >> borderInteractionElements [
+	^ subProcessBorderInteractionElements
 ]
 
 { #category : 'accessing - testing' }
