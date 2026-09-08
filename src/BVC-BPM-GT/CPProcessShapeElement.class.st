@@ -586,8 +586,9 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 					aDragEndBlock value: anEvent.
 					anEvent consumed: true ] ]).
 	contextualDragOptions := BlElement new
-		hFitContent;
-		vFitContent;
+		constraintsDo: [ :c |
+			c horizontal fitContent.
+			c vertical fitContent ];
 		padding: (BlInsets all: 3);
 		layout: (BlLinearLayout vertical alignCenter);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
