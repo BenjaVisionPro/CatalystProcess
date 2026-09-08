@@ -2588,7 +2588,10 @@ CPProcessVisualElement >> createBoundaryEventPaletteItem: aBoundaryEvent atRootD
 	activityShape ifNil: [ ^ nil ].
 	activityBounds := self stagedBoundsOf: activityShape.
 	extent := self extentForModelElement: aBoundaryEvent.
-	boundaryBounds := ((self nearestPointOnBoundaryOf: activityBounds to: localPoint) - (extent / 2)) extent: extent.
+	boundaryBounds := self
+		boundaryEventBounds: (0 @ 0 extent: extent)
+		constrainedToActivityBounds: activityBounds
+		nearCenter: localPoint.
 	operation := diagramEditing
 		createBoundaryEvent: aBoundaryEvent
 		attachedToShape: activityShape

@@ -675,10 +675,9 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 
 { #category : 'containment' }
 CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalPosition: aPoint [
-	aBoundaryElement
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: aPoint.
-	self addChild: aBoundaryElement
+	aBoundaryElement constraintsDo: [ :c | c ignoreByLayout ].
+	self addChild: aBoundaryElement.
+	aBoundaryElement relocate: aPoint
 ]
 
 

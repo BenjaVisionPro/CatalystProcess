@@ -2144,6 +2144,8 @@ CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttache
 	boundaryElement := visual shapeElementsByModelElement at: boundary.
 
 	self assert: boundaryElement parent == taskElement.
+	visual forceLayout.
 	self assert: boundaryElement position equals: -16 @ 24.
+	self assert: ((visual stagedBoundsOf: (visual diagramShapeForModelElement: boundary)) center) equals: 100 @ 140.
 	^ boundaryElement
 ]
