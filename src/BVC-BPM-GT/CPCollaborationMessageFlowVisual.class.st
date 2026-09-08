@@ -247,8 +247,7 @@ CPCollaborationMessageFlowVisual >> labelHost: anElement [
 { #category : 'label' }
 CPCollaborationMessageFlowVisual >> positionLabelCenteredAt: aPoint [
 	labelHost ifNil: [ ^ self ].
-	labelHost forceLayout.
-	labelHost relocate: aPoint - (labelHost extent / 2)
+	labelHost relocate: (aPoint x - 90) @ (aPoint y - 22)
 ]
 
 { #category : 'bendpoint handles' }
