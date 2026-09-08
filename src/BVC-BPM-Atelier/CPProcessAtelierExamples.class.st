@@ -454,11 +454,37 @@ CPProcessAtelierExamples >> appendFlowNodeCreatesNodeAndConnectionAsOneStagedOpe
 	self assert: (flowContainerContext := CPProcessFlowContainerContext rootFor: memento) notNil.
 	self assert: (flowContainerContext stagedSourceOf: assessment sequenceFlow) == task.
 	self assert: (flowContainerContext stagedTargetOf: assessment sequenceFlow) == appended.
-	self assert: assessment sequenceFlow sourceRef == task.
-	self assert: assessment sequenceFlow targetRef == appended.
+	self assert: assessment sequenceFlow sourceRef isNil.
+	self assert: assessment sequenceFlow targetRef isNil.
+	self assert: appended incoming isEmpty.
 	self assert: fixture first flowElements size equals: 5.
 	self assert: fixture eighth elements size equals: 5.
 	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> appendFlowNodeAssessmentHasNoSemanticSideEffects [
+	<gtExample>
+	| fixture memento task appended diagramDescription operation originalOutgoingCount |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	appended := CPUserTask new label: 'Follow up'; yourself.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	originalOutgoingCount := task outgoing size.
+	operation := CPAtelierAppendFlowNode
+		source: task
+		flowNode: appended
+		bounds: (390 @ 180 extent: 132 @ 54)
+		flowContainer: fixture first
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	1 to: 100 do: [ :anIndex | self assert: operation assess isApplicable ].
+
+	self assert: task outgoing size equals: originalOutgoingCount.
+	self assert: appended incoming isEmpty.
+	^ operation
 ]
 
 { #category : 'examples - semantic topology' }

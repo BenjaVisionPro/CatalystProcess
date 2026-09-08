@@ -558,7 +558,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 	icon := FontAwesomeIcons defaultStyle icon: #arrowRightFromArc.
 	icon
 		color: aBorderColor;
-		size: 9 @ 9;
+		size: 11 @ 11;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
@@ -600,7 +600,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		constraintsDo: [ :c |
 			c horizontal fitContent.
 			c vertical fitContent ];
-		padding: (BlInsets all: 3);
+		padding: (BlInsets all: 1);
 		layout: (BlLinearLayout vertical alignCenter);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
 		background: (Color white alpha: 0.82);
@@ -611,7 +611,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		constraintsDo: [ :c |
 			c frame horizontal alignRight.
 			c frame vertical alignCenter.
-			c margin: (BlInsets top: 0 right: 22 negated bottom: 0 left: 0) ];
+			c margin: (BlInsets top: 0 right: 20 negated bottom: 0 left: 0) ];
 		addChild: connectionPort;
 		yourself.
 	contextualDragOptions
@@ -771,12 +771,12 @@ CPProcessShapeElement >> addContextualDragOptionIcon: anIconStencil label: aLabe
 	contextualDragOptions ifNil: [ ^ nil ].
 	iconElement := anIconStencil asStencil asElement.
 	iconElement
-		height: 9;
+		height: 11;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ].
 	option := BlElement new
-		extent: 18 @ 18;
+		extent: 14 @ 14;
 		background: Color transparent;
 		layout: BlFrameLayout new;
 		addChild: iconElement;
