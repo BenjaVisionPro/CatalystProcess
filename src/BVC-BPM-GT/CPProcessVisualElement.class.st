@@ -1850,7 +1850,13 @@ CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedMode
 				label.
 				(label ifNotNil: [ label position ])
 			} ] ].
-	^ entries
+	^ entries reject: [ :entry |
+		| modelElement attachedActivity |
+		modelElement := entry second.
+		modelElement isBoundaryEvent and: [
+			attachedActivity := self stagedAttachedActivityOf: modelElement.
+			attachedActivity notNil and: [
+				entries anySatisfy: [ :candidate | candidate second == attachedActivity ] ] ] ]
 ]
 
 { #category : 'private - positioning' }

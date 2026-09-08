@@ -255,6 +255,10 @@ CPAtelierTransferFlowNodes >> stagedStateForNode: aFlowNode in: aContext [
 		self copySelector: #calledElement from: memento into: state ].
 	aFlowNode isSubProcess ifTrue: [
 		self copySelector: #flowElements from: memento into: state ].
+	aFlowNode isBoundaryEvent ifTrue: [
+		self copySelector: #attachedToRef from: memento into: state.
+		self copySelector: #cancelActivity from: memento into: state.
+		self copySelector: #eventDefinitions from: memento into: state ].
 	^ state
 ]
 
@@ -288,7 +292,11 @@ CPAtelierTransferFlowNodes >> restoreNode: aFlowNode state: state in: aContext t
 	aFlowNode isCallActivity ifTrue: [
 		self writeSelector: #calledElement value: (state at: #calledElement) to: memento ].
 	aFlowNode isSubProcess ifTrue: [
-		self writeSelector: #flowElements value: (state at: #flowElements) to: memento ]
+		self writeSelector: #flowElements value: (state at: #flowElements) to: memento ].
+	aFlowNode isBoundaryEvent ifTrue: [
+		self writeSelector: #attachedToRef value: (state at: #attachedToRef) to: memento.
+		self writeSelector: #cancelActivity value: (state at: #cancelActivity) to: memento.
+		self writeSelector: #eventDefinitions value: (state at: #eventDefinitions) to: memento ]
 ]
 
 { #category : 'private - staged state' }
