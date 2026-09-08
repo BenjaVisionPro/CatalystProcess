@@ -1,6 +1,6 @@
 "I render and locally interact with one CPShape.
 
-The CPShape and its semantic flow node remain model objects. I own their Bloc depiction and shape-local affordances: geometry, labels, decoration, selection appearance, resize, connection port, replacement/type UI, and local pointer mechanics. CPProcessVisualElement coordinates relationships between diagram objects and delegates semantic edits to Atelier operations."
+The CPShape and its semantic flow node remain model objects. I own their Bloc depiction and shape-local affordances: geometry, labels, decoration, selection appearance, resize, contextual drag options, replacement/type UI, and local pointer mechanics. CPProcessVisualElement coordinates relationships between diagram objects and delegates semantic edits to Atelier operations."
 Class {
 	#name : 'CPProcessShapeElement',
 	#superclass : 'BlElement',
@@ -10,6 +10,7 @@ Class {
 		'labelElement',
 		'normalBorderColor',
 		'resizeHandles',
+		'contextualDragOptions',
 		'connectionPort',
 		'externalLabelHost',
 		'isExpanded',
@@ -552,15 +553,9 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			c frame vertical alignCenter ].
 	connectionPort := BlElement new
 		extent: 14 @ 14;
-		geometry: BlCircleGeometry new;
-		background: (Color white alpha: 0.82);
-		border: (BlBorder paint: (aBorderColor alpha: 0.55) width: 1);
+		background: Color transparent;
 		layout: BlFrameLayout new;
 		addChild: icon;
-		visibility: BlVisibility hidden;
-		constraintsDo: [ :c |
-			c frame horizontal alignRight.
-			c frame vertical alignCenter ];
 		yourself.
 	connectionPort
 		addEventHandler: (BlEventHandler
@@ -590,7 +585,22 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 					isDragging := false.
 					aDragEndBlock value: anEvent.
 					anEvent consumed: true ] ]).
-	self addChild: connectionPort.
+	contextualDragOptions := BlElement new
+		hFitContent;
+		vFitContent;
+		padding: (BlInsets all: 3);
+		layout: (BlLinearLayout vertical alignCenter);
+		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
+		background: (Color white alpha: 0.82);
+		border: (BlBorder paint: (aBorderColor alpha: 0.55) width: 1);
+		visibility: BlVisibility hidden;
+		constraintsDo: [ :c |
+			c frame horizontal alignRight.
+			c frame vertical alignCenter.
+			c margin: (BlInsets top: 0 right: 22 negated bottom: 0 left: 0) ];
+		addChild: connectionPort;
+		yourself.
+	self addChild: contextualDragOptions.
 	^ connectionPort
 ]
 
@@ -600,9 +610,9 @@ CPProcessShapeElement >> connectionPort [
 ]
 
 { #category : 'connection' }
-CPProcessShapeElement >> connectionPortVisible: aBoolean [
-	connectionPort ifNil: [ ^ self ].
-	connectionPort visibility: (aBoolean
+CPProcessShapeElement >> contextualDragOptionsVisible: aBoolean [
+	contextualDragOptions ifNil: [ ^ self ].
+	contextualDragOptions visibility: (aBoolean
 		ifTrue: [ BlVisibility visible ]
 		ifFalse: [ BlVisibility hidden ])
 ]
