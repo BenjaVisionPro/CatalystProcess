@@ -2813,6 +2813,8 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
 	| candidate elementExtent bounds operation assessment |
 	candidate := aDragItem domainObject.
+	(self isLanePaletteDragItem: aDragItem) ifTrue: [
+		^ self createLanePaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 	candidate isBoundaryEvent ifTrue: [ ^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
