@@ -2214,8 +2214,10 @@ CPProcessVisualElementExamples >> boundaryEventBoundsClampToActivityCorners [
 		constrainedToActivityBounds: activityBounds
 		nearCenter: 270 @ 210.
 
-	self assert: (activityBounds containsPoint: topLeft center).
-	self assert: (activityBounds containsPoint: bottomRight center).
+	self assert: (topLeft center x between: activityBounds left and: activityBounds right).
+	self assert: (topLeft center y between: activityBounds top and: activityBounds bottom).
+	self assert: (bottomRight center x between: activityBounds left and: activityBounds right).
+	self assert: (bottomRight center y between: activityBounds top and: activityBounds bottom).
 	self assert: ({
 		topLeft center x = activityBounds left.
 		topLeft center y = activityBounds top } anySatisfy: [ :each | each ]).
