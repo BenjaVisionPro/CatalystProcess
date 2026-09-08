@@ -1489,14 +1489,14 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 						(self isValidConnectionTarget: aModelElement from: aSource)
 							ifTrue: [ self connectionTargetModelElement: aModelElement ]
 							ifFalse: [ self clearConnectionTarget ] ]
-					ifNil: [ self updateContextualDragOptionsVisibility ] ]);
+					ifNil: [ self updateContextualDragOptionsPresence ] ]);
 		addEventHandler: (BlEventHandler
 			on: BlMouseLeaveEvent
 			do: [ :anEvent |
 				hoveredModelElement == aModelElement ifTrue: [ hoveredModelElement := nil ].
 				connectionTargetModelElement == aModelElement
 					ifTrue: [ self clearConnectionTarget ]
-					ifFalse: [ self updateContextualDragOptionsVisibility ] ])
+					ifFalse: [ self updateContextualDragOptionsPresence ] ])
 ]
 
 { #category : 'private - selection' }
@@ -1594,7 +1594,7 @@ CPProcessVisualElement >> updateTransientInteractionAppearance [
 CPProcessVisualElement >> updateDiagramAppearance [
 	self updateSelectionAppearance.
 	self updateTransientInteractionAppearance.
-	self updateContextualDragOptionsVisibility
+	self updateContextualDragOptionsPresence
 ]
 
 { #category : 'operations' }
@@ -2122,7 +2122,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self insertionTargetEdge: (self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement).
-					self updateContextualDragOptionsVisibility ] ]
+					self updateContextualDragOptionsPresence ] ]
 		dragEnded: [ :anEvent :proposedBounds :delta |
 			dragPresentations valuesDo: [ :aPresentation |
 				aPresentation finish ].
@@ -3196,12 +3196,10 @@ CPProcessVisualElement >> connectFrom: aSource to: aTarget [
 ]
 
 { #category : 'private - connection' }
-CPProcessVisualElement >> updateContextualDragOptionsVisibility [
+CPProcessVisualElement >> updateContextualDragOptionsPresence [
 	shapeElementsByModelElement keysAndValuesDo: [ :aFlowNode :aShapeElement |
-		aShapeElement contextualDragOptionsVisible:
-			(aFlowNode == hoveredModelElement
-				or: [ aFlowNode == self selectedModelElement
-				or: [ aFlowNode == connectionSourceModelElement ] ]) ]
+		aShapeElement contextualDragOptionsNodeHovered:
+			(aFlowNode == hoveredModelElement) ]
 ]
 
 { #category : 'private - connection' }
@@ -3217,7 +3215,7 @@ CPProcessVisualElement >> completeConnectionTo: aFlowNode [
 	source := connectionSourceModelElement.
 	connectionSourceModelElement := nil.
 	self clearConnectionTarget.
-	self updateContextualDragOptionsVisibility.
+	self updateContextualDragOptionsPresence.
 	source ifNil: [ ^ self ].
 	source == aFlowNode ifTrue: [ self updateDiagramAppearance. ^ self ].
 	^ self connectFrom: source to: aFlowNode

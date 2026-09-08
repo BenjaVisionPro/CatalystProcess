@@ -11,6 +11,12 @@ Class {
 		'normalBorderColor',
 		'resizeHandles',
 		'contextualDragOptions',
+		'contextualDragOptionsMotion',
+		'contextualDragOptionsRevealTask',
+		'contextualDragOptionsHideTask',
+		'contextualDragOptionsNodeHovered',
+		'contextualDragOptionsPillHovered',
+		'contextualDragOptionsDragActive',
 		'connectionPort',
 		'externalLabelHost',
 		'isExpanded',
@@ -48,6 +54,13 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	labelElement := anEditableLabel.
 	normalBorderColor := aBorderColor.
 	resizeHandles := #().
+	contextualDragOptions := nil.
+	contextualDragOptionsMotion := nil.
+	contextualDragOptionsRevealTask := nil.
+	contextualDragOptionsHideTask := nil.
+	contextualDragOptionsNodeHovered := false.
+	contextualDragOptionsPillHovered := false.
+	contextualDragOptionsDragActive := false.
 	externalLabelHost := nil.
 	isExpanded := aBoolean.
 	subProcessExpansionMarker := nil.
@@ -570,6 +583,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			do: [ :anEvent |
 				isDragging := true.
 				didDrag := true.
+				self contextualDragOptionsDragActive: true.
 				aDragStartBlock value: anEvent.
 				anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler
@@ -583,6 +597,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			do: [ :anEvent |
 				isDragging ifTrue: [
 					isDragging := false.
+					self contextualDragOptionsDragActive: false.
 					aDragEndBlock value: anEvent.
 					anEvent consumed: true ] ]).
 	contextualDragOptions := BlElement new
@@ -594,6 +609,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
 		background: (Color white alpha: 0.82);
 		border: (BlBorder paint: (aBorderColor alpha: 0.55) width: 1);
+		opacity: 0.0;
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c |
 			c frame horizontal alignRight.
@@ -601,6 +617,13 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			c margin: (BlInsets top: 0 right: 22 negated bottom: 0 left: 0) ];
 		addChild: connectionPort;
 		yourself.
+	contextualDragOptions
+		addEventHandler: (BlEventHandler
+			on: BlMouseEnterEvent
+			do: [ :anEvent | self contextualDragOptionsPillHovered: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlMouseLeaveEvent
+			do: [ :anEvent | self contextualDragOptionsPillHovered: false ]).
 	self addChild: contextualDragOptions.
 	^ connectionPort
 ]
@@ -610,12 +633,142 @@ CPProcessShapeElement >> connectionPort [
 	^ connectionPort
 ]
 
-{ #category : 'connection' }
-CPProcessShapeElement >> contextualDragOptionsVisible: aBoolean [
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> contextualDragOptionsNodeHovered: aBoolean [
+	contextualDragOptionsNodeHovered = aBoolean ifTrue: [ ^ self ].
+	contextualDragOptionsNodeHovered := aBoolean.
+	self updateContextualDragOptionsPresence
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> contextualDragOptionsPillHovered: aBoolean [
+	contextualDragOptionsPillHovered = aBoolean ifTrue: [ ^ self ].
+	contextualDragOptionsPillHovered := aBoolean.
+	self updateContextualDragOptionsPresence
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> contextualDragOptionsDragActive: aBoolean [
+	contextualDragOptionsDragActive = aBoolean ifTrue: [ ^ self ].
+	contextualDragOptionsDragActive := aBoolean.
+	self updateContextualDragOptionsPresence
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> contextualDragOptionsWantsVisible [
+	^ contextualDragOptionsNodeHovered
+		or: [ contextualDragOptionsPillHovered
+		or: [ contextualDragOptionsDragActive ] ]
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> updateContextualDragOptionsPresence [
 	contextualDragOptions ifNil: [ ^ self ].
-	contextualDragOptions visibility: (aBoolean
-		ifTrue: [ BlVisibility visible ]
-		ifFalse: [ BlVisibility hidden ])
+	self contextualDragOptionsWantsVisible
+		ifTrue: [
+			self cancelContextualDragOptionsHide.
+			(contextualDragOptionsPillHovered
+				or: [ contextualDragOptionsDragActive
+				or: [ contextualDragOptions visibility = BlVisibility visible ] ])
+				ifTrue: [
+					self cancelContextualDragOptionsReveal.
+					self revealContextualDragOptions ]
+				ifFalse: [ self scheduleContextualDragOptionsReveal ] ]
+		ifFalse: [
+			self cancelContextualDragOptionsReveal.
+			contextualDragOptions visibility = BlVisibility visible
+				ifTrue: [ self scheduleContextualDragOptionsHide ] ]
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> scheduleContextualDragOptionsReveal [
+	contextualDragOptionsRevealTask ifNotNil: [ ^ self ].
+	contextualDragOptionsRevealTask := BlDelayedTaskAction new
+		delay: 150 milliSeconds;
+		action: [
+			contextualDragOptionsRevealTask := nil.
+			(self isAttachedToSceneGraph and: [ self contextualDragOptionsWantsVisible ])
+				ifTrue: [ self revealContextualDragOptions ] ];
+		yourself.
+	self enqueueTask: contextualDragOptionsRevealTask
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> scheduleContextualDragOptionsHide [
+	contextualDragOptionsHideTask ifNotNil: [ ^ self ].
+	contextualDragOptionsHideTask := BlDelayedTaskAction new
+		delay: 275 milliSeconds;
+		action: [
+			contextualDragOptionsHideTask := nil.
+			(self isAttachedToSceneGraph and: [ self contextualDragOptionsWantsVisible not ])
+				ifTrue: [ self hideContextualDragOptions ] ];
+		yourself.
+	self enqueueTask: contextualDragOptionsHideTask
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> cancelContextualDragOptionsReveal [
+	contextualDragOptionsRevealTask ifNil: [ ^ self ].
+	contextualDragOptionsRevealTask stop.
+	contextualDragOptionsRevealTask := nil
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> cancelContextualDragOptionsHide [
+	contextualDragOptionsHideTask ifNil: [ ^ self ].
+	contextualDragOptionsHideTask stop.
+	contextualDragOptionsHideTask := nil
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> revealContextualDragOptions [
+	| targetTrack |
+	contextualDragOptions ifNil: [ ^ self ].
+	contextualDragOptions visibility: BlVisibility visible.
+	contextualDragOptions opacity >= 0.999 ifTrue: [ ^ self ].
+	targetTrack := CFMotionPropertyTrack
+		on: contextualDragOptions
+		property: CFMotionOpacityProperty uniqueInstance
+		target: 1.0.
+	contextualDragOptionsMotion := contextualDragOptionsMotion
+		ifNil: [
+			(contextualDragOptions motion
+				duration: 80 milliSeconds;
+				opacity: 1.0;
+				build) start ]
+		ifNotNil: [
+			contextualDragOptionsMotion
+				retarget: targetTrack
+				duration: 80 milliSeconds
+				easing: (BlDecelerateInterpolator factor: 1.4) ]
+]
+
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> hideContextualDragOptions [
+	| targetTrack motion |
+	contextualDragOptions ifNil: [ ^ self ].
+	contextualDragOptions visibility = BlVisibility hidden ifTrue: [ ^ self ].
+	targetTrack := CFMotionPropertyTrack
+		on: contextualDragOptions
+		property: CFMotionOpacityProperty uniqueInstance
+		target: 0.0.
+	motion := contextualDragOptionsMotion
+		ifNil: [
+			(contextualDragOptions motion
+				duration: 80 milliSeconds;
+				opacity: 0.0;
+				build) start ]
+		ifNotNil: [
+			contextualDragOptionsMotion
+				retarget: targetTrack
+				duration: 80 milliSeconds
+				easing: (BlDecelerateInterpolator factor: 1.4) ].
+	contextualDragOptionsMotion := motion.
+	motion onTerminalDo: [ :aMotion |
+		(aMotion isCompleted
+			and: [ contextualDragOptionsMotion == aMotion
+			and: [ self contextualDragOptionsWantsVisible not ] ])
+			ifTrue: [ contextualDragOptions visibility: BlVisibility hidden ] ]
 ]
 
 { #category : 'replacement' }
