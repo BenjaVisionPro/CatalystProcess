@@ -123,7 +123,8 @@ CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 	flowContainer := aFlowContainer.
 	diagramDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #diagram ].
-	self refresh
+	self refresh.
+	self installMementoObserver
 ]
 
 { #category : 'accessing - presentation' }
@@ -294,6 +295,15 @@ CPProcessVisualElement >> refreshEditor [
 { #category : 'accessing' }
 CPProcessVisualElement >> memento [
 	^ memento
+]
+
+{ #category : 'private - updating' }
+CPProcessVisualElement >> installMementoObserver [
+	self withAsyncSinkDo: [ :anElementSink |
+		anElementSink
+			sink: AsyncPeekSink new;
+			whenUpdate: [ :anElement :aSink | anElement refresh ].
+		memento overallStatus observe: anElementSink ]
 ]
 
 { #category : 'updating' }
