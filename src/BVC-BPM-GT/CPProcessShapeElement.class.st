@@ -634,7 +634,10 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 	aPopup
 		opacity: 0.0;
 		extent: anExtent;
-		preventMeAndChildrenMouseEvents.
+		preventMeAndChildrenMouseEvents;
+		addEventHandler: (BlEventHandler
+			on: BlClickEvent
+			do: [ :anEvent | anEvent consumed: true ]).
 	aConfigureBlock value: aPopup.
 	self installDefaultCursorOn: aPopup.
 	aPopup
