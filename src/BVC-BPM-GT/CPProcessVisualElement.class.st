@@ -2698,8 +2698,19 @@ CPProcessVisualElement >> installReplacementOnShape: aShapeElement for: aFlowNod
 ]
 
 { #category : 'private - creation' }
+CPProcessVisualElement >> paletteDragEvent: aDragEvent hasLeftShape: aShape [
+	| globalPoint diagramPoint |
+	globalPoint := aDragEvent currentTarget
+		localPointToGlobal: aDragEvent position.
+	diagramPoint := self diagramPointForGlobalPoint: globalPoint.
+	^ ((self stagedBoundsOf: aShape) containsPoint: diagramPoint) not
+]
+
+{ #category : 'private - creation' }
 CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: anActivity shape: anActivityShape [
 	anActivityElement addEventHandler: (CPProcessPaletteDropHandler new
+		handleDragLeaveWhen: [ :aDragEvent |
+			self paletteDragEvent: aDragEvent hasLeftShape: anActivityShape ];
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			(self isBoundaryEventPaletteDragItem: aDragItem)
 				ifTrue: [

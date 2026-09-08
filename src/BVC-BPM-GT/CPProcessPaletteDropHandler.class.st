@@ -4,6 +4,9 @@ BlDropHandler consumes every drag that crosses its target. Process nodes are the
 Class {
 	#name : 'CPProcessPaletteDropHandler',
 	#superclass : 'BlDropHandler',
+	#instVars : [
+		'dragLeavePredicate'
+	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
@@ -29,7 +32,18 @@ CPProcessPaletteDropHandler >> dragEvent: anEvent [
 
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> dragLeaveEvent: anEvent [
-	(self isPaletteDragEvent: anEvent) ifTrue: [ super dragLeaveEvent: anEvent ]
+	(self isPaletteDragEvent: anEvent) ifFalse: [ ^ self ].
+	dragLeavePredicate ifNotNil: [
+		(dragLeavePredicate value: anEvent) ifFalse: [ ^ self ] ].
+	super dragLeaveEvent: anEvent
+]
+
+{ #category : 'configuration' }
+CPProcessPaletteDropHandler >> handleDragLeaveWhen: aBlock [
+	"Only forward a raw palette drag-leave to BlDropHandler when aBlock
+	 answers true. Composite drop targets use this to distinguish leaving
+	 their geometry from Bloc merely repicking one of their children."
+	dragLeavePredicate := aBlock
 ]
 
 { #category : 'event handling' }
