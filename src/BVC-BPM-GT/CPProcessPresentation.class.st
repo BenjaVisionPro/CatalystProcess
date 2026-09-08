@@ -13,6 +13,7 @@ Class {
 		'detailScrollElement',
 		'workspaceElement',
 		'diagramEditing',
+		'contextualAppendPaletteItems',
 		'diagramCameraInitialized'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -23,7 +24,8 @@ Class {
 { #category : 'initialization' }
 CPProcessPresentation >> initialize [
 	super initialize.
-	diagramEditing := CPReadOnlyProcessDiagramEditing new
+	diagramEditing := CPReadOnlyProcessDiagramEditing new.
+	contextualAppendPaletteItems := #()
 ]
 
 { #category : 'private - building' }
@@ -107,6 +109,7 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 		selectionChangedDo: [ :aDiagramElement | self processDiagramSelectionChanged: aDiagramElement ];
 		diagramElementsRemovedDo: [ :someDiagramElements | self diagramElementsRemoved: someDiagramElements ];
 		diagramEditing: diagramEditing;
+		contextualAppendPaletteItems: contextualAppendPaletteItems;
 		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
 		memento: self memento.
 	^ visual
@@ -402,6 +405,13 @@ CPProcessPresentation >> collaborationDiagramElement [
 	^ collaborationDiagramElement
 ]
 
+
+{ #category : 'configuration' }
+CPProcessPresentation >> contextualAppendPaletteItems: somePaletteItems [
+	contextualAppendPaletteItems := somePaletteItems ifNil: [ #() ].
+	processDiagramElement ifNotNil: [ :aVisual |
+		aVisual contextualAppendPaletteItems: contextualAppendPaletteItems ]
+]
 
 { #category : 'configuration' }
 CPProcessPresentation >> diagramEditing: anEditing [

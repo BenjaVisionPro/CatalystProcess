@@ -6,7 +6,8 @@ Class {
 	#superclass : 'CFAtelierConfiguration',
 	#instVars : [
 		'diagramDescription',
-		'flowElementsDescription'
+		'flowElementsDescription',
+		'contextualAppendPaletteItems'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -15,22 +16,22 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessAtelierConfiguration class >> forProcessMemento: aProcessMemento [
-	| diagramDescription flowElementsDescription |
+	| diagramDescription flowElementsDescription configuration |
 	diagramDescription := aProcessMemento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
 	flowElementsDescription := aProcessMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
-	^ self new
+	configuration := self new
 		diagramDescription: diagramDescription;
 		flowElementsDescription: flowElementsDescription;
-		palette: self processPalette;
-		yourself
+		yourself.
+	configuration configureProcessPalette.
+	^ configuration
 ]
 
-
-{ #category : 'instance creation' }
-CPProcessAtelierConfiguration class >> processPalette [
-	| palette |
-	palette := CFAtelierPalette new.
-	palette
+{ #category : 'private - configuration' }
+CPProcessAtelierConfiguration >> configureProcessPalette [
+	| processPalette taskItem gatewayItem |
+	processPalette := CFAtelierPalette new.
+	processPalette
 		add: (CFAtelierPaletteItem
 			label: 'Pool'
 			icon: CPParticipant icon
@@ -58,12 +59,13 @@ CPProcessAtelierConfiguration class >> processPalette [
 				CPBoundaryEvent new
 					label: 'Boundary';
 					eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
-					yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'Task'
-			icon: CPUserTask icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPUserTask new label: 'Task'; yourself ]));
+					yourself ])).
+	taskItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Task'
+		icon: CPUserTask icon
+		provider: (CFAtelierFactoryProvider factory: [
+			CPUserTask new label: 'Task'; yourself ])).
+	processPalette
 		add: (CFAtelierPaletteItem
 			label: 'Call activity'
 			icon: CPCallActivity icon
@@ -73,23 +75,25 @@ CPProcessAtelierConfiguration class >> processPalette [
 			label: 'Sub-process'
 			icon: CPSubProcess icon
 			provider: (CFAtelierFactoryProvider factory: [
-				CPNoneSubProcess new label: 'Sub-process'; yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'Gateway'
-			icon: CPExclusiveGateway icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPExclusiveGateway new label: 'Gateway'; yourself ])).
-	^ palette
+				CPNoneSubProcess new label: 'Sub-process'; yourself ])).
+	gatewayItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Gateway'
+		icon: CPExclusiveGateway icon
+		provider: (CFAtelierFactoryProvider factory: [
+			CPExclusiveGateway new label: 'Gateway'; yourself ])).
+	self palette: processPalette.
+	contextualAppendPaletteItems := { taskItem. gatewayItem }
 ]
 
 { #category : 'applying' }
 CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
-		aPresentation diagramEditing:
-			(CPProcessAtelierDiagramEditing
+		aPresentation
+			diagramEditing: (CPProcessAtelierDiagramEditing
 				processMemento: aPresentation memento
-				diagramDescription: diagramDescription) ].
+				diagramDescription: diagramDescription);
+			contextualAppendPaletteItems: contextualAppendPaletteItems ].
 	^ anAtelierViewModel
 ]
 

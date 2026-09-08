@@ -52,6 +52,12 @@ CPProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: p
 	^ self subclassResponsibility
 ]
 
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
 	^ self subclassResponsibility

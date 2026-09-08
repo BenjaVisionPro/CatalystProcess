@@ -237,6 +237,23 @@ CPProcessAtelierDiagramEditing >> replaceShape: aShape with: aReplacementNode bo
 		diagramDescription: diagramDescription
 ]
 
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds [
+	| source flowContainer |
+	source := self modelElementOfDiagramElement: aSourceShape.
+	source ifNil: [ ^ nil ].
+	flowContainer := self flowContainerContaining: source.
+	flowContainer ifNil: [ ^ nil ].
+	^ CPAtelierAppendFlowNode
+		source: source
+		flowNode: aFlowNode
+		bounds: proposedBounds
+		flowContainer: flowContainer
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
+
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
 	| source target sourceContainer targetContainer |

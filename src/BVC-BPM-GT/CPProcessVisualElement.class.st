@@ -24,6 +24,7 @@ Class {
 		'diagramSelection',
 		'selectionChangedBlock',
 		'diagramEditing',
+		'contextualAppendPaletteItems',
 		'diagramElementsRemovedBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
@@ -44,6 +45,7 @@ Class {
 CPProcessVisualElement >> initialize [
 	super initialize.
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
+	contextualAppendPaletteItems := #().
 	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
@@ -66,13 +68,19 @@ CPProcessVisualElement >> initialize [
 		beFocusable.
 	self installDiagramCursor.
 	self installKeyboardHandler.
-	self installPaletteDropHandler
+	self installPaletteDropHandler.
+	self installContextualAppendDropHandler
 ]
 
 
 { #category : 'configuration' }
 CPProcessVisualElement >> diagramEditing: anEditing [
 	diagramEditing := anEditing
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> contextualAppendPaletteItems: somePaletteItems [
+	contextualAppendPaletteItems := somePaletteItems ifNil: [ #() ]
 ]
 
 { #category : 'accessing' }
@@ -3083,7 +3091,10 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 					self clearConnectionTarget.
 					target
 						ifNotNil: [ self connectFrom: aFlowNode to: target ]
-						ifNil: [ self updateDiagramAppearance ] ] ]
+						ifNil: [ self updateDiagramAppearance ] ] ].
+	aFlowNode isActivity ifTrue: [
+		contextualAppendPaletteItems do: [ :aPaletteItem |
+			self installContextualAppendOption: aPaletteItem on: aNodeElement ] ]
 ]
 { #category : 'private - connection' }
 CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
@@ -3205,6 +3216,100 @@ CPProcessVisualElement >> updateContextualDragOptionsPresence [
 	shapeElementsByModelElement keysAndValuesDo: [ :aFlowNode :aShapeElement |
 		aShapeElement contextualDragOptionsNodeHovered:
 			(aFlowNode == hoveredModelElement) ]
+]
+
+{ #category : 'private - contextual append' }
+CPProcessVisualElement >> installContextualAppendOption: aPaletteItem on: aNodeElement [
+	| option context |
+	option := aNodeElement
+		addContextualDragOptionIcon: aPaletteItem icon
+		label: aPaletteItem label.
+	option ifNil: [ ^ self ].
+	context := CPProcessContextualAppendDragContext sourceShape: aNodeElement diagramShape.
+	option userData at: #processContextualAppendContext put: context.
+	option addEventHandler: (BlDragHandler new
+		liftItem: [ :aSourceElement |
+			BlDragItem new
+				sourceElement: aSourceElement;
+				domainObject: aPaletteItem materialize;
+				stencil: [ :aDragItem |
+					BlElement new
+						extent: 36 @ 36;
+						layout: BlFrameLayout new;
+						addChild: (aPaletteItem icon asStencil asElement
+							constraintsDo: [ :c |
+								c frame horizontal alignCenter.
+								c frame vertical alignCenter ];
+							yourself);
+						yourself ];
+				yourself ];
+		yourself)
+]
+
+{ #category : 'private - contextual append' }
+CPProcessVisualElement >> installContextualAppendDropHandler [
+	self addEventHandler: (CPProcessContextualAppendDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsContextualAppendDragItem: aDragItem ];
+		whenDroppedDo: [ :anEvent | self dropContextualAppendEvent: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - contextual append' }
+CPProcessVisualElement >> contextualAppendContextFor: aDragItem [
+	| sourceElement |
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ nil ].
+	^ sourceElement userData at: #processContextualAppendContext ifAbsent: [ nil ]
+]
+
+{ #category : 'private - contextual append' }
+CPProcessVisualElement >> acceptsContextualAppendDragItem: aDragItem [
+	| context sourceShape candidate proposedBounds operation assessment |
+	diagramEditing allowsEditing ifFalse: [ ^ false ].
+	context := self contextualAppendContextFor: aDragItem.
+	context ifNil: [ ^ false ].
+	sourceShape := context sourceShape.
+	(shapeElementsByShape includesKey: sourceShape) ifFalse: [ ^ false ].
+	candidate := aDragItem domainObject.
+	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
+	operation := diagramEditing
+		appendFlowNode: candidate
+		fromShape: sourceShape
+		bounds: proposedBounds.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - contextual append' }
+CPProcessVisualElement >> dropContextualAppendEvent: anEvent [
+	| dragItem context candidate sourceShape rootPoint elementExtent bounds operation assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	context := self contextualAppendContextFor: dragItem.
+	context ifNil: [ ^ self ].
+	sourceShape := context sourceShape.
+	(shapeElementsByShape includesKey: sourceShape) ifFalse: [ ^ self ].
+	candidate := dragItem domainObject.
+	rootPoint := rootVisual diagramPointForGlobalPoint:
+		(anEvent currentTarget localPointToGlobal: anEvent position).
+	elementExtent := self extentForModelElement: candidate.
+	bounds := self boundsCenteredAtRootDiagramPoint: rootPoint extent: elementExtent.
+	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
+	operation := diagramEditing
+		appendFlowNode: candidate
+		fromShape: sourceShape
+		bounds: bounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: candidate) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
 ]
 
 { #category : 'private - connection' }
@@ -4087,7 +4192,8 @@ CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 		diagramSelection: diagramSelection;
 		selectionChangedDo: selectionChangedBlock;
 		diagramElementsRemovedDo: diagramElementsRemovedBlock;
-		diagramEditing: diagramEditing
+		diagramEditing: diagramEditing;
+		contextualAppendPaletteItems: contextualAppendPaletteItems
 ]
 
 { #category : 'private - subprocess' }

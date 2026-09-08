@@ -419,6 +419,44 @@ CPProcessAtelierExamples >> reconnectSequenceFlowPreservesFlowAndEdgeIdentity [
 ]
 
 { #category : 'examples - semantic topology' }
+CPProcessAtelierExamples >> appendFlowNodeCreatesNodeAndConnectionAsOneStagedOperation [
+	<gtExample>
+	| fixture memento task appended flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements taskMemento appendedMemento |
+	fixture := self fixture.
+	memento := fixture second.
+	task := fixture fourth.
+	appended := CPUserTask new label: 'Follow up'; yourself.
+	flowElementsDescription := self descriptionFor: #flowElements in: memento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	operation := CPAtelierAppendFlowNode
+		source: task
+		flowNode: appended
+		bounds: (390 @ 180 extent: 132 @ 54)
+		flowContainer: fixture first
+		processMemento: memento
+		diagramDescription: diagramDescription.
+
+	assessment := operation apply.
+	stagedFlowElements := memento readUsing: flowElementsDescription.
+	diagramMemento := self diagramMementoFor: memento.
+	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	stagedElements := diagramMemento readUsing: elementsDescription.
+	taskMemento := memento childMementoFor: task inRelation: flowElementsDescription.
+	appendedMemento := memento childMementoFor: appended inRelation: flowElementsDescription.
+
+	self assert: assessment isApplicable.
+	self assert: (stagedFlowElements identityIncludes: appended).
+	self assert: (stagedFlowElements identityIncludes: assessment sequenceFlow).
+	self assert: (stagedElements identityIncludes: assessment shape).
+	self assert: (stagedElements identityIncludes: assessment edge).
+	self assert: ((taskMemento readUsing: (self descriptionFor: #outgoing in: taskMemento)) identityIncludes: assessment sequenceFlow).
+	self assert: (appendedMemento readUsing: (self descriptionFor: #incoming in: appendedMemento)) first == assessment sequenceFlow.
+	self assert: fixture first flowElements size equals: 5.
+	self assert: fixture eighth elements size equals: 5.
+	^ memento
+]
+
+{ #category : 'examples - semantic topology' }
 CPProcessAtelierExamples >> insertFlowNodeReplacesOneFlowWithTwoAsOneStagedOperation [
 	<gtExample>
 	| fixture memento firstFlow firstEdge inserted flowElementsDescription diagramDescription operation assessment stagedFlowElements diagramMemento elementsDescription stagedElements |

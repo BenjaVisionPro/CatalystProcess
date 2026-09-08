@@ -765,6 +765,25 @@ CPProcessShapeElement >> hideContextualDragOptions [
 			ifTrue: [ contextualDragOptions visibility: BlVisibility hidden ] ]
 ]
 
+{ #category : 'contextual drag options' }
+CPProcessShapeElement >> addContextualDragOptionIcon: anIconStencil label: aLabel [
+	| option iconElement |
+	contextualDragOptions ifNil: [ ^ nil ].
+	iconElement := anIconStencil asStencil asElement.
+	iconElement constraintsDo: [ :c |
+		c frame horizontal alignCenter.
+		c frame vertical alignCenter ].
+	option := BlElement new
+		extent: 18 @ 18;
+		background: Color transparent;
+		layout: BlFrameLayout new;
+		addChild: iconElement;
+		addAptitude: (BrGlamorousWithExplicitTooltipAptitude text: aLabel);
+		yourself.
+	contextualDragOptions addChild: option.
+	^ option
+]
+
 { #category : 'replacement' }
 CPProcessShapeElement >> installPaletteReplacementAccepting: anAcceptBlock dropped: aDropBlock [
 	self addEventHandler: (CPProcessPaletteDropHandler new
