@@ -602,6 +602,53 @@ CPProcessAtelierExamples >> replaceFlowNodePreservesShapeAndIncidentFlowIdentity
 	^ memento
 ]
 
+
+{ #category : 'examples - boundary events' }
+CPProcessAtelierExamples >> replacingActivityReattachesBoundaryEventsToReplacement [
+	<gtExample>
+	| process task boundary diagram taskShape boundaryShape memento diagramDescription flowContext createAssessment replacement replaceAssessment boundaryMemento attachedDescription |
+	process := CPProcess new.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new.
+	taskShape := CPShape new modelElement: task; bounds: (100 @ 100 extent: 140 @ 80); yourself.
+	diagram addElement: taskShape.
+	process diagram: diagram.
+	memento := CFMaMemento model: process.
+	diagramDescription := memento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
+	boundary := CPBoundaryEvent new eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection; yourself.
+	createAssessment := (CPAtelierCreateBoundaryEvent
+		boundaryEvent: boundary
+		attachedTo: task
+		bounds: (124 @ 84 extent: 32 @ 32)
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+	self assert: createAssessment isApplicable.
+	boundaryShape := createAssessment shape.
+
+	replacement := CPServiceTask new label: 'Temporary'; yourself.
+	replaceAssessment := (CPAtelierReplaceFlowNode
+		flowNode: task
+		with: replacement
+		bounds: taskShape bounds
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription) apply.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	boundaryMemento := flowContext childMementoFor: boundary.
+	attachedDescription := boundaryMemento magritteDescription detect: [ :each | each handlesSelector: #attachedToRef ].
+	self assert: replaceAssessment isApplicable.
+	self assert: replaceAssessment attachedBoundaryEvents size equals: 1.
+	self assert: replaceAssessment attachedBoundaryEvents first == boundary.
+	self assert: (boundaryMemento readUsing: attachedDescription) == replacement.
+	self assert: (flowContext stagedFlowElements identityIncludes: task) not.
+	self assert: (flowContext stagedFlowElements identityIncludes: replacement).
+	self assert: boundaryShape modelElement == boundary.
+	^ replaceAssessment
+]
+
 { #category : 'examples - creation' }
 CPProcessAtelierExamples >> createCallActivityStagesSemanticNodeAndShapeTogether [
 	<gtExample>

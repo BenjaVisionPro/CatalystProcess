@@ -8,7 +8,8 @@ Class {
 		'incidentSequenceFlows',
 		'shape',
 		'proposedBounds',
-		'proposedFlowElements'
+		'proposedFlowElements',
+		'attachedBoundaryEvents'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -16,11 +17,12 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierReplaceFlowNodeAssessment class >> flowNode: aFlowNode replacementNode: aReplacementNode incidentSequenceFlows: someSequenceFlows shape: aShape proposedBounds: aRectangle proposedFlowElements: someFlowElements [
+CPAtelierReplaceFlowNodeAssessment class >> flowNode: aFlowNode replacementNode: aReplacementNode incidentSequenceFlows: someSequenceFlows attachedBoundaryEvents: someBoundaryEvents shape: aShape proposedBounds: aRectangle proposedFlowElements: someFlowElements [
 	^ self new
 		flowNode: aFlowNode;
 		replacementNode: aReplacementNode;
 		incidentSequenceFlows: someSequenceFlows;
+		attachedBoundaryEvents: someBoundaryEvents;
 		shape: aShape;
 		proposedBounds: aRectangle;
 		proposedFlowElements: someFlowElements;
@@ -53,6 +55,13 @@ CPAtelierReplaceFlowNodeAssessment >> incidentSequenceFlows [ ^ incidentSequence
 
 { #category : 'accessing' }
 CPAtelierReplaceFlowNodeAssessment >> incidentSequenceFlows: aCollection [ incidentSequenceFlows := aCollection ]
+
+
+{ #category : 'accessing' }
+CPAtelierReplaceFlowNodeAssessment >> attachedBoundaryEvents [ ^ attachedBoundaryEvents ]
+
+{ #category : 'accessing' }
+CPAtelierReplaceFlowNodeAssessment >> attachedBoundaryEvents: aCollection [ attachedBoundaryEvents := aCollection ]
 
 { #category : 'accessing' }
 CPAtelierReplaceFlowNodeAssessment >> shape [ ^ shape ]

@@ -1,6 +1,6 @@
 "I stage replacement of one CPFlowNode with another while preserving the existing diagram shape and every incident Sequence Flow and diagram edge identity.
 
-Assessment resolves the currently staged topology, substitutes the replacement node into every incident connection, and delegates connection legality to CPSequenceFlowConnectionRules. Apply replaces the semantic node in the owning flow container's flowElements, stages the replacement node's inverse incoming/outgoing relations, retargets the existing CPSequenceFlow child mementos, and stages the existing CPShape>>modelElement relation to the replacement node."
+Assessment resolves the currently staged topology, substitutes the replacement node into every incident connection, and delegates connection legality to CPSequenceFlowConnectionRules. Apply replaces the semantic node in the owning flow container's flowElements, stages the replacement node's inverse incoming/outgoing relations, retargets the existing CPSequenceFlow child mementos, reattaches any Boundary Events owned by the replaced Activity, and stages the existing CPShape>>modelElement relation to the replacement node."
 Class {
 	#name : 'CPAtelierReplaceFlowNode',
 	#superclass : 'CFAtelierOperation',
@@ -43,7 +43,7 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 
 { #category : 'assessing' }
 CPAtelierReplaceFlowNode >> assess [
-	| flowElements proposedFlowElements incidentFlows diagram diagramMemento
+	| flowElements proposedFlowElements incidentFlows attachedBoundaryEvents diagram diagramMemento
 	  elementsDescription elements shapeMatches shape modelElementDescription boundsDescription diagramContext |
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
@@ -77,6 +77,12 @@ CPAtelierReplaceFlowNode >> assess [
 		each isSequenceFlow and: [
 			(self stagedSourceOf: each) == flowNode
 				or: [ (self stagedTargetOf: each) == flowNode ] ] ].
+
+	attachedBoundaryEvents := flowNode isActivity
+		ifTrue: [ flowContainerContext attachedBoundaryEventsFor: flowNode ]
+		ifFalse: [ #() ].
+	(attachedBoundaryEvents isNotEmpty and: [ replacementNode isActivity not ]) ifTrue: [
+		^ self rejectedBecause: 'An Activity with attached Boundary Events can only be replaced by another Activity.' ].
 
 	incidentFlows do: [ :aSequenceFlow |
 		| proposedSource proposedTarget topology ruleResult sourceDescription targetDescription |
@@ -139,6 +145,7 @@ CPAtelierReplaceFlowNode >> assess [
 		flowNode: flowNode
 		replacementNode: replacementNode
 		incidentSequenceFlows: incidentFlows
+		attachedBoundaryEvents: attachedBoundaryEvents
 		shape: shape
 		proposedBounds: bounds
 		proposedFlowElements: proposedFlowElements
@@ -180,6 +187,12 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 	replacementMemento write: preservedLabel using: labelDescription.
 	replacementMemento write: incoming using: incomingDescription.
 	replacementMemento write: outgoing using: outgoingDescription.
+	anAssessment attachedBoundaryEvents do: [ :aBoundaryEvent |
+		| boundaryMemento attachedDescription |
+		boundaryMemento := flowContainerContext childMementoFor: aBoundaryEvent.
+		attachedDescription := boundaryMemento magritteDescription
+			detect: [ :each | each handlesSelector: #attachedToRef ].
+		boundaryMemento write: replacementNode using: attachedDescription ].
 	preservedNestedFlowElements ifNotNil: [
 		| nestedDescription |
 		nestedDescription := replacementMemento magritteDescription
