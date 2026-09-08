@@ -821,6 +821,7 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 	(edgeVisualsByEdge at: anEdge) labelHost: labelHost.
 	self addDiagramChild: labelHost.
 	self installEdgeLabelPositioningOn: dragSurface for: anEdge.
+	self installLabelEditingOn: dragSurface label: label.
 	self positionEdgeLabelFor: anEdge
 ]
 
@@ -1275,7 +1276,8 @@ CPProcessVisualElement >> beginEditingLabelForEdge: anEdge [
 	| labelHost label |
 	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
 	labelHost children isEmpty ifTrue: [ ^ self ].
-	label := labelHost children first.
+	labelHost children first children isEmpty ifTrue: [ ^ self ].
+	label := labelHost children first children first.
 	self beginEditingLabel: label
 ]
 

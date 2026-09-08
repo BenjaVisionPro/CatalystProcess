@@ -1995,8 +1995,9 @@ CPProcessVisualElementExamples >> collaborationMessageFlowUsesEditableMementoBac
 	| fixture messageVisual label |
 	fixture := self collaborationVisualFixture.
 	messageVisual := (fixture at: 10) messageFlowVisualsByEdge at: (fixture at: 12).
-	label := messageVisual labelHost children first.
+	label := messageVisual labelHost children first children first.
 
+	self assert: label class equals: CFEditableLabel.
 	self assert: label text asString equals: 'Order'.
 	^ label
 ]

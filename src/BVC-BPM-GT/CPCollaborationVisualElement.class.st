@@ -613,6 +613,7 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 	aVisual labelHost: labelHost.
 	self addDiagramChild: labelHost.
 	self installMessageFlowLabelPositioningOn: dragSurface for: anEdge.
+	self installMessageFlowLabelEditingOn: dragSurface label: label.
 	self positionMessageFlowLabelFor: anEdge
 ]
 
@@ -678,7 +679,8 @@ CPCollaborationVisualElement >> beginEditingMessageFlowLabelForEdge: anEdge [
 	labelHost := visual labelHost.
 	labelHost ifNil: [ ^ self ].
 	labelHost children isEmpty ifTrue: [ ^ self ].
-	label := labelHost children first.
+	labelHost children first children isEmpty ifTrue: [ ^ self ].
+	label := labelHost children first children first.
 	label allowMeAndChildrenMouseEvents.
 	label switchToEditor.
 	label enqueueTask: (BlTaskAction new action: [ label requestFocus ])
