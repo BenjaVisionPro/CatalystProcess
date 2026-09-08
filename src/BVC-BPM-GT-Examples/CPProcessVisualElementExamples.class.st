@@ -2251,3 +2251,26 @@ CPProcessVisualElementExamples >> appendedFlowNodeRendersConnectionToSource [
 	self assert: (visual stagedTargetOf: assessment sequenceFlow) == appended.
 	^ visual
 ]
+
+{ #category : 'examples - contextual append' }
+CPProcessVisualElementExamples >> paletteAndContextualDropHandlersPartitionItemEvents [
+	<gtExample>
+	| paletteSource contextualSource paletteItem contextualItem paletteEvent contextualEvent paletteHandler contextualHandler |
+	paletteSource := BlElement new.
+	paletteSource userData at: #atelierPaletteSource put: true.
+	contextualSource := BlElement new.
+	contextualSource userData at: #processContextualAppendContext put: Object new.
+
+	paletteItem := BlDragItem new sourceElement: paletteSource; yourself.
+	contextualItem := BlDragItem new sourceElement: contextualSource; yourself.
+	paletteEvent := BlItemsDroppedEvent new items: { paletteItem }; yourself.
+	contextualEvent := BlItemsDroppedEvent new items: { contextualItem }; yourself.
+	paletteHandler := CPProcessPaletteDropHandler new.
+	contextualHandler := CPProcessContextualAppendDropHandler new.
+
+	self assert: (paletteHandler isPaletteItemsEvent: paletteEvent).
+	self deny: (paletteHandler isPaletteItemsEvent: contextualEvent).
+	self assert: (contextualHandler isContextualAppendItemsEvent: contextualEvent).
+	self deny: (contextualHandler isContextualAppendItemsEvent: paletteEvent).
+	^ { paletteHandler. contextualHandler }
+]

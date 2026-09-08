@@ -62,7 +62,7 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 					yourself ])).
 	taskItem := processPalette add: (CFAtelierPaletteItem
 		label: 'Task'
-		icon: [ (FontAwesomeIcons defaultStyle icon: #rectangle) height: 20 ] asStencil
+		icon: CPUserTask icon
 		provider: (CFAtelierFactoryProvider factory: [
 			CPUserTask new label: 'Task'; yourself ])).
 	processPalette
@@ -78,7 +78,7 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 				CPNoneSubProcess new label: 'Sub-process'; yourself ])).
 	gatewayItem := processPalette add: (CFAtelierPaletteItem
 		label: 'Gateway'
-		icon: [ (FontAwesomeIcons defaultStyle icon: #diamond) height: 20 ] asStencil
+		icon: CPExclusiveGateway icon
 		provider: (CFAtelierFactoryProvider factory: [
 			CPExclusiveGateway new label: 'Gateway'; yourself ])).
 	self palette: processPalette.

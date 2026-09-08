@@ -19,14 +19,17 @@ CPProcessContextualAppendDropHandler >> isContextualAppendDragEvent: aDragEvent 
 CPProcessContextualAppendDropHandler >> dragEnterEvent: anEvent [
 	(self isContextualAppendDragEvent: anEvent) ifTrue: [ super dragEnterEvent: anEvent ]
 ]
+
 { #category : 'event handling' }
 CPProcessContextualAppendDropHandler >> dragEvent: anEvent [
 	(self isContextualAppendDragEvent: anEvent) ifTrue: [ super dragEvent: anEvent ]
 ]
+
 { #category : 'event handling' }
 CPProcessContextualAppendDropHandler >> dragLeaveEvent: anEvent [
 	(self isContextualAppendDragEvent: anEvent) ifTrue: [ super dragLeaveEvent: anEvent ]
 ]
+
 { #category : 'event handling' }
 CPProcessContextualAppendDropHandler >> dropEvent: anEvent [
 	(self isContextualAppendDragEvent: anEvent) ifTrue: [ super dropEvent: anEvent ]

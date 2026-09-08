@@ -2,5 +2,5 @@ Extension { #name : 'CPExclusiveGateway' }
 
 { #category : '*BVC-BPM-GT' }
 CPExclusiveGateway class >> icon [
-	^ [ (FontAwesomeIcons icon: self gatewayTypeIcon) height: 20 ] asStencil
+	^ [ (FontAwesomeIcons icon: #diamond) height: 20 ] asStencil
 ]
