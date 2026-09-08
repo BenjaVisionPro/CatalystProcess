@@ -3,6 +3,7 @@ Class {
 	#superclass : 'CFLabelledObject',
 	#instVars : [
 		'flowElements',
+		'laneSets',
 		'diagram',
 		'definitionalCollaborationRef'
 	],
@@ -13,7 +14,8 @@ Class {
 { #category : 'initialization' }
 CPProcess >> initialize [
 	super initialize.
-	flowElements := OrderedCollection new
+	flowElements := OrderedCollection new.
+	laneSets := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -43,6 +45,31 @@ CPProcess >> removeFlowElement: aFlowElement [
 ]
 
 { #category : 'accessing' }
+CPProcess >> laneSets [
+	^ laneSets
+]
+
+{ #category : 'accessing' }
+CPProcess >> laneSets: aCollection [
+	laneSets copy do: [ :each | self removeLaneSet: each ].
+	aCollection do: [ :each | self addLaneSet: each ]
+]
+
+{ #category : 'adding' }
+CPProcess >> addLaneSet: aLaneSet [
+	(laneSets identityIncludes: aLaneSet) ifTrue: [ ^ self ].
+	laneSets add: aLaneSet.
+	aLaneSet process: self
+]
+
+{ #category : 'removing' }
+CPProcess >> removeLaneSet: aLaneSet [
+	(laneSets identityIncludes: aLaneSet) ifFalse: [ ^ self ].
+	laneSets remove: aLaneSet.
+	aLaneSet process == self ifTrue: [ aLaneSet process: nil ]
+]
+
+{ #category : 'accessing' }
 CPProcess >> diagram [
 	^ diagram
 ]
@@ -62,6 +89,19 @@ CPProcess >> flowElementsDescription [
 		reference: self labelDescription;
 		label: 'Flow elements';
 		priority: 100;
+		group: 'Relations';
+		yourself
+]
+
+{ #category : 'descriptions' }
+CPProcess >> laneSetsDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new
+		accessor: #laneSets;
+		classes: { CPLaneSet };
+		reference: CPLaneSet new labelDescription;
+		label: 'Lane sets';
+		priority: 105;
 		group: 'Relations';
 		yourself
 ]

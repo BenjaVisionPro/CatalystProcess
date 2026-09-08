@@ -344,3 +344,81 @@ CPProcessExamples >> collaborationOwnsMessageFlowSemanticRelationship [
 	self assert: flow targetRef == secondParticipant.
 	^ collaboration
 ]
+
+{ #category : 'examples - lanes' }
+CPProcessExamples >> processWithTwoLanes [
+	<gtExample>
+	| process laneSet reviewLane approveLane review approve diagram reviewLaneShape approveLaneShape |
+	process := CPProcess new label: 'Lane process'; yourself.
+	review := CPUserTask new label: 'Review'; yourself.
+	approve := CPUserTask new label: 'Approve'; yourself.
+	process
+		addFlowElement: review;
+		addFlowElement: approve.
+
+	laneSet := CPLaneSet new label: 'Responsibilities'; yourself.
+	reviewLane := CPLane new label: 'Reviewer'; yourself.
+	approveLane := CPLane new label: 'Approver'; yourself.
+	reviewLane addFlowNodeRef: review.
+	approveLane addFlowNodeRef: approve.
+	laneSet
+		addLane: reviewLane;
+		addLane: approveLane.
+	process addLaneSet: laneSet.
+
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	reviewLaneShape := CPShape new
+		modelElement: reviewLane;
+		bounds: (40 @ 40 extent: 500 @ 140);
+		yourself.
+	approveLaneShape := CPShape new
+		modelElement: approveLane;
+		bounds: (40 @ 180 extent: 500 @ 140);
+		yourself.
+	diagram
+		addElement: reviewLaneShape;
+		addElement: approveLaneShape.
+
+	self assert: process laneSets equals: { laneSet } asOrderedCollection.
+	self assert: laneSet process == process.
+	self assert: laneSet lanes equals: { reviewLane. approveLane } asOrderedCollection.
+	self assert: reviewLane laneSet == laneSet.
+	self assert: approveLane laneSet == laneSet.
+	self assert: reviewLane flowNodeRefs equals: { review } asOrderedCollection.
+	self assert: approveLane flowNodeRefs equals: { approve } asOrderedCollection.
+	self assert: review container == process.
+	self assert: approve container == process.
+	self assert: diagram elements size equals: 2.
+
+	^ process
+]
+
+{ #category : 'examples - lanes' }
+CPProcessExamples >> nestedLaneSetBelongsToParentLane [
+	<gtExample>
+	| process outerSet parentLane childSet firstChild secondChild |
+	process := CPProcess new.
+	outerSet := CPLaneSet new.
+	parentLane := CPLane new label: 'Operations'; yourself.
+	childSet := CPLaneSet new.
+	firstChild := CPLane new label: 'Morning'; yourself.
+	secondChild := CPLane new label: 'Evening'; yourself.
+
+	childSet
+		addLane: firstChild;
+		addLane: secondChild.
+	parentLane childLaneSet: childSet.
+	outerSet addLane: parentLane.
+	process addLaneSet: outerSet.
+
+	self assert: outerSet process == process.
+	self assert: outerSet parentLane isNil.
+	self assert: childSet process isNil.
+	self assert: childSet parentLane == parentLane.
+	self assert: parentLane childLaneSet == childSet.
+	self assert: firstChild laneSet == childSet.
+	self assert: secondChild laneSet == childSet.
+
+	^ parentLane
+]
