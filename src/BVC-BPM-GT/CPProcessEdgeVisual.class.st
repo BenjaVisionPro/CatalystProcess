@@ -33,7 +33,7 @@ CPProcessEdgeVisual >> addSegmentFrom: aFromAnchor to: aToAnchor arrowhead: hasA
 	hitLine := BlLineElement new
 		fromAnchor: aFromAnchor;
 		toAnchor: aToAnchor;
-		border: (BlBorder paint: Color transparent width: 8);
+		border: (BlBorder paint: (Color red alpha: 0.28) width: 8);
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
 	self identify: hitLine.

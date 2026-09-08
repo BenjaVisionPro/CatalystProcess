@@ -63,7 +63,7 @@ CPCollaborationMessageFlowVisual >> addDashedPathFor: someWaypoints color: aColo
 		hitLine := BlLineElement new
 			fromAnchor: (BlAbsolutePositionAnchor position: start);
 			toAnchor: (BlAbsolutePositionAnchor position: finish);
-			border: (BlBorder paint: Color transparent width: 8);
+			border: (BlBorder paint: (Color red alpha: 0.28) width: 8);
 			constraintsDo: [ :c | c ignoreByLayout ];
 			yourself.
 		self identify: hitLine.

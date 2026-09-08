@@ -587,6 +587,7 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 	labelHost := BlElement new
 		clipChildren: false;
 		layout: BlFrameLayout new;
+		border: (BlBorder paint: (Color blue alpha: 0.55) width: 1);
 		constraintsDo: [ :c |
 			c horizontal exact: 180.
 			c vertical fitContent.
@@ -595,6 +596,8 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 		yourself.
 	dragSurface := BlElement new
 		layout: BlFrameLayout new;
+		background: (Color magenta alpha: 0.10);
+		border: (BlBorder paint: (Color magenta alpha: 0.70) width: 1);
 		constraintsDo: [ :c |
 			c horizontal fitContent.
 			c vertical fitContent.
