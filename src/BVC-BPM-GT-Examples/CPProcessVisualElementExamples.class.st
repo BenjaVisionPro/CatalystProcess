@@ -2315,7 +2315,7 @@ CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
 
 	self assert: firstLaneElement lane == firstLane.
 	self assert: firstLaneElement diagramShape == firstLaneShape.
-	self assert: firstLaneElement extent equals: 500 @ 140.
+	self assert: (visual stagedBoundsOf: firstLaneShape) extent equals: 500 @ 140.
 	self assert: firstLaneElement labelElement text asString equals: 'Reviewer'.
 	self assert: (visual shapeElementForModelElement: task) modelElement == task.
 	visual selectOnly: firstLane.
