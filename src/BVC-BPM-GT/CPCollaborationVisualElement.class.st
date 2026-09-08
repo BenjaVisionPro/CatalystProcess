@@ -588,7 +588,8 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 		clipChildren: false;
 		layout: BlFrameLayout new;
 		constraintsDo: [ :c |
-			c horizontal exact: 180.
+			c horizontal fitContent.
+			c maxWidth: 180.
 			c vertical fitContent.
 			c ignoreByLayout ];
 		yourself.
@@ -602,8 +603,6 @@ CPCollaborationVisualElement >> addExternalLabelForMessageFlow: aMessageFlow edg
 	labelHost addChild: label.
 	aVisual labelHost: labelHost.
 	self addDiagramChild: labelHost.
-	self installMessageFlowLabelEditingOn: labelHost label: label.
-	self installSelectionOnMessageFlowElement: labelHost edge: anEdge.
 	self installMessageFlowLabelPositioningOn: labelHost for: anEdge.
 	self positionMessageFlowLabelFor: anEdge
 ]

@@ -796,7 +796,8 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 		clipChildren: false;
 		layout: BlFrameLayout new;
 		constraintsDo: [ :c |
-			c horizontal exact: 180.
+			c horizontal fitContent.
+			c maxWidth: 180.
 			c vertical fitContent.
 			c ignoreByLayout ];
 		yourself.
@@ -810,8 +811,6 @@ CPProcessVisualElement >> addExternalLabelForEdge: anEdge [
 	labelHost addChild: label.
 	(edgeVisualsByEdge at: anEdge) labelHost: labelHost.
 	self addDiagramChild: labelHost.
-	self installLabelEditingOn: labelHost label: label.
-	self installEdgeSelectionOn: labelHost for: anEdge.
 	self installEdgeLabelPositioningOn: labelHost for: anEdge.
 	self positionEdgeLabelFor: anEdge
 ]
