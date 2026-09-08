@@ -609,6 +609,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
 		background: (Color white alpha: 0.82);
 		border: (BlBorder paint: (aBorderColor alpha: 0.55) width: 1);
+		effect: (BlBlurBelowEffect radius: 10);
 		opacity: 0.0;
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c |
