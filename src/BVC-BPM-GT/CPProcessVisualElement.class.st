@@ -341,7 +341,7 @@ CPProcessVisualElement >> refresh [
 		modelElement := self stagedModelElementOf: each.
 		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
 	ordinaryShapes do: [ :each | self addShapeFor: each ].
-	boundaryShapes do: [ :each | self addShapeFor: each ].
+	self addBoundaryShapes: boundaryShapes.
 	edges do: [ :each | self addEdgeFor: each ].
 	self bringNodeInteractionSurfacesToFront.
 	self bringReconnectHandlesToFront.
@@ -447,8 +447,34 @@ CPProcessVisualElement >> stagedLabelOffsetOf: anEdge [
 ]
 
 
+{ #category : 'private - containment' }
+CPProcessVisualElement >> addBoundaryShapes: boundaryShapes [
+	| flowContext |
+	flowContext := CPProcessFlowContainerContext
+		forContainer: flowContainer
+		inRootMemento: memento.
+	flowContext ifNil: [ self error: 'The Process visual has no staged flow-container context.' ].
+	boundaryShapes do: [ :aShape |
+		| boundaryEvent activity activityElement |
+		boundaryEvent := self stagedModelElementOf: aShape.
+		activity := flowContext stagedAttachedToOf: boundaryEvent.
+		activity ifNil: [ self error: 'A Boundary Event in the diagram has no staged attached Activity.' ].
+		activityElement := shapeElementsByModelElement
+			at: activity
+			ifAbsent: [ self error: 'The attached Activity visual must exist before its Boundary Event visual is built.' ].
+		self
+			addShapeFor: aShape
+			hostedByActivityElement: activityElement ]
+]
+
+
 { #category : 'private - shapes' }
 CPProcessVisualElement >> addShapeFor: aShape [
+	^ self addShapeFor: aShape hostedByActivityElement: nil
+]
+
+{ #category : 'private - shapes' }
+CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivityElement [
 	| bounds modelElement element |
 	bounds := self stagedBoundsOf: aShape.
 	bounds ifNil: [ ^ self ].
@@ -478,7 +504,12 @@ CPProcessVisualElement >> addShapeFor: aShape [
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	modelElement isBoundaryEvent
-		ifTrue: [ self hostBoundaryEventShapeElement: element for: modelElement bounds: bounds ]
+		ifTrue: [
+			anActivityElement ifNil: [
+				self error: 'Boundary Event visuals must be constructed by their attached Activity host.' ].
+			anActivityElement
+				hostBoundaryEventElement: element
+				atLocalPosition: bounds origin - (self stagedBoundsOf: anActivityElement diagramShape) origin ]
 		ifFalse: [ self addDiagramChild: element ].
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifTrue: [
 		self
@@ -1262,21 +1293,6 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
 		anEdgeVisual bringLabelToFrontIn: self diagramPresentationParent ]
 ]
-
-{ #category : 'private - containment' }
-CPProcessVisualElement >> hostBoundaryEventShapeElement: aBoundaryElement for: aBoundaryEvent bounds: boundaryBounds [
-	| activity activityElement activityBounds |
-	activity := self stagedAttachedActivityOf: aBoundaryEvent.
-	activity ifNil: [ ^ self addDiagramChild: aBoundaryElement ].
-	activityElement := shapeElementsByModelElement at: activity ifAbsent: [ nil ].
-	activityElement ifNil: [ ^ self addDiagramChild: aBoundaryElement ].
-	activityBounds := self stagedBoundsOf: activityElement diagramShape.
-	activityBounds ifNil: [ ^ self addDiagramChild: aBoundaryElement ].
-	activityElement
-		hostBoundaryEventElement: aBoundaryElement
-		atLocalPosition: boundaryBounds origin - activityBounds origin
-]
-
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringReconnectHandlesToFront [

@@ -2107,3 +2107,43 @@ CPProcessVisualElementExamples >> boundaryEventHoverLabelStaysOutsideAttachedAct
 	self assert: rightOrigin x > activityBounds right.
 	^ { topOrigin. rightOrigin }
 ]
+
+{ #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttachedActivity [
+	<gtExample>
+	| process task diagram taskShape memento diagramDescription boundary operation assessment visual taskElement boundaryElement |
+	process := CPProcess new.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new.
+	taskShape := CPShape new
+		modelElement: task;
+		bounds: (100 @ 100 extent: 140 @ 80);
+		yourself.
+	diagram addElement: taskShape.
+	process diagram: diagram.
+	memento := CFMaMemento model: process.
+	diagramDescription := memento magritteDescription
+		detect: [ :each | each handlesSelector: #diagram ].
+	boundary := CPBoundaryEvent new
+		eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
+		yourself.
+	operation := CPAtelierCreateBoundaryEvent
+		boundaryEvent: boundary
+		attachedTo: task
+		bounds: (84 @ 124 extent: 32 @ 32)
+		flowContainer: process
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+
+	visual := CPProcessVisualElement new.
+	visual memento: memento.
+	taskElement := visual shapeElementsByModelElement at: task.
+	boundaryElement := visual shapeElementsByModelElement at: boundary.
+
+	self assert: boundaryElement parent == taskElement.
+	self assert: boundaryElement position equals: -16 @ 24.
+	^ boundaryElement
+]
