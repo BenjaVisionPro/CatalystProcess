@@ -1496,7 +1496,12 @@ CPProcessVisualElement >> installSelectionOn: anElement for: aModelElement [
 				hoveredModelElement == aModelElement ifTrue: [ hoveredModelElement := nil ].
 				connectionTargetModelElement == aModelElement
 					ifTrue: [ self clearConnectionTarget ]
-					ifFalse: [ self updateContextualDragOptionsPresence ] ])
+					ifFalse: [ self updateContextualDragOptionsPresence ] ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragLeaveEvent
+			do: [ :anEvent |
+				hoveredModelElement == aModelElement ifTrue: [ hoveredModelElement := nil ].
+				self updateContextualDragOptionsPresence ])
 ]
 
 { #category : 'private - selection' }
