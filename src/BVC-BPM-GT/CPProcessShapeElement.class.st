@@ -275,6 +275,10 @@ CPProcessShapeElement >> boundaryInterrupting: aBoolean [
 			boundaryOuterRing ifNotNil: [
 				boundaryOuterRing border: (self
 					borderForColor: normalBorderColor
+					width: self boundaryBorderWidth) ].
+			boundaryInnerRing ifNotNil: [
+				boundaryInnerRing border: (self
+					borderForColor: normalBorderColor
 					width: self boundaryBorderWidth) ] ]
 		ifFalse: [
 			self border: (self borderForColor: normalBorderColor width: self normalBorderWidth) ]
@@ -297,7 +301,7 @@ CPProcessShapeElement >> addBoundaryEventRingsForBounds: aRectangle [
 		extent: 24 @ 24;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
-		border: (BlBorder paint: self normalBorderColor width: self boundaryBorderWidth);
+		border: (self borderForColor: self normalBorderColor width: self boundaryBorderWidth);
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
@@ -375,7 +379,7 @@ CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor no
 		boundaryOuterRing ifNotNil: [
 			boundaryOuterRing border: (self borderForColor: color width: width) ].
 		boundaryInnerRing ifNotNil: [
-			boundaryInnerRing border: (BlBorder paint: color width: width) ].
+			boundaryInnerRing border: (self borderForColor: color width: width) ].
 		^ self ].
 	self border: (self
 		borderForColor: color
