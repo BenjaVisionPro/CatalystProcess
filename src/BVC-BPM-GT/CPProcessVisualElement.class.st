@@ -394,6 +394,7 @@ CPProcessVisualElement >> refresh [
 		ifFalse: [ nil ].
 	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
 	self updateCanvasExtent.
+	laneSetVisual ifNotNil: [ self forceLayout ].
 	self addPaletteDropSurface.
 
 	ordinaryShapes do: [ :each | self addShapeFor: each ].
