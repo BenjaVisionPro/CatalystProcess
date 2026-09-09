@@ -2231,7 +2231,7 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations dragSourcePosition |
+	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
@@ -2239,7 +2239,6 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 	internalBentEdges := #().
 	movedModelElements := IdentitySet new.
 	dragPresentations := IdentityDictionary new.
-	dragSourcePosition := nil.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
 		stagedBounds: [ self stagedBoundsOf: aShape ]
@@ -2288,14 +2287,13 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						shapeAt: rootShapePosition
 						labelAt: rootLabelPosition.
 				dragPresentations at: anElement put: presentation ].
-			dragSourcePosition := originalBounds origin.
 			dragStartLabelPosition := singleLabelPosition.
 			groupMode ifTrue: [
 				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
 				internalBentEdges do: [ :anEdge |
 					(self lineElementsForEdge: anEdge)
 						do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ] ]
-		dragStartPosition: [ dragSourcePosition ]
+		dragStartPosition: [ aShapeElement position ]
 		dragged: [ :anEvent :delta |
 			dragPresentations valuesDo: [ :aPresentation |
 				aPresentation moveBy: delta ].
