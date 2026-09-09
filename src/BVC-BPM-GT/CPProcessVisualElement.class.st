@@ -4894,15 +4894,12 @@ CPProcessVisualElement >> laneElementOwningBodyHost: aHost [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramBoundsForFlowNode: aFlowNode element: aNodeElement [
-	| lane laneElement laneBounds |
-	lane := self stagedLaneContainingFlowNode: aFlowNode.
-	lane ifNil: [ ^ aNodeElement bounds inParent: self diagramPresentationParent ].
-	laneElement := laneElementsByLane at: lane.
-	laneBounds := self stagedBoundsOf: laneElement diagramShape.
-	^ (aNodeElement position
-		+ laneBounds origin
-		+ (self laneHeaderWidth @ 0))
-		extent: aNodeElement extent
+	| topLeft bottomRight |
+	topLeft := self diagramPresentationParent
+		globalPointToLocal: (aNodeElement localPointToGlobal: 0 @ 0).
+	bottomRight := self diagramPresentationParent
+		globalPointToLocal: (aNodeElement localPointToGlobal: aNodeElement extent).
+	^ topLeft corner: bottomRight
 ]
 
 
