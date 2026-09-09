@@ -2704,6 +2704,44 @@ CPProcessVisualElement >> isPoolPaletteDragItem: aDragItem [
 ]
 
 { #category : 'private - creation' }
+CPProcessVisualElement >> acceptsPoolPaletteDragItemForNewLaneSet: aDragItem [
+	| lane operation assessment |
+	(self isPoolPaletteDragItem: aDragItem) ifFalse: [ ^ false ].
+	flowContainer == memento model ifFalse: [ ^ false ].
+	lane := CPLane new label: 'Lane'; yourself.
+	operation := diagramEditing
+		createLaneSetWithLane: lane
+		bounds: (0 @ 0 extent: self defaultLaneExtent).
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> createLaneSetFromPoolPaletteAtGlobalPoint: aGlobalPoint [
+	| lane rootPoint bounds operation assessment |
+	flowContainer == memento model ifFalse: [ ^ nil ].
+	lane := CPLane new label: 'Lane'; yourself.
+	rootPoint := rootVisual diagramPointForGlobalPoint: aGlobalPoint.
+	bounds := self
+		boundsCenteredAtRootDiagramPoint: rootPoint
+		extent: self defaultLaneExtent.
+	operation := diagramEditing
+		createLaneSetWithLane: lane
+		bounds: bounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock |
+			aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]
+
+{ #category : 'private - creation' }
 CPProcessVisualElement >> defaultLaneExtent [
 	^ 500 @ 140
 ]

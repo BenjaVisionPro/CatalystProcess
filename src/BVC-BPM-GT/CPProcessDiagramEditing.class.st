@@ -25,6 +25,11 @@ CPProcessDiagramEditing >> createLane: aLane bounds: proposedBounds [
 	^ self subclassResponsibility
 ]
 
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
 
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [

@@ -2388,3 +2388,37 @@ CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRender
 	^ visual
 ]
 
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> createLaneSetWithLaneAddsDistinctTopLevelLaneSet [
+	<gtExample>
+	| process diagram firstLaneSet firstLane memento diagramDescription editing secondLane operation assessment laneContext |
+	process := CPProcess new label: 'LaneSet creation process'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	firstLaneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'Existing'; yourself.
+	firstLaneSet addLane: firstLane.
+	process addLaneSet: firstLaneSet.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	secondLane := CPLane new label: 'Lane'; yourself.
+	operation := editing
+		createLaneSetWithLane: secondLane
+		bounds: (0 @ 180 extent: 500 @ 140).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: laneContext stagedLaneSets size equals: 2.
+	self assert: laneContext stagedLaneSets first == firstLaneSet.
+	self assert: laneContext stagedLaneSets second == assessment laneSet.
+	self assert: laneContext stagedLanes size equals: 2.
+	self assert: laneContext stagedLanes second == secondLane.
+	self assert: (laneContext mementoForLane: secondLane) model == secondLane.
+	^ assessment
+]

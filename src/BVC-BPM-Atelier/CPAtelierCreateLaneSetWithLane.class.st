@@ -1,0 +1,66 @@
+"I stage creation of a fresh top-level BPMN LaneSet containing one supplied Lane and its CPShape.
+
+Unlike CPAtelierCreateLane, I always create a distinct top-level LaneSet. This is the semantic operation used when the Pool structural tool is dropped on the Participant header."
+Class {
+	#name : 'CPAtelierCreateLaneSetWithLane',
+	#superclass : 'CPAtelierCreateLane',
+	#category : 'BVC-BPM-Atelier-Diagram',
+	#package : 'BVC-BPM-Atelier',
+	#tag : 'Diagram'
+}
+
+{ #category : 'assessing' }
+CPAtelierCreateLaneSetWithLane >> assess [
+	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext diagramMemento elementsDescription elements proposedElements |
+	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
+	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
+	laneSetsDescription := processMemento magritteDescription
+		detect: [ :each | each handlesSelector: #laneSets ].
+	laneSets := processMemento readUsing: laneSetsDescription.
+	laneSets ifNil: [ ^ self rejectedBecause: 'The Process has no staged LaneSet collection.' ].
+
+	laneSet := CPLaneSet new.
+	lanesDescription := laneSet magritteDescription
+		detect: [ :each | each handlesSelector: #lanes ].
+	proposedLaneSets := laneSets asOrderedCollection copy.
+	proposedLaneSets add: laneSet.
+	[ laneSetsDescription validate: proposedLaneSets ]
+		on: MAValidationError
+		do: [ :anException | ^ self rejectedBecause: anException printString ].
+	proposedLanes := OrderedCollection with: lane.
+	[ lanesDescription validate: proposedLanes ]
+		on: MAValidationError
+		do: [ :anException | ^ self rejectedBecause: anException printString ].
+
+	shape := CPShape new modelElement: lane; bounds: bounds; yourself.
+	boundsDescription := shape magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
+	[ boundsDescription validate: bounds ]
+		on: MAValidationError
+		do: [ :anException | ^ self rejectedBecause: anException printString ].
+
+	diagram := processMemento readUsing: diagramDescription.
+	diagram ifNil: [ ^ self rejectedBecause: 'The Process has no staged diagram.' ].
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription.
+	diagramMemento := diagramContext diagramMemento.
+	elementsDescription := diagramContext elementsDescription.
+	elements := diagramMemento readUsing: elementsDescription.
+	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
+	proposedElements := elements asOrderedCollection copy.
+	proposedElements add: shape.
+	[ elementsDescription validate: proposedElements ]
+		on: MAValidationError
+		do: [ :anException | ^ self rejectedBecause: anException printString ].
+
+	^ CPAtelierCreateLaneAssessment
+		lane: lane
+		laneSet: laneSet
+		shape: shape
+		createsLaneSet: true
+		proposedLaneSets: proposedLaneSets
+		proposedLanes: proposedLanes
+		proposedDiagramElements: proposedElements
+]

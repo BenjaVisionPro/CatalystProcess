@@ -143,7 +143,8 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifTrue: [
 		processVisual beCollaborationHosted.
 		processVisual collaborationVisual: self.
-		element hostProcessVisual: processVisual ]
+		element hostProcessVisual: processVisual.
+		self installPoolStructuralDropOnParticipantHeader: element labelBand ]
 ]
 
 { #category : 'private - removal' }
@@ -1134,6 +1135,25 @@ CPCollaborationVisualElement >> installPaletteDropHandler [
 		whenDroppedDo: [ :anEvent |
 			self dropParticipantPaletteEvent: anEvent ];
 		yourself)
+]
+
+{ #category : 'private - creation' }
+CPCollaborationVisualElement >> installPoolStructuralDropOnParticipantHeader: aHeaderElement [
+	aHeaderElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			processVisual acceptsPoolPaletteDragItemForNewLaneSet: aDragItem ];
+		whenDroppedDo: [ :anEvent |
+			self dropPoolStructuralItemOnParticipantHeader: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPCollaborationVisualElement >> dropPoolStructuralItemOnParticipantHeader: anEvent [
+	| globalPoint |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	globalPoint := anEvent currentTarget
+		localPointToGlobal: anEvent position.
+	^ processVisual createLaneSetFromPoolPaletteAtGlobalPoint: globalPoint
 ]
 
 { #category : 'private - creation' }

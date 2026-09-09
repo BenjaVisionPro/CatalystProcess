@@ -65,6 +65,15 @@ CPProcessAtelierDiagramEditing >> createLane: aLane bounds: proposedBounds [
 		diagramDescription: diagramDescription
 ]
 
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedBounds [
+	^ CPAtelierCreateLaneSetWithLane
+		lane: aLane
+		bounds: proposedBounds
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
+
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createParticipant: aParticipant bounds: proposedBounds [
