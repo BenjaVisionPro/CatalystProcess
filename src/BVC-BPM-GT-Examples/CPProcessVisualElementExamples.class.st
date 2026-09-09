@@ -2729,3 +2729,83 @@ CPProcessVisualElementExamples >> hostedDiagramUsesLaneSetAsNativeStructuralBoun
 	self assert: laneElement labelElement class equals: CFEditableLabel.
 	^ visual
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> addChildLaneCreatesNestedLaneSetWithoutMutatingCommittedModel [
+	<gtExample>
+	| process diagram laneSet parentLane parentShape memento diagramDescription editing childLane operation assessment laneContext childLaneSet |
+	process := CPProcess new label: 'Nested lanes'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	parentLane := CPLane new label: 'Department'; yourself.
+	laneSet addLane: parentLane.
+	process addLaneSet: laneSet.
+	parentShape := CPShape new
+		modelElement: parentLane;
+		bounds: (30 @ 20 extent: 500 @ 240);
+		yourself.
+	diagram addElement: parentShape.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	childLane := CPLane new label: 'Team'; yourself.
+	operation := editing
+		addChildLane: childLane
+		toParentLane: parentLane
+		bounds: (60 @ 20 extent: 470 @ 240).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: parentLane childLaneSet isNil.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	childLaneSet := laneContext stagedChildLaneSetOf: parentLane.
+	self assert: childLaneSet notNil.
+	self assert: (laneContext stagedLanesInLaneSet: childLaneSet) size equals: 1.
+	self assert: (laneContext stagedLanesInLaneSet: childLaneSet) first == childLane.
+	self assert: (laneContext mementoForLane: childLane) model == childLane.
+	^ assessment
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> nestedLaneSetRendersInsideParentLaneBody [
+	<gtExample>
+	| process diagram outerLaneSet parentLane childLaneSet childLane parentShape childShape memento visual parentElement childElement childSetVisual |
+	process := CPProcess new label: 'Nested lane visual'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	outerLaneSet := CPLaneSet new.
+	parentLane := CPLane new label: 'Department'; yourself.
+	childLaneSet := CPLaneSet new.
+	childLane := CPLane new label: 'Team'; yourself.
+	childLaneSet addLane: childLane.
+	parentLane childLaneSet: childLaneSet.
+	outerLaneSet addLane: parentLane.
+	process addLaneSet: outerLaneSet.
+	parentShape := CPShape new
+		modelElement: parentLane;
+		bounds: (30 @ 20 extent: 500 @ 240);
+		yourself.
+	childShape := CPShape new
+		modelElement: childLane;
+		bounds: (60 @ 20 extent: 470 @ 240);
+		yourself.
+	diagram addElement: parentShape; addElement: childShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		memento: memento;
+		beCollaborationHosted;
+		yourself.
+	parentElement := visual laneShapeElementFor: parentLane.
+	childElement := visual laneShapeElementFor: childLane.
+	childSetVisual := childElement parent parent.
+
+	self assert: childSetVisual class equals: CPLaneSetVisualElement.
+	self assert: childSetVisual parent == parentElement bodyHost.
+	self assert: childElement parent == childSetVisual lanesHost.
+	self assert: childElement bodyHost notNil.
+	^ visual
+]

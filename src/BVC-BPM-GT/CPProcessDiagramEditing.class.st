@@ -115,3 +115,9 @@ CPProcessDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPosition: 
 CPProcessDiagramEditing >> insertLane: aLane relativeTo: aTargetLane after: aBoolean [
 	^ self subclassResponsibility
 ]
+
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> addChildLane: aLane toParentLane: aParentLane bounds: proposedBounds [
+	^ self subclassResponsibility
+]

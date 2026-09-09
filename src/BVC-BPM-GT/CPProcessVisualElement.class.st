@@ -519,18 +519,23 @@ CPProcessVisualElement >> installSelectionOnLaneElement: anElement [
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
-	| laneContext topLevelLaneSets laneSet lanes laneSetElement currentBounds totalHeight |
+	| laneContext topLevelLaneSets |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
 	topLevelLaneSets := laneContext stagedLaneSets.
 	topLevelLaneSets ifEmpty: [ ^ nil ].
+	^ self
+		newLaneSetVisualFor: topLevelLaneSets first
+		laneShapes: laneShapes
+		laneContext: laneContext
+]
 
-	"First structural slice displays the first top-level LaneSet. The recursive
-	hosting seam is now explicit; additional and child LaneSets are the next slice."
-	laneSet := topLevelLaneSets first.
-	lanes := laneContext stagedLanesInLaneSet: laneSet.
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes laneContext: laneContext [
+	| lanes laneSetElement currentBounds totalHeight |
+	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
 	lanes ifEmpty: [ ^ nil ].
-	laneSetElement := CPLaneSetVisualElement new laneSet: laneSet.
+	laneSetElement := CPLaneSetVisualElement new laneSet: aLaneSet.
 	currentBounds := IdentityDictionary new.
 	totalHeight := 0.
 	lanes do: [ :aLane |
@@ -546,7 +551,7 @@ CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
 	totalHeight > 0 ifFalse: [ totalHeight := lanes size ].
 
 	lanes do: [ :aLane |
-		| pair laneShape bounds laneMemento label element weight |
+		| pair laneShape bounds laneMemento label element weight childLaneSet childVisual |
 		pair := currentBounds at: aLane.
 		laneShape := pair first.
 		bounds := pair second.
@@ -566,7 +571,20 @@ CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
 		laneSetElement addLaneElement: element weight: weight.
 		self
 			installLabelEditingOn: element labelBand label: label;
-			installSelectionOnLaneElement: element ].
+			installSelectionOnLaneElement: element;
+			installPoolStructuralDropsOnLaneElement: element lane: aLane.
+
+		childLaneSet := laneContext stagedChildLaneSetOf: aLane.
+		childLaneSet ifNotNil: [
+			childVisual := self
+				newLaneSetVisualFor: childLaneSet
+				laneShapes: laneShapes
+				laneContext: laneContext.
+			childVisual ifNotNil: [
+				childVisual constraintsDo: [ :c |
+					c horizontal matchParent.
+					c vertical matchParent ].
+				element bodyHost addChild: childVisual ] ] ].
 	^ laneSetElement
 ]
 
@@ -4551,13 +4569,79 @@ CPProcessVisualElement >> updateSelectionAppearanceRecursively [
 
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> installPoolStructuralDropOnLaneElement: aLaneElement lane: aLane [
-	aLaneElement addEventHandler: (CPProcessPaletteDropHandler new
+CPProcessVisualElement >> installPoolStructuralDropsOnLaneElement: aLaneElement lane: aLane [
+	aLaneElement bodyHost addEventHandler: (CPProcessPaletteDropHandler new
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			self acceptsPoolPaletteDragItemForLaneInsertion: aDragItem targetLane: aLane ];
 		whenDroppedDo: [ :anEvent |
 			self dropPoolStructuralItem: anEvent relativeToLane: aLane ];
+		yourself).
+	aLaneElement labelBand addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsPoolPaletteDragItemForChildLane: aDragItem parentLane: aLane ];
+		whenDroppedDo: [ :anEvent |
+			self dropPoolStructuralItem: anEvent intoChildOfLane: aLane ];
 		yourself)
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> acceptsPoolPaletteDragItemForChildLane: aDragItem parentLane: aParentLane [
+	| lane bounds operation assessment |
+	(self isPoolPaletteDragItem: aDragItem) ifFalse: [ ^ false ].
+	flowContainer == memento model ifFalse: [ ^ false ].
+	bounds := self boundsForFirstChildLaneOf: aParentLane.
+	bounds ifNil: [ ^ false ].
+	lane := CPLane new label: 'Lane'; yourself.
+	operation := diagramEditing
+		addChildLane: lane
+		toParentLane: aParentLane
+		bounds: bounds.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> dropPoolStructuralItem: anEvent intoChildOfLane: aParentLane [
+	| lane bounds operation assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	bounds := self boundsForFirstChildLaneOf: aParentLane.
+	bounds ifNil: [ ^ nil ].
+	lane := CPLane new label: 'Lane'; yourself.
+	operation := diagramEditing
+		addChildLane: lane
+		toParentLane: aParentLane
+		bounds: bounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock |
+			aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> boundsForFirstChildLaneOf: aParentLane [
+	| parentShape parentBounds |
+	parentShape := self diagramShapeForLane: aParentLane.
+	parentShape ifNil: [ ^ nil ].
+	parentBounds := self stagedBoundsOf: parentShape.
+	parentBounds ifNil: [ ^ nil ].
+	parentBounds width > self laneHeaderWidth ifFalse: [ ^ nil ].
+	^ (parentBounds origin + (self laneHeaderWidth @ 0))
+		extent: (parentBounds extent - (self laneHeaderWidth @ 0))
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> diagramShapeForLane: aLane [
+	^ laneElementsByLane
+		at: aLane
+		ifPresent: [ :anElement | anElement diagramShape ]
+		ifAbsent: [ nil ]
 ]
 
 { #category : 'private - creation' }

@@ -444,3 +444,14 @@ CPProcessAtelierDiagramEditing >> insertLane: aLane relativeTo: aTargetLane afte
 		processMemento: processMemento
 		diagramDescription: diagramDescription
 ]
+
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> addChildLane: aLane toParentLane: aParentLane bounds: proposedBounds [
+	^ CPAtelierAddChildLane
+		lane: aLane
+		toParentLane: aParentLane
+		bounds: proposedBounds
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]

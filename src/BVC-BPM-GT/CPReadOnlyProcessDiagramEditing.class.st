@@ -96,3 +96,9 @@ CPReadOnlyProcessDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPo
 	^ nil
 ]
 
+
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> addChildLane: aLane toParentLane: aParentLane bounds: proposedBounds [
+	^ nil
+]
