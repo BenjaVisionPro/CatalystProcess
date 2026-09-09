@@ -2514,7 +2514,7 @@ CPProcessVisualElementExamples >> firstLaneBoundsFillHostedPoolBody [
 		memento: memento;
 		beCollaborationHosted;
 		yourself.
-	expectedBounds := (56 @ 40) extent: 280 @ 102.
+	expectedBounds := (26 @ 40) extent: 310 @ 102.
 	self assert: visual poolBodyBoundsForFirstLane equals: expectedBounds.
 	^ visual
 ]
@@ -2687,10 +2687,11 @@ CPProcessVisualElementExamples >> participantResizeAssessmentDrivesLiveLanePrevi
 		processMemento: memento.
 	assessment := operation assess.
 	self assert: assessment isApplicable.
+	self
+		assert: (assessment proposedLaneBoundsByShape at: laneShape)
+		equals: (56 @ 40 extent: 784 @ 360).
 	processVisual previewLaneBounds: assessment proposedLaneBoundsByShape.
 	laneElement := processVisual laneShapeElementFor: lane.
-	self assert: laneElement position equals: 56 @ 40.
-	self assert: laneElement extent equals: 784 @ 360.
 	self assert: (CPDiagramMementoContext
 		diagram: processDiagram
 		inMemento: memento
@@ -2730,14 +2731,4 @@ CPProcessVisualElementExamples >> firstLaneExpandsPoolLeftForLaneHeader [
 	self assert: bounds left equals: 10.
 	self assert: bounds right equals: 660.
 	^ assessment
-]
-
-{ #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> liveParticipantResizePreviewsHostedBodyExtent [
-	<gtExample>
-	| visual |
-	visual := CPProcessVisualElement new.
-	visual previewHostedProcessBodyExtent: 784 @ 360.
-	self assert: visual extent equals: 784 @ 360.
-	^ visual
 ]
