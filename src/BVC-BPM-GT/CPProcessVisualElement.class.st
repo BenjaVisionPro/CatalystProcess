@@ -38,7 +38,8 @@ Class {
 		'collaborationChangedBlock',
 		'viewportExtent',
 		'laneSetVisual',
-		'diagramLayer'
+		'diagramLayer',
+		'activeEditableLabel'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -327,7 +328,9 @@ CPProcessVisualElement >> installMementoObserver [
 	self withAsyncSinkDo: [ :anElementSink |
 		anElementSink
 			sink: AsyncPeekSink new;
-			whenUpdate: [ :anElement :aSink | anElement refresh ].
+			whenUpdate: [ :anElement :aSink |
+				anElement rootVisual hasActiveEditableLabel
+					ifFalse: [ anElement refresh ] ].
 		memento overallStatus observe: anElementSink ]
 ]
 
@@ -1411,6 +1414,8 @@ CPProcessVisualElement >> newEditableLabelForMemento: aModelMemento [
 ]
 { #category : 'private - labels' }
 CPProcessVisualElement >> finishEditingLabel: anEditableLabel [
+	rootVisual activeEditableLabel == anEditableLabel ifTrue: [
+		rootVisual activeEditableLabel: nil ].
 	anEditableLabel preventMeAndChildrenMouseEvents.
 	anEditableLabel loseFocus.
 	self enqueueTask: (BlTaskAction new action: [
@@ -1428,6 +1433,7 @@ CPProcessVisualElement >> installLabelEditingOn: anInteractionElement label: anE
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> beginEditingLabel: anEditableLabel [
+	rootVisual activeEditableLabel: anEditableLabel.
 	anEditableLabel allowMeAndChildrenMouseEvents.
 	anEditableLabel switchToEditor.
 	anEditableLabel enqueueTask: (BlTaskAction new action: [
@@ -4694,3 +4700,19 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane 
 ]
 
 
+
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> activeEditableLabel [
+	^ activeEditableLabel
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> activeEditableLabel: anEditableLabel [
+	activeEditableLabel := anEditableLabel
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> hasActiveEditableLabel [
+	^ activeEditableLabel notNil
+]
