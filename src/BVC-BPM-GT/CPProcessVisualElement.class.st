@@ -2370,14 +2370,17 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape assessment targetLane currentLane operation |
-							rootPoint := self rootDiagramPointForLocalPoint: proposedBounds center.
+							| releaseBounds targetVisual targetBounds constrainedBounds rootPoint boundsByShape assessment targetLane currentLane operation |
+							releaseBounds := self
+								diagramBoundsForFlowNode: draggedModelElement
+								element: aShapeElement.
+							rootPoint := self rootDiagramPointForLocalPoint: releaseBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
 								excluding: draggedModelElement.
 							targetBounds := targetVisual
 								boundsCenteredAtRootDiagramPoint: rootPoint
-								extent: proposedBounds extent.
+								extent: releaseBounds extent.
 							constrainedBounds := targetVisual
 								constrainedBounds: targetBounds
 								forFlowContainer: targetVisual flowContainer.
