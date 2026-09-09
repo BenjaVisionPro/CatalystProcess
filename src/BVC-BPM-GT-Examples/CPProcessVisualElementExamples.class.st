@@ -2296,9 +2296,9 @@ CPProcessVisualElementExamples >> paletteAndContextualDropHandlersPartitionItemE
 
 
 { #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
+CPProcessVisualElementExamples >> lanesRenderAsNativeBlocPartition [
 	<gtExample>
-	| process laneSet firstLane secondLane task diagram firstLaneShape secondLaneShape taskShape memento visual firstLaneElement |
+	| process laneSet firstLane secondLane task diagram firstLaneShape secondLaneShape taskShape memento visual firstLaneElement laneSetVisual |
 	process := CPProcess new label: 'Lane process'; yourself.
 	task := CPUserTask new label: 'Review'; yourself.
 	process addFlowElement: task.
@@ -2306,43 +2306,32 @@ CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
 	firstLane := CPLane new label: 'Reviewer'; yourself.
 	secondLane := CPLane new label: 'Approver'; yourself.
 	firstLane addFlowNodeRef: task.
-	laneSet
-		addLane: firstLane;
-		addLane: secondLane.
+	laneSet addLane: firstLane; addLane: secondLane.
 	process addLaneSet: laneSet.
 	diagram := CPDiagram new.
 	process diagram: diagram.
-	firstLaneShape := CPShape new
-		modelElement: firstLane;
-		bounds: (40 @ 40 extent: 500 @ 140);
-		yourself.
-	secondLaneShape := CPShape new
-		modelElement: secondLane;
-		bounds: (40 @ 180 extent: 500 @ 140);
-		yourself.
-	taskShape := CPShape new
-		modelElement: task;
-		bounds: (180 @ 82 extent: 132 @ 54);
-		yourself.
-	diagram
-		addElement: firstLaneShape;
-		addElement: secondLaneShape;
-		addElement: taskShape.
+	firstLaneShape := CPShape new modelElement: firstLane; bounds: (40 @ 40 extent: 500 @ 140); yourself.
+	secondLaneShape := CPShape new modelElement: secondLane; bounds: (40 @ 180 extent: 500 @ 140); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (180 @ 82 extent: 132 @ 54); yourself.
+	diagram addElement: firstLaneShape; addElement: secondLaneShape; addElement: taskShape.
 	memento := CFMaMemento model: process.
-	visual := CPProcessVisualElement new memento: memento.
+	visual := CPProcessVisualElement new
+		memento: memento;
+		beCollaborationHosted;
+		yourself.
+	laneSetVisual := visual laneSetVisual.
 	firstLaneElement := visual laneShapeElementFor: firstLane.
 
+	self assert: laneSetVisual laneSet == laneSet.
+	self assert: laneSetVisual laneElements size equals: 2.
 	self assert: firstLaneElement lane == firstLane.
 	self assert: firstLaneElement diagramShape == firstLaneShape.
-	self assert: (visual stagedBoundsOf: firstLaneShape) extent equals: 500 @ 140.
+	self assert: firstLaneElement bodyHost notNil.
 	self assert: firstLaneElement labelElement text asString equals: 'Reviewer'.
+	self assert: (visual stagedBoundsOf: firstLaneShape) extent equals: 500 @ 140.
 	self assert: (visual shapeElementForModelElement: task) modelElement == task.
-	visual selectOnly: firstLane.
-	self assert: visual selectedDiagramElements size equals: 1.
-	self assert: visual selectedDiagramElements first == firstLaneShape.
 	^ visual
 ]
-
 
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRendersStagedLane [
@@ -2554,36 +2543,6 @@ CPProcessVisualElementExamples >> insertingSecondLaneSplitsRoomyFirstLane [
 
 
 { #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> hostedDiagramUsesLaneAsStructuralOuterBoundary [
-	<gtExample>
-	| process diagram laneSet lane laneShape task taskShape memento visual |
-	process := CPProcess new label: 'Hosted lane boundary'; yourself.
-	diagram := CPDiagram new.
-	process diagram: diagram.
-	task := CPUserTask new label: 'Review'; yourself.
-	process addFlowElement: task.
-	laneSet := CPLaneSet new.
-	lane := CPLane new label: 'Reviewer'; yourself.
-	lane addFlowNodeRef: task.
-	laneSet addLane: lane.
-	process addLaneSet: laneSet.
-	laneShape := CPShape new modelElement: lane; bounds: (56 @ 40 extent: 280 @ 102); yourself.
-	taskShape := CPShape new modelElement: task; bounds: (80 @ 64 extent: 132 @ 54); yourself.
-	diagram addElement: laneShape; addElement: taskShape.
-	memento := CFMaMemento model: process.
-	visual := CPProcessVisualElement new
-		memento: memento;
-		beCollaborationHosted;
-		yourself.
-
-	self assert: visual diagramBoundsOriginInContent equals: 0 @ 0.
-	self assert: (visual laneShapeElementFor: lane) labelBand notNil.
-	self assert: (visual laneShapeElementFor: lane) labelElement class equals: CFEditableLabel.
-	^ visual
-]
-
-
-{ #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> resizingPoolReflowsSingleLaneToFullBody [
 	<gtExample>
 	| fixture process memento collaborationContext participant participantShape processDiagram laneSet lane laneShape diagramDescription editing assessment processDiagramContext |
@@ -2656,49 +2615,6 @@ CPProcessVisualElementExamples >> resizingPoolPreservesLanePartitionAndFillsBody
 	self assert: (processDiagramContext boundsOf: firstShape) equals: (56 @ 40 extent: 784 @ 180).
 	self assert: (processDiagramContext boundsOf: secondShape) equals: (56 @ 220 extent: 784 @ 180).
 	^ assessment
-]
-
-
-{ #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> participantResizeAssessmentDrivesLiveLanePreview [
-	<gtExample>
-	| fixture process memento collaborationContext participant participantShape processDiagram laneSet lane laneShape diagramDescription processVisual operation assessment laneElement |
-	fixture := self collaborationVisualFixture.
-	process := fixture first.
-	processDiagram := process diagram.
-	laneSet := CPLaneSet new.
-	lane := CPLane new label: 'Lane'; yourself.
-	laneSet addLane: lane.
-	process addLaneSet: laneSet.
-	laneShape := CPShape new modelElement: lane; bounds: (56 @ 40 extent: 584 @ 230); yourself.
-	processDiagram addElement: laneShape.
-	memento := CFMaMemento model: process.
-	diagramDescription := self descriptionFor: #diagram in: memento.
-	processVisual := CPProcessVisualElement new
-		memento: memento;
-		beCollaborationHosted;
-		yourself.
-	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
-	participant := collaborationContext participantForProcess: process.
-	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
-	operation := CPAtelierResizeParticipantShape
-		shape: participantShape
-		bounds: (40 @ 40 extent: 820 @ 360)
-		processMemento: memento.
-	assessment := operation assess.
-	self assert: assessment isApplicable.
-	self
-		assert: (assessment proposedLaneBoundsByShape at: laneShape)
-		equals: (56 @ 40 extent: 784 @ 360).
-	processVisual previewLaneBounds: assessment proposedLaneBoundsByShape.
-	laneElement := processVisual laneShapeElementFor: lane.
-	self
-		assert: ((CPDiagramMementoContext
-			diagram: processDiagram
-			inMemento: memento
-			using: diagramDescription) boundsOf: laneShape)
-		equals: (56 @ 40 extent: 584 @ 230).
-	^ laneElement
 ]
 
 
@@ -2778,4 +2694,38 @@ CPProcessVisualElementExamples >> firstLanePoolResizeContainsRequiredLaneExtent 
 	self assert: participantBounds width >= (CPParticipantShapeElement processContentOriginOffset x + laneBounds width).
 	self assert: participantBounds height >= laneBounds height.
 	^ assessment
+]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> hostedDiagramUsesLaneSetAsNativeStructuralBoundary [
+	<gtExample>
+	| process diagram laneSet lane laneShape task taskShape memento visual laneElement |
+	process := CPProcess new label: 'Hosted lane boundary'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Reviewer'; yourself.
+	lane addFlowNodeRef: task.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new modelElement: lane; bounds: (26 @ 40 extent: 310 @ 102); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (80 @ 64 extent: 132 @ 54); yourself.
+	diagram addElement: laneShape; addElement: taskShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		memento: memento;
+		beCollaborationHosted;
+		yourself.
+	laneElement := visual laneShapeElementFor: lane.
+
+	self assert: visual laneSetVisual notNil.
+	self assert: visual laneSetVisual parent == visual.
+	self assert: laneElement parent == visual laneSetVisual lanesHost.
+	self assert: laneElement labelBand notNil.
+	self assert: laneElement bodyHost notNil.
+	self assert: laneElement labelElement class equals: CFEditableLabel.
+	^ visual
 ]

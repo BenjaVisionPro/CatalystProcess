@@ -1,6 +1,6 @@
-"I render one BPMN Lane partition behind its Process FlowNodes.
+"I render one BPMN Lane as a native Bloc structural row inside CPLaneSetVisualElement.
 
-I own only Lane presentation: rectangular DI bounds, low-opacity fill, the BPMN lane label band, and selection appearance. Lane movement, resizing, and FlowNode reassignment remain Process editing concerns and are deliberately not installed here."
+I own the Lane header and body surfaces. My live size is supplied by the enclosing LaneSet layout rather than by directly applying CPShape bounds to the Bloc element. The CPShape remains the durable BPMN-DI representation."
 Class {
 	#name : 'CPLaneShapeElement',
 	#superclass : 'BlElement',
@@ -8,6 +8,7 @@ Class {
 		'lane',
 		'diagramShape',
 		'labelBand',
+		'bodyHost',
 		'labelElement',
 		'normalBorderColor'
 	],
@@ -17,7 +18,7 @@ Class {
 }
 
 { #category : 'initialization' }
-CPLaneShapeElement >> lane: aLane shape: aShape bounds: aRectangle background: aBackground borderColor: aBorderColor label: anEditableLabel [
+CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label: anEditableLabel [
 	lane := aLane.
 	diagramShape := aShape.
 	labelElement := anEditableLabel.
@@ -25,13 +26,34 @@ CPLaneShapeElement >> lane: aLane shape: aShape bounds: aRectangle background: a
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aLane.
 	self
-		extent: aRectangle extent;
 		geometry: BlRectangleGeometry new;
-		background: aBackground;
+		background: Color transparent;
 		border: (BlBorder paint: aBorderColor width: self normalBorderWidth);
 		layout: BlFrameLayout new;
-		clipChildren: false.
-	self addLaneHeaderBorderColor: aBorderColor
+		clipChildren: true.
+	self
+		addBodyHost;
+		addLaneHeaderBorderColor: aBorderColor
+]
+
+{ #category : 'private - building' }
+CPLaneShapeElement >> addBodyHost [
+	bodyHost := BlElement new
+		background: Color transparent;
+		layout: BlFrameLayout new;
+		clipChildren: true;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical matchParent.
+			c frame horizontal alignRight.
+			c frame vertical alignTop.
+			c margin: (BlInsets
+				top: 0
+				right: 0
+				bottom: 0
+				left: self laneHeaderWidth) ];
+		yourself.
+	self addChild: bodyHost
 ]
 
 { #category : 'private - building' }
@@ -76,6 +98,11 @@ CPLaneShapeElement >> diagramShape [
 { #category : 'accessing - testing' }
 CPLaneShapeElement >> labelBand [
 	^ labelBand
+]
+
+{ #category : 'accessing - testing' }
+CPLaneShapeElement >> bodyHost [
+	^ bodyHost
 ]
 
 { #category : 'accessing - testing' }

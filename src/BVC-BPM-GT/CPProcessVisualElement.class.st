@@ -37,6 +37,7 @@ Class {
 		'collaborationVisual',
 		'collaborationChangedBlock',
 		'viewportExtent',
+		'laneSetVisual',
 		'diagramLayer'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -50,6 +51,7 @@ CPProcessVisualElement >> initialize [
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
 	contextualAppendPaletteItems := #().
 	poolPaletteItem := nil.
+	laneSetVisual := nil.
 	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
@@ -211,9 +213,10 @@ CPProcessVisualElement >> diagramContentOffset [
 	| hostedOffset |
 	hostedOffset := collaborationHosted
 		ifTrue: [
-			self lanesForCurrentProcess
-				ifEmpty: [ self hostedDiagramInset ]
-				ifNotEmpty: [ 0 @ 0 ] ]
+			self hostedDiagramInset
+				+ (laneSetVisual
+					ifNil: [ 0 @ 0 ]
+					ifNotNil: [ self laneHeaderWidth @ 0 ]) ]
 		ifFalse: [ diagramViewport cameraSlack ].
 	^ hostedOffset + planeGeometry normalizationOffset
 ]
@@ -337,6 +340,7 @@ CPProcessVisualElement >> refresh [
 	laneElementsByShape removeAll.
 	laneElementsByLane removeAll.
 	edgeVisualsByEdge removeAll.
+	laneSetVisual := nil.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
 	connectionTargetModelElement := nil.
@@ -356,20 +360,6 @@ CPProcessVisualElement >> refresh [
 		each isEdge and: [ self shouldRenderDiagramElement: each ] ].
 	shapes := elements select: [ :each |
 		each isShape and: [ self shouldRenderDiagramElement: each ] ].
-	planeGeometry := CPDiagramPlaneGeometry
-		shapes: shapes
-		edges: edges
-		context: diagramContext.
-	diagramLayer := parentProcessVisual isNil
-		ifTrue: [ BlElement new
-			layout: BlFrameLayout new;
-			clipChildren: false;
-			preventMouseEvents;
-			yourself ]
-		ifFalse: [ nil ].
-	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
-	self updateCanvasExtent.
-	self addPaletteDropSurface.
 	lanes := self lanesForCurrentProcess.
 	laneShapes := shapes select: [ :each |
 		lanes identityIncludes: (self stagedModelElementOf: each) ].
@@ -383,7 +373,26 @@ CPProcessVisualElement >> refresh [
 		| modelElement |
 		modelElement := self stagedModelElementOf: each.
 		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
-	laneShapes do: [ :each | self addLaneShape: each ].
+
+	planeGeometry := CPDiagramPlaneGeometry
+		shapes: flowShapes
+		edges: edges
+		context: diagramContext.
+
+	laneSetVisual := self newTopLevelLaneSetVisualFromShapes: laneShapes.
+	laneSetVisual ifNotNil: [ self addChild: laneSetVisual ].
+
+	diagramLayer := parentProcessVisual isNil
+		ifTrue: [ BlElement new
+			layout: BlFrameLayout new;
+			clipChildren: false;
+			preventMouseEvents;
+			yourself ]
+		ifFalse: [ nil ].
+	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
+	self updateCanvasExtent.
+	self addPaletteDropSurface.
+
 	ordinaryShapes do: [ :each | self addShapeFor: each ].
 	self addBoundaryShapes: boundaryShapes.
 	edges do: [ :each | self addEdgeFor: each ].
@@ -393,8 +402,6 @@ CPProcessVisualElement >> refresh [
 	self bringResizeHandlesToFront.
 	self updateDiagramAppearance
 ]
-
-
 
 { #category : 'private - visibility' }
 CPProcessVisualElement >> shouldRenderDiagramElement: aDiagramElement [
@@ -499,35 +506,6 @@ CPProcessVisualElement >> lanesForCurrentProcess [
 	^ (CPProcessLaneContext inRootMemento: memento) stagedLanes
 ]
 { #category : 'private - lanes' }
-CPProcessVisualElement >> addLaneShape: aShape [
-	| lane bounds laneMemento label element |
-	lane := self stagedModelElementOf: aShape.
-	bounds := self stagedBoundsOf: aShape.
-	(lane isNil or: [ bounds isNil ]) ifTrue: [ ^ self ].
-	laneMemento := (CPProcessLaneContext inRootMemento: memento)
-		mementoForLane: lane.
-	laneMemento ifNil: [ ^ self ].
-	label := self newEditableLabelForMemento: laneMemento.
-	element := CPLaneShapeElement new
-		lane: lane
-		shape: aShape
-		bounds: bounds
-		background: Color transparent
-		borderColor: self shapeBorderColor
-		label: label.
-	element
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: bounds origin.
-	laneElementsByShape at: aShape put: element.
-	laneElementsByLane at: lane put: element.
-	self addDiagramChild: element.
-	self
-		installLabelEditingOn: element labelBand label: label;
-		installSelectionOnLaneElement: element;
-		installPoolStructuralDropOnLaneElement: element lane: lane
-]
-
-{ #category : 'private - lanes' }
 CPProcessVisualElement >> installSelectionOnLaneElement: anElement [
 	anElement addEventHandler: (BlEventHandler
 		on: BlClickEvent
@@ -537,6 +515,64 @@ CPProcessVisualElement >> installSelectionOnLaneElement: anElement [
 				ifFalse: [ self selectOnlyDiagramElement: anElement diagramShape ].
 			self requestFocus.
 			anEvent consumed: true ])
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
+	| laneContext topLevelLaneSets laneSet lanes laneSetElement currentBounds totalHeight |
+	flowContainer == memento model ifFalse: [ ^ nil ].
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	topLevelLaneSets := laneContext stagedLaneSets.
+	topLevelLaneSets ifEmpty: [ ^ nil ].
+
+	"First structural slice displays the first top-level LaneSet. The recursive
+	hosting seam is now explicit; additional and child LaneSets are the next slice."
+	laneSet := topLevelLaneSets first.
+	lanes := laneContext stagedLanesInLaneSet: laneSet.
+	lanes ifEmpty: [ ^ nil ].
+	laneSetElement := CPLaneSetVisualElement new laneSet: laneSet.
+	currentBounds := IdentityDictionary new.
+	totalHeight := 0.
+	lanes do: [ :aLane |
+		| shapes laneShape bounds |
+		shapes := laneShapes select: [ :each |
+			(self stagedModelElementOf: each) == aLane ].
+		shapes size = 1 ifFalse: [ ^ nil ].
+		laneShape := shapes anyOne.
+		bounds := self stagedBoundsOf: laneShape.
+		bounds ifNil: [ ^ nil ].
+		currentBounds at: aLane put: { laneShape. bounds }.
+		totalHeight := totalHeight + bounds height ].
+	totalHeight > 0 ifFalse: [ totalHeight := lanes size ].
+
+	lanes do: [ :aLane |
+		| pair laneShape bounds laneMemento label element weight |
+		pair := currentBounds at: aLane.
+		laneShape := pair first.
+		bounds := pair second.
+		laneMemento := laneContext mementoForLane: aLane.
+		laneMemento ifNil: [ ^ nil ].
+		label := self newEditableLabelForMemento: laneMemento.
+		element := CPLaneShapeElement new
+			lane: aLane
+			shape: laneShape
+			borderColor: self shapeBorderColor
+			label: label.
+		weight := bounds height > 0
+			ifTrue: [ bounds height / totalHeight ]
+			ifFalse: [ 1.0 / lanes size ].
+		laneElementsByShape at: laneShape put: element.
+		laneElementsByLane at: aLane put: element.
+		laneSetElement addLaneElement: element weight: weight.
+		self
+			installLabelEditingOn: element labelBand label: label;
+			installSelectionOnLaneElement: element ].
+	^ laneSetElement
+]
+
+{ #category : 'accessing - testing' }
+CPProcessVisualElement >> laneSetVisual [
+	^ laneSetVisual
 ]
 
 { #category : 'accessing - testing' }
@@ -4563,22 +4599,3 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane 
 ]
 
 
-{ #category : 'private - lanes' }
-CPProcessVisualElement >> previewLaneBounds: proposedBoundsByShape [
-	proposedBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
-		laneElementsByShape
-			at: aShape
-			ifPresent: [ :aLaneElement |
-				aLaneElement
-				relocate: proposedBounds origin;
-				extent: proposedBounds extent ] ]
-]
-
-
-{ #category : 'private - lanes' }
-CPProcessVisualElement >> previewHostedProcessBodyExtent: anExtent [
-	self extent: anExtent.
-	diagramLayer ifNotNil: [ :aLayer |
-		aLayer extent: anExtent ].
-	self requestLayout
-]

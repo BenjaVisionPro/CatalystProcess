@@ -270,26 +270,8 @@ CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement sha
 		resize: [ :proposedBounds |
 			(diagramEditing resizeShape: aShape toBounds: proposedBounds) apply.
 			self refreshAfterGeometryChange ]
-		geometryChanged: [ :proposedBounds |
-			self
-				previewParticipantResizeOf: aShape
-				toBounds: proposedBounds ].
+		geometryChanged: nil.
 	handles do: [ :aHandle | anElement addChild: aHandle ]
-]
-
-{ #category : 'private - resizing' }
-CPCollaborationVisualElement >> previewParticipantResizeOf: aShape toBounds: proposedBounds [
-	| operation assessment |
-	processVisual ifNil: [ ^ self ].
-	operation := diagramEditing resizeShape: aShape toBounds: proposedBounds.
-	operation ifNil: [ ^ self ].
-	assessment := operation assess.
-	assessment isApplicable ifFalse: [ ^ self ].
-	processVisual
-		previewHostedProcessBodyExtent:
-			(proposedBounds width - CPParticipantShapeElement processContentOriginOffset x)
-				@ proposedBounds height;
-		previewLaneBounds: assessment proposedLaneBoundsByShape
 ]
 
 { #category : 'private - sizing' }
