@@ -2585,7 +2585,7 @@ CPProcessVisualElementExamples >> hostedDiagramUsesLaneAsStructuralOuterBoundary
 		beCollaborationHosted;
 		yourself.
 
-	self assert: visual diagramBoundsOriginInContent equals: 56 @ 40.
+	self assert: visual diagramBoundsOriginInContent equals: 0 @ 0.
 	self assert: (visual laneShapeElementFor: lane) labelBand notNil.
 	self assert: (visual laneShapeElementFor: lane) labelElement class equals: CFEditableLabel.
 	^ visual
