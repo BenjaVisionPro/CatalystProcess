@@ -507,14 +507,25 @@ CPProcessVisualElement >> lanesForCurrentProcess [
 ]
 { #category : 'private - lanes' }
 CPProcessVisualElement >> installSelectionOnLaneElement: anElement [
-	anElement addEventHandler: (BlEventHandler
+	self
+		installSelectionOnLaneSurface: anElement labelBand
+		forLaneElement: anElement.
+	self
+		installSelectionOnLaneSurface: anElement bodyHost
+		forLaneElement: anElement
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> installSelectionOnLaneSurface: aSurface forLaneElement: aLaneElement [
+	aSurface addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
-			anEvent modifiers isShift
-				ifTrue: [ self toggleSelectionOfDiagramElement: anElement diagramShape ]
-				ifFalse: [ self selectOnlyDiagramElement: anElement diagramShape ].
-			self requestFocus.
-			anEvent consumed: true ])
+			anEvent target == aSurface ifTrue: [
+				anEvent modifiers isShift
+					ifTrue: [ self toggleSelectionOfDiagramElement: aLaneElement diagramShape ]
+					ifFalse: [ self selectOnlyDiagramElement: aLaneElement diagramShape ].
+				self requestFocus.
+				anEvent consumed: true ] ])
 ]
 
 { #category : 'private - lanes' }
