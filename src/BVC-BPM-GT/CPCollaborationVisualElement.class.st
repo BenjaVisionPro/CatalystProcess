@@ -360,7 +360,7 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 	self removeConnectionPreview.
 	pointer := self diagramPointForGlobalPoint: anEvent position.
 	connectionPreviewSourcePoint := self
-		collaborationDockingPointForFlowNode: aSource
+		liveCollaborationDockingPointForFlowNode: aSource
 		inVisual: aSourceVisual
 		toward: pointer.
 	sourcePoint := connectionPreviewSourcePoint.
@@ -406,7 +406,7 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 			target isSequenceFlowTarget
 				ifTrue: [
 					self
-						collaborationDockingPointForFlowNode: target modelElement
+						liveCollaborationDockingPointForFlowNode: target modelElement
 						inVisual: aSourceVisual
 						toward: sourcePoint ]
 				ifFalse: [
@@ -530,14 +530,16 @@ CPCollaborationVisualElement >> collaborationCenterForFlowNode: aFlowNode inVisu
 
 { #category : 'connection geometry' }
 CPCollaborationVisualElement >> collaborationDockingPointForFlowNode: aFlowNode inVisual: aSourceVisual toward: aPoint [
-	| element topLeft bottomRight collaborationBounds |
-	element := aSourceVisual shapeElementForModelElement: aFlowNode.
-	element ifNil: [ ^ aPoint ].
-	topLeft := self diagramPresentationParent
-		globalPointToLocal: (element localPointToGlobal: 0 @ 0).
-	bottomRight := self diagramPresentationParent
-		globalPointToLocal: (element localPointToGlobal: element extent).
-	collaborationBounds := topLeft corner: bottomRight.
+	| shape bounds rootOrigin collaborationBounds |
+	shape := aSourceVisual diagramShapeForModelElement: aFlowNode.
+	shape ifNil: [ ^ aPoint ].
+	bounds := aSourceVisual stagedBoundsOf: shape.
+	bounds ifNil: [ ^ aPoint ].
+	rootOrigin := aSourceVisual
+		rootDiagramPointForLocalPoint: bounds origin.
+	collaborationBounds :=
+		(self collaborationPointForProcessRootPoint: rootOrigin)
+			extent: bounds extent.
 	^ self
 		dockingPointForRectangle: collaborationBounds
 		toward: aPoint
@@ -1401,4 +1403,20 @@ CPCollaborationVisualElement >> hostedProcessBodyExtent [
 	bounds := self stagedBoundsOf: participantShape.
 	^ (bounds width - CPParticipantShapeElement processContentOriginOffset x)
 		@ bounds height
+]
+
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> liveCollaborationDockingPointForFlowNode: aFlowNode inVisual: aSourceVisual toward: aPoint [
+	| element topLeft bottomRight collaborationBounds |
+	element := aSourceVisual shapeElementForModelElement: aFlowNode.
+	element ifNil: [ ^ aPoint ].
+	topLeft := self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: 0 @ 0).
+	bottomRight := self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: element extent).
+	collaborationBounds := topLeft corner: bottomRight.
+	^ self
+		dockingPointForRectangle: collaborationBounds
+		toward: aPoint
 ]
