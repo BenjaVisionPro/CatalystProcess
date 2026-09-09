@@ -531,17 +531,14 @@ CPCollaborationVisualElement >> collaborationCenterForFlowNode: aFlowNode inVisu
 
 { #category : 'connection geometry' }
 CPCollaborationVisualElement >> collaborationDockingPointForFlowNode: aFlowNode inVisual: aSourceVisual toward: aPoint [
-	| element bounds rootOrigin collaborationBounds |
+	| element topLeft bottomRight collaborationBounds |
 	element := aSourceVisual shapeElementForModelElement: aFlowNode.
 	element ifNil: [ ^ aPoint ].
-	bounds := aSourceVisual
-		diagramBoundsForFlowNode: aFlowNode
-		element: element.
-	rootOrigin := aSourceVisual
-		rootDiagramPointForLocalPoint: bounds origin.
-	collaborationBounds :=
-		(self collaborationPointForProcessRootPoint: rootOrigin)
-			extent: bounds extent.
+	topLeft := self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: 0 @ 0).
+	bottomRight := self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: element extent).
+	collaborationBounds := topLeft corner: bottomRight.
 	^ self
 		dockingPointForRectangle: collaborationBounds
 		toward: aPoint
