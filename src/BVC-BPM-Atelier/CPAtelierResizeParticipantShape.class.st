@@ -17,7 +17,7 @@ CPAtelierResizeParticipantShape >> assess [
 	proposedLaneBounds := self
 		proposedLaneBoundsFromParticipantBounds: baseAssessment currentBounds
 		to: baseAssessment proposedBounds.
-	proposedLaneBounds ifNil: [ ^ baseAssessment ].
+	proposedLaneBounds ifNil: [ proposedLaneBounds := IdentityDictionary new ].
 	^ CPAtelierResizeParticipantAssessment new
 		shape: baseAssessment shape;
 		currentBounds: baseAssessment currentBounds;

@@ -4553,3 +4553,15 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane 
 			aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> previewLaneBounds: proposedBoundsByShape [
+	proposedBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
+		laneElementsByShape
+			at: aShape
+			ifPresent: [ :aLaneElement |
+				aLaneElement
+				relocate: proposedBounds origin;
+				extent: proposedBounds extent ] ]
+]

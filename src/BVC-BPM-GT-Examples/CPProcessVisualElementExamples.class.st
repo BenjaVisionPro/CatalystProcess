@@ -2657,3 +2657,43 @@ CPProcessVisualElementExamples >> resizingPoolPreservesLanePartitionAndFillsBody
 	self assert: (processDiagramContext boundsOf: secondShape) equals: (56 @ 220 extent: 784 @ 180).
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> participantResizeAssessmentDrivesLiveLanePreview [
+	<gtExample>
+	| fixture process memento collaborationContext participant participantShape processDiagram laneSet lane laneShape diagramDescription processVisual operation assessment laneElement |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	processDiagram := process diagram.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Lane'; yourself.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new modelElement: lane; bounds: (56 @ 40 extent: 584 @ 230); yourself.
+	processDiagram addElement: laneShape.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	processVisual := CPProcessVisualElement new
+		memento: memento;
+		beCollaborationHosted;
+		yourself.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	operation := CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (40 @ 40 extent: 820 @ 360)
+		processMemento: memento.
+	assessment := operation assess.
+	self assert: assessment isApplicable.
+	processVisual previewLaneBounds: assessment proposedLaneBoundsByShape.
+	laneElement := processVisual laneShapeElementFor: lane.
+	self assert: laneElement position equals: 56 @ 40.
+	self assert: laneElement extent equals: 784 @ 360.
+	self assert: (CPDiagramMementoContext
+		diagram: processDiagram
+		inMemento: memento
+		using: diagramDescription) boundsOf: laneShape equals: (56 @ 40 extent: 584 @ 230).
+	^ laneElement
+]
