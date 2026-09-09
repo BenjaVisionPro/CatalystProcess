@@ -364,8 +364,9 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 		inVisual: aSourceVisual.
 	sourceBounds ifNil: [ ^ self ].
 	connectionPreviewSourcePoint := sourceBounds center.
-	sourcePoint := self
-		dockingPointForRectangle: sourceBounds
+	sourcePoint := aSourceVisual
+		dockingPointFor: aSource
+		bounds: sourceBounds
 		toward: pointer.
 	connectionPreviewCursor := BlElement new
 		extent: 1 @ 1;
@@ -410,8 +411,9 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 	target
 		ifNil: [
 			targetReference := pointer.
-			sourcePoint := self
-				dockingPointForRectangle: sourceBounds
+			sourcePoint := aSourceVisual
+				dockingPointFor: aSource
+				bounds: sourceBounds
 				toward: targetReference.
 			targetPoint := pointer ]
 		ifNotNil: [
@@ -421,18 +423,21 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 					liveCollaborationBoundsForFlowNode: target modelElement
 					inVisual: aSourceVisual.
 				targetBounds ifNil: [ ^ self ].
-				sourcePoint := self
-					dockingPointForRectangle: sourceBounds
+				sourcePoint := aSourceVisual
+					dockingPointFor: aSource
+					bounds: sourceBounds
 					toward: targetBounds center.
-				targetPoint := self
-					dockingPointForRectangle: targetBounds
+				targetPoint := aSourceVisual
+					dockingPointFor: target modelElement
+					bounds: targetBounds
 					toward: sourceBounds center ]
 			ifFalse: [
 				targetPoint := self
 					dockingPointForParticipant: target modelElement
 					toward: sourceBounds center.
-				sourcePoint := self
-					dockingPointForRectangle: sourceBounds
+				sourcePoint := aSourceVisual
+					dockingPointFor: aSource
+					bounds: sourceBounds
 					toward: targetPoint ] ].
 	connectionPreviewLine
 		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
