@@ -648,10 +648,6 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 	element := self newShapeElementFor: modelElement shape: aShape bounds: bounds.
 	element installBodyCursor.
 	element constraintsDo: [ :c | c ignoreByLayout ].
-	self
-		placeFlowNodeElement: element
-		for: modelElement
-		atDiagramPoint: bounds origin.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
@@ -678,7 +674,11 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 			anActivityElement
 				hostBoundaryEventElement: element
 				atLocalPosition: bounds origin - (self stagedBoundsOf: anActivityElement diagramShape) origin ]
-		ifFalse: [ self addDiagramChild: element ].
+		ifFalse: [
+			self
+				placeFlowNodeElement: element
+				for: modelElement
+				atDiagramPoint: bounds origin ].
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifTrue: [
 		self
 			installNestedProcessVisualIn: element
