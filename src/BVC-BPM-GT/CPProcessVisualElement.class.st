@@ -512,7 +512,7 @@ CPProcessVisualElement >> addLaneShape: aShape [
 		lane: lane
 		shape: aShape
 		bounds: bounds
-		background: (self shapeBackgroundColor alpha: 0.25)
+		background: Color transparent
 		borderColor: self shapeBorderColor
 		label: label.
 	element
@@ -2762,27 +2762,28 @@ CPProcessVisualElement >> laneHeaderWidth [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> poolBodyBoundsForFirstLane [
-	| diagramBounds inset extent origin headerWidth |
+	| diagramBounds inset currentPoolExtent requiredProcessExtent laneExtent origin headerWidth |
 	diagramBounds := planeGeometry diagramBounds.
 	inset := self hostedDiagramInset.
 	headerWidth := self laneHeaderWidth.
-	extent := collaborationVisual
+	currentPoolExtent := collaborationVisual
 		ifNil: [ nil ]
 		ifNotNil: [ collaborationVisual hostedProcessBodyExtent ].
-	extent ifNil: [
-		planeGeometry diagramExtent = (0 @ 0)
-			ifTrue: [
-				extent := (self defaultParticipantExtent x
-					- CPParticipantShapeElement processContentOriginOffset x)
-					@ self defaultParticipantExtent y ]
-			ifFalse: [
-				extent := diagramBounds extent
-					+ ((inset x * 2) @ (inset y * 2)) ] ].
+	requiredProcessExtent := planeGeometry diagramExtent = (0 @ 0)
+		ifTrue: [
+			(self defaultParticipantExtent x
+				- CPParticipantShapeElement processContentOriginOffset x)
+				@ self defaultParticipantExtent y ]
+		ifFalse: [
+			diagramBounds extent + ((inset x * 2) @ (inset y * 2)) ].
+	laneExtent := (requiredProcessExtent x + headerWidth) @ requiredProcessExtent y.
+	currentPoolExtent ifNotNil: [
+		laneExtent := (laneExtent x max: currentPoolExtent x + headerWidth)
+			@ (laneExtent y max: currentPoolExtent y) ].
 	origin := planeGeometry diagramExtent = (0 @ 0)
 		ifTrue: [ 0 @ 0 ]
-		ifFalse: [ diagramBounds origin - inset ].
-	^ (origin - (headerWidth @ 0))
-		extent: (extent + (headerWidth @ 0))
+		ifFalse: [ diagramBounds origin - inset - (headerWidth @ 0) ].
+	^ origin extent: laneExtent
 ]
 
 { #category : 'private - creation' }

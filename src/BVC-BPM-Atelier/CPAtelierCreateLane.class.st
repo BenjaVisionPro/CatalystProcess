@@ -135,7 +135,7 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 
 { #category : 'private - assessing' }
 CPAtelierCreateLane >> participantResizeOperationForFirstLane [
-	| collaborationContext participant participantShapes participantShape participantBounds proposedBounds |
+	| collaborationContext participant participantShapes participantShape participantBounds headerWidth proposedLeft requiredWidth requiredHeight proposedRight proposedBottom proposedBounds |
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext participantForProcess: processMemento model.
@@ -144,8 +144,14 @@ CPAtelierCreateLane >> participantResizeOperationForFirstLane [
 	participantShapes size = 1 ifFalse: [ ^ nil ].
 	participantShape := participantShapes anyOne.
 	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
-	proposedBounds := (participantBounds left - self laneHeaderWidth) @ participantBounds top
-		corner: participantBounds bottomRight.
+	headerWidth := self laneHeaderWidth.
+	proposedLeft := participantBounds left - headerWidth.
+	requiredWidth := CPParticipantShapeElement processContentOriginOffset x + bounds width.
+	requiredHeight := bounds height.
+	proposedRight := participantBounds right max: proposedLeft + requiredWidth.
+	proposedBottom := participantBounds bottom max: participantBounds top + requiredHeight.
+	proposedBounds := proposedLeft @ participantBounds top
+		corner: proposedRight @ proposedBottom.
 	^ CPAtelierResizeParticipantShape
 		shape: participantShape
 		bounds: proposedBounds

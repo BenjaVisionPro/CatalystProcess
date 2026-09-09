@@ -9,8 +9,7 @@ Class {
 		'diagramShape',
 		'labelBand',
 		'labelElement',
-		'normalBorderColor',
-		'headerBackgroundColor'
+		'normalBorderColor'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -23,7 +22,6 @@ CPLaneShapeElement >> lane: aLane shape: aShape bounds: aRectangle background: a
 	diagramShape := aShape.
 	labelElement := anEditableLabel.
 	normalBorderColor := aBorderColor.
-	headerBackgroundColor := aBackground alpha: 1.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aLane.
 	self
@@ -40,7 +38,7 @@ CPLaneShapeElement >> lane: aLane shape: aShape bounds: aRectangle background: a
 CPLaneShapeElement >> addLaneHeaderBorderColor: aBorderColor [
 	labelBand := BlElement new
 		geometry: BlRectangleGeometry new;
-		background: (self backgroundColorForHeader);
+		background: Color transparent;
 		border: (BlBorder paint: aBorderColor width: 1);
 		layout: BlFrameLayout new;
 		constraintsDo: [ :c |
@@ -63,11 +61,6 @@ CPLaneShapeElement >> addLaneHeaderBorderColor: aBorderColor [
 { #category : 'geometry' }
 CPLaneShapeElement >> laneHeaderWidth [
 	^ 30
-]
-
-{ #category : 'private - appearance' }
-CPLaneShapeElement >> backgroundColorForHeader [
-	^ headerBackgroundColor
 ]
 
 { #category : 'accessing' }

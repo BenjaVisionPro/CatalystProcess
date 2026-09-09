@@ -2734,3 +2734,48 @@ CPProcessVisualElementExamples >> firstLaneExpandsPoolLeftForLaneHeader [
 	self assert: bounds right equals: 660.
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> firstLaneIsTransparentLikePool [
+	<gtExample>
+	| process diagram laneSet lane laneShape memento visual laneElement |
+	process := CPProcess new label: 'Lane appearance'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Lane'; yourself.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new modelElement: lane; bounds: (0 @ 0 extent: 300 @ 180); yourself.
+	diagram addElement: laneShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new memento: memento; yourself.
+	laneElement := visual laneShapeElementFor: lane.
+	self assert: laneElement background paint color equals: Color transparent.
+	self assert: laneElement labelBand background paint color equals: Color transparent.
+	^ laneElement
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> firstLanePoolResizeContainsRequiredLaneExtent [
+	<gtExample>
+	| fixture process memento diagramDescription collaborationContext participant participantShape editing lane operation assessment laneBounds participantBounds |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture at: 2.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	lane := CPLane new label: 'Lane'; yourself.
+	laneBounds := (26 @ 40 extent: 700 @ 260).
+	operation := editing createLane: lane bounds: laneBounds.
+	assessment := operation assess.
+	self assert: assessment isApplicable.
+	self assert: assessment participantResizeAssessment isApplicable.
+	participantBounds := assessment participantResizeAssessment proposedBounds.
+	self assert: participantBounds width >= (CPParticipantShapeElement processContentOriginOffset x + laneBounds width).
+	self assert: participantBounds height >= laneBounds height.
+	^ assessment
+]
