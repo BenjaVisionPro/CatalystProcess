@@ -4083,11 +4083,10 @@ CPProcessVisualElement >> newReconnectHandleFor: aSequenceFlow movingSource: mov
 				movingSource: movesSource
 				target: candidate
 				adjacentReference: adjacentReference.
-			edgeVisual
+			self
 				positionReconnectHandle: handle
 				fromPreviewLine: previewLine
-				movingSource: movesSource
-				within: self diagramPresentationParent.
+				movingSource: movesSource.
 			self
 				positionEdgeLabelForReconnectPreview: reconnectEdge
 				line: previewLine
@@ -4139,13 +4138,13 @@ CPProcessVisualElement >> positionEdgeLabelForReconnectPreview: anEdge line: aPr
 
 	endpoint := movesSource
 		ifTrue: [
-			aPreviewLine fromAnchor
-				positionForAnchoredElement: aPreviewLine
-				within: self diagramPresentationParent ]
+			self
+				presentationPointForAnchor: aPreviewLine fromAnchor
+				anchoredElement: aPreviewLine ]
 		ifFalse: [
-			aPreviewLine toAnchor
-				positionForAnchoredElement: aPreviewLine
-				within: self diagramPresentationParent ].
+			self
+				presentationPointForAnchor: aPreviewLine toAnchor
+				anchoredElement: aPreviewLine ].
 	movesSource
 		ifTrue: [ points at: 1 put: endpoint ]
 		ifFalse: [ points at: points size put: endpoint ].
@@ -4181,12 +4180,12 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge fromLines: someLin
 
 	firstLine := someLines first.
 	lastLine := someLines last.
-	sourcePoint := firstLine fromAnchor
-		positionForAnchoredElement: firstLine
-		within: self diagramPresentationParent.
-	targetPoint := lastLine toAnchor
-		positionForAnchoredElement: lastLine
-		within: self diagramPresentationParent.
+	sourcePoint := self
+		presentationPointForAnchor: firstLine fromAnchor
+		anchoredElement: firstLine.
+	targetPoint := self
+		presentationPointForAnchor: lastLine toAnchor
+		anchoredElement: lastLine.
 
 	edgeVisual
 		positionReconnectHandlesAtSource: sourcePoint
@@ -4825,4 +4824,30 @@ CPProcessVisualElement >> laneAtGlobalPoint: aGlobalPoint [
 	candidates ifEmpty: [ ^ nil ].
 	^ (candidates detectMin: [ :each |
 		each second width * each second height ]) first
+]
+
+
+{ #category : 'private - coordinates' }
+CPProcessVisualElement >> presentationPointForAnchor: anAnchor anchoredElement: anElement [
+	| processPoint |
+	processPoint := anAnchor
+		positionForAnchoredElement: anElement
+		within: self.
+	^ self diagramPresentationParent
+		globalPointToLocal: (self localPointToGlobal: processPoint)
+]
+
+{ #category : 'private - reconnecting' }
+CPProcessVisualElement >> positionReconnectHandle: aHandle fromPreviewLine: aPreviewLine movingSource: movesSource [
+	| endpoint |
+	endpoint := movesSource
+		ifTrue: [
+			self
+				presentationPointForAnchor: aPreviewLine fromAnchor
+				anchoredElement: aPreviewLine ]
+		ifFalse: [
+			self
+				presentationPointForAnchor: aPreviewLine toAnchor
+				anchoredElement: aPreviewLine ].
+	aHandle relocate: endpoint - (aHandle extent / 2)
 ]
