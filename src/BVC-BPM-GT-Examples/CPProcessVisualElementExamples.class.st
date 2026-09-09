@@ -1732,7 +1732,7 @@ CPProcessVisualElementExamples >> flowNodePlacementUsesPresentationHostCoordinat
 	| fixture visual task element bounds |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
-	task := visual shapeElementsByModelElement keys detect: [ :each | each isFlowNode ].
+	task := fixture fourth.
 	element := visual shapeElementsByModelElement at: task.
 	bounds := visual stagedBoundsOf: element diagramShape.
 
