@@ -4872,10 +4872,8 @@ CPProcessVisualElement >> diagramBoundsForFlowNode: aFlowNode element: aNodeElem
 	lane ifNil: [ ^ aNodeElement bounds inParent: self diagramPresentationParent ].
 	laneElement := laneElementsByLane at: lane.
 	laneBounds := self stagedBoundsOf: laneElement diagramShape.
-	^ ((aNodeElement bounds inParent: laneElement bodyHost) origin
+	^ (aNodeElement position
 		+ laneBounds origin
 		+ (self laneHeaderWidth @ 0))
-		corner: ((aNodeElement bounds inParent: laneElement bodyHost) corner
-			+ laneBounds origin
-			+ (self laneHeaderWidth @ 0))
+		extent: aNodeElement extent
 ]
