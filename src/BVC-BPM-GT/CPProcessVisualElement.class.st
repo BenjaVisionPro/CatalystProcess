@@ -696,7 +696,10 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
-	^ self diagramPresentationParent
+	| lane |
+	lane := self stagedLaneContainingFlowNode: aFlowNode.
+	lane ifNil: [ ^ self diagramPresentationParent ].
+	^ (laneElementsByLane at: lane) bodyHost
 ]
 
 { #category : 'private - containment' }
@@ -4760,4 +4763,31 @@ CPProcessVisualElement >> activeEditableLabel: anEditableLabel [
 { #category : 'private - labels' }
 CPProcessVisualElement >> hasActiveEditableLabel [
 	^ activeEditableLabel notNil
+]
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode [
+	| laneContext |
+	flowContainer == memento model ifFalse: [ ^ nil ].
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	^ self
+		stagedLaneContainingFlowNode: aFlowNode
+		inLaneSets: laneContext stagedLaneSets
+		laneContext: laneContext
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode inLaneSets: laneSets laneContext: laneContext [
+	laneSets do: [ :aLaneSet |
+		(laneContext stagedLanesInLaneSet: aLaneSet) do: [ :aLane |
+			((laneContext stagedFlowNodeRefsOf: aLane) identityIncludes: aFlowNode)
+				ifTrue: [ ^ aLane ].
+			(laneContext stagedChildLaneSetOf: aLane) ifNotNil: [ :aChildLaneSet |
+				(self
+					stagedLaneContainingFlowNode: aFlowNode
+					inLaneSets: { aChildLaneSet }
+					laneContext: laneContext)
+					ifNotNil: [ :aContainingLane | ^ aContainingLane ] ] ] ].
+	^ nil
 ]

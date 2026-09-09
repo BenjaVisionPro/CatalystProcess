@@ -2829,3 +2829,49 @@ CPProcessVisualElementExamples >> nestedLaneSetRendersInsideParentLaneBody [
 	self assert: childElement bodyHost notNil.
 	^ visual
 ]
+
+
+{ #category : 'examples - containment' }
+CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
+	<gtExample>
+	| process task laneSet lane diagram taskShape laneShape memento diagramDescription visual element laneElement host diagramPoint localPoint |
+	process := CPProcess new label: 'Lane-hosted flow node'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	laneSet := CPLaneSet new label: 'Responsibilities'; yourself.
+	lane := CPLane new label: 'Reviewer'; yourself.
+	lane addFlowNodeRef: task.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneShape := CPShape new
+		modelElement: lane;
+		bounds: (40 @ 40 extent: 500 @ 180);
+		yourself.
+	taskShape := CPShape new
+		modelElement: task;
+		bounds: (140 @ 90 extent: 100 @ 80);
+		yourself.
+	diagram addElement: laneShape; addElement: taskShape.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	visual := CPProcessVisualElement new.
+	visual
+		diagramEditing: (CPProcessAtelierDiagramEditing
+			processMemento: memento
+			diagramDescription: diagramDescription);
+		beCollaborationHosted;
+		memento: memento.
+	element := visual shapeElementsByModelElement at: task.
+	laneElement := visual laneShapeElementFor: lane.
+	host := visual presentationHostForFlowNode: task.
+	diagramPoint := (visual stagedBoundsOf: taskShape) origin.
+	localPoint := visual diagramPoint: diagramPoint localToPresentationHost: host.
+
+	self assert: host == laneElement bodyHost.
+	self assert: element parent == laneElement bodyHost.
+	self assert: (visual stagedLaneContainingFlowNode: task) == lane.
+	self assert: localPoint isPoint.
+	^ visual
+]
