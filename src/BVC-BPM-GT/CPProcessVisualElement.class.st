@@ -3260,36 +3260,25 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 ]
 
 { #category : 'private - connection' }
-CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement target: aTarget [
-	| sourceBounds targetBounds sourcePoint targetPoint cursorPoint targetElement |
+CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement sourcePoint: aSourcePoint target: aTarget [
+	| targetBounds targetPoint cursorPoint targetElement |
 	cursorPoint := aCursor position.
-	sourceBounds := self
-		diagramBoundsForFlowNode: aSource
-		element: aSourceElement.
 
 	aTarget
 		ifNil: [
-			sourcePoint := self
-				dockingPointFor: aSource
-				bounds: sourceBounds
-				toward: cursorPoint.
 			targetPoint := cursorPoint ]
 		ifNotNil: [
 			targetElement := self shapeElementForModelElement: aTarget.
 			targetBounds := self
 				diagramBoundsForFlowNode: aTarget
 				element: targetElement.
-			sourcePoint := self
-				dockingPointFor: aSource
-				bounds: sourceBounds
-				toward: targetBounds center.
 			targetPoint := self
 				dockingPointFor: aTarget
 				bounds: targetBounds
-				toward: sourceBounds center ].
+				toward: aSourcePoint ].
 
 	aLine
-		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
+		fromAnchor: (BlAbsolutePositionAnchor position: aSourcePoint);
 		toAnchor: (BlAbsolutePositionAnchor position: targetPoint)
 ]
 
@@ -3386,7 +3375,7 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
-	| previewLine previewCursor |
+	| previewLine previewCursor previewSourcePoint |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	(aFlowNode isEndEvent and: [ collaborationVisual isNil ]) ifTrue: [ ^ self ].
 	aNodeElement
@@ -3405,6 +3394,12 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 					connectionSourceModelElement := aFlowNode.
 					self clearConnectionTarget.
 					localPoint := self diagramPointForGlobalPoint: anEvent position.
+					previewSourcePoint := self
+						dockingPointFor: aFlowNode
+						bounds: (self
+							diagramBoundsForFlowNode: aFlowNode
+							element: aNodeElement)
+						toward: localPoint.
 					previewCursor := BlElement new
 						extent: 1 @ 1;
 						background: Color transparent;
@@ -3412,12 +3407,8 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						relocate: localPoint;
 						yourself.
 					previewLine := BlLineElement new
-						fromAnchor: ((self anchorClassFor: aFlowNode)
-							nearestTo: previewCursor
-							from: aNodeElement);
-						toAnchor: (BlNearestPositionBoundsAnchor
-							nearestTo: aNodeElement
-							from: previewCursor);
+						fromAnchor: (BlAbsolutePositionAnchor position: previewSourcePoint);
+						toAnchor: (BlAbsolutePositionAnchor position: localPoint);
 						border: (BlBorder paint: self selectionColor width: 1.5);
 						constraintsDo: [ :c | c ignoreByLayout ];
 						yourself.
@@ -3430,6 +3421,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						cursor: previewCursor
 						source: aFlowNode
 						sourceElement: aNodeElement
+						sourcePoint: previewSourcePoint
 						target: nil.
 					self updateDiagramAppearance ] ]
 		dragged: [ :anEvent |
@@ -3451,6 +3443,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						cursor: previewCursor
 						source: aFlowNode
 						sourceElement: aNodeElement
+						sourcePoint: previewSourcePoint
 						target: target ] ]
 		dragEnded: [ :anEvent |
 			collaborationVisual

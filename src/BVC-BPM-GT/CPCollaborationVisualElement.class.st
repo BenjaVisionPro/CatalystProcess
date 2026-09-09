@@ -22,6 +22,7 @@ Class {
 		'messageFlowVisualsByEdge',
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
+		'connectionPreviewSourcePoint',
 		'viewportExtent',
 		'diagramLayer'
 	],
@@ -358,10 +359,11 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 	| pointer sourcePoint |
 	self removeConnectionPreview.
 	pointer := self diagramPointForGlobalPoint: anEvent position.
-	sourcePoint := self
+	connectionPreviewSourcePoint := self
 		collaborationDockingPointForFlowNode: aSource
 		inVisual: aSourceVisual
 		toward: pointer.
+	sourcePoint := connectionPreviewSourcePoint.
 	connectionPreviewCursor := BlElement new
 		extent: 1 @ 1;
 		background: Color transparent;
@@ -397,10 +399,7 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 		connectionTargetAtGlobalPoint: anEvent position
 		from: aSource
 		sourceVisual: aSourceVisual.
-	sourcePoint := self
-		collaborationDockingPointForFlowNode: aSource
-		inVisual: aSourceVisual
-		toward: pointer.
+	sourcePoint := connectionPreviewSourcePoint.
 	targetPoint := target
 		ifNil: [ pointer ]
 		ifNotNil: [
@@ -591,7 +590,8 @@ CPCollaborationVisualElement >> removeConnectionPreview [
 	connectionPreviewLine ifNotNil: [ connectionPreviewLine removeFromParent ].
 	connectionPreviewCursor ifNotNil: [ connectionPreviewCursor removeFromParent ].
 	connectionPreviewLine := nil.
-	connectionPreviewCursor := nil
+	connectionPreviewCursor := nil.
+	connectionPreviewSourcePoint := nil
 ]
 
 { #category : 'private - labels' }
