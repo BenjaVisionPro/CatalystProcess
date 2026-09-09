@@ -29,8 +29,12 @@ CPSubProcess >> flowElements [
 
 { #category : 'accessing' }
 CPSubProcess >> flowElements: aCollection [
-	flowElements copy do: [ :each | self removeFlowElement: each ].
-	aCollection do: [ :each | self addFlowElement: each ]
+	| proposed |
+	proposed := aCollection asOrderedCollection copy.
+	flowElements copy do: [ :each |
+		(proposed identityIncludes: each) ifFalse: [ self removeFlowElement: each ] ].
+	proposed do: [ :each | self addFlowElement: each ].
+	flowElements := proposed
 ]
 
 { #category : 'adding' }
@@ -42,10 +46,13 @@ CPSubProcess >> addFlowElement: aFlowElement [
 
 { #category : 'removing' }
 CPSubProcess >> removeFlowElement: aFlowElement [
-	(flowElements includes: aFlowElement) ifFalse: [ ^ self ].
-	aFlowElement prepareForRemovalFrom: self.
-	flowElements remove: aFlowElement.
-	aFlowElement container: nil
+	(flowElements identityIncludes: aFlowElement) ifFalse: [ ^ self ].
+	"A committed transfer has already given this element another owner.
+	Remove stale source membership without disconnecting the transferred topology."
+	aFlowElement container == self ifTrue: [
+		aFlowElement prepareForRemovalFrom: self.
+		aFlowElement container: nil ].
+	flowElements remove: aFlowElement ifAbsent: [ ]
 ]
 
 { #category : 'descriptions' }

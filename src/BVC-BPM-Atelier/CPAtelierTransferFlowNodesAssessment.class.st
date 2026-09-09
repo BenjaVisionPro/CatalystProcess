@@ -12,9 +12,7 @@ Class {
 		'shapesByFlowNode',
 		'edgesBySequenceFlow',
 		'proposedBoundsByFlowNode',
-		'proposedWaypointsBySequenceFlow',
-		'stagedNodeState',
-		'stagedFlowState'
+		'proposedWaypointsBySequenceFlow'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -69,11 +67,3 @@ CPAtelierTransferFlowNodesAssessment >> proposedBoundsByFlowNode: aDictionary [ 
 CPAtelierTransferFlowNodesAssessment >> proposedWaypointsBySequenceFlow [ ^ proposedWaypointsBySequenceFlow ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNodesAssessment >> proposedWaypointsBySequenceFlow: aDictionary [ proposedWaypointsBySequenceFlow := aDictionary ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodesAssessment >> stagedNodeState [ ^ stagedNodeState ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodesAssessment >> stagedNodeState: aDictionary [ stagedNodeState := aDictionary ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodesAssessment >> stagedFlowState [ ^ stagedFlowState ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodesAssessment >> stagedFlowState: aDictionary [ stagedFlowState := aDictionary ]

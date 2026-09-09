@@ -30,8 +30,8 @@ CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetC
 { #category : 'assessing' }
 CPAtelierTransferFlowNode >> assess [
 	| sourceContext targetContext sourceElements targetElements sourceMemento
-	  incomingDescription outgoingDescription incoming outgoing labelDescription stagedLabel
-	  nestedElements diagram diagramMemento elementsDescription elements shape shapeMemento
+	  incomingDescription outgoingDescription incoming outgoing
+	  diagram diagramMemento elementsDescription elements shape shapeMemento
 	  boundsDescription currentBounds proposedSource proposedTarget diagramContext |
 
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
@@ -68,15 +68,6 @@ CPAtelierTransferFlowNode >> assess [
 	outgoing := sourceMemento readUsing: outgoingDescription.
 	(incoming isEmpty and: [ outgoing isEmpty ]) ifFalse: [
 		^ self rejectedBecause: 'A connected flow node must be transferred with its closed SequenceFlow topology.' ].
-
-	labelDescription := sourceMemento magritteDescription detect: [ :each | each handlesSelector: #label ].
-	stagedLabel := sourceMemento readUsing: labelDescription.
-	nestedElements := flowNode isSubProcess
-		ifTrue: [
-			| description |
-			description := sourceMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
-			sourceMemento readUsing: description ]
-		ifFalse: [ nil ].
 
 	proposedSource := sourceElements asOrderedCollection copy.
 	proposedSource remove: flowNode ifAbsent: [
@@ -116,36 +107,18 @@ CPAtelierTransferFlowNode >> assess [
 		proposedTargetFlowElements: proposedTarget
 		currentBounds: currentBounds
 		proposedBounds: proposedBounds
-		stagedLabel: stagedLabel
-		stagedIncoming: incoming
-		stagedOutgoing: outgoing
-		stagedNestedFlowElements: nestedElements
 ]
 
 { #category : 'applying' }
 CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
-	| sourceContext targetContext targetMemento labelDescription containerDescription
-	  incomingDescription outgoingDescription diagram diagramMemento elementsDescription
+	| sourceContext targetContext diagram diagramMemento elementsDescription
 	  shapeMemento boundsDescription diagramContext |
 
 	sourceContext := CPProcessFlowContainerContext forContainer: anAssessment sourceContainer inRootMemento: processMemento.
 	targetContext := CPProcessFlowContainerContext forContainer: anAssessment targetContainer inRootMemento: processMemento.
+	sourceContext transferChildMementoFor: anAssessment flowNode to: targetContext inRootMemento: processMemento.
 	sourceContext writeFlowElements: anAssessment proposedSourceFlowElements.
 	targetContext writeFlowElements: anAssessment proposedTargetFlowElements.
-
-	targetMemento := targetContext childMementoFor: flowNode.
-	labelDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #label ].
-	containerDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #container ].
-	incomingDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #incoming ].
-	outgoingDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #outgoing ].
-	targetMemento write: anAssessment stagedLabel using: labelDescription.
-	targetMemento write: anAssessment targetContainer using: containerDescription.
-	targetMemento write: anAssessment stagedIncoming using: incomingDescription.
-	targetMemento write: anAssessment stagedOutgoing using: outgoingDescription.
-	anAssessment stagedNestedFlowElements ifNotNil: [ :nested |
-		| nestedDescription |
-		nestedDescription := targetMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
-		targetMemento write: nested using: nestedDescription ].
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext

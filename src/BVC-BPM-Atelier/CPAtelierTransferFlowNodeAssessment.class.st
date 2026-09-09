@@ -9,34 +9,13 @@ Class {
 		'proposedSourceFlowElements',
 		'proposedTargetFlowElements',
 		'currentBounds',
-		'proposedBounds',
-		'stagedLabel',
-		'stagedIncoming',
-		'stagedOutgoing',
-		'stagedNestedFlowElements'
+		'proposedBounds'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
 
-{ #category : 'instance creation' }
-CPAtelierTransferFlowNodeAssessment class >> flowNode: aFlowNode shape: aShape sourceContainer: aSourceContainer targetContainer: aTargetContainer proposedSourceFlowElements: sourceElements proposedTargetFlowElements: targetElements currentBounds: currentBounds proposedBounds: proposedBounds stagedLabel: aLabel stagedIncoming: incoming stagedOutgoing: outgoing stagedNestedFlowElements: nestedElements [
-	^ self new
-		flowNode: aFlowNode;
-		shape: aShape;
-		sourceContainer: aSourceContainer;
-		targetContainer: aTargetContainer;
-		proposedSourceFlowElements: sourceElements;
-		proposedTargetFlowElements: targetElements;
-		currentBounds: currentBounds;
-		proposedBounds: proposedBounds;
-		stagedLabel: aLabel;
-		stagedIncoming: incoming;
-		stagedOutgoing: outgoing;
-		stagedNestedFlowElements: nestedElements;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierTransferFlowNodeAssessment class >> flowNode: aFlowNode rejectedBecause: aString [
@@ -75,21 +54,18 @@ CPAtelierTransferFlowNodeAssessment >> currentBounds: aRectangle [ currentBounds
 CPAtelierTransferFlowNodeAssessment >> proposedBounds [ ^ proposedBounds ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNodeAssessment >> proposedBounds: aRectangle [ proposedBounds := aRectangle ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedLabel [ ^ stagedLabel ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedLabel: anObject [ stagedLabel := anObject ]
 
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedIncoming [ ^ stagedIncoming ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedIncoming: aCollection [ stagedIncoming := aCollection ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedOutgoing [ ^ stagedOutgoing ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedOutgoing: aCollection [ stagedOutgoing := aCollection ]
 
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedNestedFlowElements [ ^ stagedNestedFlowElements ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodeAssessment >> stagedNestedFlowElements: aCollection [ stagedNestedFlowElements := aCollection ]
+{ #category : 'instance creation' }
+CPAtelierTransferFlowNodeAssessment class >> flowNode: aFlowNode shape: aShape sourceContainer: aSourceContainer targetContainer: aTargetContainer proposedSourceFlowElements: sourceElements proposedTargetFlowElements: targetElements currentBounds: currentBounds proposedBounds: proposedBounds [
+	^ self new
+		flowNode: aFlowNode;
+		shape: aShape;
+		sourceContainer: aSourceContainer;
+		targetContainer: aTargetContainer;
+		proposedSourceFlowElements: sourceElements;
+		proposedTargetFlowElements: targetElements;
+		currentBounds: currentBounds;
+		proposedBounds: proposedBounds;
+		yourself
+]

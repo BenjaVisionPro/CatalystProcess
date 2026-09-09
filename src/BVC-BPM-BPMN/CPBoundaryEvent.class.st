@@ -66,7 +66,6 @@ CPBoundaryEvent >> eventDefinitionsDescription [
 		label: 'Event definitions';
 		priority: 125;
 		group: 'Event';
-		beReadOnly;
 		yourself
 ]
 

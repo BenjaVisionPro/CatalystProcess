@@ -33,7 +33,7 @@ CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aT
 CPAtelierTransferFlowNodes >> assess [
 	| nodes nodeSet sourceContext targetContext sourceElements targetElements internalFlows boundaryFlows
 	  proposedSource proposedTarget diagram diagramMemento elementsDescription elements shapesByNode edgesByFlow
-	  stagedNodeState stagedFlowState diagramContext |
+	  diagramContext |
 
 	flowNodes ifNil: [ ^ self rejectedBecause: 'At least one flow node is required.' ].
 	nodes := flowNodes asOrderedCollection.
@@ -156,13 +156,6 @@ CPAtelierTransferFlowNodes >> assess [
 			do: [ :anException | ^ self rejectedBecause: anException printString ].
 		edgesByFlow at: each put: edge ].
 
-	stagedNodeState := IdentityDictionary new.
-	nodes do: [ :each |
-		stagedNodeState at: each put: (self stagedStateForNode: each in: sourceContext) ].
-	stagedFlowState := IdentityDictionary new.
-	internalFlows do: [ :each |
-		stagedFlowState at: each put: (self stagedStateForSequenceFlow: each in: sourceContext) ].
-
 	^ CPAtelierTransferFlowNodesAssessment new
 		flowNodes: nodes;
 		sequenceFlows: internalFlows;
@@ -174,8 +167,6 @@ CPAtelierTransferFlowNodes >> assess [
 		edgesBySequenceFlow: edgesByFlow;
 		proposedBoundsByFlowNode: proposedBoundsByFlowNode;
 		proposedWaypointsBySequenceFlow: proposedWaypointsBySequenceFlow;
-		stagedNodeState: stagedNodeState;
-		stagedFlowState: stagedFlowState;
 		yourself
 ]
 
@@ -189,21 +180,10 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 		forContainer: anAssessment targetContainer
 		inRootMemento: processMemento.
 
+	(anAssessment flowNodes, anAssessment sequenceFlows) do: [ :each |
+		sourceContext transferChildMementoFor: each to: targetContext inRootMemento: processMemento ].
 	sourceContext writeFlowElements: anAssessment proposedSourceFlowElements.
 	targetContext writeFlowElements: anAssessment proposedTargetFlowElements.
-
-	anAssessment flowNodes do: [ :each |
-		self
-			restoreNode: each
-			state: (anAssessment stagedNodeState at: each)
-			in: targetContext
-			targetContainer: anAssessment targetContainer ].
-	anAssessment sequenceFlows do: [ :each |
-		self
-			restoreSequenceFlow: each
-			state: (anAssessment stagedFlowState at: each)
-			in: targetContext
-			targetContainer: anAssessment targetContainer ].
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
@@ -227,10 +207,7 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 			detect: [ :each | each handlesSelector: #waypoints ].
 		edgeMemento
 			write: (anAssessment proposedWaypointsBySequenceFlow at: aSequenceFlow)
-			using: waypointsDescription ].
-
-	anAssessment flowNodes do: [ :each | sourceContext detachChildMementoFor: each ].
-	anAssessment sequenceFlows do: [ :each | sourceContext detachChildMementoFor: each ]
+			using: waypointsDescription ]
 ]
 
 { #category : 'private - staged state' }
@@ -243,79 +220,6 @@ CPAtelierTransferFlowNodes >> stagedTargetOf: aSequenceFlow in: aContext [
 	^ aContext stagedTargetOf: aSequenceFlow
 ]
 
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNodes >> stagedStateForNode: aFlowNode in: aContext [
-	| memento state |
-	memento := aContext childMementoFor: aFlowNode.
-	state := Dictionary new.
-	self copySelector: #label from: memento into: state.
-	self copySelector: #incoming from: memento into: state.
-	self copySelector: #outgoing from: memento into: state.
-	aFlowNode isCallActivity ifTrue: [
-		self copySelector: #calledElement from: memento into: state ].
-	aFlowNode isSubProcess ifTrue: [
-		self copySelector: #flowElements from: memento into: state ].
-	aFlowNode isBoundaryEvent ifTrue: [
-		self copySelector: #attachedToRef from: memento into: state.
-		self copySelector: #cancelActivity from: memento into: state.
-		self copySelector: #eventDefinitions from: memento into: state ].
-	^ state
-]
-
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNodes >> stagedStateForSequenceFlow: aSequenceFlow in: aContext [
-	| memento state |
-	memento := aContext childMementoFor: aSequenceFlow.
-	state := Dictionary new.
-	self copySelector: #label from: memento into: state.
-	self copySelector: #sourceRef from: memento into: state.
-	self copySelector: #targetRef from: memento into: state.
-	^ state
-]
-
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNodes >> copySelector: aSelector from: aMemento into: aDictionary [
-	| description |
-	description := aMemento magritteDescription
-		detect: [ :each | each handlesSelector: aSelector ].
-	aDictionary at: aSelector put: (aMemento readUsing: description)
-]
-
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNodes >> restoreNode: aFlowNode state: state in: aContext targetContainer: aTargetContainer [
-	| memento |
-	memento := aContext childMementoFor: aFlowNode.
-	self writeSelector: #label value: (state at: #label) to: memento.
-	self writeSelector: #container value: aTargetContainer to: memento.
-	self writeSelector: #incoming value: (state at: #incoming) to: memento.
-	self writeSelector: #outgoing value: (state at: #outgoing) to: memento.
-	aFlowNode isCallActivity ifTrue: [
-		self writeSelector: #calledElement value: (state at: #calledElement) to: memento ].
-	aFlowNode isSubProcess ifTrue: [
-		self writeSelector: #flowElements value: (state at: #flowElements) to: memento ].
-	aFlowNode isBoundaryEvent ifTrue: [
-		self writeSelector: #attachedToRef value: (state at: #attachedToRef) to: memento.
-		self writeSelector: #cancelActivity value: (state at: #cancelActivity) to: memento.
-		self writeSelector: #eventDefinitions value: (state at: #eventDefinitions) to: memento ]
-]
-
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNodes >> restoreSequenceFlow: aSequenceFlow state: state in: aContext targetContainer: aTargetContainer [
-	| memento |
-	memento := aContext childMementoFor: aSequenceFlow.
-	self writeSelector: #label value: (state at: #label) to: memento.
-	self writeSelector: #container value: aTargetContainer to: memento.
-	self writeSelector: #sourceRef value: (state at: #sourceRef) to: memento.
-	self writeSelector: #targetRef value: (state at: #targetRef) to: memento
-]
-
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNodes >> writeSelector: aSelector value: aValue to: aMemento [
-	| description |
-	description := aMemento magritteDescription
-		detect: [ :each | each handlesSelector: aSelector ].
-	aMemento write: aValue using: description
-]
 
 { #category : 'private - diagram' }
 CPAtelierTransferFlowNodes >> shapeFor: aFlowNode in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription [

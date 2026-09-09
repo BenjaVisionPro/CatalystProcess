@@ -106,7 +106,6 @@ CPProcessFlowContainerContext >> childMementoFor: aFlowElement [
 ]
 
 
-
 { #category : 'staged state' }
 CPProcessFlowContainerContext >> stagedAttachedToOf: aBoundaryEvent [
 	| eventMemento description |
@@ -172,3 +171,17 @@ CPProcessFlowContainerContext >> flowElementsDescription [ ^ flowElementsDescrip
 
 { #category : 'accessing' }
 CPProcessFlowContainerContext >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]
+
+{ #category : 'staged state' }
+CPProcessFlowContainerContext >> transferChildMementoFor: aFlowElement to: aTargetContext inRootMemento: aRootMemento [
+	| child description |
+	child := self childMementoFor: aFlowElement.
+	description := child magritteDescription detect: [ :each | each handlesSelector: #container ].
+	^ aRootMemento
+		reparentChildMementoFor: aFlowElement
+		from: memento
+		inRelation: flowElementsDescription
+		to: aTargetContext memento
+		inRelation: aTargetContext flowElementsDescription
+		ownerDescription: description
+]

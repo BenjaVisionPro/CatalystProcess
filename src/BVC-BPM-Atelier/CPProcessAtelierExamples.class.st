@@ -2347,3 +2347,264 @@ CPProcessAtelierExamples >> createLaneStagesLaneSetLaneAndShapeAtomically [
 	self assert: laneShape bounds equals: (40 @ 40 extent: 500 @ 140).
 	^ assessment
 ]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> boundaryEventDefinitionCommitAndReset [
+	<gtExample>
+	| fixture root event child description original operation |
+	fixture := self boundaryEventFixture.
+	root := fixture second.
+	event := fixture fourth.
+	child := (CPProcessFlowContainerContext rootFor: root) childMementoFor: event.
+	description := self descriptionFor: #eventDefinitions in: child.
+	original := event eventDefinitions first.
+	operation := CPAtelierSetBoundaryEventDefinition boundaryEvent: event definitionClass: CPEscalationEventDefinition flowContainer: fixture first processMemento: root.
+	self assert: operation apply isApplicable.
+	self assert: root hasChangesToCommit.
+	self assert: event eventDefinitions first == original.
+	root reset.
+	self assert: (child readUsing: description) first == original.
+	self assert: root hasChangesToCommit not.
+	self assert: operation apply isApplicable.
+	root commit.
+	self assert: event eventDefinitions first class equals: CPEscalationEventDefinition.
+	self assert: root hasChangesToCommit not.
+	self assert: ((CPAtelierSetBoundaryEventDefinition boundaryEvent: event definitionClass: CPMessageEventDefinition flowContainer: fixture first processMemento: root) apply) isApplicable.
+	root reset.
+	self assert: (child readUsing: description) first class equals: CPEscalationEventDefinition.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> transactionTransferFixture [
+	| process moving target nested call companion flow diagram root context movingContext child callMemento called |
+	process := CPProcess new label: 'Transfer transaction'; yourself.
+	moving := CPNoneSubProcess new label: 'Moving'; yourself.
+	target := CPNoneSubProcess new label: 'Target'; yourself.
+	nested := CPUserTask new label: 'Original child'; yourself.
+	call := CPCallActivity new label: 'Call'; yourself.
+	companion := CPUserTask new label: 'Companion'; yourself.
+	moving addFlowElement: nested.
+	process addFlowElement: moving; addFlowElement: target; addFlowElement: call; addFlowElement: companion.
+	flow := CPSequenceFlow new sourceRef: moving; targetRef: companion; yourself.
+	process addFlowElement: flow.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	{ moving. target. nested. call. companion } do: [ :each |
+		diagram addElement: (CPShape new modelElement: each; bounds: (50 @ 50 extent: 160 @ 100); yourself) ].
+	diagram addElement: (CPEdge new modelElement: flow; waypoints: { 100 @ 100. 300 @ 100 } asOrderedCollection; yourself).
+	root := CFMaMemento model: process.
+	context := CPProcessFlowContainerContext rootFor: root.
+	movingContext := context childContextForSubProcess: moving.
+	child := movingContext childMementoFor: nested.
+	child write: 'Staged child edit' using: (self descriptionFor: #label in: child).
+	called := CPProcess new label: 'Staged called process'; yourself.
+	callMemento := context childMementoFor: call.
+	callMemento write: called using: (self descriptionFor: #calledElement in: callMemento).
+	^ { process. root. moving. target. nested. call. companion. flow. child. callMemento. called }
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> transferFixtureGroup: fixture [
+	| bounds waypoints |
+	bounds := IdentityDictionary new.
+	{ fixture third. fixture seventh } do: [ :each | bounds at: each put: (20 @ 20 extent: 160 @ 100) ].
+	waypoints := IdentityDictionary new at: fixture eighth put: { 50 @ 50. 200 @ 50 } asOrderedCollection; yourself.
+	^ CPAtelierTransferFlowNodes flowNodes: { fixture third. fixture seventh } targetContainer: fixture fourth boundsByFlowNode: bounds waypointsBySequenceFlow: waypoints processMemento: fixture second diagramDescription: (self descriptionFor: #diagram in: fixture second)
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> groupTransferPreservesEditingTreeThroughCommit [
+	<gtExample>
+	| f root source movingMemento destination child |
+	f := self transactionTransferFixture.
+	root := f second.
+	source := CPProcessFlowContainerContext rootFor: root.
+	movingMemento := source childMementoFor: f third.
+	self assert: (self transferFixtureGroup: f) apply isApplicable.
+	destination := (CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: f fourth.
+	self assert: (destination childMementoFor: f third) == movingMemento.
+	child := (destination childContextForSubProcess: f third) childMementoFor: f fifth.
+	self assert: child == f ninth.
+	self assert: (child readUsing: (self descriptionFor: #label in: child)) equals: 'Staged child edit'.
+	self assert: (root hasChildMementoFor: f third inRelation: source flowElementsDescription) not.
+	self assert: f fifth label equals: 'Original child'.
+	root commit.
+	self assert: f fifth label equals: 'Staged child edit'.
+	self assert: f third container == f fourth.
+	self assert: f seventh container == f fourth.
+	self assert: f eighth container == f fourth.
+	self assert: f eighth sourceRef == f third.
+	self assert: f eighth targetRef == f seventh.
+	self assert: (f third outgoing identityIncludes: f eighth).
+	self assert: (f seventh incoming identityIncludes: f eighth).
+	self assert: (destination childMementoFor: f third) == movingMemento.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> singleTransferPreservesAllFieldsThroughCommit [
+	<gtExample>
+	| f root operation destination |
+	f := self transactionTransferFixture.
+	root := f second.
+	operation := CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f fourth bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramDescription: (self descriptionFor: #diagram in: root).
+	self assert: operation apply isApplicable.
+	destination := (CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: f fourth.
+	self assert: (destination childMementoFor: f sixth) == (f at: 10).
+	self assert: f sixth calledElement isNil.
+	root commit.
+	self assert: f sixth calledElement == (f at: 11).
+	self assert: f sixth container == f fourth.
+	self assert: f eighth sourceRef == f third.
+	self assert: f eighth targetRef == f seventh.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> groupTransferResetRestoresOriginalEditingTree [
+	<gtExample>
+	| f root source movingMemento destination child |
+	f := self transactionTransferFixture.
+	root := f second.
+	source := CPProcessFlowContainerContext rootFor: root.
+	movingMemento := source childMementoFor: f third.
+	self assert: (self transferFixtureGroup: f) apply isApplicable.
+	destination := (CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: f fourth.
+	root reset.
+	self assert: (source childMementoFor: f third) == movingMemento.
+	child := (source childContextForSubProcess: f third) childMementoFor: f fifth.
+	self assert: child == f ninth.
+	self assert: (child readUsing: (self descriptionFor: #label in: child)) equals: 'Original child'.
+	self assert: (destination memento hasChildMementoFor: f third inRelation: destination flowElementsDescription) not.
+	self assert: (source stagedFlowElements identityIncludes: f third).
+	self assert: destination stagedFlowElements isEmpty.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> singleTransferRoundTripResetPreservesIdentity [
+	<gtExample>
+	| f root diagramDescription source destination original |
+	f := self transactionTransferFixture.
+	root := f second.
+	diagramDescription := self descriptionFor: #diagram in: root.
+	source := CPProcessFlowContainerContext rootFor: root.
+	original := f at: 10.
+	self assert: (CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f fourth bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	destination := source childContextForSubProcess: f fourth.
+	self assert: (CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f first bounds: (70 @ 70 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (source childMementoFor: f sixth) == original.
+	root reset.
+	self assert: (source childMementoFor: f sixth) == original.
+	self assert: (original readUsing: (self descriptionFor: #calledElement in: original)) isNil.
+	self assert: (destination memento hasChildMementoFor: f sixth inRelation: destination flowElementsDescription) not.
+	self assert: f sixth container == f first.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> transferThenRemoveResetRestoresDescendantIdentity [
+	<gtExample>
+	| f root diagramDescription source original |
+	f := self transactionTransferFixture.
+	root := f second.
+	diagramDescription := self descriptionFor: #diagram in: root.
+	source := CPProcessFlowContainerContext rootFor: root.
+	original := source childMementoFor: f third.
+	self assert: (self transferFixtureGroup: f) apply isApplicable.
+	self assert: (CPAtelierRemoveFlowNode flowNode: f third flowContainer: f fourth processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	root reset.
+	self assert: (source childMementoFor: f third) == original.
+	self assert: ((source childContextForSubProcess: f third) childMementoFor: f fifth) == f ninth.
+	self assert: f fifth label equals: 'Original child'.
+	self assert: f eighth sourceRef == f third.
+	self assert: f eighth targetRef == f seventh.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> transferThenRemoveCommitDiscardsRemovedDescendantEdits [
+	<gtExample>
+	| f root diagramDescription |
+	f := self transactionTransferFixture.
+	root := f second.
+	diagramDescription := self descriptionFor: #diagram in: root.
+	self assert: (self transferFixtureGroup: f) apply isApplicable.
+	self assert: (CPAtelierRemoveFlowNode flowNode: f third flowContainer: f fourth processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	root commit.
+	self assert: f fifth label equals: 'Original child'.
+	self assert: (f first flowElements identityIncludes: f third) not.
+	self assert: (f fourth flowElements identityIncludes: f third) not.
+	self assert: f third container isNil.
+	self assert: f eighth sourceRef isNil.
+	self assert: f eighth targetRef isNil.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> groupTransferBetweenSiblingContainersCommitsTopology [
+	<gtExample>
+	| f root destination original bounds waypoints nested source |
+	f := self transactionTransferFixture.
+	root := f second.
+	original := f ninth.
+	self assert: (self transferFixtureGroup: f) apply isApplicable.
+	root commit.
+	source := f fourth.
+	destination := CPNoneSubProcess new label: 'Sibling'; yourself.
+	"Create a second committed container and a fresh transaction for the sibling move."
+	f first addFlowElement: destination.
+	root := CFMaMemento model: f first.
+	nested := ((CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: source) childContextForSubProcess: f third.
+	original := nested childMementoFor: f fifth.
+	original write: 'Sibling edit' using: (self descriptionFor: #label in: original).
+	bounds := IdentityDictionary new.
+	{ f third. f seventh } do: [ :each | bounds at: each put: (30 @ 30 extent: 160 @ 100) ].
+	waypoints := IdentityDictionary new at: f eighth put: { 60 @ 60. 210 @ 60 } asOrderedCollection; yourself.
+	self assert: (CPAtelierTransferFlowNodes flowNodes: { f third. f seventh } targetContainer: destination boundsByFlowNode: bounds waypointsBySequenceFlow: waypoints processMemento: root diagramDescription: (self descriptionFor: #diagram in: root)) apply isApplicable.
+	root commit.
+	self assert: source flowElements isEmpty.
+	self assert: f third container == destination.
+	self assert: f eighth container == destination.
+	self assert: f eighth sourceRef == f third.
+	self assert: f eighth targetRef == f seventh.
+	self assert: (f third outgoing identityIncludes: f eighth).
+	self assert: (f seventh incoming identityIncludes: f eighth).
+	self assert: f fifth label equals: 'Sibling edit'.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
+
+{ #category : 'examples - transaction' }
+CPProcessAtelierExamples >> reversingNestedContainerOwnershipCommitsWithoutLosingLinks [
+	<gtExample>
+	| process outer inner root diagramDescription originalChild |
+	process := CPProcess new label: 'Rotation'; yourself.
+	outer := CPNoneSubProcess new label: 'Outer'; yourself.
+	inner := CPNoneSubProcess new label: 'Inner'; yourself.
+	outer addFlowElement: inner.
+	process addFlowElement: outer.
+	process diagram: CPDiagram new.
+	{ outer. inner } do: [ :each | process diagram addElement: (CPShape new modelElement: each; bounds: (50 @ 50 extent: 160 @ 100); yourself) ].
+	root := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: root.
+	originalChild := ((CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: outer) childMementoFor: inner.
+	self assert: (CPAtelierTransferFlowNode flowNode: inner targetContainer: process bounds: (60 @ 60 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (CPAtelierTransferFlowNode flowNode: outer targetContainer: inner bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	root commit.
+	self assert: inner container == process.
+	self assert: outer container == inner.
+	self assert: outer flowElements isEmpty.
+	self assert: inner flowElements first == outer.
+	self assert: process flowElements first == inner.
+	self assert: (root childMementoFor: inner inRelation: (self descriptionFor: #flowElements in: root)) == originalChild.
+	self assert: root hasChangesToCommit not.
+	^ root
+]
