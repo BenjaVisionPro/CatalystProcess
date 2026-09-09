@@ -27,7 +27,7 @@ Class {
 		'selectionChangedBlock',
 		'diagramEditing',
 		'contextualAppendPaletteItems',
-		'lanePaletteItem',
+		'poolPaletteItem',
 		'diagramElementsRemovedBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
@@ -49,7 +49,7 @@ CPProcessVisualElement >> initialize [
 	super initialize.
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
 	contextualAppendPaletteItems := #().
-	lanePaletteItem := nil.
+	poolPaletteItem := nil.
 	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
 	shapeElementsByModelElement := IdentityDictionary new.
@@ -90,8 +90,8 @@ CPProcessVisualElement >> contextualAppendPaletteItems: somePaletteItems [
 ]
 
 { #category : 'configuration' }
-CPProcessVisualElement >> lanePaletteItem: aPaletteItem [
-	lanePaletteItem := aPaletteItem
+CPProcessVisualElement >> poolPaletteItem: aPaletteItem [
+	poolPaletteItem := aPaletteItem
 ]
 
 { #category : 'accessing' }
@@ -2481,7 +2481,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem insertingInto: anEdg
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
-	(self isLanePaletteDragItem: aDragItem) ifTrue: [ ^ false ].
+	(self isPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [ ^ false ].
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
@@ -2645,7 +2645,7 @@ CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowEle
 { #category : 'private - creation' }
 CPProcessVisualElement >> isBoundaryEventPaletteDragItem: aDragItem [
 	| candidate |
-	(self isLanePaletteDragItem: aDragItem) ifTrue: [ ^ false ].
+	(self isPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [ ^ false ].
 	^ candidate isBoundaryEvent
@@ -2654,7 +2654,7 @@ CPProcessVisualElement >> isBoundaryEventPaletteDragItem: aDragItem [
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsBoundaryEventPaletteDragItem: aDragItem attachedToShape: anActivityShape [
 	| sourceElement candidate activityBounds extent proposedBounds operation assessment |
-	(self isLanePaletteDragItem: aDragItem) ifTrue: [ ^ false ].
+	(self isPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
@@ -2783,9 +2783,9 @@ CPProcessVisualElement >> paletteItemForDragItem: aDragItem [
 ]
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> isLanePaletteDragItem: aDragItem [
-	lanePaletteItem ifNil: [ ^ false ].
-	^ (self paletteItemForDragItem: aDragItem) == lanePaletteItem
+CPProcessVisualElement >> isPoolPaletteDragItem: aDragItem [
+	poolPaletteItem ifNil: [ ^ false ].
+	^ (self paletteItemForDragItem: aDragItem) == poolPaletteItem
 ]
 
 { #category : 'private - creation' }
@@ -2801,10 +2801,19 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
 	candidate := aDragItem domainObject.
 
-	(self isLanePaletteDragItem: aDragItem) ifTrue: [
+	(self isPoolPaletteDragItem: aDragItem) ifTrue: [
 		flowContainer == memento model ifFalse: [ ^ false ].
-		proposedBounds := 0 @ 0 extent: self defaultLaneExtent.
-		operation := diagramEditing createLane: candidate bounds: proposedBounds.
+		collaborationVisual
+			ifNil: [
+				proposedBounds := self firstParticipantBoundsCenteredAt: 0 @ 0.
+				operation := diagramEditing
+					createParticipant: candidate
+					bounds: proposedBounds ]
+			ifNotNil: [
+				proposedBounds := 0 @ 0 extent: self defaultLaneExtent.
+				operation := diagramEditing
+					createLane: (CPLane new label: 'Lane'; yourself)
+					bounds: proposedBounds ].
 		operation ifNil: [ ^ false ].
 		assessment := operation assess.
 		^ assessment isApplicable ].
@@ -2853,8 +2862,15 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
 	| candidate elementExtent bounds operation assessment |
 	candidate := aDragItem domainObject.
-	(self isLanePaletteDragItem: aDragItem) ifTrue: [
-		^ self createLanePaletteItem: candidate atRootDiagramPoint: aRootPoint ].
+	(self isPoolPaletteDragItem: aDragItem) ifTrue: [
+		collaborationVisual
+			ifNil: [
+				^ self
+					createParticipantPaletteItem: candidate
+					atRootDiagramPoint: aRootPoint ]
+			ifNotNil: [
+				^ self
+					createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint ] ].
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 	candidate isBoundaryEvent ifTrue: [ ^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
@@ -2879,18 +2895,19 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	^ assessment
 ]
 { #category : 'private - creation' }
-CPProcessVisualElement >> createLanePaletteItem: aLane atRootDiagramPoint: aRootPoint [
-	| bounds operation assessment |
+CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint [
+	| lane bounds operation assessment |
 	flowContainer == memento model ifFalse: [ ^ nil ].
+	lane := CPLane new label: 'Lane'; yourself.
 	bounds := self
 		boundsCenteredAtRootDiagramPoint: aRootPoint
 		extent: self defaultLaneExtent.
-	operation := diagramEditing createLane: aLane bounds: bounds.
+	operation := diagramEditing createLane: lane bounds: bounds.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
 		self refreshEditor.
-		(rootVisual diagramElementForModelElementInTree: aLane) ifNotNil: [ :aShape |
+		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
@@ -3052,7 +3069,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem replacing: aFlowNode
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
-	(self isLanePaletteDragItem: aDragItem) ifTrue: [ ^ false ].
+	(self isPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [ ^ false ].
 	candidate isBoundaryEvent ifTrue: [ ^ false ].
@@ -4400,7 +4417,7 @@ CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 		diagramElementsRemovedDo: diagramElementsRemovedBlock;
 		diagramEditing: diagramEditing;
 		contextualAppendPaletteItems: contextualAppendPaletteItems;
-		lanePaletteItem: lanePaletteItem
+		poolPaletteItem: poolPaletteItem
 ]
 
 { #category : 'private - subprocess' }

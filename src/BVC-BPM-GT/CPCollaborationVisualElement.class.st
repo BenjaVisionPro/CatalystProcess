@@ -1137,9 +1137,9 @@ CPCollaborationVisualElement >> installPaletteDropHandler [
 ]
 
 { #category : 'private - creation' }
-CPCollaborationVisualElement >> isProcessLanePaletteDragItem: aDragItem [
+CPCollaborationVisualElement >> isProcessPoolPaletteDragItem: aDragItem [
 	processVisual ifNil: [ ^ false ].
-	^ processVisual isLanePaletteDragItem: aDragItem
+	^ processVisual isPoolPaletteDragItem: aDragItem
 ]
 
 { #category : 'private - creation' }
@@ -1148,7 +1148,7 @@ CPCollaborationVisualElement >> acceptsParticipantPaletteDragItem: aDragItem [
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
-	(self isProcessLanePaletteDragItem: aDragItem) ifTrue: [ ^ false ].
+	(self isProcessPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifFalse: [ ^ false ].
 	operation := diagramEditing
@@ -1163,7 +1163,7 @@ CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
 	| dragItem participant dropPoint bounds operation assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
-	(self isProcessLanePaletteDragItem: dragItem) ifTrue: [ ^ self ].
+	(self isProcessPoolPaletteDragItem: dragItem) ifTrue: [ ^ self ].
 	participant := dragItem domainObject.
 	participant isParticipant ifFalse: [ ^ self ].
 	dropPoint := self diagramPointForGlobalPoint:

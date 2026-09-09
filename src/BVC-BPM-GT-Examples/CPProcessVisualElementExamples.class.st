@@ -2326,10 +2326,10 @@ CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
 
 
 { #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> lanePaletteDropCreatesAndRendersStagedLane [
+CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRendersStagedLane [
 	<gtExample>
-	| process diagram memento diagramDescription editing paletteItem visual source dragItem lane assessment |
-	process := CPProcess new label: 'Lane palette process'; yourself.
+	| process diagram memento diagramDescription editing paletteItem visual source dragItem pool assessment lane |
+	process := CPProcess new label: 'Pool structural tool process'; yourself.
 	diagram := CPDiagram new.
 	process diagram: diagram.
 	memento := CFMaMemento model: process.
@@ -2338,28 +2338,34 @@ CPProcessVisualElementExamples >> lanePaletteDropCreatesAndRendersStagedLane [
 		processMemento: memento
 		diagramDescription: diagramDescription.
 	paletteItem := CFAtelierPaletteItem
-		label: 'Lane'
-		icon: CPLane icon
-		provider: (CFAtelierFactoryProvider factory: [ CPLane new label: 'Lane'; yourself ]).
+		label: 'Pool'
+		icon: CPParticipant icon
+		provider: (CFAtelierFactoryProvider factory: [
+			CPParticipant new label: 'Pool'; yourself ]).
 	visual := CPProcessVisualElement new
 		diagramEditing: editing;
-		lanePaletteItem: paletteItem;
+		poolPaletteItem: paletteItem;
 		memento: memento;
+		beCollaborationHosted;
+		collaborationVisual: BlElement new;
 		yourself.
 	source := BlElement new.
 	source userData
 		at: #atelierPaletteSource put: true;
 		at: #atelierPaletteItem put: paletteItem.
-	lane := paletteItem materialize.
+	pool := paletteItem materialize.
 	dragItem := BlDragItem new
 		sourceElement: source;
-		domainObject: lane;
+		domainObject: pool;
 		yourself.
 
 	self assert: (visual acceptsPaletteDragItem: dragItem).
 	assessment := visual createPaletteItem: dragItem atRootDiagramPoint: 300 @ 140.
 	self assert: assessment isApplicable.
+	lane := visual lanesForCurrentProcess first.
+	self assert: lane class equals: CPLane.
 	self assert: (visual laneShapeElementFor: lane) lane == lane.
 	self assert: process laneSets isEmpty.
 	^ visual
 ]
+
