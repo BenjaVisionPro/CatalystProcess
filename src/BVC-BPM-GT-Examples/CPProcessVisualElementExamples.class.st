@@ -2560,3 +2560,33 @@ CPProcessVisualElementExamples >> insertingSecondLaneSplitsRoomyFirstLane [
 	self assert: (laneContext stagedLanesInLaneSet: laneSet) size equals: 2.
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> hostedDiagramUsesLaneAsStructuralOuterBoundary [
+	<gtExample>
+	| process diagram laneSet lane laneShape task taskShape memento visual |
+	process := CPProcess new label: 'Hosted lane boundary'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Reviewer'; yourself.
+	lane addFlowNodeRef: task.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new modelElement: lane; bounds: (56 @ 40 extent: 280 @ 102); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (80 @ 64 extent: 132 @ 54); yourself.
+	diagram addElement: laneShape; addElement: taskShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		memento: memento;
+		beCollaborationHosted;
+		yourself.
+
+	self assert: visual diagramContentOffset equals: visual planeGeometry normalizationOffset.
+	self assert: (visual laneShapeElementFor: lane) labelBand notNil.
+	self assert: (visual laneShapeElementFor: lane) labelElement class equals: CFEditableLabel.
+	^ visual
+]

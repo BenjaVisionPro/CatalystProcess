@@ -208,12 +208,15 @@ CPProcessVisualElement >> cameraSlack [
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramContentOffset [
-	^ (collaborationHosted
-		ifTrue: [ self hostedDiagramInset ]
-		ifFalse: [ diagramViewport cameraSlack ])
-		+ planeGeometry normalizationOffset
+	| hostedOffset |
+	hostedOffset := collaborationHosted
+		ifTrue: [
+			self lanesForCurrentProcess
+				ifEmpty: [ self hostedDiagramInset ]
+				ifNotEmpty: [ 0 @ 0 ] ]
+		ifFalse: [ diagramViewport cameraSlack ].
+	^ hostedOffset + planeGeometry normalizationOffset
 ]
-
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramBoundsOriginInContent [
@@ -497,16 +500,21 @@ CPProcessVisualElement >> lanesForCurrentProcess [
 ]
 { #category : 'private - lanes' }
 CPProcessVisualElement >> addLaneShape: aShape [
-	| lane bounds element |
+	| lane bounds laneMemento label element |
 	lane := self stagedModelElementOf: aShape.
 	bounds := self stagedBoundsOf: aShape.
 	(lane isNil or: [ bounds isNil ]) ifTrue: [ ^ self ].
+	laneMemento := (CPProcessLaneContext inRootMemento: memento)
+		mementoForLane: lane.
+	laneMemento ifNil: [ ^ self ].
+	label := self newEditableLabelForMemento: laneMemento.
 	element := CPLaneShapeElement new
 		lane: lane
 		shape: aShape
 		bounds: bounds
 		background: (self shapeBackgroundColor alpha: 0.25)
-		borderColor: self shapeBorderColor.
+		borderColor: self shapeBorderColor
+		label: label.
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: bounds origin.
@@ -514,6 +522,7 @@ CPProcessVisualElement >> addLaneShape: aShape [
 	laneElementsByLane at: lane put: element.
 	self addDiagramChild: element.
 	self
+		installLabelEditingOn: element labelBand label: label;
 		installSelectionOnLaneElement: element;
 		installPoolStructuralDropOnLaneElement: element lane: lane
 ]
@@ -1292,31 +1301,34 @@ CPProcessVisualElement >> boundaryEventHoverLabelOriginForEventBounds: eventBoun
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
-	| flowMemento description label |
+	| flowMemento |
 	flowMemento := self flowElementMementoFor: aFlowElement.
 	flowMemento ifNil: [
 		self error: 'Flow element is not present in the staged Process/Sub-Process hierarchy.' ].
-	description := flowMemento magritteDescription
-		detect: [ :each | each handlesSelector: #label ].
+	^ self newEditableLabelForMemento: flowMemento
+]
 
+{ #category : 'private - labels' }
+CPProcessVisualElement >> newEditableLabelForMemento: aModelMemento [
+	| description label |
+	description := aModelMemento magritteDescription
+		detect: [ :each | each handlesSelector: #label ].
 	label := CFEditableLabel new
 		aptitude: CPProcessLabelAptitude new;
-		text: ((flowMemento readUsing: description) ifNil: [ '' ]);
+		text: ((aModelMemento readUsing: description) ifNil: [ '' ]);
 		padding: BlInsets empty;
 		margin: BlInsets empty;
 		background: Color transparent;
 		border: BlBorder empty;
 		yourself.
-
 	label editor
 		when: BrTextEditorModifiedEvent
 		do: [ :anEvent |
 			GtMagritteBuilderUtility
 				writeText: anEvent text
-				using: description
-				memento: flowMemento
-				element: label ].
-
+					using: description
+					memento: aModelMemento
+					element: label ].
 	label
 		when: BrEditorAcceptWish
 		do: [ :aWish |
@@ -1325,15 +1337,13 @@ CPProcessVisualElement >> newEditableLabelFor: aFlowElement [
 		do: [ :aWish |
 			GtMagritteBuilderUtility
 				writeText: label text
-				using: description
-				memento: flowMemento
-				element: label.
+					using: description
+					memento: aModelMemento
+					element: label.
 			self finishEditingLabel: label ].
-
 	label preventMeAndChildrenMouseEvents.
 	^ label
 ]
-
 { #category : 'private - labels' }
 CPProcessVisualElement >> finishEditingLabel: anEditableLabel [
 	anEditableLabel preventMeAndChildrenMouseEvents.

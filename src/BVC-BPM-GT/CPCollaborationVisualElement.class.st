@@ -120,16 +120,20 @@ CPCollaborationVisualElement >> refresh [
 
 { #category : 'private - building' }
 CPCollaborationVisualElement >> addParticipantShape: aShape [
-	| participant bounds element |
+	| participant participantMemento label bounds element |
 	participant := self stagedModelElementOf: aShape.
 	bounds := self stagedBoundsOf: aShape.
 	(participant isNil or: [ bounds isNil ]) ifTrue: [ ^ self ].
+	participantMemento := collaborationContext mementoForMember: participant.
+	participantMemento ifNil: [ ^ self ].
+	label := processVisual newEditableLabelForMemento: participantMemento.
 	element := CPParticipantShapeElement new
 		participant: participant
 		shape: aShape
 		bounds: bounds
 		background: self poolBackgroundColor
-		borderColor: self poolBorderColor.
+		borderColor: self poolBorderColor
+		label: label.
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: bounds origin.
@@ -139,6 +143,9 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		installSelectionOnParticipantElement: element participant: participant;
 		installPositioningOnParticipantElement: element shape: aShape;
 		installResizeOnParticipantElement: element shape: aShape.
+	processVisual
+		installLabelEditingOn: element labelBand
+		label: label.
 
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifTrue: [
 		processVisual beCollaborationHosted.

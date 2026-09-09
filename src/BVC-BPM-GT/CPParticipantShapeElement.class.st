@@ -16,10 +16,11 @@ Class {
 }
 
 { #category : 'initialization' }
-CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRectangle background: aBackground borderColor: aBorderColor [
+CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRectangle background: aBackground borderColor: aBorderColor label: anEditableLabel [
 	participant := aParticipant.
 	diagramShape := aShape.
 	modelElement := aParticipant.
+	labelElement := anEditableLabel.
 	normalBorderColor := aBorderColor.
 	resizeHandles := #().
 	self
@@ -47,16 +48,13 @@ CPParticipantShapeElement >> addLabelBandBorderColor: aBorderColor [
 			c frame horizontal alignLeft.
 			c frame vertical alignTop ];
 		yourself.
-	labelElement := BrLabel new
-		text: (participant label ifNil: [ '' ]);
+	labelElement
 		hFitContent;
 		vFitContent;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
-		transformDo: [ :aTransform | aTransform rotateBy: -90 ];
-		preventMeAndChildrenMouseEvents;
-		yourself.
+		transformDo: [ :aTransform | aTransform rotateBy: -90 ].
 	labelBand addChild: labelElement.
 	self addChild: labelBand
 ]
