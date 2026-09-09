@@ -705,7 +705,12 @@ CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
+	| laneElement laneBounds |
 	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
+	laneElement := self laneElementOwningBodyHost: aHost.
+	laneElement ifNotNil: [
+		laneBounds := self stagedBoundsOf: laneElement diagramShape.
+		^ aPoint - (laneBounds origin + (self laneHeaderWidth @ 0)) ].
 	^ aHost globalPointToLocal:
 		(self diagramPresentationParent localPointToGlobal: aPoint)
 ]
@@ -4849,4 +4854,12 @@ CPProcessVisualElement >> positionReconnectHandle: aHandle fromPreviewLine: aPre
 				presentationPointForAnchor: aPreviewLine toAnchor
 				anchoredElement: aPreviewLine ].
 	aHandle relocate: endpoint - (aHandle extent / 2)
+]
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> laneElementOwningBodyHost: aHost [
+	laneElementsByLane valuesDo: [ :aLaneElement |
+		aLaneElement bodyHost == aHost ifTrue: [ ^ aLaneElement ] ].
+	^ nil
 ]

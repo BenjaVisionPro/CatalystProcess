@@ -2872,7 +2872,9 @@ CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
 	self assert: host == laneElement bodyHost.
 	self assert: element parent == laneElement bodyHost.
 	self assert: (visual stagedLaneContainingFlowNode: task) == lane.
-	self assert: localPoint isPoint.
+	self
+		assert: localPoint
+		equals: diagramPoint - ((visual stagedBoundsOf: laneShape) origin + (visual laneHeaderWidth @ 0)).
 	^ visual
 ]
 
