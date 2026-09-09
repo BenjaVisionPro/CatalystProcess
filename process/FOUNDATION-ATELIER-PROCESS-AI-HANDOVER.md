@@ -1,0 +1,259 @@
+# Foundation Atelier and Process AI handover
+
+Source audit and working context, 10 September 2026
+
+Canonical source: `CatalystProcess/process/FOUNDATION-ATELIER-PROCESS-AI-HANDOVER.md`. The September 10 Word handover is the matching reading copy.
+
+## 1 Read this first
+
+This is the working handover for an AI chat continuing Foundation, Atelier and the Catalyst Process BPMN editor. Its purpose is to make the next chat productive without repeating the earlier investigations or inheriting incorrect implementation claims. The product goal is a BPMN diagram editor that emerges naturally from a BPM model, edits that model directly, and feels coherent and enjoyable inside an Atelier workspace.
+
+The implementation already has a substantial native editor: BPMN semantic objects and diagram objects, Foundation mementos, typed diagram-editing delegation, assessed operations, shared selection, nested Sub-Processes, Pools, recursive Lanes, Boundary Events, labels and native scrolling. Several design promises remain incomplete. In particular, the current source does not establish automatic diagram derivation, a resizable Tree Pager details strip, stable visual identity across refresh, complete cross-container editing-state preservation, complete BPMN validation or BPMN XML interchange. See the findings rather than interpreting class presence or earlier green examples as completion.
+
+This document supersedes the earlier Process handover's implementation-status statements and continuation plans. Foundation Atelier Project Definition v3 remains historical design intent; its CPProcessDesign-era client, fixed canvas, Tree Pager and Motion statements are not a description of the current CPProcess implementation. Historical archive names such as ProcessSep9-2522 identify provenance, not the checkout to load automatically.
+
+Treat the user's current request as the task. A handover is context, not authorization to run every proposed action, change framework code, publish, or resume an old feature plan. Before changes, inspect current source and working-tree state. Preserve unrelated changes. This audit changed documentation only; findings are not fixes.
+
+Evidence labels used below:
+
+- **Source confirmed:** directly established by named methods in the recorded checkout.
+- **Runtime reproduced:** a specific result observed in the connected GT image during this audit.
+- **Verification required:** plausible behavior or a product requirement that source reading alone does not establish.
+- **Design goal:** desired behavior, not an assertion that it exists.
+
+## 2 Snapshot and workspace
+
+Workspace root: `/opt/git/BenjaVisionPro/gt-runtime-workspace`.
+
+| Repository | Audited commit |
+| --- | --- |
+| CatalystProcess | `374d2be1a29f26c35531426fcb194d60fff13c95` |
+| CatalystFoundation | `3bb7e43aa50bd45fff72931dad443034d7a442bb` |
+| CatalystRuntime | `11405c3e3d9fcdc0289d8e620e7c67277941b3ae` |
+
+Process and Foundation source files were clean relative to these commits at audit start. Process had a pre-existing deleted September 9 handover and untracked September 10 handover and diagram.svg. The workspace itself already had unrelated changes, including config, submodule pointers and an untracked Process directory. Do not assume Process is registered as a workspace submodule merely because it is an independent Git repository.
+
+Use each child repository's own Git status and history. The workspace runtime skill requires child-repository commits before submodule-pointer updates where applicable. Dependencies under `deps/` are inspect-only without explicit user authorization. No framework changes are part of this handover.
+
+The workspace graphify graph was queried but did not provide useful current Process/Atelier coverage. It mainly returned Foundation Motion material. Treat it as a navigation aid with limited coverage, not a substitute for current Tonel source.
+
+Reference inputs are the previous Process handover, Foundation Atelier Project Definition v3, `/Users/jupiter/Downloads/formal-11-01-03.pdf` and `/Users/jupiter/Downloads/bpmn-js-18.16.0.zip`. The PDF is BPMN 2.0, formal/2011-01-03, January 2011, 538 PDF pages. Printed page numbers differ from PDF page numbers. OMG identifies it as the normative document at https://www.omg.org/spec/BPMN/2.0. The bpmn-js archive was read as a behavioral and architecture comparison, not incorporated into Catalyst.
+
+## 3 Where responsibilities actually live
+
+**Magritte** supplies executable descriptions: accessors, accepted relation classes, cardinality, ordering flags, required/read-only state, references, grouping and value validation. Read and write through the descriptions belonging to the active memento. An OrderedCollection does not imply that its Magritte description is ordered; MAToManyRelationDescription defaults to unordered.
+
+**GT Magritte** supplies observable GtMagritteValue state and validation futures. GtMagritteMemento reads current staged values; write:using: replaces an observable value and initiates validation. Its source explicitly requires writes on the UI thread. commit pushes changed visible, non-read-only descriptions and resets the cache. A programmatic staged write to a read-only field is therefore not a promise that commit persists it.
+
+**Foundation Magritte** extends this with CFMaMemento child editing state and reusable presentations. Child mementos are keyed by relation description and object identity. commit and reset recurse; detached children support remove/replace reset; same-parent relation transfers can re-key children. CFMaViewModel asks the memento's Magritte container for blocPresentationStencil. Foundation owns Detail, relation editing, editable-label infrastructure, presentation configuration and the Phlow navigation adapter.
+
+**Atelier** wraps the Foundation-selected form with configured supply and composition behavior. CFAtelierViewModel subclasses CFMaViewModel; CFAtelierElement owns the floating palette and Catalyst theme context. CFAtelierOperation>>apply assesses immediately before applying an accepted assessment. An operation is one assessed editing intention, but this base class does not implement rollback after an arbitrary exception between writes, database transactions or undo history. Do not call every multi-write operation unconditionally atomic.
+
+**Process** owns BPMN objects, DI-like diagram data, topology and connection rules, staged Process/Collaboration/Lane contexts, BPM-specific operations and presentation. Shared staged-state contexts are in BVC-BPM-Magritte, so GT and Atelier can both depend on them. BVC-BPM-GT defines CPProcessDiagramEditing and its read-only implementation; BVC-BPM-Atelier provides CPProcessAtelierDiagramEditing and concrete operations.
+
+**Bloc and Brick** supply the real scene graph, layout, clipping, event propagation, focus, cursors and scroll panes. **Phlow** supplies object-oriented views and navigation. **Catalyst Motion** animates transitions between authoritative layout states; it does not make transforms or preview positions authoritative model state. **Catalyst Theme** supplies surfaces, borders, typography and interaction colors; CFAtelierElement currently installs CgtDetailLightTheme.
+
+Source entry points: CFMaMemento, CFMaViewModel, CFMaPresentation, CFMaDetailPresentation, CFMaPhlowNavigation, CFEditableLabel, CFAtelierViewModel, CFAtelierElement, CFAtelierOperation and CFMotionLayoutTransaction. Package locations are indexed in section 13.
+
+## 4 Entry paths and transaction lifecycle
+
+The ordinary entry is Object>>asAtelier, returning CFAtelierViewModel forObject:. Object>>gtAtelierFor: adds the Phlow Atelier view for objects with Magritte descriptions. Object>>asAtelierWith: applies a configuration.
+
+The Process specialization is CPProcess>>asAtelier in BVC-BPM-Atelier. It constructs CFMaMemento model: self, CPProcessAtelierConfiguration forProcessMemento:, and CFAtelierViewModel forObject:memento:. CPProcess>>descriptionContainerProcessPresentation: in BVC-BPM-GT selects CPProcessPresentation. The current Process root uses ordinary CFMaMemento; do not describe it as the old CPProcessDesignMemento lifecycle from Atelier v3.
+
+CFMaViewModel>>initializeForm:forMemento:includeImplicitActions: creates the form container, selects the presentation through blocPresentationStencil, supplies the memento and actions, applies presentation configuration, then builds. Atelier decorates this path with generic relation-operation hooks and the client configuration. It does not independently choose a diagram renderer.
+
+CPProcessAtelierConfiguration supplies provider-backed palette items and installs CPProcessAtelierDiagramEditing on the Process presentation. The palette currently offers Pool, Start event, End event, Intermediate event, Boundary event, Task, Call activity, Sub-process and Gateway. Task and Gateway are also contextual append candidates. The exact Pool palette item is retained for contextual Lane behavior.
+
+CPProcessPresentation composes a diagram BrScrollPane and a 380-wide Detail BrScrollPane. It uses the root memento for Process rendering and resolves selected FlowNodes, Lanes and Collaboration members to their child mementos for CFMaDetailPresentation. Detail is blank when there is no sole selected DI object. It is not currently an embedded GtTreePager and has no BrResizer in this construction path.
+
+CFAtelierEmptyViewModel is a separate empty-root path. It adopts an object with Magritte descriptions and builds CFAtelierViewModel directly, applying configured editing hooks. It does not call the adopted object's specialized asAtelier. Process-specific configuration therefore must not be assumed to appear automatically through empty-root adoption. The implementation deliberately uses a drop-target/adoption callback because root adoption changes editor context rather than a relation; the earlier description of a dedicated assessed root operation overstates this path.
+
+Foundation's generic CFAtelierMove requires sourceMemento == destinationMemento. A shared root somewhere above two different child mementos is not sufficient. This restriction is deliberate in the current implementation. Process cross-container transfer uses its own operations and is subject to the state-preservation findings below.
+
+## 5 BPM model and depiction model
+
+The active editor model is CPProcess, not CPProcessDesign. CPProcess has flowElements, laneSets, diagram and definitionalCollaborationRef. CPFlowNode adds incoming/outgoing SequenceFlow relations to CPFlowElement. CPActivity is the base of tasks, Call Activity and Sub-Process. CPSequenceFlow owns sourceRef and targetRef; its committed setters maintain inverse node collections. Staged editing must not use those setters on committed objects as a preview mechanism.
+
+CPSubProcess is an Activity and a flowElements container. It does not currently have the full BPMN SubProcess metamodel. Its concrete variants are CPNoneSubProcess, CPLoopSubProcess, CPMultiInstanceSubProcess, CPCompensationSubProcess and CPAdHocSubProcess. CPCallActivity references CPProcess through calledElement; Global Tasks are not modeled.
+
+CPCollaboration owns Participants, MessageFlows and a diagram. CPParticipant may reference a Process; the second Pool created by the current operation defaults to a black box. The editor centers on one root Process and its definitional Collaboration, not an unrestricted collection of independently editable Process roots. Removing its hosted Participant while other Pools remain is intentionally rejected by an existing example.
+
+CPLaneSet owns ordered Lane objects in its collection. CPLane references FlowNodes and can own a child LaneSet. Lane membership is distinct from flow-container ownership. A node can participate in independent LaneSet partitions in the semantic model. The renderer currently only builds the first top-level LaneSet. Lanes inside Sub-Processes are not implemented by the current CPSubProcess/root-Lane-context path.
+
+CPBoundaryEvent owns attachedToRef, cancelActivity and eventDefinitions. Its current type menu exposes Timer, Error, Message, Escalation and Conditional definitions. Rendering distinguishes interrupting and non-interrupting rings. The model is not a complete EventDefinition/configuration system.
+
+CPDiagram is a simplified diagram/plane carrier with modelElement and elements. CPShape has modelElement, bounds and isExpanded. CPEdge has waypoints and path-relative label-placement state. CPDiagramSelection keeps an ordered collection of CPShape/CPEdge identities; semantic identity and visual-element identity are separate.
+
+The BPMN specification separates semantics from depiction. BPMNShape objects are directly owned by a BPMNPlane even when they look nested; exported bounds are plane-relative positive coordinates (section 12.2.3.3, printed page 372, PDF page 402). Catalyst stores nested local coordinates and converts them for presentation. There is no audited BPMN XML interchange adapter that proves the required flattening/normalization. Call this a BPMN-oriented internal model, not demonstrated full BPMN-DI interchange conformance.
+
+## 6 Staged context owners and operation flow
+
+CPProcessFlowContainerContext resolves Process/Sub-Process flowElements from the root memento, discovers the containing context for a staged object, supplies child mementos and reads staged SequenceFlow endpoints and Boundary Event attachment. Fresh staged objects can have missing or stale committed container pointers. Use this context instead of inferring containment from those pointers.
+
+CPDiagramMementoContext owns staged diagram elements, modelElement links, bounds, waypoints and diagram child-memento access. CPProcessCollaborationContext owns staged Collaboration participants, processRef, MessageFlows, endpoint ownership and its diagram context. CPProcessLaneContext owns staged top-level and child LaneSets, Lane mementos, sibling partitions and flowNodeRefs.
+
+Typical operation flow is: gesture -> typed CPProcessDiagramEditing message -> CPProcessAtelierDiagramEditing resolves current DI and semantic context -> concrete CFAtelierOperation subclass -> assess current staged state -> apply accepted writes -> refresh presentation. Label text is a scalar field edit through GtMagritteBuilderUtility and the object's child memento, rather than a structural diagram operation.
+
+Implemented operation families include node creation/append/insertion/replacement/removal; single/group geometry moves and resize; SequenceFlow connect/reconnect/removal; waypoints and edge-label placement; Sub-Process expansion; single and closed-group transfer; Participant create/move/resize/removal; MessageFlow connect/reconnect/removal; Boundary Event create/reattach/type change; Lane create/insert/child creation, assignment and combined node movement.
+
+Closed-group transfer is already wired through CPProcessAtelierDiagramEditing>>moveShapes:toProcessHostedBy:waypointsByEdge: and CPProcessVisualElement>>moveGroupEntries:movedModelElements:delta:to:. It includes internal SequenceFlows and rejects flows crossing the transfer selection boundary. The typed adapter adds attached Boundary Events for moved Activities. Do not implement a duplicate transfer family based on the old handover's future-work statement. Preservation of complete nested editing state and Lane cleanup are separate unresolved concerns.
+
+Selection is the user's explicit set. Each operation computes its own effective dependency set, such as incident flows and attached Boundary Events for removal. Do not replace selection with that effective set. A sole selected edge gets reconnect/bendpoint handles; multiple selection does not choose an arbitrary primary object. Pool selection and content selection have explicit mutual-exclusion handling.
+
+## 7 Rendering and coordinates
+
+CPProcessVisualElement coordinates rendering, staged lookups and interaction. CPProcessShapeElement owns a shape's local chrome, geometry, selection appearance, resize handles, ports, popups, labels and nested-process host. CPProcessEdgeVisual owns rendered segments, hit geometry, edge handles and label host. CPProcessEdgeLabelPath handles path-relative label geometry.
+
+An expanded CPSubProcess shape hosts another CPProcessVisualElement through a clipped viewport. configureNestedProcessVisual: shares rootVisual, diagramSelection, callbacks, diagramEditing and palette items. The nested visual receives the same root memento plus its own flowContainer. There is one Atelier and palette, not one per Sub-Process. The parent shape is moved from its border; internal content uses the nested visual's own interactions.
+
+Participants host Process presentation. CPLaneSetVisualElement uses vertical BlLinearLayout with Lane height weights. CPLaneShapeElement has a labelBand and bodyHost. Child LaneSets are real descendants of the parent Lane body. Lane-assigned node elements are actual children of the selected Lane bodyHost. Boundary Event elements are hosted by their attached Activity. Do not simulate these relationships merely by drawing overlapping rectangles.
+
+Keep three coordinate contracts explicit: durable local Process/Sub-Process diagram coordinates; live Bloc parent-local coordinates; and top-level viewport/scroll coordinates. A Lane-hosted node and a connector preview can have different parents. CPProcessVisualElement>>diagramBoundsForElement: and CPCollaborationVisualElement>>liveCollaborationBoundsForFlowNode:inVisual: convert both corners via localPointToGlobal: and globalPointToLocal:. BlElement>>localPointToMine:fromChild: asserts an ancestor/descendant relationship and cannot be used directly across unrelated hosts.
+
+Shape-aware docking belongs to CPProcessVisualElement>>dockingPointFor:bounds:toward:. Events use ellipse docking, Gateways diamond docking and Activities rectangular docking. Collaboration live FlowNode preview reuses this path. Visible connectors should meet object boundaries. Persisted waypoints and live drag geometry are separate contracts; a live preview correction must not silently replace durable authored geometry.
+
+CPDiagramPlaneGeometry derives authored bounds/extent and normalization from staged DI. CPDiagramViewport computes per-axis slack = max(viewport extent - diagram extent, 0), and canvas extent = diagram extent + 2 * slack. The empty-diagram special case uses viewport extent and zero slack. Oversized content has no extra slack on that axis. Root Process/Collaboration own native scrolling; hosted/nested Process visuals do not create independent cameras. CPProcessPresentation preserves the authored-coordinate translation when switching Process/Collaboration presentation.
+
+The full-canvas transparent drop surface must stay behind authored content; addPaletteDropSurface uses addChildFirst:. Current navigation is native wheel/trackpad scrolling, not click-drag canvas panning. The old 2200 by 1400 canvas claim is obsolete.
+
+## 8 Interaction contracts
+
+Palette target resolution should select the deepest eligible process visual. On blank Collaboration space Pool creates a Participant; on Lane body it inserts a sibling Lane; on Lane header it creates/appends within a child LaneSet. The same exact palette item drives these contextual meanings. CPCollaborationVisualElement>>acceptsParticipantPaletteDragItem: now permits the normal Participant path; the earlier second-Pool exclusion is absent in both the checkout and the two-method live-image spot check.
+
+Labels use CFEditableLabel and staged Magritte text writes. beginEditingLabel: records the active editor, enables events, switches mode and defers focus by a Bloc task. finishEditingLabel: releases editor focus and queues focus back to the owning process visual. Memento-driven refresh is suppressed while a label is active. Delete/Backspace and Escape diagram handling is gated by event target == self so bubbled text-editing keys do not remove BPM objects. Enter should preserve selection. Diagram Escape cancels transient interaction and preserves persistent selection.
+
+Native cursors, transparent four-corner resize targets, selection-first popup affordances and shape-local controls are existing design decisions. The code owns rejection messages at the assessment layer, but many gestures discard the result or only refresh. User-visible explanation of rejection is not a completed general interaction contract.
+
+## 9 Audit findings against the design goals
+
+### F01 Boundary Event type edits can be discarded by commit
+
+**Runtime reproduced; transaction correctness.** CPBoundaryEvent>>eventDefinitionsDescription is read-only. CPAtelierSetBoundaryEventDefinition>>applyAssessment: stages a new collection using that description. GtMagritteMemento>>pushDescription:currentValue: skips read-only descriptions, and CFMaMemento>>hasChangesToCommit also excludes them. The existing changingBoundaryEventDefinitionPreservesBoundaryIdentity example checks staged state and unchanged committed state, but never commits the edit. A disposable Timer-to-Escalation edit staged Escalation, reported no root changes to commit, and remained Timer after root commit. Owner: Process's description/operation contract with Foundation's existing commit semantics. Commit failure is reproduced; reset behavior remains to be checked when fixing.
+
+### F02 Cross-container transfer does not preserve the full editing tree
+
+**Runtime reproduced for group transfer; source confirmed for single-transfer omissions.** CPAtelierTransferFlowNode rebuilds destination child state from label, container, incoming/outgoing and the nested flowElements collection. It does not detach the source child memento and does not preserve every described field, such as a staged calledElement. CPAtelierTransferFlowNodes copies a larger but still enumerated set and detaches source children; it does not migrate the nested child-memento hierarchy. A disposable closed-group transfer of a Sub-Process plus a companion Task into another Sub-Process lost a staged child label: destination state and the committed result both contained the original label. Foundation's generic transfer helper only supports the same parent memento, so it cannot be assumed to solve this. Owner: Process transfer semantics and, if a general solution is justified, Foundation child-memento ownership. Existing transfer examples do not prove comprehensive nested state preservation through commit/reset.
+
+### F03 Lane objects contradict their Magritte description contracts
+
+**Runtime reproduced; metadata consistency.** CPAtelierCreateLane and related operations create CPShape modelElement: aLane, but CPShape>>modelElementDescription accepts only CPFlowNode and CPParticipant. CPLane is neither. Creation validates bounds and outer collections, not that inner modelElement description. Separately, CPLaneSet>>lanesDescription lacks beOrdered even though semantic insertion and native presentation use Lane order; base Magritte defaults to unordered. Direct validation of a CPLane against CPShape modelElementDescription raised MAMultipleErrors, and lanesDescription isOrdered returned false. Owner: Process model descriptions. Verify full memento validation/status as well as rendering; a visible Lane does not prove its metadata is valid.
+
+### F04 Lane partition semantics exceed the renderer's supported domain
+
+**Runtime reproduced for the second partition; source confirmed for parent-first lookup.** CPProcessVisualElement>>newTopLevelLaneSetVisualFromShapes: renders only stagedLaneSets first, but stagedLaneContainingFlowNode: traverses all top-level partitions and presentationHostForFlowNode: assumes the selected Lane has a rendered bodyHost. Rendering a disposable Process with a node assigned only in its second top-level LaneSet raised KeyNotFound because that Lane had no rendered bodyHost. Parent Lane membership is tested before child membership, so a node referenced at both levels resolves to the parent. The model allows independent partitions; the editor needs an explicit displayed-partition policy. Owner: Process Lane presentation and context selection.
+
+### F05 Lane references are not maintained by all topology changes
+
+**Runtime reproduced for removal and foreign assignment; source confirmed omission for transfer.** CPAtelierAssignFlowNodeToLane checks the target Lane hierarchy and value classes but does not establish that the node belongs to that Process's flow scope. RemoveFlowNode and single/group transfer do not coordinate Lane flowNodeRefs in their current implementations. A disposable node removal left the removed node in both staged and committed Lane flowNodeRefs. Assignment assessment accepted a fresh node that belonged to no Process. Scope-transfer Lane cleanup remains to be verified with a focused lifecycle probe. The normal cross-Lane gesture does stage geometry and assignment together, but it does not cover removal or transfer into a Sub-Process. Owner: Process operation dependency handling. Add scope, stale-reference, commit and reset cases when fixing.
+
+### F06 A bare BPM model does not yet yield a useful editable diagram
+
+**Source confirmed; product capability gap.** CPProcess>>initialize leaves diagram unset. CPProcess>>asAtelier does not create it. CPProcessVisualElement>>refresh returns when the staged diagram is nil and otherwise enumerates DI elements. Most create operations reject a missing diagram. A Process with flowElements but absent shapes is not automatically laid out or reconciled into depictions. Owner: Process presentation initialization and an explicit semantic-to-DI derivation policy. Preserve authored geometry when introducing defaults. Do not confuse this with the already implemented empty-Atelier root mechanism.
+
+### F07 The documented Atelier details workspace is not implemented here
+
+**Source confirmed, including live method spot check; design gap.** CPProcessPresentation>>prepareHostElement creates a fixed 380-wide scroll pane for Detail; no GtTreePager or BrResizer is constructed there. Selection rebuilds Detail for a sole semantic object and clears it otherwise. Foundation has a Phlow/Tree Pager navigation adapter, but that does not instantiate the promised workspace. Owner: Process workspace composition and any truly reusable Foundation hosting behavior. The prior document's resizable one-column Tree Pager statement must be read as design intent.
+
+### F08 Diagram refresh rebuilds live visual identity
+
+**Source confirmed; continuity and interaction risk.** CPProcessVisualElement>>refresh removes all children and clears shape, Lane and edge maps before rebuilding. Memento status observation refreshes the root unless a label is active. DI selection identity survives separately, but live element identity is not preserved by this path. The Process presentation/visual source does not establish the pervasive Motion integration asserted by Atelier v3. CFAtelierElement does use Motion for form replacement. Owner: Process refresh lifecycle; use Foundation Motion after authoritative layout, not as a second geometry model. Assess focus, camera, observer lifetime and performance before prescribing a refactor.
+
+### F09 Shared mementos do not guarantee semantic equivalence of every editing surface
+
+**Source confirmed; policy gap.** Process Detail is a plain CFMaViewModel/CFMaDetailPresentation over the selected child memento. Descriptions such as CPFlowElement>>containerDescription and CPSequenceFlow endpoint descriptions are editable, but this Detail construction does not install the BPM diagram operation adapter on each structural field. A direct relation edit can stage a change without the coordinated membership, inverse-relation and DI work of the corresponding diagram operation. Owner: Process field policy and Foundation's existing presentation configuration seams. Test the same intention through Detail and diagram; do not assume shared storage alone enforces equivalent domain behavior.
+
+### F10 BPMN validation and interchange are explicitly partial
+
+**Source confirmed; supported-domain boundary.** CPProcessValidator checks selected SequenceFlow endpoint, Start/End and duplicate-connection conditions. It does not recursively validate every nested Process, Lane/attachment invariant or diagram consistency, and it is not called by the current Process Atelier/presentation path as a comprehensive commit gate. Connection rules implement a subset; CPEvent's broad MessageFlow endpoint eligibility does not distinguish every catch/throw/event type constraint. SequenceFlow has only source/target beyond inherited metadata, without a complete expression/default-flow model. No BPMN XML importer/exporter or semantic-to-DI layout implementation was found in the audited Process source. The spec and bpmn-js are references, not evidence of conformance.
+
+### F11 BPM runtime and loading documentation must distinguish two models
+
+**Source confirmed; integration boundary.** CPProcessCompiler>>compileDesign: consumes the older CPProcessDesign nodes/edges and produces definitions for CPRuntimeEngine. No audited compiler path consumes the active CPProcess BPMN graph. Treat editor completion and executable BPM deployment as separate work. BaselineOfCatalystProcess declares Atelier and GT examples, but rowan/components/Process.ston omits BVC-BPM-Atelier and BVC-BPM-GT-Examples while including GT in a load specification described as GemStone. Neither fresh Pharo loading nor GemStone compatibility was verified by this audit. Do not promise the same editor from both load routes.
+
+### F12 Assessments are richer than the feedback exposed to users
+
+**Source confirmed in representative gestures; usability gap.** Concrete operations return rejectionMessage, but node drag release invokes operation apply and then refreshes without presenting the rejection reason. Other paths reduce assessments to booleans for target acceptance. This can restore authoritative state while leaving users unable to understand why an action failed. Owner: Process gesture feedback with reusable Atelier presentation only where appropriate. Verify feedback, cancellation and restoration together; do not add a parallel semantic rules engine in the UI.
+
+## 10 What is implemented and what still needs verification
+
+Source contains substantive operations and examples for staged create/move/resize/connect/reconnect/remove/replace, authored waypoints and edge labels, shared DI selection, closed-group transfer, Sub-Process expansion, Pool/MessageFlow composition, Boundary Event attachment and recursive Lane presentation. These are existing capabilities to extend, not blank areas to redesign.
+
+Automatic layout, a complete BPMN data/expression model, general clipboard/copy-paste topology closure, full interchange, a CPProcess runtime compiler bridge, an integrated resizable Tree Pager and general stable visual refresh remain absent or incomplete in the audited paths. Foundation's generic Copy operation accepts an already materialized distinct object; that is not a Process graph clipboard implementation.
+
+The user-experience checks still requiring a real editor session are: second Pool over blank Collaboration space; contextual Pool drops over Lane body/header; same-Lane and cross-Lane release coordinates; nested Sub-Process targeting at two levels; label focus and hit regions; Enter/Escape/Delete behavior; circular/diamond connector docking while dragging and reconnecting; Boundary Event dependencies under move/resize/remove; camera preservation; and commit/reset after combined edits. Existing example success must be reported separately from manual gesture verification.
+
+## 11 Executable evidence and reproduction
+
+The connected GT image ran **281 existing examples: 281 passed, zero failures, errors, skips or missing examples**. The two editor suites contributed 177; the additional Foundation and Process model batch contributed 104. These are runtime results, separate from the new probes below.
+
+| Example class or group | Passed |
+| --- | --- |
+| CPProcessAtelierExamples | 64 |
+| CPProcessVisualElementExamples | 113 |
+| CPProcessExamples | 20 |
+| CFMaEmbeddedTransactionExamples | 10 |
+| CFMaPresentationExamples and CFMaPhlowNavigationExamples | 2 each |
+| CFAtelierEntryExamples and CFAtelierEmptyEntryExamples | 6 and 3 |
+| CFAtelierConfigurationExamples | 2 |
+| CFAtelierMoveExamples and CFAtelierInsertExamples | 17 and 6 |
+| CFAtelierReplaceExamples and CFAtelierRemoveExamples | 7 and 10 |
+| CFAtelierReorderExamples and CFAtelierCopyExamples | 7 and 9 |
+| CFAtelierReferenceExamples | 3 |
+
+Focused disposable-object probes reproduced failures that those existing examples do not catch:
+
+- **F01:** Use CPProcessAtelierExamples new boundaryEventFixture. Apply CPAtelierSetBoundaryEventDefinition with CPEscalationEventDefinition, inspect the Boundary Event child memento, then commit the root. Result: committed type before Timer; staged type Escalation; root hasChangesToCommit false; committed type after Timer.
+- **F02:** Create a root with a Sub-Process containing a child Task, a destination Sub-Process and a companion Task, with DI shapes. Stage the child's label through its child memento. Transfer the containing Sub-Process and companion together with CPAtelierTransferFlowNodes. Resolve the child through the destination context. Result: assessment accepted; source staged label was the edit; destination staged label and committed label were the original value.
+- **F03:** Evaluate CPShape new modelElementDescription validate: CPLane new with MAValidationError handling, and CPLaneSet new lanesDescription isOrdered. Result: MAMultipleErrors and false respectively. This checks metadata directly, not the entire editor status pipeline.
+- **F04:** Start from CPProcessExamples new processWithTwoLanes, remove a chosen node from the first partition, add a second LaneSet containing it, and provide its node/Lane DI shapes. Build CPProcessVisualElement with a fresh CFMaMemento. Result: KeyNotFound.
+- **F05:** With a fresh processWithTwoLanes and a DI shape for a Lane-assigned node, apply CPAtelierRemoveFlowNode and inspect Lane refs before and after root commit. Result: both still contain the removed node. Separately assess CPAtelierAssignFlowNodeToLane for a fresh uncontained Task and an existing Lane. Result: accepted.
+
+These probes used disposable models and did not compile or alter loaded classes. They establish the recorded cases, not every variant or reset path. No fresh image load, SUnit suite, manual gesture session, exhaustive source/image comparison or full BPMN conformance test was performed. Live method spot checks covered presentation construction, Participant palette acceptance, Boundary Event metadata, GT commit filtering, shape metadata, transfer state handling and Lane rendering/assessment; they matched the checkout in those methods.
+
+The checkout contains 64 gtExample methods in CPProcessAtelierExamples, 113 in CPProcessVisualElementExamples, and 20 in CPProcessExamples. Those source counts agree with the runtime suite totals above. CPProcessAtelierExamples is in BVC-BPM-Atelier, not BVC-BPM-GT-Examples. CPProcessExamples includes semantic and older runtime examples. SUnit tests CPRuntimeEngineTest, CPProcessCompilerTest and CPProcessDesignValidatorTest mostly exercise the older design/runtime path.
+
+Relevant Foundation suites include CFMaEmbeddedTransactionExamples, CFMaPresentationExamples, CFMaPhlowNavigationExamples, CFMaDetailPresentationExamples and the CFAtelier*Examples classes for entry, empty root, configuration, move, insert, replace, remove, reorder, copy, reuse, palette/provider/capture and drop surfaces. Select suites by changed contract; do not call an example an SUnit test or assume Object-based examples support deny:.
+
+To inspect the connected image, prefer GT class/method/source tools. exampleMethodRun takes an example reference with exampleClassName, methodName and classSide. examplesInClassesRun accepts an array of class names. Preserve returned totals and individual failures. Smalltalk evaluation is a last resort for a bounded disposable-object probe, not a means to compile code or silently modify loaded classes. A live source spot check is not complete checkout/image parity.
+
+A useful existing starting model is CPProcessExamples new simpleProcess; inspect its source before using it because it deliberately creates DI. CPProcessAtelierExamples>>fixture returns a Process, root memento and related semantic/DI objects for operation examples. Use dedicated examples as examples, not as a public production API. Inspect an existing user's editor without committing or resetting their objects just to test a hypothesis.
+
+## 12 How the next chat should work
+
+For follow-on work, prioritize transaction correctness (F01, F02), invalid or stale Lane state and rendering failure (F03–F05), then consistent Detail/diagram structural editing (F09). The principal product gaps are bare-model diagram derivation (F06), workspace navigation/resizing (F07), visual continuity (F08) and rejection feedback (F12). Treat interchange and runtime integration (F10, F11) as explicit scope decisions. This ordering is an audit recommendation, not authorization to implement those changes.
+
+Start with the current request, this guide's snapshot and git status. Read the relevant class/selector and its existing examples before editing. Decide whether the issue belongs to semantic rules, Magritte metadata, staged context ownership, an operation, presentation composition or the underlying framework. A rendered displacement is not automatically a DI error; a correct DI value is not proof of correct live parent coordinates.
+
+Reproduce a concrete failure with disposable objects or a focused example. For state changes, inspect staged values, committed values before commit, values after commit and values after reset. Include prior staged edits, nested children, inverse collections and dependent relationships when those participate in the operation. For interaction changes, prove actual Bloc parentage, event target and focus ownership. Do not validate a gesture solely by calling its final operation.
+
+Use explicit discoverable collaborators and existing configuration paths. Process classes use CP. Keep generic presentation choices in Foundation configuration, domain meaning in Process, and descriptions in Magritte. Use group/categories and description composition normally. Do not introduce respondsTo:-style compatibility probing or hidden selector dispatch to conceal an ownership problem. Existing legacy cfSerializable: use in Foundation is a source fact, not a reason to add new cf-prefixed APIs. Same-class rejection checks are not automatically forbidden class-switch architecture.
+
+Do not modify deps or GT without explicit authorization. Do not reinterpret the old cleanup-complete statement as a ban on evidence-based corrections, or as proof that no defects remain. Conversely, a large class or superficial duplication alone is not a reason for another architectural extraction pass.
+
+Record findings before fixes, then update this guide when a behavior materially changes. For each fixed finding, name the commit and the exact verification that changed its status. Replace obsolete status prose rather than accumulating contradictory addenda. Keep design goals, source facts and runtime evidence separate. Keep the Markdown and Word handover synchronized.
+
+## 13 Source map
+
+All paths below are relative to the workspace root. Locate a class as `<package>/<Class>.class.st`; extensions use `<Class>.extension.st`. Use selector names in the prose as durable locators; line numbers change.
+
+| Area | Source directory and first classes to read |
+| --- | --- |
+| Foundation identity and descriptions | `CatalystFoundation/src/BVC-Foundation-Core` — CFObject, CFIdentifiableObject, CFLabelledObject |
+| Foundation presentation configuration | `CatalystFoundation/src/BVC-Foundation-Magritte-Core` — MADescription and MAContainer extensions, CFMaFieldConfiguration and specialized configurations |
+| Foundation editing and navigation | `CatalystFoundation/src/BVC-Foundation-Magritte-GT` — CFMaMemento, CFMaViewModel, CFMaPresentation, CFMaPhlowNavigation, CFEditableLabel |
+| Foundation Detail | `CatalystFoundation/src/BVC-Foundation-Magritte-Detail` — CFMaDetailPresentation and field/group configuration extensions |
+| Atelier | `CatalystFoundation/src/BVC-Foundation-Atelier` — Object extension, CFAtelierOperation, CFAtelierViewModel, CFAtelierElement, CFAtelierConfiguration, CFAtelierMove, CFAtelierEmptyViewModel |
+| Motion | `CatalystFoundation/src/BVC-Motion-Core` — CFMotionLayoutTransaction and layout readiness/snapshot collaborators |
+| BPMN semantics and DI | `CatalystProcess/src/BVC-BPM-BPMN` — CPProcess, CPSubProcess, CPLaneSet, CPLane, CPBoundaryEvent, CPSequenceFlow, CPDiagram, CPShape, CPEdge, connection rules and validator |
+| BPM staged contexts | `CatalystProcess/src/BVC-BPM-Magritte` — CPProcessFlowContainerContext, CPDiagramMementoContext, CPProcessCollaborationContext, CPProcessLaneContext |
+| BPM presentation | `CatalystProcess/src/BVC-BPM-GT` — CPProcessPresentation, CPProcessVisualElement, CPProcessShapeElement, CPProcessEdgeVisual, CPCollaborationVisualElement, CPLaneSetVisualElement, CPLaneShapeElement |
+| BPM editing | `CatalystProcess/src/BVC-BPM-Atelier` — CPProcess extension, CPProcessAtelierConfiguration, CPProcessAtelierDiagramEditing, CPAtelier* operations and assessments |
+| BPM visual examples | `CatalystProcess/src/BVC-BPM-GT-Examples` — CPProcessVisualElementExamples |
+| Older compiler and runtime | `CatalystProcess/src/BVC-BPM-Design`, `BVC-BPM-Definition`, `BVC-BPM-Runtime`, `BVC-BPM-Automation` |
+| Base Magritte | `deps/magritte/source/Magritte-Model` — MADescription, MAMemento, MAToManyRelationDescription |
+| GT Magritte | `deps/gt4magritte/src/GToolkit4Magritte-Core` — GtMagritteMemento, GtMagritteBuilderUtility |
+| Bloc | `deps/Bloc/src/Bloc` — BlElement; inspect layout/events packages as required |
+| Brick and Phlow | `deps/Brick/src`, `deps/gtoolkit-phlow/src`, `deps/gtoolkit-inspector/src` |
+
+For comparison in the supplied bpmn-js archive, start with lib/features/modeling/Modeling.js, BpmnUpdater.js, lib/features/rules/BpmnRules.js and lib/features/label-editing/LabelEditingProvider.js. BpmnUpdater separately updates semantic parents, DI parents, bounds and Lane references. Use these to ask sharper behavioral questions; do not copy its command architecture over the established Foundation memento boundary.
