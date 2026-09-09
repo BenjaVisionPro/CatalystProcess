@@ -308,18 +308,3 @@ CPProcessEdgeVisual >> newReconnectHandleMovingSource: movesSource selectionColo
 	^ handle
 ]
 
-{ #category : 'reconnect handles' }
-CPProcessEdgeVisual >> positionReconnectHandle: aHandle fromPreviewLine: aPreviewLine movingSource: movesSource within: aParent [
-	| endpoint |
-	endpoint := movesSource
-		ifTrue: [
-			aPreviewLine fromAnchor
-				positionForAnchoredElement: aPreviewLine
-					within: aParent ]
-		ifFalse: [
-			aPreviewLine toAnchor
-				positionForAnchoredElement: aPreviewLine
-					within: aParent ].
-	aHandle relocate: endpoint - (aHandle extent / 2)
-]
-

@@ -22,7 +22,6 @@ Class {
 		'messageFlowVisualsByEdge',
 		'connectionPreviewLine',
 		'connectionPreviewCursor',
-		'connectionPreviewSourcePoint',
 		'viewportExtent',
 		'diagramLayer'
 	],
@@ -141,7 +140,7 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 	participantElementsByParticipant at: participant put: element.
 	self addDiagramChild: element.
 	self
-		installSelectionOnParticipantElement: element participant: participant;
+		installSelectionOnParticipantElement: element;
 		installPositioningOnParticipantElement: element shape: aShape;
 		installResizeOnParticipantElement: element shape: aShape.
 	processVisual
@@ -210,7 +209,7 @@ CPCollaborationVisualElement >> installSelectionOnMessageFlowElement: anElement 
 
 
 { #category : 'private - selection' }
-CPCollaborationVisualElement >> installSelectionOnParticipantElement: anElement participant: aParticipant [
+CPCollaborationVisualElement >> installSelectionOnParticipantElement: anElement [
 	anElement addEventHandler: (BlEventHandler
 		on: BlClickEvent
 		do: [ :anEvent |
@@ -363,7 +362,6 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 		liveCollaborationBoundsForFlowNode: aSource
 		inVisual: aSourceVisual.
 	sourceBounds ifNil: [ ^ self ].
-	connectionPreviewSourcePoint := sourceBounds center.
 	sourcePoint := aSourceVisual
 		dockingPointFor: aSource
 		bounds: sourceBounds
@@ -618,8 +616,7 @@ CPCollaborationVisualElement >> removeConnectionPreview [
 	connectionPreviewLine ifNotNil: [ connectionPreviewLine removeFromParent ].
 	connectionPreviewCursor ifNotNil: [ connectionPreviewCursor removeFromParent ].
 	connectionPreviewLine := nil.
-	connectionPreviewCursor := nil.
-	connectionPreviewSourcePoint := nil
+	connectionPreviewCursor := nil
 ]
 
 { #category : 'private - labels' }
@@ -1188,11 +1185,8 @@ CPCollaborationVisualElement >> installPoolStructuralDropOnParticipantHeader: aH
 
 { #category : 'private - creation' }
 CPCollaborationVisualElement >> dropPoolStructuralItemOnParticipantHeader: anEvent [
-	| globalPoint |
 	anEvent items size = 1 ifFalse: [ ^ self ].
-	globalPoint := anEvent currentTarget
-		localPointToGlobal: anEvent position.
-	^ processVisual createLaneSetFromPoolPaletteAtGlobalPoint: globalPoint
+	^ processVisual createLaneSetFromPoolPalette
 ]
 
 { #category : 'private - creation' }
@@ -1429,32 +1423,6 @@ CPCollaborationVisualElement >> hostedProcessBodyExtent [
 	bounds := self stagedBoundsOf: participantShape.
 	^ (bounds width - CPParticipantShapeElement processContentOriginOffset x)
 		@ bounds height
-]
-
-
-{ #category : 'connection geometry' }
-CPCollaborationVisualElement >> liveCollaborationDockingPointForFlowNode: aFlowNode inVisual: aSourceVisual toward: aPoint [
-	| element topLeft bottomRight collaborationBounds |
-	element := aSourceVisual shapeElementForModelElement: aFlowNode.
-	element ifNil: [ ^ aPoint ].
-	topLeft := self diagramPresentationParent
-		globalPointToLocal: (element localPointToGlobal: 0 @ 0).
-	bottomRight := self diagramPresentationParent
-		globalPointToLocal: (element localPointToGlobal: element extent).
-	collaborationBounds := topLeft corner: bottomRight.
-	^ self
-		dockingPointForRectangle: collaborationBounds
-		toward: aPoint
-]
-
-
-{ #category : 'connection geometry' }
-CPCollaborationVisualElement >> liveCollaborationCenterForFlowNode: aFlowNode inVisual: aSourceVisual [
-	| element |
-	element := aSourceVisual shapeElementForModelElement: aFlowNode.
-	element ifNil: [ ^ 0 @ 0 ].
-	^ self diagramPresentationParent
-		globalPointToLocal: (element localPointToGlobal: element extent / 2)
 ]
 
 

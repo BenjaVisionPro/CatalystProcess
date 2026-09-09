@@ -33,7 +33,7 @@ CPAtelierAssignFlowNodeToLane >> assess [
 	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
 
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
-	targetLaneSet := laneContext stagedLaneSetContainingLane: targetLane.
+	targetLaneSet := laneContext laneSetContainingLane: targetLane.
 	targetLaneSet ifNil: [
 		^ self rejectedBecause: 'The target Lane is not in the staged Process Lane hierarchy.' ].
 	lanes := laneContext stagedLanesInLaneSet: targetLaneSet.

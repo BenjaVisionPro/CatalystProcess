@@ -160,7 +160,7 @@ CPAtelierCreateLane >> participantResizeOperationForFirstLane [
 
 { #category : 'private - geometry' }
 CPAtelierCreateLane >> laneHeaderWidth [
-	^ 30
+	^ CPLaneShapeElement laneHeaderWidth
 ]
 
 { #category : 'private' }

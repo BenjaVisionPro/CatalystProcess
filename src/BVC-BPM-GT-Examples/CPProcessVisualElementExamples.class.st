@@ -2917,7 +2917,7 @@ CPProcessVisualElementExamples >> assignFlowNodeToLaneChangesOnlyTargetLaneSetPa
 	self assert: (laneContext stagedFlowNodeRefsOf: firstLane) isEmpty.
 	self assert: (laneContext stagedFlowNodeRefsOf: secondLane) equals: { task } asOrderedCollection.
 	self assert: (laneContext stagedFlowNodeRefsOf: otherLane) equals: { task } asOrderedCollection.
-	self assert: (laneContext stagedLaneSetContainingLane: secondLane) == firstLaneSet.
+	self assert: (laneContext laneSetContainingLane: secondLane) == firstLaneSet.
 	^ assessment
 ]
 

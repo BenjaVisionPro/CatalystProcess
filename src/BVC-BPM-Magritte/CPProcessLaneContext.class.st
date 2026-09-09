@@ -218,20 +218,3 @@ CPProcessLaneContext >> mementoForLaneSet: aLaneSet inLaneSet: aCurrentLaneSet p
 ]
 
 
-{ #category : 'resolving' }
-CPProcessLaneContext >> stagedLaneSetContainingLane: aLane [
-	self stagedLaneSets do: [ :aLaneSet |
-		(self stagedLaneSetContainingLane: aLane inLaneSet: aLaneSet)
-			ifNotNil: [ :aContainingLaneSet | ^ aContainingLaneSet ] ].
-	^ nil
-]
-
-{ #category : 'private - resolving' }
-CPProcessLaneContext >> stagedLaneSetContainingLane: aLane inLaneSet: aLaneSet [
-	(self stagedLanesInLaneSet: aLaneSet) do: [ :eachLane |
-		eachLane == aLane ifTrue: [ ^ aLaneSet ].
-		(self stagedChildLaneSetOf: eachLane) ifNotNil: [ :aChildLaneSet |
-			(self stagedLaneSetContainingLane: aLane inLaneSet: aChildLaneSet)
-				ifNotNil: [ :aContainingLaneSet | ^ aContainingLaneSet ] ] ].
-	^ nil
-]

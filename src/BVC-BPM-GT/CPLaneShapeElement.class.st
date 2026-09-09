@@ -9,8 +9,7 @@ Class {
 		'diagramShape',
 		'labelBand',
 		'bodyHost',
-		'labelElement',
-		'normalBorderColor'
+		'labelElement'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -22,7 +21,6 @@ CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label:
 	lane := aLane.
 	diagramShape := aShape.
 	labelElement := anEditableLabel.
-	normalBorderColor := aBorderColor.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aLane.
 	self
@@ -81,8 +79,13 @@ CPLaneShapeElement >> addLaneHeaderBorderColor: aBorderColor [
 ]
 
 { #category : 'geometry' }
-CPLaneShapeElement >> laneHeaderWidth [
+CPLaneShapeElement class >> laneHeaderWidth [
 	^ 30
+]
+
+{ #category : 'geometry' }
+CPLaneShapeElement >> laneHeaderWidth [
+	^ self class laneHeaderWidth
 ]
 
 { #category : 'accessing' }

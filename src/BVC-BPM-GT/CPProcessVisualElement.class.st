@@ -723,7 +723,7 @@ CPProcessVisualElement >> placeFlowNodeElement: anElement for: aFlowNode atDiagr
 ]
 
 { #category : 'private - containment' }
-CPProcessVisualElement >> relocateFlowNodeElement: anElement for: aFlowNode toDiagramPoint: aPoint [
+CPProcessVisualElement >> relocateFlowNodeElement: anElement toDiagramPoint: aPoint [
 	anElement relocate: (self
 		diagramPoint: aPoint
 		localToPresentationHost: anElement parent)
@@ -944,7 +944,7 @@ CPProcessVisualElement >> hostAttachedBoundaryEventDragProxiesIn: anActivityProx
 ]
 
 { #category : 'private - dragging' }
-CPProcessVisualElement >> newDragProxyLabelFor: aFlowNode bounds: bounds [
+CPProcessVisualElement >> newDragProxyLabelFor: aFlowNode [
 	| labelHost label labelWidth |
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ nil ].
 	labelWidth := 180.
@@ -1109,8 +1109,8 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 			sourceElement := self shapeElementForModelElement: source.
 			targetElement := self shapeElementForModelElement: target.
 			(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ someWaypoints ].
-			sourceBounds := self diagramBoundsForFlowNode: source element: sourceElement.
-			targetBounds := self diagramBoundsForFlowNode: target element: targetElement ]
+			sourceBounds := self diagramBoundsForElement: sourceElement.
+			targetBounds := self diagramBoundsForElement: targetElement ]
 		ifFalse: [
 			sourceBounds := self stagedBoundsOf: (self shapeForModelElement: source).
 			targetBounds := self stagedBoundsOf: (self shapeForModelElement: target) ].
@@ -2281,7 +2281,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 				rootLabelPosition := localLabelPosition ifNotNil: [
 					self rootDiagramPointForLocalPoint: localLabelPosition ].
 				proxy := self newDragProxyFor: modelElement shape: shape bounds: bounds.
-				proxyLabel := self newDragProxyLabelFor: modelElement bounds: bounds.
+				proxyLabel := self newDragProxyLabelFor: modelElement.
 				presentation := (CPProcessDragPresentation
 					sourceElement: anElement
 					proxyElement: proxy
@@ -2309,7 +2309,6 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						label := entry fifth.
 						self
 							relocateFlowNodeElement: element
-							for: modelElement
 							toDiagramPoint: bounds origin + delta.
 						label ifNotNil: [ label relocate: entry sixth + delta ] ].
 					self removeGroupMovePreviews: groupPreviews.
@@ -2362,17 +2361,16 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						delta: delta
 						to: targetVisual ]
 				ifFalse: [
-					| insertionEdge |
+					| insertionEdge releaseBounds |
+					releaseBounds := self
+						diagramBoundsForElement: aShapeElement.
 					insertionEdge := self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement.
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| releaseBounds targetVisual targetBounds constrainedBounds rootPoint boundsByShape assessment targetLane currentLane operation |
-							releaseBounds := self
-								diagramBoundsForFlowNode: draggedModelElement
-								element: aShapeElement.
+							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane currentLane operation |
 							rootPoint := self rootDiagramPointForLocalPoint: releaseBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
@@ -2404,19 +2402,16 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 										moveShapes: boundsByShape
 										toProcessHostedBy: targetVisual hostShape
 										waypointsByEdge: IdentityDictionary new ].
-							assessment := operation ifNotNil: [ operation apply ].
+							operation ifNotNil: [ operation apply ].
 							targetVisual == self
-								ifTrue: [
-									(assessment isNil or: [ assessment isApplicable not ])
-										ifTrue: [ self refresh ]
-										ifFalse: [ self refresh ] ]
+								ifTrue: [ self refresh ]
 								ifFalse: [ self refreshEditor ] ]
 						ifNotNil: [
 							self
 								insertExistingFlowNode: draggedModelElement
 								shape: aShape
 								intoEdge: insertionEdge
-								atBounds: proposedBounds ] ] ]
+								atBounds: releaseBounds ] ] ]
 ]
 { #category : 'private - containment' }
 CPProcessVisualElement >> moveGroupEntries: groupEntries movedModelElements: movedModelElements delta: delta to: targetVisual [
@@ -2875,7 +2870,7 @@ CPProcessVisualElement >> acceptsPoolPaletteDragItemForNewLaneSet: aDragItem [
 ]
 
 { #category : 'private - creation' }
-CPProcessVisualElement >> createLaneSetFromPoolPaletteAtGlobalPoint: aGlobalPoint [
+CPProcessVisualElement >> createLaneSetFromPoolPalette [
 	| lane bounds operation assessment |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	lane := CPLane new label: 'Lane'; yourself.
@@ -2902,7 +2897,7 @@ CPProcessVisualElement >> defaultLaneExtent [
 
 { #category : 'private - geometry' }
 CPProcessVisualElement >> laneHeaderWidth [
-	^ 30
+	^ CPLaneShapeElement laneHeaderWidth
 ]
 
 { #category : 'private - creation' }
@@ -3008,7 +3003,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 					atRootDiagramPoint: aRootPoint ]
 			ifNotNil: [
 				^ self
-					createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint ] ].
+					createLaneFromPoolPalette ] ].
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 	candidate isBoundaryEvent ifTrue: [ ^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
@@ -3033,7 +3028,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	^ assessment
 ]
 { #category : 'private - creation' }
-CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint [
+CPProcessVisualElement >> createLaneFromPoolPalette [
 	| lane bounds operation assessment |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	lane := CPLane new label: 'Lane'; yourself.
@@ -3260,12 +3255,11 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 ]
 
 { #category : 'private - connection' }
-CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement sourcePoint: aSourcePoint target: aTarget [
+CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement target: aTarget [
 	| sourceBounds targetBounds sourcePoint targetPoint cursorPoint targetElement |
 	cursorPoint := aCursor position.
 	sourceBounds := self
-		diagramBoundsForFlowNode: aSource
-		element: aSourceElement.
+		diagramBoundsForElement: aSourceElement.
 
 	aTarget
 		ifNil: [
@@ -3277,8 +3271,7 @@ CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor sou
 		ifNotNil: [
 			targetElement := self shapeElementForModelElement: aTarget.
 			targetBounds := self
-				diagramBoundsForFlowNode: aTarget
-				element: targetElement.
+				diagramBoundsForElement: targetElement.
 			sourcePoint := self
 				dockingPointFor: aSource
 				bounds: sourceBounds
@@ -3313,8 +3306,7 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 						targetPoint := cursorPoint ] ]
 			ifNotNil: [
 				candidateBounds := self
-					diagramBoundsForFlowNode: aCandidate
-					element: (self shapeElementForModelElement: aCandidate).
+					diagramBoundsForElement: (self shapeElementForModelElement: aCandidate).
 				movesSource
 					ifTrue: [
 						sourcePoint := self
@@ -3334,11 +3326,9 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 		^ self ].
 
 	sourceBounds := self
-		diagramBoundsForFlowNode: source
-		element: (self shapeElementForModelElement: source).
+		diagramBoundsForElement: (self shapeElementForModelElement: source).
 	targetBounds := self
-		diagramBoundsForFlowNode: target
-		element: (self shapeElementForModelElement: target).
+		diagramBoundsForElement: (self shapeElementForModelElement: target).
 
 	aCandidate
 		ifNil: [
@@ -3357,8 +3347,7 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 					targetPoint := cursorPoint ] ]
 		ifNotNil: [
 			candidateBounds := self
-				diagramBoundsForFlowNode: aCandidate
-				element: (self shapeElementForModelElement: aCandidate).
+				diagramBoundsForElement: (self shapeElementForModelElement: aCandidate).
 			movesSource
 				ifTrue: [
 					sourcePoint := self
@@ -3386,7 +3375,7 @@ CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequ
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
-	| previewLine previewCursor previewSourcePoint |
+	| previewLine previewCursor |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	(aFlowNode isEndEvent and: [ collaborationVisual isNil ]) ifTrue: [ ^ self ].
 	aNodeElement
@@ -3405,8 +3394,6 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 					connectionSourceModelElement := aFlowNode.
 					self clearConnectionTarget.
 					localPoint := self diagramPointForGlobalPoint: anEvent position.
-					previewSourcePoint := self diagramPresentationParent
-						globalPointToLocal: (aNodeElement localPointToGlobal: aNodeElement extent / 2).
 					previewCursor := BlElement new
 						extent: 1 @ 1;
 						background: Color transparent;
@@ -3428,7 +3415,6 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						cursor: previewCursor
 						source: aFlowNode
 						sourceElement: aNodeElement
-						sourcePoint: previewSourcePoint
 						target: nil.
 					self updateDiagramAppearance ] ]
 		dragged: [ :anEvent |
@@ -3450,7 +3436,6 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						cursor: previewCursor
 						source: aFlowNode
 						sourceElement: aNodeElement
-						sourcePoint: previewSourcePoint
 						target: target ] ]
 		dragEnded: [ :anEvent |
 			collaborationVisual
@@ -4252,7 +4237,7 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: so
 CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement toward: aPoint [
 	^ self
 		dockingPointFor: aFlowNode
-		bounds: (self diagramBoundsForFlowNode: aFlowNode element: aNodeElement)
+		bounds: (self diagramBoundsForElement: aNodeElement)
 		toward: aPoint
 ]
 
@@ -4893,7 +4878,7 @@ CPProcessVisualElement >> laneElementOwningBodyHost: aHost [
 
 
 { #category : 'private - containment' }
-CPProcessVisualElement >> diagramBoundsForFlowNode: aFlowNode element: aNodeElement [
+CPProcessVisualElement >> diagramBoundsForElement: aNodeElement [
 	| topLeft bottomRight |
 	topLeft := self diagramPresentationParent
 		globalPointToLocal: (aNodeElement localPointToGlobal: 0 @ 0).

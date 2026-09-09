@@ -15,8 +15,7 @@ CPAtelierResizeParticipantShape >> assess [
 	baseAssessment := super assess.
 	baseAssessment isApplicable ifFalse: [ ^ baseAssessment ].
 	proposedLaneBounds := self
-		proposedLaneBoundsFromParticipantBounds: baseAssessment currentBounds
-		to: baseAssessment proposedBounds.
+		proposedLaneBoundsForParticipantBounds: baseAssessment proposedBounds.
 	proposedLaneBounds ifNil: [ proposedLaneBounds := IdentityDictionary new ].
 	^ CPAtelierResizeParticipantAssessment new
 		shape: baseAssessment shape;
@@ -30,7 +29,6 @@ CPAtelierResizeParticipantShape >> assess [
 CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
 	| diagramDescription diagram diagramContext |
 	super applyAssessment: anAssessment.
-	(anAssessment isKindOf: CPAtelierResizeParticipantAssessment) ifFalse: [ ^ self ].
 	anAssessment proposedLaneBoundsByShape ifEmpty: [ ^ self ].
 	diagramDescription := processMemento magritteDescription
 		detect: [ :each | each handlesSelector: #diagram ].
@@ -49,7 +47,7 @@ CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
 ]
 
 { #category : 'private - assessing' }
-CPAtelierResizeParticipantShape >> proposedLaneBoundsFromParticipantBounds: currentParticipantBounds to: proposedParticipantBounds [
+CPAtelierResizeParticipantShape >> proposedLaneBoundsForParticipantBounds: proposedParticipantBounds [
 	| collaborationContext participant laneContext diagramDescription diagram diagramContext proposedBounds bodyExtent |
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
 	collaborationContext ifNil: [ ^ nil ].
@@ -66,7 +64,8 @@ CPAtelierResizeParticipantShape >> proposedLaneBoundsFromParticipantBounds: curr
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	bodyExtent := (proposedParticipantBounds width - 36) @ proposedParticipantBounds height.
+	bodyExtent := (proposedParticipantBounds width - CPParticipantShapeElement processContentOriginOffset x)
+		@ proposedParticipantBounds height.
 	bodyExtent x > 0 ifFalse: [ ^ nil ].
 	bodyExtent y > 0 ifFalse: [ ^ nil ].
 	proposedBounds := IdentityDictionary new.
