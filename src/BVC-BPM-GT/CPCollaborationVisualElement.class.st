@@ -405,7 +405,11 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 		ifNil: [ pointer ]
 		ifNotNil: [
 			target isSequenceFlowTarget
-				ifTrue: [ pointer ]
+				ifTrue: [
+					self
+						collaborationDockingPointForFlowNode: target modelElement
+						inVisual: aSourceVisual
+						toward: sourcePoint ]
 				ifFalse: [
 					self
 						dockingPointForParticipant: target modelElement
@@ -527,9 +531,12 @@ CPCollaborationVisualElement >> collaborationCenterForFlowNode: aFlowNode inVisu
 
 { #category : 'connection geometry' }
 CPCollaborationVisualElement >> collaborationDockingPointForFlowNode: aFlowNode inVisual: aSourceVisual toward: aPoint [
-	| shape bounds rootOrigin collaborationBounds |
-	shape := aSourceVisual diagramShapeForModelElement: aFlowNode.
-	bounds := aSourceVisual stagedBoundsOf: shape.
+	| element bounds rootOrigin collaborationBounds |
+	element := aSourceVisual shapeElementForModelElement: aFlowNode.
+	element ifNil: [ ^ aPoint ].
+	bounds := aSourceVisual
+		diagramBoundsForFlowNode: aFlowNode
+		element: element.
 	rootOrigin := aSourceVisual
 		rootDiagramPointForLocalPoint: bounds origin.
 	collaborationBounds :=
@@ -553,8 +560,8 @@ CPCollaborationVisualElement >> collaborationPointForProcessRootPoint: aPoint [
 	bounds := self stagedBoundsOf: shape.
 	^ bounds origin
 		+ participantElement processContentOriginOffset
-		+ processVisual hostedDiagramInset
-		+ (aPoint - processVisual diagramBounds origin)
+		+ aPoint
+		+ processVisual diagramContentOffset
 ]
 
 { #category : 'connection geometry' }
