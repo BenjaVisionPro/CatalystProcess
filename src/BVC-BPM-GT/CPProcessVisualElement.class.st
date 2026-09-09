@@ -1835,6 +1835,7 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 			self
 				updateAttachedBoundaryEventGeometryForActivity: aModelElement
 				proposedBounds: proposedBounds.
+			self updateIncidentEdgeGeometryFor: aModelElement.
 			self updateIncidentEdgeLabelsFor: aModelElement.
 			self updateIncidentReconnectHandlesFor: aModelElement ].
 	handles do: [ :aHandle | aShapeElement addChild: aHandle ]
@@ -2333,6 +2334,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					dragStartLabelPosition ifNotNil: [
 						aShapeElement externalLabelHost
 							relocate: dragStartLabelPosition + delta ].
+					self updateIncidentEdgeGeometryFor: draggedModelElement.
 					self updateIncidentEdgeLabelsFor: draggedModelElement.
 					self updateIncidentReconnectHandlesFor: draggedModelElement.
 					self insertionTargetEdge: (self
@@ -4895,4 +4897,35 @@ CPProcessVisualElement >> topLevelLaneSetDiagramOrigin [
 	origins ifEmpty: [ ^ 0 @ 0 ].
 	^ (origins collect: [ :each | each x ]) min
 		@ (origins collect: [ :each | each y ]) min
+]
+
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> updateIncidentEdgeGeometryFor: aModelElement [
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+			self updateLiveGeometryForEdge: anEdge visual: anEdgeVisual ] ]
+]
+
+{ #category : 'private - edges' }
+CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual [
+	| points lines hitLines |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: (self stagedWaypointsOf: anEdge)
+		usingLiveBounds: true.
+	lines := anEdgeVisual lineElements.
+	hitLines := anEdgeVisual hitElements.
+	(points size = lines size + 1
+		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
+	1 to: lines size do: [ :index |
+		| fromAnchor toAnchor |
+		fromAnchor := BlAbsolutePositionAnchor position: (points at: index).
+		toAnchor := BlAbsolutePositionAnchor position: (points at: index + 1).
+		(lines at: index)
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor.
+		(hitLines at: index)
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor ]
 ]
