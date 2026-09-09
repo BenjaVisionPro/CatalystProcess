@@ -2422,3 +2422,84 @@ CPProcessVisualElementExamples >> createLaneSetWithLaneAddsDistinctTopLevelLaneS
 	self assert: (laneContext mementoForLane: secondLane) model == secondLane.
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> insertingLaneAboveShiftsFollowingLaneAndItsFlowNode [
+	<gtExample>
+	| process diagram laneSet firstLane secondLane task firstShape secondShape taskShape memento diagramDescription editing inserted operation assessment diagramContext laneContext |
+	process := CPProcess new label: 'Lane insertion process'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'Reviewer'; yourself.
+	secondLane := CPLane new label: 'Approver'; yourself.
+	firstLane addFlowNodeRef: task.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+	firstShape := CPShape new modelElement: firstLane; bounds: (40 @ 40 extent: 500 @ 140); yourself.
+	secondShape := CPShape new modelElement: secondLane; bounds: (40 @ 180 extent: 500 @ 140); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (180 @ 82 extent: 132 @ 54); yourself.
+	diagram addElement: firstShape; addElement: secondShape; addElement: taskShape.
+
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	inserted := CPLane new label: 'Inserted'; yourself.
+	operation := editing insertLane: inserted relativeTo: firstLane after: false.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedLanesInLaneSet: laneSet) first == inserted.
+	self assert: (laneContext stagedLanesInLaneSet: laneSet) second == firstLane.
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: memento
+		using: diagramDescription.
+	self assert: (diagramContext boundsOf: firstShape) equals: (40 @ 180 extent: 500 @ 140).
+	self assert: (diagramContext boundsOf: secondShape) equals: (40 @ 320 extent: 500 @ 140).
+	self assert: (diagramContext boundsOf: taskShape) equals: (180 @ 222 extent: 132 @ 54).
+	self assert: process laneSets first lanes first == firstLane.
+	^ assessment
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> insertingLaneBelowUsesExistingPoolRoomBeforeGrowingParticipant [
+	<gtExample>
+	| fixture process memento collaborationContext participant participantShape participantBounds diagramDescription editing laneSet lane laneShape inserted operation assessment stagedParticipantBounds |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture at: 2.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Existing'; yourself.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new modelElement: lane; bounds: (40 @ 40 extent: 500 @ 140); yourself.
+	process diagram addElement: laneShape.
+
+	"Use a fresh memento after adding the fixture Lane."
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	inserted := CPLane new label: 'Inserted'; yourself.
+	operation := editing insertLane: inserted relativeTo: lane after: true.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	stagedParticipantBounds := collaborationContext diagramContext boundsOf: participantShape.
+	self assert: stagedParticipantBounds height >= participantBounds height.
+	^ assessment
+]

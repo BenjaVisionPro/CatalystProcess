@@ -118,3 +118,101 @@ CPProcessLaneContext >> mementoForLane: aLane inLaneSet: aLaneSet parentMemento:
 					^ aLaneMemento ] ] ].
 	^ nil
 ]
+
+
+{ #category : 'resolving' }
+CPProcessLaneContext >> laneSetContainingLane: aLane [
+	self stagedLaneSets do: [ :aLaneSet |
+		(self laneSetContainingLane: aLane inLaneSet: aLaneSet) ifNotNil: [ :aResult |
+			^ aResult ] ].
+	^ nil
+]
+
+{ #category : 'resolving' }
+CPProcessLaneContext >> mementoForLaneSet: aLaneSet [
+	(self stagedLaneSets identityIncludes: aLaneSet) ifTrue: [
+		^ processMemento
+			childMementoFor: aLaneSet
+			inRelation: laneSetsDescription ].
+	self stagedLaneSets do: [ :aTopLevelLaneSet |
+		(self
+			mementoForLaneSet: aLaneSet
+			inLaneSet: aTopLevelLaneSet
+			parentMemento: processMemento
+			relation: laneSetsDescription) ifNotNil: [ :aMemento |
+				^ aMemento ] ].
+	^ nil
+]
+
+{ #category : 'staged state' }
+CPProcessLaneContext >> stagedLanesInLaneSet: aLaneSet [
+	| laneSetMemento lanesDescription |
+	laneSetMemento := self mementoForLaneSet: aLaneSet.
+	laneSetMemento ifNil: [ ^ #() ].
+	lanesDescription := laneSetMemento magritteDescription
+		detect: [ :each | each handlesSelector: #lanes ].
+	^ laneSetMemento readUsing: lanesDescription
+]
+
+{ #category : 'staged state' }
+CPProcessLaneContext >> stagedFlowNodeRefsOf: aLane [
+	| laneMemento description |
+	laneMemento := self mementoForLane: aLane.
+	laneMemento ifNil: [ ^ #() ].
+	description := laneMemento magritteDescription
+		detect: [ :each | each handlesSelector: #flowNodeRefs ].
+	^ laneMemento readUsing: description
+]
+
+{ #category : 'staged state' }
+CPProcessLaneContext >> stagedChildLaneSetOf: aLane [
+	| laneMemento description |
+	laneMemento := self mementoForLane: aLane.
+	laneMemento ifNil: [ ^ nil ].
+	description := laneMemento magritteDescription
+		detect: [ :each | each handlesSelector: #childLaneSet ].
+	^ laneMemento readUsing: description
+]
+
+{ #category : 'private - resolving' }
+CPProcessLaneContext >> laneSetContainingLane: aLane inLaneSet: aLaneSet [
+	| lanes |
+	lanes := self stagedLanesInLaneSet: aLaneSet.
+	(lanes identityIncludes: aLane) ifTrue: [ ^ aLaneSet ].
+	lanes do: [ :eachLane |
+		(self stagedChildLaneSetOf: eachLane) ifNotNil: [ :aChildLaneSet |
+			(self laneSetContainingLane: aLane inLaneSet: aChildLaneSet)
+				ifNotNil: [ :aResult | ^ aResult ] ] ].
+	^ nil
+]
+
+{ #category : 'private - resolving' }
+CPProcessLaneContext >> mementoForLaneSet: aLaneSet inLaneSet: aCurrentLaneSet parentMemento: aParentMemento relation: aRelationDescription [
+	| currentMemento lanesDescription lanes |
+	currentMemento := aParentMemento
+		childMementoFor: aCurrentLaneSet
+		inRelation: aRelationDescription.
+	lanesDescription := currentMemento magritteDescription
+		detect: [ :each | each handlesSelector: #lanes ].
+	lanes := currentMemento readUsing: lanesDescription.
+	lanes do: [ :eachLane |
+		| laneMemento childDescription childLaneSet |
+		laneMemento := currentMemento
+			childMementoFor: eachLane
+			inRelation: lanesDescription.
+		childDescription := laneMemento magritteDescription
+			detect: [ :each | each handlesSelector: #childLaneSet ].
+		childLaneSet := laneMemento readUsing: childDescription.
+		childLaneSet ifNotNil: [
+			childLaneSet == aLaneSet ifTrue: [
+				^ laneMemento
+					childMementoFor: childLaneSet
+					inRelation: childDescription ].
+			(self
+				mementoForLaneSet: aLaneSet
+				inLaneSet: childLaneSet
+				parentMemento: laneMemento
+				relation: childDescription) ifNotNil: [ :aMemento |
+					^ aMemento ] ] ].
+	^ nil
+]

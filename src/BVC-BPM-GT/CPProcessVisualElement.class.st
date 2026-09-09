@@ -513,7 +513,9 @@ CPProcessVisualElement >> addLaneShape: aShape [
 	laneElementsByShape at: aShape put: element.
 	laneElementsByLane at: lane put: element.
 	self addDiagramChild: element.
-	self installSelectionOnLaneElement: element
+	self
+		installSelectionOnLaneElement: element;
+		installPoolStructuralDropOnLaneElement: element lane: lane
 ]
 
 { #category : 'private - lanes' }
@@ -4474,3 +4476,52 @@ CPProcessVisualElement >> updateSelectionAppearanceRecursively [
 			aNestedVisual updateSelectionAppearanceRecursively ] ]
 ]
 
+
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> installPoolStructuralDropOnLaneElement: aLaneElement lane: aLane [
+	aLaneElement addEventHandler: (CPProcessPaletteDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsPoolPaletteDragItemForLaneInsertion: aDragItem targetLane: aLane ];
+		whenDroppedDo: [ :anEvent |
+			self dropPoolStructuralItem: anEvent relativeToLane: aLane ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> acceptsPoolPaletteDragItemForLaneInsertion: aDragItem targetLane: aLane [
+	| lane operation assessment |
+	(self isPoolPaletteDragItem: aDragItem) ifFalse: [ ^ false ].
+	flowContainer == memento model ifFalse: [ ^ false ].
+	lane := CPLane new label: 'Lane'; yourself.
+	operation := diagramEditing
+		insertLane: lane
+		relativeTo: aLane
+		after: false.
+	operation ifNil: [ ^ false ].
+	assessment := operation assess.
+	^ assessment isApplicable
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane [
+	| laneElement insertAfter lane operation assessment |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	laneElement := laneElementsByLane at: aLane.
+	insertAfter := anEvent position y > (laneElement height / 2).
+	lane := CPLane new label: 'Lane'; yourself.
+	operation := diagramEditing
+		insertLane: lane
+		relativeTo: aLane
+		after: insertAfter.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshEditor.
+		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock |
+			aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]

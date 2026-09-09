@@ -433,3 +433,14 @@ CPProcessAtelierDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPos
 		diagramContext: edgeDiagramContext
 ]
 
+
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> insertLane: aLane relativeTo: aTargetLane after: aBoolean [
+	^ CPAtelierInsertLane
+		lane: aLane
+		relativeTo: aTargetLane
+		after: aBoolean
+		processMemento: processMemento
+		diagramDescription: diagramDescription
+]
