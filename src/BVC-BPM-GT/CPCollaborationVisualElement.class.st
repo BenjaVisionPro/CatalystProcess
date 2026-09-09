@@ -356,13 +356,17 @@ CPCollaborationVisualElement >> refreshAfterGeometryChange [
 
 { #category : 'connection' }
 CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
-	| pointer sourcePoint |
+	| pointer sourceBounds sourcePoint |
 	self removeConnectionPreview.
 	pointer := self diagramPointForGlobalPoint: anEvent position.
-	connectionPreviewSourcePoint := self
-		liveCollaborationCenterForFlowNode: aSource
+	sourceBounds := self
+		liveCollaborationBoundsForFlowNode: aSource
 		inVisual: aSourceVisual.
-	sourcePoint := connectionPreviewSourcePoint.
+	sourceBounds ifNil: [ ^ self ].
+	connectionPreviewSourcePoint := sourceBounds center.
+	sourcePoint := self
+		dockingPointForRectangle: sourceBounds
+		toward: pointer.
 	connectionPreviewCursor := BlElement new
 		extent: 1 @ 1;
 		background: Color transparent;
@@ -386,7 +390,7 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 
 { #category : 'connection' }
 CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: aSourceVisual event: anEvent [
-	| pointer target sourcePoint targetPoint |
+	| pointer target sourceBounds targetBounds sourcePoint targetPoint targetReference |
 	connectionPreviewLine ifNil: [
 		^ self
 			beginConnectionDragFrom: aSource
@@ -398,19 +402,38 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 		connectionTargetAtGlobalPoint: anEvent position
 		from: aSource
 		sourceVisual: aSourceVisual.
-	sourcePoint := connectionPreviewSourcePoint.
-	targetPoint := target
-		ifNil: [ pointer ]
+	sourceBounds := self
+		liveCollaborationBoundsForFlowNode: aSource
+		inVisual: aSourceVisual.
+	sourceBounds ifNil: [ ^ self ].
+
+	target
+		ifNil: [
+			targetReference := pointer.
+			sourcePoint := self
+				dockingPointForRectangle: sourceBounds
+				toward: targetReference.
+			targetPoint := pointer ]
 		ifNotNil: [
 			target isSequenceFlowTarget
-				ifTrue: [
-					self
-						liveCollaborationCenterForFlowNode: target modelElement
-						inVisual: aSourceVisual ]
-				ifFalse: [
-					self
-						dockingPointForParticipant: target modelElement
-						toward: sourcePoint ] ].
+			ifTrue: [
+				targetBounds := self
+					liveCollaborationBoundsForFlowNode: target modelElement
+					inVisual: aSourceVisual.
+				targetBounds ifNil: [ ^ self ].
+				sourcePoint := self
+					dockingPointForRectangle: sourceBounds
+					toward: targetBounds center.
+				targetPoint := self
+					dockingPointForRectangle: targetBounds
+					toward: sourceBounds center ]
+			ifFalse: [
+				targetPoint := self
+					dockingPointForParticipant: target modelElement
+					toward: sourceBounds center.
+				sourcePoint := self
+					dockingPointForRectangle: sourceBounds
+					toward: targetPoint ] ].
 	connectionPreviewLine
 		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
 		toAnchor: (BlAbsolutePositionAnchor position: targetPoint)
@@ -1427,4 +1450,17 @@ CPCollaborationVisualElement >> liveCollaborationCenterForFlowNode: aFlowNode in
 	element ifNil: [ ^ 0 @ 0 ].
 	^ self diagramPresentationParent
 		globalPointToLocal: (element localPointToGlobal: element extent / 2)
+]
+
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> liveCollaborationBoundsForFlowNode: aFlowNode inVisual: aSourceVisual [
+	| element topLeft bottomRight |
+	element := aSourceVisual shapeElementForModelElement: aFlowNode.
+	element ifNil: [ ^ nil ].
+	topLeft := self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: 0 @ 0).
+	bottomRight := self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: element extent).
+	^ topLeft corner: bottomRight
 ]

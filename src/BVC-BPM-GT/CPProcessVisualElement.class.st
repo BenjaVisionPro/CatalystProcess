@@ -3261,19 +3261,35 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement sourcePoint: aSourcePoint target: aTarget [
-	| targetPoint cursorPoint targetElement |
+	| sourceBounds targetBounds sourcePoint targetPoint cursorPoint targetElement |
 	cursorPoint := aCursor position.
+	sourceBounds := self
+		diagramBoundsForFlowNode: aSource
+		element: aSourceElement.
 
 	aTarget
 		ifNil: [
+			sourcePoint := self
+				dockingPointFor: aSource
+				bounds: sourceBounds
+				toward: cursorPoint.
 			targetPoint := cursorPoint ]
 		ifNotNil: [
 			targetElement := self shapeElementForModelElement: aTarget.
-			targetPoint := self diagramPresentationParent
-				globalPointToLocal: (targetElement localPointToGlobal: targetElement extent / 2) ].
+			targetBounds := self
+				diagramBoundsForFlowNode: aTarget
+				element: targetElement.
+			sourcePoint := self
+				dockingPointFor: aSource
+				bounds: sourceBounds
+				toward: targetBounds center.
+			targetPoint := self
+				dockingPointFor: aTarget
+				bounds: targetBounds
+				toward: sourceBounds center ].
 
 	aLine
-		fromAnchor: (BlAbsolutePositionAnchor position: aSourcePoint);
+		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
 		toAnchor: (BlAbsolutePositionAnchor position: targetPoint)
 ]
 
