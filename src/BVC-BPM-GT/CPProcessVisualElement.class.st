@@ -3284,88 +3284,93 @@ CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor sou
 
 { #category : 'private - reconnecting' }
 CPProcessVisualElement >> updateReconnectPreviewLine: aLine cursor: aCursor sequenceFlow: aSequenceFlow movingSource: movesSource target: aCandidate adjacentReference: adjacentReference [
-	| source target sourceElement targetElement candidateElement |
+	| source target cursorPoint sourceBounds targetBounds candidateBounds sourcePoint targetPoint adjacentPoint |
 	source := self stagedSourceOf: aSequenceFlow.
 	target := self stagedTargetOf: aSequenceFlow.
-	sourceElement := shapeElementsByModelElement at: source.
-	targetElement := shapeElementsByModelElement at: target.
+	cursorPoint := aCursor position.
 
-	adjacentReference
-		ifNotNil: [
-			aCandidate
-				ifNil: [
-					movesSource
-						ifTrue: [
-							aLine
-								fromAnchor: (BlNearestPositionBoundsAnchor
-									nearestTo: adjacentReference
-									from: aCursor);
-								toAnchor: (BlAbsolutePositionAnchor
-									position: adjacentReference position) ]
-						ifFalse: [
-							aLine
-								fromAnchor: (BlAbsolutePositionAnchor
-									position: adjacentReference position);
-								toAnchor: (BlNearestPositionBoundsAnchor
-									nearestTo: adjacentReference
-									from: aCursor) ] ]
-				ifNotNil: [
-					candidateElement := shapeElementsByModelElement at: aCandidate.
-					movesSource
-						ifTrue: [
-							aLine
-								fromAnchor: ((self anchorClassFor: aCandidate)
-									nearestTo: adjacentReference
-									from: candidateElement);
-								toAnchor: (BlAbsolutePositionAnchor
-									position: adjacentReference position) ]
-						ifFalse: [
-							aLine
-								fromAnchor: (BlAbsolutePositionAnchor
-									position: adjacentReference position);
-								toAnchor: ((self anchorClassFor: aCandidate)
-									nearestTo: adjacentReference
-									from: candidateElement) ] ].
-			^ self ].
+	adjacentReference ifNotNil: [
+		adjacentPoint := adjacentReference position.
+		aCandidate
+			ifNil: [
+				movesSource
+					ifTrue: [
+						sourcePoint := cursorPoint.
+						targetPoint := adjacentPoint ]
+					ifFalse: [
+						sourcePoint := adjacentPoint.
+						targetPoint := cursorPoint ] ]
+			ifNotNil: [
+				candidateBounds := self
+					diagramBoundsForFlowNode: aCandidate
+					element: (self shapeElementForModelElement: aCandidate).
+				movesSource
+					ifTrue: [
+						sourcePoint := self
+							dockingPointFor: aCandidate
+							bounds: candidateBounds
+							toward: adjacentPoint.
+						targetPoint := adjacentPoint ]
+					ifFalse: [
+						sourcePoint := adjacentPoint.
+						targetPoint := self
+							dockingPointFor: aCandidate
+							bounds: candidateBounds
+							toward: adjacentPoint ] ].
+		aLine
+			fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
+			toAnchor: (BlAbsolutePositionAnchor position: targetPoint).
+		^ self ].
+
+	sourceBounds := self
+		diagramBoundsForFlowNode: source
+		element: (self shapeElementForModelElement: source).
+	targetBounds := self
+		diagramBoundsForFlowNode: target
+		element: (self shapeElementForModelElement: target).
 
 	aCandidate
 		ifNil: [
 			movesSource
 				ifTrue: [
-					aLine
-						fromAnchor: (BlNearestPositionBoundsAnchor
-							nearestTo: targetElement
-							from: aCursor);
-						toAnchor: ((self anchorClassFor: target)
-							nearestTo: aCursor
-							from: targetElement) ]
+					sourcePoint := cursorPoint.
+					targetPoint := self
+						dockingPointFor: target
+						bounds: targetBounds
+						toward: cursorPoint ]
 				ifFalse: [
-					aLine
-						fromAnchor: ((self anchorClassFor: source)
-							nearestTo: aCursor
-							from: sourceElement);
-						toAnchor: (BlNearestPositionBoundsAnchor
-							nearestTo: sourceElement
-							from: aCursor) ] ]
+					sourcePoint := self
+						dockingPointFor: source
+						bounds: sourceBounds
+						toward: cursorPoint.
+					targetPoint := cursorPoint ] ]
 		ifNotNil: [
-			candidateElement := shapeElementsByModelElement at: aCandidate.
+			candidateBounds := self
+				diagramBoundsForFlowNode: aCandidate
+				element: (self shapeElementForModelElement: aCandidate).
 			movesSource
 				ifTrue: [
-					aLine
-						fromAnchor: ((self anchorClassFor: aCandidate)
-							nearestTo: targetElement
-							from: candidateElement);
-						toAnchor: ((self anchorClassFor: target)
-							nearestTo: candidateElement
-							from: targetElement) ]
+					sourcePoint := self
+						dockingPointFor: aCandidate
+						bounds: candidateBounds
+						toward: targetBounds center.
+					targetPoint := self
+						dockingPointFor: target
+						bounds: targetBounds
+						toward: candidateBounds center ]
 				ifFalse: [
-					aLine
-						fromAnchor: ((self anchorClassFor: source)
-							nearestTo: candidateElement
-							from: sourceElement);
-						toAnchor: ((self anchorClassFor: aCandidate)
-							nearestTo: sourceElement
-							from: candidateElement) ] ]
+					sourcePoint := self
+						dockingPointFor: source
+						bounds: sourceBounds
+						toward: candidateBounds center.
+					targetPoint := self
+						dockingPointFor: aCandidate
+						bounds: candidateBounds
+						toward: sourceBounds center ] ].
+
+	aLine
+		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
+		toAnchor: (BlAbsolutePositionAnchor position: targetPoint)
 ]
 
 { #category : 'private - connection' }
