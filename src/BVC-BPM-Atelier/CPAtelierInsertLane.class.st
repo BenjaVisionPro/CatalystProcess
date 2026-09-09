@@ -29,7 +29,7 @@ CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean
 
 { #category : 'assessing' }
 CPAtelierInsertLane >> assess [
-	| laneContext laneSet laneSetMemento lanesDescription lanes targetIndex insertionIndex diagram diagramContext targetShapes targetShape targetBounds laneHeight newBounds shape elements proposedElements proposedLanes shiftedLanes proposedLaneBoundsByShape flowNodeBoundsByShape moveOperation moveAssessment participantResizeOperation participantResizeAssessment |
+	| laneContext laneSet laneSetMemento lanesDescription lanes targetIndex insertionIndex diagram diagramContext targetShapes targetShape targetBounds minimumLaneHeight canSplit newLaneHeight newBounds targetProposedBounds shape elements proposedElements proposedLanes proposedLaneBoundsByShape shiftedLanes shiftAmount flowNodeBoundsByShape moveOperation moveAssessment participantResizeOperation participantResizeAssessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A fresh Lane is required.' ].
 	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
 	lane == targetLane ifTrue: [ ^ self rejectedBecause: 'The inserted Lane must differ from the target Lane.' ].
@@ -37,6 +37,8 @@ CPAtelierInsertLane >> assess [
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSet := laneContext laneSetContainingLane: targetLane.
 	laneSet ifNil: [ ^ self rejectedBecause: 'The target Lane is not in the staged Process Lane hierarchy.' ].
+	(laneContext stagedChildLaneSetOf: targetLane) ifNotNil: [
+		^ self rejectedBecause: 'Insertion into a Lane with a nested LaneSet is not yet supported.' ].
 	laneSetMemento := laneContext mementoForLaneSet: laneSet.
 	lanesDescription := laneSetMemento magritteDescription
 		detect: [ :each | each handlesSelector: #lanes ].
@@ -56,19 +58,62 @@ CPAtelierInsertLane >> assess [
 	targetShapes size = 1 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have exactly one diagram shape.' ].
 	targetShape := targetShapes anyOne.
 	targetBounds := diagramContext boundsOf: targetShape.
-	laneHeight := targetBounds height.
-	laneHeight > 0 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have positive height.' ].
-	newBounds := (targetBounds origin
-		+ (0 @ (insertAfter ifTrue: [ laneHeight ] ifFalse: [ 0 ])))
-		extent: targetBounds extent.
-	shape := CPShape new modelElement: lane; bounds: newBounds; yourself.
+	targetBounds height > 0 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have positive height.' ].
 
+	minimumLaneHeight := self minimumLaneHeight.
+	canSplit := targetBounds height >= (minimumLaneHeight * 2).
+	proposedLaneBoundsByShape := IdentityDictionary new.
+	shiftedLanes := OrderedCollection new.
+	shiftAmount := 0.
+
+	canSplit
+		ifTrue: [
+			newLaneHeight := targetBounds height / 2.
+			insertAfter
+				ifTrue: [
+					targetProposedBounds := targetBounds origin
+						extent: targetBounds width @ newLaneHeight.
+					newBounds := (targetBounds origin + (0 @ newLaneHeight))
+						extent: targetBounds width @ newLaneHeight ]
+				ifFalse: [
+					newBounds := targetBounds origin
+						extent: targetBounds width @ newLaneHeight.
+					targetProposedBounds := (targetBounds origin + (0 @ newLaneHeight))
+						extent: targetBounds width @ newLaneHeight.
+					shiftedLanes add: targetLane.
+					shiftAmount := newLaneHeight ].
+			proposedLaneBoundsByShape at: targetShape put: targetProposedBounds ]
+		ifFalse: [
+			newLaneHeight := minimumLaneHeight.
+			insertAfter
+				ifTrue: [
+					newBounds := (targetBounds origin + (0 @ targetBounds height))
+						extent: targetBounds width @ newLaneHeight.
+					(targetIndex + 1) to: lanes size do: [ :index |
+						shiftedLanes add: (lanes at: index) ] ]
+				ifFalse: [
+					newBounds := targetBounds origin
+						extent: targetBounds width @ newLaneHeight.
+					targetIndex to: lanes size do: [ :index |
+						shiftedLanes add: (lanes at: index) ] ].
+			shiftAmount := newLaneHeight.
+			shiftedLanes do: [ :aLane |
+				| shapes laneShape currentBounds |
+				shapes := diagramContext shapesForModelElement: aLane.
+				shapes size = 1 ifFalse: [
+					^ self rejectedBecause: 'Every shifted Lane must have exactly one diagram shape.' ].
+				laneShape := shapes anyOne.
+				currentBounds := diagramContext boundsOf: laneShape.
+				proposedLaneBoundsByShape
+					at: laneShape
+					put: (currentBounds translateBy: 0 @ shiftAmount) ] ].
+
+	shape := CPShape new modelElement: lane; bounds: newBounds; yourself.
 	proposedLanes := lanes asOrderedCollection copy.
 	proposedLanes add: lane beforeIndex: insertionIndex.
 	[ lanesDescription validate: proposedLanes ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
-
 	elements := diagramContext elements.
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
@@ -76,34 +121,13 @@ CPAtelierInsertLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	shiftedLanes := OrderedCollection new.
-	(insertAfter ifTrue: [ targetIndex + 1 ] ifFalse: [ targetIndex ])
-		to: lanes size
-		do: [ :index |
-			self
-				addLaneSubtree: (lanes at: index)
-				using: laneContext
-				to: shiftedLanes ].
-
-	proposedLaneBoundsByShape := IdentityDictionary new.
-	shiftedLanes do: [ :aLane |
-		| shapes laneShape currentBounds |
-		shapes := diagramContext shapesForModelElement: aLane.
-		shapes size = 1 ifFalse: [
-			^ self rejectedBecause: 'Every shifted Lane must have exactly one diagram shape.' ].
-		laneShape := shapes anyOne.
-		currentBounds := diagramContext boundsOf: laneShape.
-		proposedLaneBoundsByShape
-			at: laneShape
-			put: (currentBounds translateBy: 0 @ laneHeight) ].
-
 	flowNodeBoundsByShape := IdentityDictionary new.
 	shiftedLanes do: [ :aLane |
 		(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
 			(diagramContext shapesForModelElement: aFlowNode) do: [ :aFlowNodeShape |
 				flowNodeBoundsByShape
 					at: aFlowNodeShape
-					put: ((diagramContext boundsOf: aFlowNodeShape) translateBy: 0 @ laneHeight) ] ] ].
+					put: ((diagramContext boundsOf: aFlowNodeShape) translateBy: 0 @ shiftAmount) ] ] ].
 	flowNodeBoundsByShape
 		ifEmpty: [
 			moveOperation := nil.
@@ -114,12 +138,12 @@ CPAtelierInsertLane >> assess [
 				processMemento: processMemento
 				diagramDescription: diagramDescription.
 			moveAssessment := moveOperation assess.
-			moveAssessment isApplicable ifFalse: [ ^ self rejectedBecause: moveAssessment rejectionMessage ] ].
+			moveAssessment isApplicable ifFalse: [
+				^ self rejectedBecause: moveAssessment rejectionMessage ] ].
 
-	participantResizeOperation := self
-		participantResizeOperationForNewLaneBounds: newBounds
-		shiftedLaneBounds: proposedLaneBoundsByShape
-		diagramContext: diagramContext.
+	participantResizeOperation := canSplit
+		ifTrue: [ nil ]
+		ifFalse: [ self participantResizeOperationGrowingBy: newLaneHeight ].
 	participantResizeOperation
 		ifNil: [ participantResizeAssessment := nil ]
 		ifNotNil: [
@@ -173,16 +197,8 @@ CPAtelierInsertLane >> applyAssessment: anAssessment [
 ]
 
 { #category : 'private - assessing' }
-CPAtelierInsertLane >> addLaneSubtree: aLane using: laneContext to: someLanes [
-	someLanes add: aLane.
-	(laneContext stagedChildLaneSetOf: aLane) ifNotNil: [ :aChildLaneSet |
-		(laneContext stagedLanesInLaneSet: aChildLaneSet) do: [ :aChildLane |
-			self addLaneSubtree: aChildLane using: laneContext to: someLanes ] ]
-]
-
-{ #category : 'private - assessing' }
-CPAtelierInsertLane >> participantResizeOperationForNewLaneBounds: newBounds shiftedLaneBounds: proposedLaneBoundsByShape diagramContext: diagramContext [
-	| collaborationContext participant participantShapes participantShape participantBounds laneBounds minimumY maximumY requiredLaneHeight inset requiredPoolHeight proposedParticipantBounds |
+CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
+	| collaborationContext participant participantShapes participantShape participantBounds proposedBounds |
 	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext participantForProcess: processMemento model.
@@ -191,28 +207,17 @@ CPAtelierInsertLane >> participantResizeOperationForNewLaneBounds: newBounds shi
 	participantShapes size = 1 ifFalse: [ ^ nil ].
 	participantShape := participantShapes anyOne.
 	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
-
-	laneBounds := OrderedCollection with: newBounds.
-	(CPProcessLaneContext inRootMemento: processMemento) stagedLanes do: [ :eachLane |
-		(diagramContext shapesForModelElement: eachLane) do: [ :aShape |
-			laneBounds add: (proposedLaneBoundsByShape
-				at: aShape
-				ifAbsent: [ diagramContext boundsOf: aShape ]) ] ].
-	minimumY := laneBounds first top.
-	maximumY := laneBounds first bottom.
-	laneBounds do: [ :aRectangle |
-		minimumY := minimumY min: aRectangle top.
-		maximumY := maximumY max: aRectangle bottom ].
-	requiredLaneHeight := maximumY - minimumY.
-	inset := 24.
-	requiredPoolHeight := requiredLaneHeight + (inset * 2).
-	requiredPoolHeight <= participantBounds height ifTrue: [ ^ nil ].
-	proposedParticipantBounds := participantBounds origin
-		extent: participantBounds width @ requiredPoolHeight.
+	proposedBounds := participantBounds origin
+		extent: participantBounds width @ (participantBounds height + aHeight).
 	^ CPAtelierResizeParticipantShape
 		shape: participantShape
-		bounds: proposedParticipantBounds
+		bounds: proposedBounds
 		processMemento: processMemento
+]
+
+{ #category : 'private - geometry' }
+CPAtelierInsertLane >> minimumLaneHeight [
+	^ 140
 ]
 
 { #category : 'private' }

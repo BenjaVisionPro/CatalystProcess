@@ -2503,3 +2503,60 @@ CPProcessVisualElementExamples >> insertingLaneBelowUsesExistingPoolRoomBeforeGr
 	self assert: stagedParticipantBounds height >= participantBounds height.
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> firstLaneBoundsFillHostedPoolBody [
+	<gtExample>
+	| process start task diagram startShape taskShape memento visual expectedBounds |
+	process := CPProcess new label: 'Pool body'; yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: start; addFlowElement: task.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	startShape := CPShape new modelElement: start; bounds: (80 @ 70 extent: 42 @ 42); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (180 @ 64 extent: 132 @ 54); yourself.
+	diagram addElement: startShape; addElement: taskShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		memento: memento;
+		beCollaborationHosted;
+		yourself.
+	expectedBounds := (56 @ 40) extent: 280 @ 102.
+	self assert: visual poolBodyBoundsForFirstLane equals: expectedBounds.
+	^ visual
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> insertingSecondLaneSplitsRoomyFirstLane [
+	<gtExample>
+	| process diagram laneSet existing laneShape memento diagramDescription editing inserted assessment diagramContext laneContext insertedShape |
+	process := CPProcess new label: 'Roomy lane process'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	existing := CPLane new label: 'Existing'; yourself.
+	laneSet addLane: existing.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new modelElement: existing; bounds: (40 @ 40 extent: 500 @ 320); yourself.
+	diagram addElement: laneShape.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	inserted := CPLane new label: 'Inserted'; yourself.
+	assessment := (editing insertLane: inserted relativeTo: existing after: true) apply.
+	self assert: assessment isApplicable.
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: memento
+		using: diagramDescription.
+	self assert: (diagramContext boundsOf: laneShape) equals: (40 @ 40 extent: 500 @ 160).
+	insertedShape := (diagramContext shapesForModelElement: inserted) anyOne.
+	self assert: (diagramContext boundsOf: insertedShape) equals: (40 @ 200 extent: 500 @ 160).
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedLanesInLaneSet: laneSet) size equals: 2.
+	^ assessment
+]

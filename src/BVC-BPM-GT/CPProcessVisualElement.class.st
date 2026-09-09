@@ -2713,7 +2713,7 @@ CPProcessVisualElement >> acceptsPoolPaletteDragItemForNewLaneSet: aDragItem [
 	lane := CPLane new label: 'Lane'; yourself.
 	operation := diagramEditing
 		createLaneSetWithLane: lane
-		bounds: (0 @ 0 extent: self defaultLaneExtent).
+		bounds: self poolBodyBoundsForFirstLane.
 	operation ifNil: [ ^ false ].
 	assessment := operation assess.
 	^ assessment isApplicable
@@ -2721,13 +2721,10 @@ CPProcessVisualElement >> acceptsPoolPaletteDragItemForNewLaneSet: aDragItem [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> createLaneSetFromPoolPaletteAtGlobalPoint: aGlobalPoint [
-	| lane rootPoint bounds operation assessment |
+	| lane bounds operation assessment |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	lane := CPLane new label: 'Lane'; yourself.
-	rootPoint := rootVisual diagramPointForGlobalPoint: aGlobalPoint.
-	bounds := self
-		boundsCenteredAtRootDiagramPoint: rootPoint
-		extent: self defaultLaneExtent.
+	bounds := self poolBodyBoundsForFirstLane.
 	operation := diagramEditing
 		createLaneSetWithLane: lane
 		bounds: bounds.
@@ -2749,6 +2746,21 @@ CPProcessVisualElement >> defaultLaneExtent [
 ]
 
 { #category : 'private - creation' }
+CPProcessVisualElement >> poolBodyBoundsForFirstLane [
+	| diagramBounds inset extent |
+	planeGeometry diagramExtent = (0 @ 0) ifTrue: [
+		extent := (self defaultParticipantExtent x
+			- CPParticipantShapeElement processContentOriginOffset x)
+			@ self defaultParticipantExtent y.
+		^ 0 @ 0 extent: extent ].
+	diagramBounds := planeGeometry diagramBounds.
+	inset := self hostedDiagramInset.
+	extent := diagramBounds extent
+		+ ((inset x * 2) @ (inset y * 2)).
+	^ (diagramBounds origin - inset) extent: extent
+]
+
+{ #category : 'private - creation' }
 CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	| sourceElement candidate proposedBounds operation assessment |
 	sourceElement := aDragItem sourceElement.
@@ -2765,7 +2777,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 					createParticipant: candidate
 					bounds: proposedBounds ]
 			ifNotNil: [
-				proposedBounds := 0 @ 0 extent: self defaultLaneExtent.
+				proposedBounds := self poolBodyBoundsForFirstLane.
 				operation := diagramEditing
 					createLane: (CPLane new label: 'Lane'; yourself)
 					bounds: proposedBounds ].
@@ -2854,9 +2866,7 @@ CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoin
 	| lane bounds operation assessment |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	lane := CPLane new label: 'Lane'; yourself.
-	bounds := self
-		boundsCenteredAtRootDiagramPoint: aRootPoint
-		extent: self defaultLaneExtent.
+	bounds := self poolBodyBoundsForFirstLane.
 	operation := diagramEditing createLane: lane bounds: bounds.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
