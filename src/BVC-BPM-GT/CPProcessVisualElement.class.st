@@ -1274,7 +1274,7 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
-	| labelHost label labelWidth |
+	| labelHost interactionSurface label labelWidth |
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ self ].
 	labelWidth := 180.
@@ -1285,7 +1285,16 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c horizontal exact: labelWidth.
 			c vertical fitContent.
 			c ignoreByLayout ];
+		preventMouseEvents;
 		relocate: (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4);
+		yourself.
+	interactionSurface := BlElement new
+		layout: BlFrameLayout new;
+		constraintsDo: [ :c |
+			c horizontal fitContent.
+			c vertical fitContent.
+			c frame horizontal alignCenter.
+			c frame vertical alignCenter ];
 		yourself.
 	label := self newEditableLabelFor: aFlowNode.
 	label hFitContentLimited.
@@ -1294,14 +1303,15 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 		c maxWidth: labelWidth.
 		c frame horizontal alignCenter.
 		c frame vertical alignCenter ].
-	labelHost addChild: label.
+	interactionSurface addChild: label.
+	labelHost addChild: interactionSurface.
 	aShapeElement externalLabelHost: labelHost.
 	self addDiagramChild: labelHost.
-	self installLabelEditingOn: labelHost label: label.
-	self installSelectionOn: labelHost for: aFlowNode.
+	self installLabelEditingOn: interactionSurface label: label.
+	self installSelectionOn: interactionSurface for: aFlowNode.
 	aFlowNode isBoundaryEvent
-		ifTrue: [ self installBoundaryEventPositioningFrom: labelHost moving: aShapeElement for: aShape ]
-		ifFalse: [ self installPositioningFrom: labelHost moving: aShapeElement for: aShape ]
+		ifTrue: [ self installBoundaryEventPositioningFrom: interactionSurface moving: aShapeElement for: aShape ]
+		ifFalse: [ self installPositioningFrom: interactionSurface moving: aShapeElement for: aShape ]
 ]
 
 { #category : 'private - labels' }
