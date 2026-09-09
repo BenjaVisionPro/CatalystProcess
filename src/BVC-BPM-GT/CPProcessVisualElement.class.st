@@ -4916,7 +4916,7 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 		usingLiveBounds: true.
 	lines := anEdgeVisual lineElements.
 	hitLines := anEdgeVisual hitElements.
-	(points size = lines size + 1
+	(points size = (lines size + 1)
 		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
 	1 to: lines size do: [ :index |
 		| fromAnchor toAnchor |
