@@ -1112,8 +1112,8 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 			sourceElement := self shapeElementForModelElement: source.
 			targetElement := self shapeElementForModelElement: target.
 			(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ someWaypoints ].
-			sourceBounds := sourceElement bounds inParent: self diagramPresentationParent.
-			targetBounds := targetElement bounds inParent: self diagramPresentationParent ]
+			sourceBounds := self diagramBoundsForFlowNode: source element: sourceElement.
+			targetBounds := self diagramBoundsForFlowNode: target element: targetElement ]
 		ifFalse: [
 			sourceBounds := self stagedBoundsOf: (self shapeForModelElement: source).
 			targetBounds := self stagedBoundsOf: (self shapeForModelElement: target) ].
@@ -4228,7 +4228,7 @@ CPProcessVisualElement >> positionReconnectHandlesFor: anEdge usingWaypoints: so
 CPProcessVisualElement >> dockingPointFor: aFlowNode element: aNodeElement toward: aPoint [
 	^ self
 		dockingPointFor: aFlowNode
-		bounds: (aNodeElement bounds inParent: self diagramPresentationParent)
+		bounds: (self diagramBoundsForFlowNode: aFlowNode element: aNodeElement)
 		toward: aPoint
 ]
 
@@ -4862,4 +4862,16 @@ CPProcessVisualElement >> laneElementOwningBodyHost: aHost [
 	laneElementsByLane valuesDo: [ :aLaneElement |
 		aLaneElement bodyHost == aHost ifTrue: [ ^ aLaneElement ] ].
 	^ nil
+]
+
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> diagramBoundsForFlowNode: aFlowNode element: aNodeElement [
+	| lane laneElement laneBounds |
+	lane := self stagedLaneContainingFlowNode: aFlowNode.
+	lane ifNil: [ ^ aNodeElement bounds inParent: self diagramPresentationParent ].
+	laneElement := laneElementsByLane at: lane.
+	laneBounds := self stagedBoundsOf: laneElement diagramShape.
+	^ (aNodeElement bounds inParent: laneElement bodyHost)
+		translateBy: laneBounds origin + (self laneHeaderWidth @ 0)
 ]
