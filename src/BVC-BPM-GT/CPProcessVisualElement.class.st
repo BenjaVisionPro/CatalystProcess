@@ -491,95 +491,10 @@ CPProcessVisualElement >> stagedLabelOffsetOf: anEdge [
 
 
 { #category : 'private - lanes' }
-CPProcessVisualElement >> mementoForLane: aLane [
-	| laneSetsDescription laneSets |
-	flowContainer == memento model ifFalse: [ ^ nil ].
-	laneSetsDescription := memento magritteDescription
-		detect: [ :each | each handlesSelector: #laneSets ].
-	laneSets := memento readUsing: laneSetsDescription.
-	laneSets ifNil: [ ^ nil ].
-	laneSets do: [ :aLaneSet |
-		(self
-			mementoForLane: aLane
-			inLaneSet: aLaneSet
-			parentMemento: memento
-			relation: laneSetsDescription) ifNotNil: [ :aLaneMemento |
-				^ aLaneMemento ] ].
-	^ nil
-]
-
-{ #category : 'private - lanes' }
-CPProcessVisualElement >> mementoForLane: aLane inLaneSet: aLaneSet parentMemento: aParentMemento relation: aRelationDescription [
-	| laneSetMemento lanesDescription stagedLanes |
-	laneSetMemento := aParentMemento
-		childMementoFor: aLaneSet
-		inRelation: aRelationDescription.
-	lanesDescription := laneSetMemento magritteDescription
-		detect: [ :each | each handlesSelector: #lanes ].
-	stagedLanes := laneSetMemento readUsing: lanesDescription.
-	(stagedLanes identityIncludes: aLane) ifTrue: [
-		^ laneSetMemento childMementoFor: aLane inRelation: lanesDescription ].
-	stagedLanes do: [ :eachLane |
-		| laneMemento childLaneSetDescription childLaneSet |
-		laneMemento := laneSetMemento childMementoFor: eachLane inRelation: lanesDescription.
-		childLaneSetDescription := laneMemento magritteDescription
-			detect: [ :each | each handlesSelector: #childLaneSet ].
-		childLaneSet := laneMemento readUsing: childLaneSetDescription.
-		childLaneSet ifNotNil: [
-			(self
-				mementoForLane: aLane
-				inLaneSet: childLaneSet
-				parentMemento: laneMemento
-				relation: childLaneSetDescription) ifNotNil: [ :aLaneMemento |
-					^ aLaneMemento ] ] ].
-	^ nil
-]
-
-{ #category : 'private - lanes' }
 CPProcessVisualElement >> lanesForCurrentProcess [
-	| laneSetsDescription laneSets lanes |
 	flowContainer == memento model ifFalse: [ ^ #() ].
-	laneSetsDescription := memento magritteDescription
-		detect: [ :each | each handlesSelector: #laneSets ].
-	laneSets := memento readUsing: laneSetsDescription.
-	laneSets ifNil: [ ^ #() ].
-	lanes := OrderedCollection new.
-	laneSets do: [ :aLaneSet |
-		self
-			addStagedLanesFrom: aLaneSet
-			parentMemento: memento
-			relation: laneSetsDescription
-			to: lanes ].
-	^ lanes
+	^ (CPProcessLaneContext inRootMemento: memento) stagedLanes
 ]
-
-{ #category : 'private - lanes' }
-CPProcessVisualElement >> addStagedLanesFrom: aLaneSet parentMemento: aParentMemento relation: aRelationDescription to: someLanes [
-	| laneSetMemento lanesDescription stagedLanes |
-	laneSetMemento := aParentMemento
-		childMementoFor: aLaneSet
-		inRelation: aRelationDescription.
-	lanesDescription := laneSetMemento magritteDescription
-		detect: [ :each | each handlesSelector: #lanes ].
-	stagedLanes := laneSetMemento readUsing: lanesDescription.
-	stagedLanes ifNil: [ ^ self ].
-	stagedLanes do: [ :aLane |
-		| laneMemento childLaneSetDescription childLaneSet |
-		someLanes add: aLane.
-		laneMemento := laneSetMemento
-			childMementoFor: aLane
-			inRelation: lanesDescription.
-		childLaneSetDescription := laneMemento magritteDescription
-			detect: [ :each | each handlesSelector: #childLaneSet ].
-		childLaneSet := laneMemento readUsing: childLaneSetDescription.
-		childLaneSet ifNotNil: [
-			self
-				addStagedLanesFrom: childLaneSet
-				parentMemento: laneMemento
-				relation: childLaneSetDescription
-				to: someLanes ] ]
-]
-
 { #category : 'private - lanes' }
 CPProcessVisualElement >> addLaneShape: aShape [
 	| lane bounds element |

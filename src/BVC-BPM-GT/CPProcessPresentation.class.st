@@ -352,10 +352,11 @@ CPProcessPresentation >> stagedModelElementOfDiagramElement: aDiagramElement [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> mementoForModelElement: aModelElement [
-	| flowContext selectedMemento collaborationContext |
+	| laneContext flowContext selectedMemento collaborationContext |
 	aModelElement == self memento model ifTrue: [ ^ self memento ].
 
-	selectedMemento := processDiagramElement mementoForLane: aModelElement.
+	laneContext := CPProcessLaneContext inRootMemento: self memento.
+	selectedMemento := laneContext mementoForLane: aModelElement.
 	selectedMemento ifNotNil: [ ^ selectedMemento ].
 
 	flowContext := CPProcessFlowContainerContext rootFor: self memento.

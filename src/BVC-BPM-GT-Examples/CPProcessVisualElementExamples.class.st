@@ -1866,6 +1866,25 @@ CPProcessVisualElementExamples >> collaborationGeometryRefreshCanBeDelegated [
 
 
 { #category : 'examples - presentation' }
+CPProcessVisualElementExamples >> processPresentationResolvesLaneBeforeBuild [
+	<gtExample>
+	| process laneSet lane memento presentation resolvedMemento |
+	process := CPProcess new label: 'Lane selection process'; yourself.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Reviewer'; yourself.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	memento := CFMaMemento model: process.
+	presentation := CPProcessPresentation new.
+	presentation memento: memento.
+
+	self assert: presentation processDiagramElement isNil.
+	resolvedMemento := presentation mementoForModelElement: lane.
+	self assert: resolvedMemento model == lane.
+	^ resolvedMemento
+]
+
+{ #category : 'examples - presentation' }
 CPProcessVisualElementExamples >> processPresentationResolvesNestedFlowElementThroughStagedContext [
 	<gtExample>
 	| fixture memento flowElementsDescription subProcess task subProcessMemento nestedDescription presentation resolvedMemento |
