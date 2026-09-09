@@ -211,15 +211,12 @@ CPProcessVisualElement >> cameraSlack [
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramContentOffset [
-	| hostedOffset |
-	hostedOffset := collaborationHosted
-		ifTrue: [
-			self hostedDiagramInset
-				+ (laneSetVisual
-					ifNil: [ 0 @ 0 ]
-					ifNotNil: [ self laneHeaderWidth @ 0 ]) ]
-		ifFalse: [ diagramViewport cameraSlack ].
-	^ hostedOffset + planeGeometry normalizationOffset
+	(collaborationHosted and: [ laneSetVisual notNil ]) ifTrue: [
+		^ 0 @ 0 - self topLevelLaneSetDiagramOrigin ].
+	^ (collaborationHosted
+		ifTrue: [ self hostedDiagramInset ]
+		ifFalse: [ diagramViewport cameraSlack ])
+		+ planeGeometry normalizationOffset
 ]
 
 { #category : 'geometry' }
@@ -4879,4 +4876,23 @@ CPProcessVisualElement >> diagramBoundsForFlowNode: aFlowNode element: aNodeElem
 		+ laneBounds origin
 		+ (self laneHeaderWidth @ 0))
 		extent: aNodeElement extent
+]
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> topLevelLaneSetDiagramOrigin [
+	| laneContext topLevelLaneSets lanes origins |
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	topLevelLaneSets := laneContext stagedLaneSets.
+	topLevelLaneSets ifEmpty: [ ^ 0 @ 0 ].
+	lanes := laneContext stagedLanesInLaneSet: topLevelLaneSets first.
+	origins := OrderedCollection new.
+	lanes do: [ :aLane |
+		(laneElementsByLane at: aLane ifAbsent: [ nil ])
+			ifNotNil: [ :aLaneElement |
+				(self stagedBoundsOf: aLaneElement diagramShape)
+					ifNotNil: [ :aBounds | origins add: aBounds origin ] ] ].
+	origins ifEmpty: [ ^ 0 @ 0 ].
+	^ (origins collect: [ :each | each x ]) min
+		@ (origins collect: [ :each | each y ]) min
 ]

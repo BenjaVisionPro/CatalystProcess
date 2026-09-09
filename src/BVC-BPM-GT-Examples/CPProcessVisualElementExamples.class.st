@@ -2965,3 +2965,31 @@ CPProcessVisualElementExamples >> moveFlowNodeToLaneStagesBoundsAndPartitionToge
 	self assert: (diagramContext boundsOf: taskShape) equals: (160 @ 210 extent: 100 @ 80).
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> hostedLaneDiagramLayerUsesLaneSetDiagramOrigin [
+	<gtExample>
+	| process laneSet lane diagram laneShape memento visual |
+	process := CPProcess new label: 'Stable Lane origin'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	lane := CPLane new label: 'Lane'; yourself.
+	laneSet addLane: lane.
+	process addLaneSet: laneSet.
+	laneShape := CPShape new
+		modelElement: lane;
+		bounds: (40 @ 60 extent: 500 @ 180);
+		yourself.
+	diagram addElement: laneShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		beCollaborationHosted;
+		memento: memento;
+		yourself.
+
+	self assert: visual topLevelLaneSetDiagramOrigin equals: 40 @ 60.
+	self assert: visual diagramContentOffset equals: -40 @ -60.
+	^ visual
+]
