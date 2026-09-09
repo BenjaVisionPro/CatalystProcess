@@ -2692,10 +2692,12 @@ CPProcessVisualElementExamples >> participantResizeAssessmentDrivesLiveLanePrevi
 		equals: (56 @ 40 extent: 784 @ 360).
 	processVisual previewLaneBounds: assessment proposedLaneBoundsByShape.
 	laneElement := processVisual laneShapeElementFor: lane.
-	self assert: (CPDiagramMementoContext
-		diagram: processDiagram
-		inMemento: memento
-		using: diagramDescription) boundsOf: laneShape equals: (56 @ 40 extent: 584 @ 230).
+	self
+		assert: ((CPDiagramMementoContext
+			diagram: processDiagram
+			inMemento: memento
+			using: diagramDescription) boundsOf: laneShape)
+		equals: (56 @ 40 extent: 584 @ 230).
 	^ laneElement
 ]
 
