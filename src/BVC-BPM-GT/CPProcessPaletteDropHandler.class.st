@@ -4,6 +4,9 @@ BlDropHandler consumes every drag that crosses its target. Process nodes are the
 Class {
 	#name : 'CPProcessPaletteDropHandler',
 	#superclass : 'BlDropHandler',
+	#instVars : [
+		'paletteItem'
+	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
 	#tag : 'Diagram'
@@ -14,7 +17,9 @@ CPProcessPaletteDropHandler >> isPaletteDragEvent: aDragEvent [
 	| source |
 	source := aDragEvent gestureSource.
 	source ifNil: [ ^ false ].
-	^ source userData includesKey: #atelierPaletteSource
+	(source userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
+	paletteItem ifNil: [ ^ true ].
+	^ (source userData at: #atelierPaletteItem ifAbsent: [ nil ]) == paletteItem
 ]
 
 { #category : 'event handling' }
@@ -43,7 +48,14 @@ CPProcessPaletteDropHandler >> isPaletteItemsEvent: anItemsEvent [
 	^ anItemsEvent items allSatisfy: [ :aDragItem |
 		| source |
 		source := aDragItem sourceElement.
-		source notNil and: [ source userData includesKey: #atelierPaletteSource ] ]
+		source notNil
+			and: [
+				(source userData includesKey: #atelierPaletteSource)
+					and: [
+						paletteItem isNil
+							or: [
+								(source userData at: #atelierPaletteItem ifAbsent: [ nil ])
+									== paletteItem ] ] ] ]
 ]
 
 { #category : 'event handling' }
@@ -59,4 +71,10 @@ CPProcessPaletteDropHandler >> itemsDraggedEvent: anEvent [
 { #category : 'event handling' }
 CPProcessPaletteDropHandler >> itemsEnteredEvent: anEvent [
 	(self isPaletteItemsEvent: anEvent) ifTrue: [ super itemsEnteredEvent: anEvent ]
+]
+
+
+{ #category : 'configuration' }
+CPProcessPaletteDropHandler >> paletteItem: anAtelierPaletteItem [
+	paletteItem := anAtelierPaletteItem
 ]

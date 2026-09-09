@@ -3261,25 +3261,36 @@ CPProcessVisualElement >> extentForModelElement: aFlowNode [
 
 { #category : 'private - connection' }
 CPProcessVisualElement >> updateConnectionPreviewLine: aLine cursor: aCursor source: aSource sourceElement: aSourceElement target: aTarget [
-	| targetElement |
+	| sourceBounds targetBounds sourcePoint targetPoint cursorPoint targetElement |
+	cursorPoint := aCursor position.
+	sourceBounds := self
+		diagramBoundsForFlowNode: aSource
+		element: aSourceElement.
+
 	aTarget
 		ifNil: [
-			aLine
-				fromAnchor: ((self anchorClassFor: aSource)
-					nearestTo: aCursor
-					from: aSourceElement);
-				toAnchor: (BlNearestPositionBoundsAnchor
-					nearestTo: aSourceElement
-					from: aCursor) ]
+			sourcePoint := self
+				dockingPointFor: aSource
+				bounds: sourceBounds
+				toward: cursorPoint.
+			targetPoint := cursorPoint ]
 		ifNotNil: [
-			targetElement := shapeElementsByModelElement at: aTarget.
-			aLine
-				fromAnchor: ((self anchorClassFor: aSource)
-					nearestTo: targetElement
-					from: aSourceElement);
-				toAnchor: ((self anchorClassFor: aTarget)
-					nearestTo: aSourceElement
-					from: targetElement) ]
+			targetElement := self shapeElementForModelElement: aTarget.
+			targetBounds := self
+				diagramBoundsForFlowNode: aTarget
+				element: targetElement.
+			sourcePoint := self
+				dockingPointFor: aSource
+				bounds: sourceBounds
+				toward: targetBounds center.
+			targetPoint := self
+				dockingPointFor: aTarget
+				bounds: targetBounds
+				toward: sourceBounds center ].
+
+	aLine
+		fromAnchor: (BlAbsolutePositionAnchor position: sourcePoint);
+		toAnchor: (BlAbsolutePositionAnchor position: targetPoint)
 ]
 
 { #category : 'private - reconnecting' }
@@ -3414,6 +3425,12 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						border: (BlBorder paint: self selectionColor width: 1.5)).
 					self addDiagramChild: previewCursor.
 					self addDiagramChildFirst: previewLine.
+					self
+						updateConnectionPreviewLine: previewLine
+						cursor: previewCursor
+						source: aFlowNode
+						sourceElement: aNodeElement
+						target: nil.
 					self updateDiagramAppearance ] ]
 		dragged: [ :anEvent |
 			collaborationVisual
@@ -4665,13 +4682,16 @@ CPProcessVisualElement >> updateSelectionAppearanceRecursively [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> installPoolStructuralDropsOnLaneElement: aLaneElement lane: aLane [
+	poolPaletteItem ifNil: [ ^ self ].
 	aLaneElement bodyHost addEventHandler: (CPProcessPaletteDropHandler new
+		paletteItem: poolPaletteItem;
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			self acceptsPoolPaletteDragItemForLaneInsertion: aDragItem targetLane: aLane ];
 		whenDroppedDo: [ :anEvent |
 			self dropPoolStructuralItem: anEvent relativeToLane: aLane ];
 		yourself).
 	aLaneElement labelBand addEventHandler: (CPProcessPaletteDropHandler new
+		paletteItem: poolPaletteItem;
 		acceptItemsSuchThat: [ :aDragItem :aDropArea |
 			self acceptsPoolPaletteDragItemForChildLane: aDragItem parentLane: aLane ];
 		whenDroppedDo: [ :anEvent |
