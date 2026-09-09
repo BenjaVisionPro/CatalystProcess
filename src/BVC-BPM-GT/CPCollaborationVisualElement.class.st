@@ -360,9 +360,8 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 	self removeConnectionPreview.
 	pointer := self diagramPointForGlobalPoint: anEvent position.
 	connectionPreviewSourcePoint := self
-		liveCollaborationDockingPointForFlowNode: aSource
-		inVisual: aSourceVisual
-		toward: pointer.
+		liveCollaborationCenterForFlowNode: aSource
+		inVisual: aSourceVisual.
 	sourcePoint := connectionPreviewSourcePoint.
 	connectionPreviewCursor := BlElement new
 		extent: 1 @ 1;
@@ -406,9 +405,8 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 			target isSequenceFlowTarget
 				ifTrue: [
 					self
-						liveCollaborationDockingPointForFlowNode: target modelElement
-						inVisual: aSourceVisual
-						toward: sourcePoint ]
+						liveCollaborationCenterForFlowNode: target modelElement
+						inVisual: aSourceVisual ]
 				ifFalse: [
 					self
 						dockingPointForParticipant: target modelElement
@@ -1419,4 +1417,14 @@ CPCollaborationVisualElement >> liveCollaborationDockingPointForFlowNode: aFlowN
 	^ self
 		dockingPointForRectangle: collaborationBounds
 		toward: aPoint
+]
+
+
+{ #category : 'connection geometry' }
+CPCollaborationVisualElement >> liveCollaborationCenterForFlowNode: aFlowNode inVisual: aSourceVisual [
+	| element |
+	element := aSourceVisual shapeElementForModelElement: aFlowNode.
+	element ifNil: [ ^ 0 @ 0 ].
+	^ self diagramPresentationParent
+		globalPointToLocal: (element localPointToGlobal: element extent / 2)
 ]
