@@ -9,7 +9,9 @@ Class {
 		'createsLaneSet',
 		'proposedLaneSets',
 		'proposedLanes',
-		'proposedDiagramElements'
+		'proposedDiagramElements',
+		'participantResizeOperation',
+		'participantResizeAssessment'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -62,3 +64,24 @@ CPAtelierCreateLaneAssessment >> proposedLanes: aCollection [ proposedLanes := a
 CPAtelierCreateLaneAssessment >> proposedDiagramElements [ ^ proposedDiagramElements ]
 { #category : 'accessing' }
 CPAtelierCreateLaneAssessment >> proposedDiagramElements: aCollection [ proposedDiagramElements := aCollection ]
+
+
+{ #category : 'accessing' }
+CPAtelierCreateLaneAssessment >> participantResizeOperation [
+	^ participantResizeOperation
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateLaneAssessment >> participantResizeOperation: anOperation [
+	participantResizeOperation := anOperation
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateLaneAssessment >> participantResizeAssessment [
+	^ participantResizeAssessment
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateLaneAssessment >> participantResizeAssessment: anAssessment [
+	participantResizeAssessment := anAssessment
+]

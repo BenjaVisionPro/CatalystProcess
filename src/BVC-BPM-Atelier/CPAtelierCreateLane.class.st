@@ -27,7 +27,7 @@ CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMem
 
 { #category : 'assessing' }
 CPAtelierCreateLane >> assess [
-	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext diagramMemento elementsDescription elements shape boundsDescription proposedLaneSets proposedLanes proposedElements |
+	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext diagramMemento elementsDescription elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
 	laneSetsDescription := processMemento magritteDescription
@@ -84,14 +84,27 @@ CPAtelierCreateLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	^ CPAtelierCreateLaneAssessment
+	participantResizeOperation := createsLaneSet
+		ifTrue: [ self participantResizeOperationForFirstLane ]
+		ifFalse: [ nil ].
+	participantResizeOperation
+		ifNil: [ participantResizeAssessment := nil ]
+		ifNotNil: [
+			participantResizeAssessment := participantResizeOperation assess.
+			participantResizeAssessment isApplicable ifFalse: [
+				^ self rejectedBecause: participantResizeAssessment rejectionMessage ] ].
+	assessment := CPAtelierCreateLaneAssessment
 		lane: lane
 		laneSet: laneSet
 		shape: shape
 		createsLaneSet: createsLaneSet
 		proposedLaneSets: proposedLaneSets
 		proposedLanes: proposedLanes
-		proposedDiagramElements: proposedElements
+		proposedDiagramElements: proposedElements.
+	assessment
+		participantResizeOperation: participantResizeOperation;
+		participantResizeAssessment: participantResizeAssessment.
+	^ assessment
 ]
 
 { #category : 'applying' }
@@ -115,7 +128,33 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 		using: diagramDescription.
 	diagramMemento := diagramContext diagramMemento.
 	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
+	anAssessment participantResizeOperation ifNotNil: [ :anOperation |
+		anOperation applyAssessment: anAssessment participantResizeAssessment ]
+]
+
+{ #category : 'private - assessing' }
+CPAtelierCreateLane >> participantResizeOperationForFirstLane [
+	| collaborationContext participant participantShapes participantShape participantBounds proposedBounds |
+	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	collaborationContext ifNil: [ ^ nil ].
+	participant := collaborationContext participantForProcess: processMemento model.
+	participant ifNil: [ ^ nil ].
+	participantShapes := collaborationContext diagramContext shapesForModelElement: participant.
+	participantShapes size = 1 ifFalse: [ ^ nil ].
+	participantShape := participantShapes anyOne.
+	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
+	proposedBounds := (participantBounds left - self laneHeaderWidth) @ participantBounds top
+		corner: participantBounds bottomRight.
+	^ CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: proposedBounds
+		processMemento: processMemento
+]
+
+{ #category : 'private - geometry' }
+CPAtelierCreateLane >> laneHeaderWidth [
+	^ 30
 ]
 
 { #category : 'private' }

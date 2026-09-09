@@ -11,7 +11,7 @@ Class {
 
 { #category : 'assessing' }
 CPAtelierCreateLaneSetWithLane >> assess [
-	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext diagramMemento elementsDescription elements proposedElements |
+	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext diagramMemento elementsDescription elements proposedElements participantResizeOperation participantResizeAssessment assessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
 	laneSetsDescription := processMemento magritteDescription
@@ -55,12 +55,25 @@ CPAtelierCreateLaneSetWithLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	^ CPAtelierCreateLaneAssessment
+	participantResizeOperation := laneSets isEmpty
+		ifTrue: [ self participantResizeOperationForFirstLane ]
+		ifFalse: [ nil ].
+	participantResizeOperation
+		ifNil: [ participantResizeAssessment := nil ]
+		ifNotNil: [
+			participantResizeAssessment := participantResizeOperation assess.
+			participantResizeAssessment isApplicable ifFalse: [
+				^ self rejectedBecause: participantResizeAssessment rejectionMessage ] ].
+	assessment := CPAtelierCreateLaneAssessment
 		lane: lane
 		laneSet: laneSet
 		shape: shape
 		createsLaneSet: true
 		proposedLaneSets: proposedLaneSets
 		proposedLanes: proposedLanes
-		proposedDiagramElements: proposedElements
+		proposedDiagramElements: proposedElements.
+	assessment
+		participantResizeOperation: participantResizeOperation;
+		participantResizeAssessment: participantResizeAssessment.
+	^ assessment
 ]

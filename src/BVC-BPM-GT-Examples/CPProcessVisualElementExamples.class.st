@@ -2697,3 +2697,47 @@ CPProcessVisualElementExamples >> participantResizeAssessmentDrivesLiveLanePrevi
 		using: diagramDescription) boundsOf: laneShape equals: (56 @ 40 extent: 584 @ 230).
 	^ laneElement
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> firstLaneExpandsPoolLeftForLaneHeader [
+	<gtExample>
+	| fixture process memento processVisual collaborationVisual paletteItem source dragItem pool assessment collaborationContext participant participantShape bounds |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture at: 2.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	paletteItem := CFAtelierPaletteItem
+		label: 'Pool'
+		icon: CPParticipant icon
+		provider: (CFAtelierFactoryProvider factory: [
+			CPParticipant new label: 'Pool'; yourself ]).
+	processVisual poolPaletteItem: paletteItem.
+	processVisual collaborationVisual: collaborationVisual.
+	source := BlElement new.
+	source userData
+		at: #atelierPaletteSource put: true;
+		at: #atelierPaletteItem put: paletteItem.
+	pool := paletteItem materialize.
+	dragItem := BlDragItem new sourceElement: source; domainObject: pool; yourself.
+	assessment := processVisual createPaletteItem: dragItem atRootDiagramPoint: 300 @ 140.
+	self assert: assessment isApplicable.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	bounds := collaborationContext diagramContext boundsOf: participantShape.
+	self assert: bounds left equals: 10.
+	self assert: bounds right equals: 660.
+	^ assessment
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> liveParticipantResizePreviewsHostedBodyExtent [
+	<gtExample>
+	| visual |
+	visual := CPProcessVisualElement new.
+	visual previewHostedProcessBodyExtent: 784 @ 360.
+	self assert: visual extent equals: 784 @ 360.
+	^ visual
+]

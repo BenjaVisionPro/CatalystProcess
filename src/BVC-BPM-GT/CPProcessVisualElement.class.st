@@ -2755,11 +2755,17 @@ CPProcessVisualElement >> defaultLaneExtent [
 	^ 500 @ 140
 ]
 
+{ #category : 'private - geometry' }
+CPProcessVisualElement >> laneHeaderWidth [
+	^ 30
+]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> poolBodyBoundsForFirstLane [
-	| diagramBounds inset extent |
+	| diagramBounds inset extent origin headerWidth |
 	diagramBounds := planeGeometry diagramBounds.
 	inset := self hostedDiagramInset.
+	headerWidth := self laneHeaderWidth.
 	extent := collaborationVisual
 		ifNil: [ nil ]
 		ifNotNil: [ collaborationVisual hostedProcessBodyExtent ].
@@ -2772,10 +2778,11 @@ CPProcessVisualElement >> poolBodyBoundsForFirstLane [
 			ifFalse: [
 				extent := diagramBounds extent
 					+ ((inset x * 2) @ (inset y * 2)) ] ].
-	^ (planeGeometry diagramExtent = (0 @ 0)
+	origin := planeGeometry diagramExtent = (0 @ 0)
 		ifTrue: [ 0 @ 0 ]
-		ifFalse: [ diagramBounds origin - inset ])
-		extent: extent
+		ifFalse: [ diagramBounds origin - inset ].
+	^ (origin - (headerWidth @ 0))
+		extent: (extent + (headerWidth @ 0))
 ]
 
 { #category : 'private - creation' }
@@ -4564,4 +4571,13 @@ CPProcessVisualElement >> previewLaneBounds: proposedBoundsByShape [
 				aLaneElement
 				relocate: proposedBounds origin;
 				extent: proposedBounds extent ] ]
+]
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> previewHostedProcessBodyExtent: anExtent [
+	self extent: anExtent.
+	diagramLayer ifNotNil: [ :aLayer |
+		aLayer extent: anExtent ].
+	self requestLayout
 ]

@@ -285,7 +285,11 @@ CPCollaborationVisualElement >> previewParticipantResizeOf: aShape toBounds: pro
 	operation ifNil: [ ^ self ].
 	assessment := operation assess.
 	assessment isApplicable ifFalse: [ ^ self ].
-	processVisual previewLaneBounds: assessment proposedLaneBoundsByShape
+	processVisual
+		previewHostedProcessBodyExtent:
+			(proposedBounds width - CPParticipantShapeElement processContentOriginOffset x)
+				@ proposedBounds height;
+		previewLaneBounds: assessment proposedLaneBoundsByShape
 ]
 
 { #category : 'private - sizing' }
@@ -1281,7 +1285,7 @@ CPCollaborationVisualElement >> selectionColor [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> poolBackgroundColor [
-	^ self resolvedThemeColor: self theme surfaces baseBackground
+	^ Color transparent
 ]
 
 { #category : 'private - theme' }
