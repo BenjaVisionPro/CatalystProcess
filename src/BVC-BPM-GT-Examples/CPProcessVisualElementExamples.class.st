@@ -1729,16 +1729,20 @@ CPProcessVisualElementExamples >> processDiagramUsesExactBoundedCameraTravel [
 { #category : 'examples - containment' }
 CPProcessVisualElementExamples >> flowNodePlacementUsesPresentationHostCoordinateSeam [
 	<gtExample>
-	| fixture visual task element bounds |
+	| fixture visual task element bounds host localPoint |
 	fixture := self fixture.
 	visual := self visualElementForFixture: fixture.
 	task := fixture fourth.
 	element := visual shapeElementsByModelElement at: task.
 	bounds := visual stagedBoundsOf: element diagramShape.
+	host := visual presentationHostForFlowNode: task.
+	localPoint := visual
+		diagramPoint: bounds origin
+		localToPresentationHost: host.
 
-	self assert: (visual presentationHostForFlowNode: task) == visual diagramPresentationParent.
-	self assert: element parent == visual diagramPresentationParent.
-	self assert: element position equals: bounds origin.
+	self assert: host == visual diagramPresentationParent.
+	self assert: element parent == host.
+	self assert: localPoint equals: bounds origin.
 	^ element
 ]
 
