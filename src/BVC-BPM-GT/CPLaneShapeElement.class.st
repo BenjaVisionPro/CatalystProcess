@@ -30,7 +30,7 @@ CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label:
 		background: Color transparent;
 		border: (BlBorder paint: aBorderColor width: self normalBorderWidth);
 		layout: BlFrameLayout new;
-		clipChildren: true.
+		clipChildren: false.
 	self
 		addBodyHost;
 		addLaneHeaderBorderColor: aBorderColor
