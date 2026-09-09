@@ -2347,27 +2347,21 @@ CPProcessVisualElementExamples >> lanesRenderFromDiagramShapes [
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRendersStagedLane [
 	<gtExample>
-	| process diagram memento diagramDescription editing paletteItem visual source dragItem pool assessment lane |
-	process := CPProcess new label: 'Pool structural tool process'; yourself.
-	diagram := CPDiagram new.
-	process diagram: diagram.
-	memento := CFMaMemento model: process.
-	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	| fixture process memento processVisual collaborationVisual paletteItem source dragItem pool assessment lane |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture at: 2.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+
 	paletteItem := CFAtelierPaletteItem
 		label: 'Pool'
 		icon: CPParticipant icon
 		provider: (CFAtelierFactoryProvider factory: [
 			CPParticipant new label: 'Pool'; yourself ]).
-	visual := CPProcessVisualElement new
-		diagramEditing: editing;
-		poolPaletteItem: paletteItem;
-		memento: memento;
-		beCollaborationHosted;
-		collaborationVisual: BlElement new;
-		yourself.
+	processVisual poolPaletteItem: paletteItem.
+	processVisual collaborationVisual: collaborationVisual.
+
 	source := BlElement new.
 	source userData
 		at: #atelierPaletteSource put: true;
@@ -2378,18 +2372,15 @@ CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRender
 		domainObject: pool;
 		yourself.
 
-	self assert: (visual acceptsPaletteDragItem: dragItem).
-	assessment := visual createPaletteItem: dragItem atRootDiagramPoint: 300 @ 140.
+	self assert: (processVisual acceptsPaletteDragItem: dragItem).
+	assessment := processVisual createPaletteItem: dragItem atRootDiagramPoint: 300 @ 140.
 	self assert: assessment isApplicable.
-	lane := visual lanesForCurrentProcess first.
+	lane := processVisual lanesForCurrentProcess first.
 	self assert: lane class equals: CPLane.
-	self assert: (visual laneShapeElementFor: lane) lane == lane.
+	self assert: (processVisual laneShapeElementFor: lane) lane == lane.
 	self assert: process laneSets isEmpty.
-	^ visual
+	^ processVisual
 ]
-
-
-
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> createLaneSetWithLaneAddsDistinctTopLevelLaneSet [
 	<gtExample>
