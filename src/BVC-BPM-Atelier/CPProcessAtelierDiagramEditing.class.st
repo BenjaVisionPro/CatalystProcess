@@ -455,3 +455,12 @@ CPProcessAtelierDiagramEditing >> addChildLane: aLane toParentLane: aParentLane 
 		processMemento: processMemento
 		diagramDescription: diagramDescription
 ]
+
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
+	^ CPAtelierAssignFlowNodeToLane
+		flowNode: aFlowNode
+		targetLane: aLane
+		processMemento: processMemento
+]

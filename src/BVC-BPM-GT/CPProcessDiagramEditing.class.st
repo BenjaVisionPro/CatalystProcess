@@ -121,3 +121,9 @@ CPProcessDiagramEditing >> insertLane: aLane relativeTo: aTargetLane after: aBoo
 CPProcessDiagramEditing >> addChildLane: aLane toParentLane: aParentLane bounds: proposedBounds [
 	^ self subclassResponsibility
 ]
+
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
+	^ self subclassResponsibility
+]

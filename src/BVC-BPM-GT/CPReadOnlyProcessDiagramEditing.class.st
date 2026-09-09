@@ -102,3 +102,9 @@ CPReadOnlyProcessDiagramEditing >> setLabelSegmentIndex: aSegmentIndex segmentPo
 CPReadOnlyProcessDiagramEditing >> addChildLane: aLane toParentLane: aParentLane bounds: proposedBounds [
 	^ nil
 ]
+
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
+	^ nil
+]

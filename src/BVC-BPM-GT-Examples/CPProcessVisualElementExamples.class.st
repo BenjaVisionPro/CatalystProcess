@@ -2875,3 +2875,46 @@ CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
 	self assert: localPoint isPoint.
 	^ visual
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> assignFlowNodeToLaneChangesOnlyTargetLaneSetPartition [
+	<gtExample>
+	| process task firstLaneSet firstLane secondLane otherLaneSet otherLane memento diagramDescription editing operation assessment laneContext |
+	process := CPProcess new label: 'Independent Lane partitions'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+
+	firstLaneSet := CPLaneSet new label: 'Departments'; yourself.
+	firstLane := CPLane new label: 'Sales'; yourself.
+	secondLane := CPLane new label: 'Support'; yourself.
+	firstLane addFlowNodeRef: task.
+	firstLaneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: firstLaneSet.
+
+	otherLaneSet := CPLaneSet new label: 'Roles'; yourself.
+	otherLane := CPLane new label: 'Reviewer'; yourself.
+	otherLane addFlowNodeRef: task.
+	otherLaneSet addLane: otherLane.
+	process addLaneSet: otherLaneSet.
+
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	operation := editing assignFlowNode: task toLane: secondLane.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: firstLane flowNodeRefs equals: { task } asOrderedCollection.
+	self assert: secondLane flowNodeRefs isEmpty.
+	self assert: otherLane flowNodeRefs equals: { task } asOrderedCollection.
+
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedFlowNodeRefsOf: firstLane) isEmpty.
+	self assert: (laneContext stagedFlowNodeRefsOf: secondLane) equals: { task } asOrderedCollection.
+	self assert: (laneContext stagedFlowNodeRefsOf: otherLane) equals: { task } asOrderedCollection.
+	self assert: (laneContext stagedLaneSetContainingLane: secondLane) == firstLaneSet.
+	^ assessment
+]
