@@ -1556,14 +1556,16 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
-	"Only top-level diagram shapes participate in diagram-layer ordering.
+	"Reorder each ordinary FlowNode within the presentation host selected for it.
 	Boundary Event visuals are native children of their attached Activity and
-	must stay there; re-adding them to the diagram layer would destroy the
-	confirmed Bloc containment relationship."
+	must stay there."
 	shapeElementsByModelElement keysAndValuesDo: [ :aModelElement :anElement |
 		aModelElement isBoundaryEvent ifFalse: [
-			anElement removeFromParent.
-			self addDiagramChild: anElement ] ].
+			| host |
+			host := self presentationHostForFlowNode: aModelElement.
+			anElement parent == host ifTrue: [
+				anElement removeFromParent.
+				host addChild: anElement ] ] ].
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
 		aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
