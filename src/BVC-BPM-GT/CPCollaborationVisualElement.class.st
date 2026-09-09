@@ -1385,3 +1385,16 @@ CPCollaborationVisualElement >> participantElementsByParticipant [
 CPCollaborationVisualElement >> messageFlowVisualsByEdge [
 	^ messageFlowVisualsByEdge
 ]
+
+
+{ #category : 'geometry' }
+CPCollaborationVisualElement >> hostedProcessBodyExtent [
+	| participant participantShape bounds |
+	participant := self stagedParticipantForProcess: processMemento model.
+	participant ifNil: [ ^ nil ].
+	participantShape := self participantShapeFor: participant.
+	participantShape ifNil: [ ^ nil ].
+	bounds := self stagedBoundsOf: participantShape.
+	^ (bounds width - CPParticipantShapeElement processContentOriginOffset x)
+		@ bounds height
+]

@@ -2758,16 +2758,24 @@ CPProcessVisualElement >> defaultLaneExtent [
 { #category : 'private - creation' }
 CPProcessVisualElement >> poolBodyBoundsForFirstLane [
 	| diagramBounds inset extent |
-	planeGeometry diagramExtent = (0 @ 0) ifTrue: [
-		extent := (self defaultParticipantExtent x
-			- CPParticipantShapeElement processContentOriginOffset x)
-			@ self defaultParticipantExtent y.
-		^ 0 @ 0 extent: extent ].
 	diagramBounds := planeGeometry diagramBounds.
 	inset := self hostedDiagramInset.
-	extent := diagramBounds extent
-		+ ((inset x * 2) @ (inset y * 2)).
-	^ (diagramBounds origin - inset) extent: extent
+	extent := collaborationVisual
+		ifNil: [ nil ]
+		ifNotNil: [ collaborationVisual hostedProcessBodyExtent ].
+	extent ifNil: [
+		planeGeometry diagramExtent = (0 @ 0)
+			ifTrue: [
+				extent := (self defaultParticipantExtent x
+					- CPParticipantShapeElement processContentOriginOffset x)
+					@ self defaultParticipantExtent y ]
+			ifFalse: [
+				extent := diagramBounds extent
+					+ ((inset x * 2) @ (inset y * 2)) ] ].
+	^ (planeGeometry diagramExtent = (0 @ 0)
+		ifTrue: [ 0 @ 0 ]
+		ifFalse: [ diagramBounds origin - inset ])
+		extent: extent
 ]
 
 { #category : 'private - creation' }
