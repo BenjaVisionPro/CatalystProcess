@@ -108,3 +108,9 @@ CPReadOnlyProcessDiagramEditing >> addChildLane: aLane toParentLane: aParentLane
 CPReadOnlyProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
 	^ nil
 ]
+
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle toLane: aLane [
+	^ nil
+]

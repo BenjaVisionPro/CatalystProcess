@@ -2918,3 +2918,48 @@ CPProcessVisualElementExamples >> assignFlowNodeToLaneChangesOnlyTargetLaneSetPa
 	self assert: (laneContext stagedLaneSetContainingLane: secondLane) == firstLaneSet.
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> moveFlowNodeToLaneStagesBoundsAndPartitionTogether [
+	<gtExample>
+	| process task laneSet firstLane secondLane diagram firstLaneShape secondLaneShape taskShape memento diagramDescription editing operation assessment laneContext diagramContext |
+	process := CPProcess new label: 'Move between Lanes'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	laneSet := CPLaneSet new label: 'Departments'; yourself.
+	firstLane := CPLane new label: 'Sales'; yourself.
+	secondLane := CPLane new label: 'Support'; yourself.
+	firstLane addFlowNodeRef: task.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	firstLaneShape := CPShape new modelElement: firstLane; bounds: (40 @ 40 extent: 500 @ 140); yourself.
+	secondLaneShape := CPShape new modelElement: secondLane; bounds: (40 @ 180 extent: 500 @ 140); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (140 @ 70 extent: 100 @ 80); yourself.
+	diagram addElement: firstLaneShape; addElement: secondLaneShape; addElement: taskShape.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramDescription: diagramDescription.
+	operation := editing
+		moveFlowNode: task
+		shape: taskShape
+		bounds: (160 @ 210 extent: 100 @ 80)
+		toLane: secondLane.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: firstLane flowNodeRefs equals: { task } asOrderedCollection.
+	self assert: secondLane flowNodeRefs isEmpty.
+
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedFlowNodeRefsOf: firstLane) isEmpty.
+	self assert: (laneContext stagedFlowNodeRefsOf: secondLane) equals: { task } asOrderedCollection.
+
+	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: memento using: diagramDescription.
+	self assert: (diagramContext boundsOf: taskShape) equals: (160 @ 210 extent: 100 @ 80).
+	^ assessment
+]

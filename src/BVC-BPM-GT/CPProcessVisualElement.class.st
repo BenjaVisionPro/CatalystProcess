@@ -2366,7 +2366,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape assessment |
+							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape assessment targetLane currentLane operation |
 							rootPoint := self rootDiagramPointForLocalPoint: proposedBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
@@ -2377,15 +2377,33 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 							constrainedBounds := targetVisual
 								constrainedBounds: targetBounds
 								forFlowContainer: targetVisual flowContainer.
-							boundsByShape := IdentityDictionary new
-								at: aShape put: constrainedBounds;
-								yourself.
-							assessment := (diagramEditing
-								moveShapes: boundsByShape
-								toProcessHostedBy: targetVisual hostShape
-								waypointsByEdge: IdentityDictionary new) apply.
+							targetLane := targetVisual == self
+								ifTrue: [ self laneAtGlobalPoint: anEvent position ]
+								ifFalse: [ nil ].
+							currentLane := self stagedLaneContainingFlowNode: draggedModelElement.
+							operation := (targetVisual == self
+								and: [ targetLane notNil
+								and: [ targetLane ~~ currentLane ] ])
+								ifTrue: [
+									diagramEditing
+										moveFlowNode: draggedModelElement
+										shape: aShape
+										bounds: constrainedBounds
+										toLane: targetLane ]
+								ifFalse: [
+									boundsByShape := IdentityDictionary new
+										at: aShape put: constrainedBounds;
+										yourself.
+									diagramEditing
+										moveShapes: boundsByShape
+										toProcessHostedBy: targetVisual hostShape
+										waypointsByEdge: IdentityDictionary new ].
+							assessment := operation ifNotNil: [ operation apply ].
 							targetVisual == self
-								ifTrue: [ assessment isApplicable ifFalse: [ self refresh ] ]
+								ifTrue: [
+									(assessment isNil or: [ assessment isApplicable not ])
+										ifTrue: [ self refresh ]
+										ifFalse: [ self refresh ] ]
 								ifFalse: [ self refreshEditor ] ]
 						ifNotNil: [
 							self
@@ -4792,4 +4810,19 @@ CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode inLaneSets: la
 					laneContext: laneContext)
 					ifNotNil: [ :aContainingLane | ^ aContainingLane ] ] ] ].
 	^ nil
+]
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> laneAtGlobalPoint: aGlobalPoint [
+	| candidates |
+	candidates := OrderedCollection new.
+	laneElementsByLane keysAndValuesDo: [ :aLane :aLaneElement |
+		| bodyBounds |
+		bodyBounds := aLaneElement bodyHost geometryBoundsInSpace.
+		(bodyBounds containsPoint: aGlobalPoint) ifTrue: [
+			candidates add: { aLane. bodyBounds } ] ].
+	candidates ifEmpty: [ ^ nil ].
+	^ (candidates detectMin: [ :each |
+		each second width * each second height ]) first
 ]
