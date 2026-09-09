@@ -647,9 +647,11 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 	modelElement ifNil: [ ^ self ].
 	element := self newShapeElementFor: modelElement shape: aShape bounds: bounds.
 	element installBodyCursor.
-	element
-		constraintsDo: [ :c | c ignoreByLayout ];
-		relocate: bounds origin.
+	element constraintsDo: [ :c | c ignoreByLayout ].
+	self
+		placeFlowNodeElement: element
+		for: modelElement
+		atDiagramPoint: bounds origin.
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
 	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
@@ -689,6 +691,36 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 	modelElement isBoundaryEvent ifTrue: [
 		self addBoundaryEventHoverLabelFor: modelElement bounds: bounds shapeElement: element ].
 	self updateDiagramAppearance
+]
+
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
+	^ self diagramPresentationParent
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
+	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
+	^ aHost globalPointToLocal:
+		(self diagramPresentationParent localPointToGlobal: aPoint)
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> placeFlowNodeElement: anElement for: aFlowNode atDiagramPoint: aPoint [
+	| host |
+	host := self presentationHostForFlowNode: aFlowNode.
+	host addChild: anElement.
+	anElement relocate: (self
+		diagramPoint: aPoint
+		localToPresentationHost: host)
+]
+
+{ #category : 'private - containment' }
+CPProcessVisualElement >> relocateFlowNodeElement: anElement for: aFlowNode toDiagramPoint: aPoint [
+	anElement relocate: (self
+		diagramPoint: aPoint
+		localToPresentationHost: anElement parent)
 ]
 
 { #category : 'private - type selection' }
@@ -2268,7 +2300,10 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						element := entry third.
 						bounds := entry fourth.
 						label := entry fifth.
-						element relocate: bounds origin + delta.
+						self
+							relocateFlowNodeElement: element
+							for: modelElement
+							toDiagramPoint: bounds origin + delta.
 						label ifNotNil: [ label relocate: entry sixth + delta ] ].
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
