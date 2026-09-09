@@ -1190,18 +1190,11 @@ CPCollaborationVisualElement >> dropPoolStructuralItemOnParticipantHeader: anEve
 ]
 
 { #category : 'private - creation' }
-CPCollaborationVisualElement >> isProcessPoolPaletteDragItem: aDragItem [
-	processVisual ifNil: [ ^ false ].
-	^ processVisual isPoolPaletteDragItem: aDragItem
-]
-
-{ #category : 'private - creation' }
 CPCollaborationVisualElement >> acceptsParticipantPaletteDragItem: aDragItem [
 	| sourceElement candidate operation assessment |
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
-	(self isProcessPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifFalse: [ ^ false ].
 	operation := diagramEditing
@@ -1216,7 +1209,6 @@ CPCollaborationVisualElement >> dropParticipantPaletteEvent: anEvent [
 	| dragItem participant dropPoint bounds operation assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
-	(self isProcessPoolPaletteDragItem: dragItem) ifTrue: [ ^ self ].
 	participant := dragItem domainObject.
 	participant isParticipant ifFalse: [ ^ self ].
 	dropPoint := self diagramPointForGlobalPoint:
