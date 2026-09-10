@@ -721,11 +721,12 @@ CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
-	"Convert through Bloc's actual presentation hierarchy. Lane body hosts are
-	 structurally inset by one header at each nesting level; reconstructing that
-	 offset from BPMN-DI Lane bounds duplicates the layout rule and becomes wrong
-	 as soon as a FlowNode crosses between Lane depths."
+	| laneElement laneBounds |
 	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
+	laneElement := self laneElementOwningBodyHost: aHost.
+	laneElement ifNotNil: [
+		laneBounds := self stagedBoundsOf: laneElement diagramShape.
+		^ aPoint - (laneBounds origin + (self laneHeaderWidth @ 0)) ].
 	^ aHost globalPointToLocal:
 		(self diagramPresentationParent localPointToGlobal: aPoint)
 ]
