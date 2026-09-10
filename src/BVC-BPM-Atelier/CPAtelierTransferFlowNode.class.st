@@ -9,7 +9,8 @@ Class {
 		'targetContainer',
 		'proposedBounds',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -25,6 +26,11 @@ CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetC
 		processMemento: aMemento;
 		diagramDescription: aDiagramDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetContainer bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new flowNode: aFlowNode; targetContainer: aTargetContainer; bounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -80,12 +86,9 @@ CPAtelierTransferFlowNode >> assess [
 	] on: MAValidationError do: [ :anException |
 		^ self rejectedBecause: anException printString ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	shape := diagramContext shapeForModelElement: flowNode.
 	shape ifNil: [ ^ self rejectedBecause: 'The transferred flow node requires exactly one diagram shape.' ].
@@ -117,11 +120,7 @@ CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
 	sourceContext writeFlowElements: anAssessment proposedSourceFlowElements.
 	targetContext writeFlowElements: anAssessment proposedTargetFlowElements.
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	shapeMemento := diagramContext mementoFor: anAssessment shape.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription
@@ -144,3 +143,15 @@ CPAtelierTransferFlowNode >> proposedBounds: aRectangle [ proposedBounds := aRec
 CPAtelierTransferFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierTransferFlowNode >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierTransferFlowNode >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

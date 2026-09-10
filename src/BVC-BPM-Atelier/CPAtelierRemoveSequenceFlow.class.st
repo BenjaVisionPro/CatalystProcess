@@ -6,7 +6,8 @@ Class {
 		'sequenceFlow',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -38,6 +39,16 @@ CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow flowContainer: 
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new
+		sequenceFlow: aSequenceFlow;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierRemoveSequenceFlow >> assess [
 	| flowElements proposedFlowElements diagram elements removedEdges proposedElements diagramContext |
@@ -47,12 +58,9 @@ CPAtelierRemoveSequenceFlow >> assess [
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: sequenceFlow) ifFalse: [ ^ self rejectedBecause: 'The sequence flow does not belong to the staged process.' ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	removedEdges := diagramContext edgesForModelElement: sequenceFlow.
@@ -84,11 +92,7 @@ CPAtelierRemoveSequenceFlow >> applyAssessment: anAssessment [
 	self stageOutgoingWithout: sequenceFlow for: source.
 	self stageIncomingWithout: sequenceFlow for: target.
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements.
 	flowContainerContext detachChildMementoFor: sequenceFlow.
 	anAssessment removedEdges do: [ :anEdge |
@@ -140,3 +144,15 @@ CPAtelierRemoveSequenceFlow >> processMemento: aMemento [ processMemento := aMem
 CPAtelierRemoveSequenceFlow >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierRemoveSequenceFlow >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierRemoveSequenceFlow >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierRemoveSequenceFlow >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

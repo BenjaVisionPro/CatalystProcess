@@ -13,7 +13,8 @@ Class {
 		'bounds',
 		'targetLane',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -32,6 +33,11 @@ CPAtelierMoveFlowNodeToLane class >> flowNode: aFlowNode shape: aShape bounds: a
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierMoveFlowNodeToLane class >> flowNode: aFlowNode shape: aShape bounds: aRectangle targetLane: aLane processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new flowNode: aFlowNode; shape: aShape; bounds: aRectangle; targetLane: aLane; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
 { #category : 'assessing' }
 CPAtelierMoveFlowNodeToLane >> assess [
 	| moveOperation moveAssessment laneOperation laneAssessment |
@@ -43,7 +49,7 @@ CPAtelierMoveFlowNodeToLane >> assess [
 	moveOperation := CPAtelierMoveShapes
 		boundsByShape: (IdentityDictionary new at: shape put: bounds; yourself)
 		processMemento: processMemento
-		diagramDescription: diagramDescription.
+		diagramContext: self stagedDiagramContext.
 	moveAssessment := moveOperation assess.
 	moveAssessment isApplicable ifFalse: [
 		^ self rejectedBecause: moveAssessment rejectionMessage ].
@@ -89,3 +95,18 @@ CPAtelierMoveFlowNodeToLane >> targetLane: anObject [ targetLane := anObject ]
 CPAtelierMoveFlowNodeToLane >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierMoveFlowNodeToLane >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierMoveFlowNodeToLane >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierMoveFlowNodeToLane >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

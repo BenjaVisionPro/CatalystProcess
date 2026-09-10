@@ -2,7 +2,7 @@
 Class {
 	#name : 'CPAtelierCreateBoundaryEvent',
 	#superclass : 'CFAtelierOperation',
-	#instVars : [ 'boundaryEvent', 'activity', 'bounds', 'processMemento', 'flowContainerContext', 'diagramDescription' ],
+	#instVars : [ 'boundaryEvent', 'activity', 'bounds', 'processMemento', 'flowContainerContext', 'diagramDescription', 'diagramContext' ],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
@@ -11,6 +11,18 @@ Class {
 CPAtelierCreateBoundaryEvent class >> boundaryEvent: anEvent attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new boundaryEvent: anEvent; activity: anActivity; bounds: aRectangle; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramDescription: aDiagramDescription; yourself
 ]
+{ #category : 'instance creation' }
+CPAtelierCreateBoundaryEvent class >> boundaryEvent: anEvent attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new
+		boundaryEvent: anEvent;
+		activity: anActivity;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierCreateBoundaryEvent >> assess [
 	| flowElements proposedFlowElements diagram diagramContext elements proposedElements shape boundsDescription |
@@ -25,9 +37,9 @@ CPAtelierCreateBoundaryEvent >> assess [
 	(flowElements identityIncludes: boundaryEvent) ifTrue: [ ^ self rejectedBecause: 'The boundary event is already present in the process.' ].
 	boundaryEvent eventDefinitions ifEmpty: [ ^ self rejectedBecause: 'A boundary event requires at least one EventDefinition.' ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
 	elements := diagramContext elements.
 	shape := CPShape new modelElement: boundaryEvent; bounds: bounds; yourself.
 	boundsDescription := shape magritteDescription detect: [ :each | each handlesSelector: #bounds ].
@@ -47,8 +59,7 @@ CPAtelierCreateBoundaryEvent >> applyAssessment: anAssessment [
 	eventMemento := flowContainerContext childMementoFor: boundaryEvent.
 	attachedDescription := eventMemento magritteDescription detect: [ :each | each handlesSelector: #attachedToRef ].
 	eventMemento write: activity using: attachedDescription.
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 { #category : 'private' }
@@ -65,3 +76,15 @@ CPAtelierCreateBoundaryEvent >> processMemento: anObject [ processMemento := anO
 CPAtelierCreateBoundaryEvent >> flowContainerContext: anObject [ flowContainerContext := anObject ]
 { #category : 'accessing' }
 CPAtelierCreateBoundaryEvent >> diagramDescription: anObject [ diagramDescription := anObject ]
+
+{ #category : 'private - staged state' }
+CPAtelierCreateBoundaryEvent >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateBoundaryEvent >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

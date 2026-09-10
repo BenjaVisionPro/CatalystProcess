@@ -9,7 +9,8 @@ Class {
 		'bounds',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -43,6 +44,17 @@ CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle flowCont
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new
+		flowNode: aFlowNode;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierCreateFlowNode >> assess [
 	| flowElements proposedFlowElements diagram elements proposedElements shape boundsDescription diagramContext |
@@ -53,12 +65,9 @@ CPAtelierCreateFlowNode >> assess [
 	flowElements ifNil: [ ^ self rejectedBecause: 'The process has no staged flow-elements collection.' ].
 	(flowElements identityIncludes: flowNode) ifTrue: [ ^ self rejectedBecause: 'The flow node is already present in the process.' ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
@@ -85,11 +94,7 @@ CPAtelierCreateFlowNode >> assess [
 CPAtelierCreateFlowNode >> applyAssessment: anAssessment [
 	| diagram diagramContext |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
@@ -112,3 +117,15 @@ CPAtelierCreateFlowNode >> processMemento: aMemento [ processMemento := aMemento
 CPAtelierCreateFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierCreateFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierCreateFlowNode >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateFlowNode >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

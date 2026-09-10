@@ -10,7 +10,8 @@ Class {
 		'proposedBoundsByFlowNode',
 		'proposedWaypointsBySequenceFlow',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -27,6 +28,11 @@ CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aT
 		processMemento: aMemento;
 		diagramDescription: aDiagramDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aTargetContainer boundsByFlowNode: boundsByFlowNode waypointsBySequenceFlow: waypointsBySequenceFlow processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new flowNodes: someFlowNodes; targetContainer: aTargetContainer; boundsByFlowNode: boundsByFlowNode; waypointsBySequenceFlow: waypointsBySequenceFlow; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -112,12 +118,9 @@ CPAtelierTransferFlowNodes >> assess [
 	] on: MAValidationError do: [ :anException |
 		^ self rejectedBecause: anException printString ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 
 	shapesByNode := IdentityDictionary new.
@@ -175,11 +178,7 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 	sourceContext writeFlowElements: anAssessment proposedSourceFlowElements.
 	targetContext writeFlowElements: anAssessment proposedTargetFlowElements.
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	anAssessment shapesByFlowNode keysAndValuesDo: [ :aFlowNode :aShape |
 		| shapeMemento boundsDescription |
 		shapeMemento := diagramContext mementoFor: aShape.
@@ -231,3 +230,15 @@ CPAtelierTransferFlowNodes >> proposedWaypointsBySequenceFlow: aDictionary [ pro
 CPAtelierTransferFlowNodes >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNodes >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierTransferFlowNodes >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierTransferFlowNodes >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

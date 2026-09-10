@@ -4,7 +4,6 @@ Class {
 	#superclass : 'CPProcessDiagramEditing',
 	#instVars : [
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
@@ -13,27 +12,16 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramDescription: aDescription [
-	^ self new
-		processMemento: aMemento;
-		diagramDescription: aDescription;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramContext: aDiagramContext diagramDescription: aDescription [
+CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramContext: aDiagramContext [
 	^ self new
 		processMemento: aMemento;
 		diagramContext: aDiagramContext;
-		diagramDescription: aDescription;
 		yourself
 ]
 
 { #category : 'accessing' }
 CPProcessAtelierDiagramEditing >> processMemento: aMemento [ processMemento := aMemento ]
 
-{ #category : 'accessing' }
-CPProcessAtelierDiagramEditing >> diagramDescription: aDescription [ diagramDescription := aDescription ]
 
 { #category : 'accessing' }
 CPProcessAtelierDiagramEditing >> diagramContext: aDiagramContext [ diagramContext := aDiagramContext ]
@@ -53,7 +41,7 @@ CPProcessAtelierDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedTo
 		bounds: proposedBounds
 		flowContainer: context container
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -66,7 +54,7 @@ CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBoun
 		bounds: proposedBounds
 		flowContainer: targetContainer
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -75,7 +63,7 @@ CPProcessAtelierDiagramEditing >> createLane: aLane bounds: proposedBounds [
 		lane: aLane
 		bounds: proposedBounds
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -84,7 +72,7 @@ CPProcessAtelierDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedB
 		lane: aLane
 		bounds: proposedBounds
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 
@@ -140,7 +128,7 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 				targetContainer: targetContainer
 				bounds: boundsByFlowNode values anyOne
 				processMemento: processMemento
-				diagramDescription: diagramDescription ].
+				diagramContext: diagramContext ].
 		waypointsBySequenceFlow := IdentityDictionary new.
 		waypointsByEdge keysAndValuesDo: [ :anEdge :someWaypoints |
 			waypointsBySequenceFlow
@@ -152,12 +140,12 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 			boundsByFlowNode: boundsByFlowNode
 			waypointsBySequenceFlow: waypointsBySequenceFlow
 			processMemento: processMemento
-			diagramDescription: diagramDescription ].
+			diagramContext: diagramContext ].
 
 	^ CPAtelierMoveShapes
 		boundsByShape: expandedBoundsByShape
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'private - containment' }
@@ -188,14 +176,6 @@ CPProcessAtelierDiagramEditing >> boundsByShapeIncludingAttachedBoundaryEvents: 
 
 { #category : 'private - staged state' }
 CPProcessAtelierDiagramEditing >> processDiagramContext [
-	| diagram |
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	"Compatibility for direct callers that still construct the editing adapter from the old Process-owned diagram relation."
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 
@@ -235,7 +215,7 @@ CPProcessAtelierDiagramEditing >> reattachBoundaryEvent: aBoundaryEventShape toA
 		bounds: proposedBounds
 		flowContainer: boundaryContext container
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -252,7 +232,7 @@ CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 		shape: aShape
 		bounds: proposedBounds
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -268,7 +248,7 @@ CPProcessAtelierDiagramEditing >> replaceShape: aShape with: aReplacementNode bo
 		bounds: proposedBounds
 		flowContainer: flowContainer
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 
@@ -285,7 +265,7 @@ CPProcessAtelierDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceSh
 		bounds: proposedBounds
 		flowContainer: flowContainer
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -302,7 +282,7 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 			target: target
 			flowContainer: sourceContainer
 			processMemento: processMemento
-			diagramDescription: diagramDescription ].
+			diagramContext: diagramContext ].
 	^ CPAtelierConnectMessageFlow
 		source: source
 		target: target
@@ -360,7 +340,7 @@ CPProcessAtelierDiagramEditing >> insertFlowNode: aFlowNode intoEdge: anEdge bou
 		bounds: proposedBounds
 		flowContainer: flowContainer
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -369,7 +349,7 @@ CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
 	^ CPAtelierRemoveDiagramElements
 		diagramElements: someDiagramElements
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -398,7 +378,7 @@ CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShap
 		waypoints: someWaypoints
 		flowContainer: flowContainer
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 
@@ -422,7 +402,7 @@ CPProcessAtelierDiagramEditing >> setShape: aShape expanded: aBoolean [
 		shape: aShape
 		expanded: aBoolean
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 { #category : 'operation factories' }
@@ -458,7 +438,7 @@ CPProcessAtelierDiagramEditing >> insertLane: aLane relativeTo: aTargetLane afte
 		relativeTo: aTargetLane
 		after: aBoolean
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 
@@ -469,7 +449,7 @@ CPProcessAtelierDiagramEditing >> addChildLane: aLane toParentLane: aParentLane 
 		toParentLane: aParentLane
 		bounds: proposedBounds
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]
 
 
@@ -490,5 +470,5 @@ CPProcessAtelierDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: 
 		bounds: aRectangle
 		targetLane: aLane
 		processMemento: processMemento
-		diagramDescription: diagramDescription
+		diagramContext: diagramContext
 ]

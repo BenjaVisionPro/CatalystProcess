@@ -9,7 +9,8 @@ Class {
 		'targetLane',
 		'insertAfter',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -25,6 +26,11 @@ CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean
 		processMemento: aMemento;
 		diagramDescription: aDiagramDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new lane: aLane; targetLane: aTargetLane; after: aBoolean; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -48,12 +54,9 @@ CPAtelierInsertLane >> assess [
 	targetIndex = 0 ifTrue: [ ^ self rejectedBecause: 'The target Lane has no staged ordering position.' ].
 	insertionIndex := insertAfter ifTrue: [ targetIndex + 1 ] ifFalse: [ targetIndex ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The Process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	targetShapes := diagramContext shapesForModelElement: targetLane.
 	targetShapes size = 1 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have exactly one diagram shape.' ].
 	targetShape := targetShapes anyOne.
@@ -136,7 +139,7 @@ CPAtelierInsertLane >> assess [
 			moveOperation := CPAtelierMoveShapes
 				boundsByShape: flowNodeBoundsByShape
 				processMemento: processMemento
-				diagramDescription: diagramDescription.
+				diagramContext: diagramContext.
 			moveAssessment := moveOperation assess.
 			moveAssessment isApplicable ifFalse: [
 				^ self rejectedBecause: moveAssessment rejectionMessage ] ].
@@ -174,11 +177,7 @@ CPAtelierInsertLane >> applyAssessment: anAssessment [
 		detect: [ :each | each handlesSelector: #lanes ].
 	laneSetMemento write: anAssessment proposedLanes using: lanesDescription.
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements.
 
 	anAssessment proposedLaneBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
@@ -236,3 +235,15 @@ CPAtelierInsertLane >> insertAfter: aBoolean [ insertAfter := aBoolean ]
 CPAtelierInsertLane >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierInsertLane >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierInsertLane >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierInsertLane >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

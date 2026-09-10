@@ -101,8 +101,7 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 			poolPaletteItem: poolPaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
 				processMemento: processMemento
-				diagramContext: diagramContext
-				diagramDescription: diagramDescription);
+				diagramContext: diagramContext);
 			contextualAppendPaletteItems: contextualAppendPaletteItems ].
 	^ anAtelierViewModel
 ]

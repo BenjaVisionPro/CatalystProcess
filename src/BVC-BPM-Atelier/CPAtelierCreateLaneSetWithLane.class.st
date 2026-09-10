@@ -9,6 +9,16 @@ Class {
 	#tag : 'Diagram'
 }
 
+{ #category : 'instance creation' }
+CPAtelierCreateLaneSetWithLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new
+		lane: aLane;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		diagramContext: aDiagramContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierCreateLaneSetWithLane >> assess [
 	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext elements proposedElements participantResizeOperation participantResizeAssessment assessment |
@@ -39,12 +49,9 @@ CPAtelierCreateLaneSetWithLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The Process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	proposedElements := elements asOrderedCollection copy.
@@ -75,3 +82,4 @@ CPAtelierCreateLaneSetWithLane >> assess [
 		participantResizeAssessment: participantResizeAssessment.
 	^ assessment
 ]
+

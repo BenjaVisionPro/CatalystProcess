@@ -8,7 +8,8 @@ Class {
 		'lane',
 		'bounds',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -23,6 +24,11 @@ CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMem
 		processMemento: aMemento;
 		diagramDescription: aDiagramDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new lane: aLane; bounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -68,12 +74,9 @@ CPAtelierCreateLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The Process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	proposedElements := elements asOrderedCollection copy.
@@ -119,11 +122,7 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 		detect: [ :each | each handlesSelector: #lanes ].
 	laneSetMemento write: anAssessment proposedLanes using: lanesDescription.
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements.
 	anAssessment participantResizeOperation ifNotNil: [ :anOperation |
 		anOperation applyAssessment: anAssessment participantResizeAssessment ]
@@ -172,3 +171,15 @@ CPAtelierCreateLane >> bounds: aRectangle [ bounds := aRectangle ]
 CPAtelierCreateLane >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierCreateLane >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierCreateLane >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateLane >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

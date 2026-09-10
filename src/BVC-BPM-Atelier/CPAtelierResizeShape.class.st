@@ -8,7 +8,8 @@ Class {
 		'shape',
 		'bounds',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -25,17 +26,19 @@ CPAtelierResizeShape class >> shape: aShape bounds: aRectangle processMemento: a
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierResizeShape class >> shape: aShape bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new shape: aShape; bounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
 { #category : 'assessing' }
 CPAtelierResizeShape >> assess [
 	| diagram elements shapeMemento boundsDescription currentBounds occurrences diagramContext |
 	shape ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'A diagram shape is required.' ].
 	bounds ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'Diagram bounds are required.' ].
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	occurrences := elements count: [ :each | each == shape ].
 	occurrences = 1 ifFalse: [
@@ -62,11 +65,7 @@ CPAtelierResizeShape >> assess [
 { #category : 'applying' }
 CPAtelierResizeShape >> applyAssessment: anAssessment [
 	| diagram elements resizedModelElement centerDelta diagramContext |
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	elements := diagramContext elements.
 	resizedModelElement := diagramContext modelElementOf: shape.
 	centerDelta := anAssessment proposedBounds center - anAssessment currentBounds center.
@@ -217,3 +216,15 @@ CPAtelierResizeShape >> bounds: aRectangle [ bounds := aRectangle ]
 CPAtelierResizeShape >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierResizeShape >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierResizeShape >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierResizeShape >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

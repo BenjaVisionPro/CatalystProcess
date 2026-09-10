@@ -2,7 +2,7 @@
 Class {
 	#name : 'CPAtelierReattachBoundaryEvent',
 	#superclass : 'CFAtelierOperation',
-	#instVars : [ 'boundaryEvent', 'activity', 'shape', 'bounds', 'processMemento', 'flowContainerContext', 'diagramDescription' ],
+	#instVars : [ 'boundaryEvent', 'activity', 'shape', 'bounds', 'processMemento', 'flowContainerContext', 'diagramDescription', 'diagramContext' ],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
@@ -21,6 +21,11 @@ CPAtelierReattachBoundaryEvent class >> boundaryEvent: anEvent shape: aShape att
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierReattachBoundaryEvent class >> boundaryEvent: anEvent shape: aShape attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new boundaryEvent: anEvent; shape: aShape; activity: anActivity; bounds: aRectangle; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramContext: aDiagramContext; yourself
+]
+
 { #category : 'assessing' }
 CPAtelierReattachBoundaryEvent >> assess [
 	| flowElements diagram diagramContext elements shapeMemento boundsDescription currentBounds delta currentActivity |
@@ -34,9 +39,9 @@ CPAtelierReattachBoundaryEvent >> assess [
 	(flowElements identityIncludes: boundaryEvent) ifFalse: [ ^ self rejectedBecause: 'The boundary event must belong to the flow container.' ].
 	(flowElements identityIncludes: activity) ifFalse: [ ^ self rejectedBecause: 'The attached Activity must belong to the same flow container.' ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
 	elements := diagramContext elements.
 	(elements count: [ :each | each == shape ]) = 1 ifFalse: [ ^ self rejectedBecause: 'The boundary event shape must occur exactly once in the diagram.' ].
 	(diagramContext modelElementOf: shape) == boundaryEvent ifFalse: [ ^ self rejectedBecause: 'The supplied shape does not depict the boundary event.' ].
@@ -63,8 +68,7 @@ CPAtelierReattachBoundaryEvent >> applyAssessment: anAssessment [
 	attachedDescription := eventMemento magritteDescription detect: [ :each | each handlesSelector: #attachedToRef ].
 	eventMemento write: activity using: attachedDescription.
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	shapeMemento := diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
@@ -110,3 +114,15 @@ CPAtelierReattachBoundaryEvent >> processMemento: anObject [ processMemento := a
 CPAtelierReattachBoundaryEvent >> flowContainerContext: anObject [ flowContainerContext := anObject ]
 { #category : 'accessing' }
 CPAtelierReattachBoundaryEvent >> diagramDescription: anObject [ diagramDescription := anObject ]
+
+{ #category : 'private - staged state' }
+CPAtelierReattachBoundaryEvent >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierReattachBoundaryEvent >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

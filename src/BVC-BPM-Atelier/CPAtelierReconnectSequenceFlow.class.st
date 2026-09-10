@@ -11,7 +11,8 @@ Class {
 		'proposedWaypoints',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -42,6 +43,11 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new sequenceFlow: aSequenceFlow; source: aSource; target: aTarget; waypoints: someWaypoints; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -84,12 +90,9 @@ CPAtelierReconnectSequenceFlow >> assess [
 	] on: MAValidationError do: [ :anException |
 		^ self rejectedBecause: anException printString ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
@@ -140,10 +143,7 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 		self stageIncomingIncluding: sequenceFlow for: anAssessment proposedTarget.
 		flowMemento write: anAssessment proposedTarget using: targetDescription ].
 
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	edgeMatches := diagramContext elements select: [
 		:each | each isEdge and: [ (diagramContext modelElementOf: each) == sequenceFlow ] ].
 	edge := edgeMatches first.
@@ -256,3 +256,15 @@ CPAtelierReconnectSequenceFlow >> diagramDescription: aDescription [ diagramDesc
 
 { #category : 'accessing' }
 CPAtelierReconnectSequenceFlow >> proposedWaypoints: aCollection [ proposedWaypoints := aCollection asOrderedCollection ]
+
+{ #category : 'private - staged state' }
+CPAtelierReconnectSequenceFlow >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierReconnectSequenceFlow >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

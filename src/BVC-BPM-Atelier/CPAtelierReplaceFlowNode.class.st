@@ -10,7 +10,8 @@ Class {
 		'bounds',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -39,6 +40,11 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
 		diagramDescription: aDiagramDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new flowNode: aFlowNode; replacementNode: aReplacementNode; bounds: aRectangle; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -113,13 +119,10 @@ CPAtelierReplaceFlowNode >> assess [
 		] on: MAValidationError do: [ :anException |
 			^ self rejectedBecause: anException printString ] ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [
 		^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [
 		^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
@@ -196,11 +199,7 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 			detect: [ :each | each handlesSelector: #flowElements ].
 		replacementMemento write: preservedNestedFlowElements using: nestedDescription ].
 
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	shapeMemento := diagramContext mementoFor: anAssessment shape.
 	modelElementDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
@@ -290,3 +289,14 @@ CPAtelierReplaceFlowNode >> stagedNestedFlowElementsOf: aFlowNode [
 	^ nodeMemento readUsing: description
 ]
 
+{ #category : 'private - staged state' }
+CPAtelierReplaceFlowNode >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierReplaceFlowNode >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

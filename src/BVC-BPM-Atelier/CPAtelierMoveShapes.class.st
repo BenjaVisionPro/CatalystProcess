@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'boundsByShape',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -23,18 +24,20 @@ CPAtelierMoveShapes class >> boundsByShape: aDictionary processMemento: aMemento
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierMoveShapes class >> boundsByShape: aDictionary processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new boundsByShape: aDictionary; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
 { #category : 'assessing' }
 CPAtelierMoveShapes >> assess [
 	| diagram elements currentBoundsByShape proposedBoundsByShape proposedDelta diagramContext |
 	(boundsByShape isNil or: [ boundsByShape isEmpty ]) ifTrue: [
 		^ self rejectedWithCurrentBounds: IdentityDictionary new delta: nil because: 'At least one diagram shape is required.' ].
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [
 		^ self rejectedWithCurrentBounds: IdentityDictionary new delta: nil because: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	currentBoundsByShape := IdentityDictionary new.
 	proposedBoundsByShape := IdentityDictionary new.
@@ -121,11 +124,7 @@ CPAtelierMoveShapes >> addAttachedBoundaryEventShapesForMovedShapesTo: proposedB
 { #category : 'applying' }
 CPAtelierMoveShapes >> applyAssessment: anAssessment [
 	| diagram elements movedModelElements delta diagramContext |
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	elements := diagramContext elements.
 	movedModelElements := IdentitySet new.
 	delta := anAssessment delta.
@@ -206,3 +205,15 @@ CPAtelierMoveShapes >> processMemento: aMemento [ processMemento := aMemento ]
 CPAtelierMoveShapes >> diagramDescription [ ^ diagramDescription ]
 { #category : 'accessing' }
 CPAtelierMoveShapes >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierMoveShapes >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierMoveShapes >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

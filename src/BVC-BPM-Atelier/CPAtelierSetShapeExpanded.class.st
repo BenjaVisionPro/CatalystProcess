@@ -8,7 +8,8 @@ Class {
 		'shape',
 		'expanded',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -25,6 +26,11 @@ CPAtelierSetShapeExpanded class >> shape: aShape expanded: aBoolean processMemen
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierSetShapeExpanded class >> shape: aShape expanded: aBoolean processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new shape: aShape; expanded: aBoolean; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
 { #category : 'assessing' }
 CPAtelierSetShapeExpanded >> assess [
 	| diagram elements shapeMemento
@@ -36,13 +42,10 @@ CPAtelierSetShapeExpanded >> assess [
 	(expanded == true or: [ expanded == false ]) ifFalse: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'Expanded state must be Boolean.' ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	(elements identityIncludes: shape) ifFalse: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'The shape does not belong to the staged diagram.' ].
@@ -97,11 +100,7 @@ CPAtelierSetShapeExpanded >> assess [
 { #category : 'applying' }
 CPAtelierSetShapeExpanded >> applyAssessment: anAssessment [
 	| diagram diagramContext |
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeExpanded: anAssessment proposedExpanded of: shape.
 	diagramContext writeBounds: anAssessment proposedBounds of: shape
 ]
@@ -128,3 +127,15 @@ CPAtelierSetShapeExpanded >> processMemento: aMemento [ processMemento := aMemen
 
 { #category : 'accessing' }
 CPAtelierSetShapeExpanded >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierSetShapeExpanded >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierSetShapeExpanded >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

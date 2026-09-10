@@ -9,7 +9,8 @@ Class {
 		'target',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -43,6 +44,11 @@ CPAtelierConnectFlowNodes class >> source: aSource target: aTarget flowContainer
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierConnectFlowNodes class >> source: aSource target: aTarget flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new source: aSource; target: aTarget; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramContext: aDiagramContext; yourself
+]
+
 { #category : 'assessing' }
 CPAtelierConnectFlowNodes >> assess [
 	| flowElements topology ruleResult diagram elements sourceShape targetShape sequenceFlow edge proposedFlowElements proposedElements sourceDescription targetDescription diagramContext |
@@ -57,12 +63,9 @@ CPAtelierConnectFlowNodes >> assess [
 	ruleResult := CPSequenceFlowConnectionRules new assessConnectionFrom: source to: target in: topology.
 	ruleResult isAllowed ifFalse: [ ^ self rejectedBecause: ruleResult message ].
 
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	sourceShape := diagramContext shapeForModelElement: source.
@@ -102,11 +105,7 @@ CPAtelierConnectFlowNodes >> applyAssessment: anAssessment [
 	flowMemento write: target using: targetDescription.
 	self stageOutgoingIncluding: anAssessment sequenceFlow for: source.
 	self stageIncomingIncluding: anAssessment sequenceFlow for: target.
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
@@ -173,3 +172,15 @@ CPAtelierConnectFlowNodes >> processMemento: aMemento [ processMemento := aMemen
 CPAtelierConnectFlowNodes >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
 CPAtelierConnectFlowNodes >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierConnectFlowNodes >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierConnectFlowNodes >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]

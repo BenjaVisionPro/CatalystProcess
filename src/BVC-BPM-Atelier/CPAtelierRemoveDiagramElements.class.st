@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'diagramElements',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -21,6 +22,11 @@ CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements pro
 		processMemento: aMemento;
 		diagramDescription: aDescription;
 		yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new diagramElements: someDiagramElements; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -119,7 +125,7 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 					flowNode: aFlowNode
 					flowContainer: context container
 					processMemento: processMemento
-					diagramDescription: diagramDescription) ] ] ].
+					diagramContext: self stagedDiagramContext) ] ] ].
 
 	selectedSequenceFlows do: [ :aSequenceFlow |
 		(self sequenceFlow: aSequenceFlow isIncidentToAny: operationOwnerNodes) ifFalse: [
@@ -132,7 +138,7 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 					sequenceFlow: aSequenceFlow
 					flowContainer: context container
 					processMemento: processMemento
-					diagramDescription: diagramDescription) ] ] ].
+					diagramContext: self stagedDiagramContext) ] ] ].
 	^ operations
 ]
 
@@ -166,12 +172,7 @@ CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwne
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> processDiagramContext [
-	| diagram |
-	diagram := processMemento readUsing: diagramDescription.
-	^ CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription
+	^ self stagedDiagramContext
 ]
 
 { #category : 'private - resolving' }
@@ -198,4 +199,19 @@ CPAtelierRemoveDiagramElements >> processMemento: aMemento [
 { #category : 'accessing' }
 CPAtelierRemoveDiagramElements >> diagramDescription: aDescription [
 	diagramDescription := aDescription
+]
+
+{ #category : 'private - staged state' }
+CPAtelierRemoveDiagramElements >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierRemoveDiagramElements >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
 ]

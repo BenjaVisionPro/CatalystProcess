@@ -8,7 +8,8 @@ Class {
 		'shape',
 		'bounds',
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -30,12 +31,9 @@ CPAtelierMoveShape >> assess [
 	| diagram elements shapeMemento boundsDescription currentBounds occurrences diagramContext |
 	shape ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'A diagram shape is required.' ].
 	bounds ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'Diagram bounds are required.' ].
-	diagram := processMemento readUsing: diagramDescription.
+	diagramContext := self stagedDiagramContext.
+	diagram := diagramContext diagram.
 	diagram ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'The process has no staged diagram.' ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
 	elements := diagramContext elements.
 	occurrences := elements count: [ :each | each == shape ].
 	occurrences = 1 ifFalse: [
@@ -59,11 +57,7 @@ CPAtelierMoveShape >> assess [
 { #category : 'applying' }
 CPAtelierMoveShape >> applyAssessment: anAssessment [
 	| diagram elements movedModelElement delta diagramContext |
-	diagram := processMemento readUsing: diagramDescription.
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedDiagramContext.
 	elements := diagramContext elements.
 	movedModelElement := diagramContext modelElementOf: shape.
 	delta := anAssessment proposedBounds origin - anAssessment currentBounds origin.
@@ -142,3 +136,15 @@ CPAtelierMoveShape >> processMemento: aMemento [ processMemento := aMemento ]
 CPAtelierMoveShape >> diagramDescription [ ^ diagramDescription ]
 { #category : 'accessing' }
 CPAtelierMoveShape >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'private - staged state' }
+CPAtelierMoveShape >> stagedDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	diagramContext := self stagedDiagramContext.
+	^ diagramContext
+]
+
+{ #category : 'accessing' }
+CPAtelierMoveShape >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext
+]
