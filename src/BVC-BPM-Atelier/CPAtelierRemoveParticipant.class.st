@@ -1,6 +1,6 @@
 "I stage removal of one Participant from the edited Process's Collaboration.
 
-In a document-rooted session I mutate the canonical Collaboration and Diagram owned by CPDefinitions. The legacy Process-rooted path remains temporarily for the old CPProcess>>asAtelier entry."
+In a document-rooted session I mutate the canonical Collaboration and Diagram owned by CPDefinitions. The legacy Process-rooted path remains temporarily for executable fixtures that still use a Process memento as their transaction root."
 Class {
 	#name : 'CPAtelierRemoveParticipant',
 	#superclass : 'CFAtelierOperation',

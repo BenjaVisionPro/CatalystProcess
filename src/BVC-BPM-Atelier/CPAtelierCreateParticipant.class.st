@@ -1,6 +1,6 @@
 "I stage creation of one BPMN Participant and its Pool CPShape.
 
-In a document-rooted session I create a missing Collaboration and its Diagram as siblings owned by CPDefinitions, while Process.definitionalCollaborationRef remains a reference. The legacy Process-rooted path remains temporarily for the old CPProcess>>asAtelier entry."
+In a document-rooted session I create a missing Collaboration and its Diagram as siblings owned by CPDefinitions, while Process.definitionalCollaborationRef remains a reference. The legacy Process-rooted path remains temporarily for executable fixtures that still use a Process memento as their transaction root."
 Class {
 	#name : 'CPAtelierCreateParticipant',
 	#superclass : 'CFAtelierOperation',

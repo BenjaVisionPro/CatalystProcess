@@ -1,6 +1,6 @@
 "I identify the transaction, semantic focus and active BPMN depiction for one Process Atelier editing session.
 
-A document-rooted session carries a CPDefinitionsMementoContext, one Process child memento and one explicitly chosen depiction. The legacy Process-rooted constructor remains only while CPProcess>>asAtelier still uses the old entry shape."
+The canonical entry is document-rooted: CPDefinitions owns the transaction, the Process is the semantic focus and the Diagram is an explicitly chosen depiction. The Process-rooted constructor remains temporarily for legacy executable fixtures while they are migrated."
 Class {
 	#name : 'CPProcessAtelierSession',
 	#superclass : 'Object',
@@ -32,6 +32,14 @@ CPProcessAtelierSession class >> forProcessMemento: aProcessMemento [
 		diagramContext: diagramContext
 		documentContext: nil
 		collaborationContext: (CPProcessCollaborationContext inRootMemento: aProcessMemento)
+]
+
+{ #category : 'instance creation' }
+CPProcessAtelierSession class >> forDefinitions: aDefinitions process: aProcess diagram: aDiagram [
+	^ self
+		forDefinitionsMemento: (CFMaMemento model: aDefinitions)
+		process: aProcess
+		diagram: aDiagram
 ]
 
 { #category : 'instance creation' }

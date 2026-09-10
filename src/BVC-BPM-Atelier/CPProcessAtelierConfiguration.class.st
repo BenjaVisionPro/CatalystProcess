@@ -15,11 +15,6 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPProcessAtelierConfiguration class >> forProcessMemento: aProcessMemento [
-	^ self forSession: (CPProcessAtelierSession forProcessMemento: aProcessMemento)
-]
-
-{ #category : 'instance creation' }
 CPProcessAtelierConfiguration class >> forSession: aSession [
 	| configuration |
 	configuration := self new
