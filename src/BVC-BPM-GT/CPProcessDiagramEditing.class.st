@@ -130,6 +130,6 @@ CPProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
 
 
 { #category : 'operation factories' }
-CPProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle toLane: aLane [
+CPProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle fromLane: aSourceLane toLane: aTargetLane [
 	^ self subclassResponsibility
 ]

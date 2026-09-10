@@ -507,12 +507,13 @@ CPProcessAtelierDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
 
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle toLane: aLane [
+CPProcessAtelierDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle fromLane: aSourceLane toLane: aTargetLane [
 	^ CPAtelierMoveFlowNodeToLane
 		flowNode: aFlowNode
 		shape: aShape
 		bounds: aRectangle
-		targetLane: aLane
+		sourceLane: aSourceLane
+		targetLane: aTargetLane
 		processMemento: processMemento
 		diagramContext: diagramContext
 ]

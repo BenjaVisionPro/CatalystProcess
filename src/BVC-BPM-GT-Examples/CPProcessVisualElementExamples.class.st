@@ -3030,6 +3030,7 @@ CPProcessVisualElementExamples >> moveFlowNodeToLaneStagesBoundsAndPartitionToge
 		moveFlowNode: task
 		shape: taskShape
 		bounds: (160 @ 210 extent: 100 @ 80)
+		fromLane: firstLane
 		toLane: secondLane.
 	assessment := operation apply.
 
@@ -3043,6 +3044,57 @@ CPProcessVisualElementExamples >> moveFlowNodeToLaneStagesBoundsAndPartitionToge
 
 	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: memento using: diagramDescription.
 	self assert: (diagramContext boundsOf: taskShape) equals: (160 @ 210 extent: 100 @ 80).
+	^ assessment
+]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> moveFlowNodeAcrossNestedLaneSetBoundaryClearsSourcePartition [
+	<gtExample>
+	| process task outerLaneSet parentLane childLaneSet childLane siblingChildLane topLane diagram taskShape memento editing operation assessment laneContext diagramContext |
+	process := CPProcess new label: 'Move across nested LaneSet boundary'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+
+	childLane := CPLane new label: 'Nested first'; addFlowNodeRef: task; yourself.
+	siblingChildLane := CPLane new label: 'Nested second'; yourself.
+	childLaneSet := CPLaneSet new addLane: childLane; addLane: siblingChildLane; yourself.
+	parentLane := CPLane new label: 'Department'; childLaneSet: childLaneSet; yourself.
+	topLane := CPLane new label: 'Top level'; yourself.
+	outerLaneSet := CPLaneSet new addLane: parentLane; addLane: topLane; yourself.
+	process addLaneSet: outerLaneSet.
+
+	diagram := CPDiagram new modelElement: process; yourself.
+	diagram
+		addElement: (CPShape new modelElement: parentLane; bounds: (40 @ 40 extent: 620 @ 180); yourself);
+		addElement: (CPShape new modelElement: childLane; bounds: (70 @ 40 extent: 590 @ 90); yourself);
+		addElement: (CPShape new modelElement: siblingChildLane; bounds: (70 @ 130 extent: 590 @ 90); yourself);
+		addElement: (CPShape new modelElement: topLane; bounds: (40 @ 220 extent: 620 @ 180); yourself).
+	taskShape := CPShape new modelElement: task; bounds: (150 @ 65 extent: 42 @ 42); yourself.
+	diagram addElement: taskShape.
+	process diagram: diagram.
+
+	memento := CFMaMemento model: process.
+	editing := self diagramEditingForMemento: memento.
+	operation := editing
+		moveFlowNode: task
+		shape: taskShape
+		bounds: (170 @ 285 extent: 42 @ 42)
+		fromLane: childLane
+		toLane: topLane.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedFlowNodeRefsOf: childLane) isEmpty.
+	self assert: (laneContext stagedFlowNodeRefsOf: siblingChildLane) isEmpty.
+	self assert: (laneContext stagedFlowNodeRefsOf: topLane) equals: { task } asOrderedCollection.
+
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: memento
+		using: (self descriptionFor: #diagram in: memento).
+	self assert: (diagramContext boundsOf: taskShape) equals: (170 @ 285 extent: 42 @ 42).
 	^ assessment
 ]
 

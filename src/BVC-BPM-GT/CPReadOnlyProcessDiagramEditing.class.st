@@ -111,6 +111,6 @@ CPReadOnlyProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
 
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle toLane: aLane [
+CPReadOnlyProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle fromLane: aSourceLane toLane: aTargetLane [
 	^ nil
 ]

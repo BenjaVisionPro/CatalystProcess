@@ -2522,13 +2522,14 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								ifFalse: [ nil ].
 							currentLane := self stagedLaneContainingFlowNode: draggedModelElement.
 							operation := (targetVisual == self
-								and: [ targetLane notNil
-								and: [ targetLane ~~ currentLane ] ])
+								and: [ targetLane ~~ currentLane
+								and: [ targetLane notNil or: [ currentLane notNil ] ] ])
 								ifTrue: [
 									diagramEditing
 										moveFlowNode: draggedModelElement
 										shape: aShape
 										bounds: constrainedBounds
+										fromLane: currentLane
 										toLane: targetLane ]
 								ifFalse: [
 									boundsByShape := IdentityDictionary new

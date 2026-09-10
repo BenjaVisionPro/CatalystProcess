@@ -1,8 +1,8 @@
 "I coordinate one drag intention that moves a FlowNode's BPMN-DI shape and
-reassigns that FlowNode within one LaneSet partition.
+moves that FlowNode from an explicit source Lane to an explicit target Lane.
 
 I reuse CPAtelierMoveShapes for geometry/edge routing and
-CPAtelierAssignFlowNodeToLane for Lane semantics. Both are assessed first, so a
+CPAtelierMoveFlowNodeLaneMembership for Lane semantics. Both are assessed first, so a
 rejected Lane assignment cannot leave the DI move partially staged."
 Class {
 	#name : 'CPAtelierMoveFlowNodeToLane',
@@ -11,6 +11,7 @@ Class {
 		'flowNode',
 		'shape',
 		'bounds',
+		'sourceLane',
 		'targetLane',
 		'processMemento',
 		'diagramContext'
@@ -21,8 +22,8 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPAtelierMoveFlowNodeToLane class >> flowNode: aFlowNode shape: aShape bounds: aRectangle targetLane: aLane processMemento: aMemento diagramContext: aDiagramContext [
-	^ self new flowNode: aFlowNode; shape: aShape; bounds: aRectangle; targetLane: aLane; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+CPAtelierMoveFlowNodeToLane class >> flowNode: aFlowNode shape: aShape bounds: aRectangle sourceLane: aSourceLane targetLane: aTargetLane processMemento: aMemento diagramContext: aDiagramContext [
+	^ self new flowNode: aFlowNode; shape: aShape; bounds: aRectangle; sourceLane: aSourceLane; targetLane: aTargetLane; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -31,7 +32,8 @@ CPAtelierMoveFlowNodeToLane >> assess [
 	flowNode ifNil: [ ^ self rejectedBecause: 'A FlowNode is required.' ].
 	shape ifNil: [ ^ self rejectedBecause: 'A diagram shape is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Proposed bounds are required.' ].
-	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
+	(sourceLane isNil and: [ targetLane isNil ]) ifTrue: [
+		^ self rejectedBecause: 'A source Lane or target Lane is required.' ].
 
 	moveOperation := CPAtelierMoveShapes
 		boundsByShape: (IdentityDictionary new at: shape put: bounds; yourself)
@@ -41,8 +43,9 @@ CPAtelierMoveFlowNodeToLane >> assess [
 	moveAssessment isApplicable ifFalse: [
 		^ self rejectedBecause: moveAssessment rejectionMessage ].
 
-	laneOperation := CPAtelierAssignFlowNodeToLane
+	laneOperation := CPAtelierMoveFlowNodeLaneMembership
 		flowNode: flowNode
+		sourceLane: sourceLane
 		targetLane: targetLane
 		processMemento: processMemento.
 	laneAssessment := laneOperation assess.
@@ -76,6 +79,8 @@ CPAtelierMoveFlowNodeToLane >> flowNode: anObject [ flowNode := anObject ]
 CPAtelierMoveFlowNodeToLane >> shape: anObject [ shape := anObject ]
 { #category : 'accessing' }
 CPAtelierMoveFlowNodeToLane >> bounds: aRectangle [ bounds := aRectangle ]
+{ #category : 'accessing' }
+CPAtelierMoveFlowNodeToLane >> sourceLane: anObject [ sourceLane := anObject ]
 { #category : 'accessing' }
 CPAtelierMoveFlowNodeToLane >> targetLane: anObject [ targetLane := anObject ]
 { #category : 'accessing' }
