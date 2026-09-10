@@ -82,6 +82,17 @@ CPDefinitionsMementoContext >> diagramsDepicting: aModelElement [
 ]
 
 
+{ #category : 'resolving' }
+CPDefinitionsMementoContext >> diagramsForProcess: aProcess [
+	| depictedElements collaboration |
+	depictedElements := OrderedCollection with: aProcess.
+	collaboration := aProcess definitionalCollaborationRef.
+	collaboration ifNotNil: [ depictedElements add: collaboration ].
+	^ self diagrams select: [ :each |
+		depictedElements identityIncludes: (self diagramContextFor: each) planeModelElement ]
+]
+
+
 { #category : 'validation' }
 CPDefinitionsMementoContext >> validateRootElements: aCollection [
 	^ rootElementsDescription validate: aCollection

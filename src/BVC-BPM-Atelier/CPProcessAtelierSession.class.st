@@ -34,6 +34,27 @@ CPProcessAtelierSession class >> forProcessMemento: aProcessMemento [
 		collaborationContext: (CPProcessCollaborationContext inRootMemento: aProcessMemento)
 ]
 
+
+{ #category : 'instance creation' }
+CPProcessAtelierSession class >> forDefinitions: aDefinitions process: aProcess [
+	^ self
+		forDefinitionsMemento: (CFMaMemento model: aDefinitions)
+		process: aProcess
+]
+
+{ #category : 'instance creation' }
+CPProcessAtelierSession class >> forDefinitionsMemento: aDefinitionsMemento process: aProcess [
+	| documentContext diagrams |
+	documentContext := CPDefinitionsMementoContext memento: aDefinitionsMemento.
+	diagrams := documentContext diagramsForProcess: aProcess.
+	diagrams size = 1 ifFalse: [
+		self error: 'A Process Atelier session requires an explicit Diagram when the Process has anything other than one available depiction.' ].
+	^ self
+		forDefinitionsMemento: aDefinitionsMemento
+		process: aProcess
+		diagram: diagrams first
+]
+
 { #category : 'instance creation' }
 CPProcessAtelierSession class >> forDefinitions: aDefinitions process: aProcess diagram: aDiagram [
 	^ self

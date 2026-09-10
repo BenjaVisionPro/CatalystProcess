@@ -2949,3 +2949,60 @@ CPProcessAtelierExamples >> documentRootedMessageFlowUsesSessionCollaborationCon
 	self assert: session collaborationContext collaborationMemento == (session documentContext mementoForRootElement: collaboration).
 	^ assessment
 ]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> definitionsEntryChoosesOnlyAvailableProcessDepiction [
+	<gtExample>
+	| definitions process diagram session viewModel |
+	definitions := CPDefinitions new targetNamespace: 'urn:catalyst:unique-depiction'; yourself.
+	process := CPProcess new label: 'Focused process'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	definitions addRootElement: process; addDiagram: diagram.
+
+	session := CPProcessAtelierSession forDefinitions: definitions process: process.
+	viewModel := definitions asAtelierForProcess: process.
+
+	self assert: session diagramContext diagram == diagram.
+	self assert: viewModel object == process.
+	self assert: viewModel palette notNil.
+	self assert: viewModel palette items isEmpty not.
+	^ viewModel
+]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> definitionsEntryRequiresChoiceBetweenMultipleDepictions [
+	<gtExample>
+	| definitions process firstDiagram secondDiagram raised |
+	definitions := CPDefinitions new targetNamespace: 'urn:catalyst:multiple-depictions'; yourself.
+	process := CPProcess new label: 'Focused process'; yourself.
+	firstDiagram := CPDiagram new modelElement: process; yourself.
+	secondDiagram := CPDiagram new modelElement: process; yourself.
+	definitions addRootElement: process; addDiagram: firstDiagram; addDiagram: secondDiagram.
+
+	raised := false.
+	[ CPProcessAtelierSession forDefinitions: definitions process: process ]
+		on: Error
+		do: [ :anError | raised := true ].
+
+	self assert: raised.
+	^ definitions
+]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> definitionsEntryRecognizesCollaborationDepictionForProcess [
+	<gtExample>
+	| definitions process collaboration diagram session |
+	definitions := CPDefinitions new targetNamespace: 'urn:catalyst:collaboration-depiction'; yourself.
+	process := CPProcess new label: 'Hosted process'; yourself.
+	collaboration := CPCollaboration new label: 'Collaboration'; yourself.
+	process definitionalCollaborationRef: collaboration.
+	diagram := CPDiagram new modelElement: collaboration; yourself.
+	definitions addRootElement: process; addRootElement: collaboration; addDiagram: diagram.
+
+	session := CPProcessAtelierSession forDefinitions: definitions process: process.
+
+	self assert: session diagramContext diagram == diagram.
+	self assert: session collaborationContext collaboration == collaboration.
+	^ session
+]
+

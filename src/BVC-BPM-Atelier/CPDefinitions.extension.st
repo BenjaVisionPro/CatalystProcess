@@ -7,3 +7,11 @@ CPDefinitions >> asAtelierForProcess: aProcess diagram: aDiagram [
 		process: aProcess
 		diagram: aDiagram) asViewModel
 ]
+
+{ #category : '*BVC-BPM-Atelier' }
+CPDefinitions >> asAtelierForProcess: aProcess [
+	^ (CPProcessAtelierSession
+		forDefinitions: self
+		process: aProcess) asViewModel
+]
+
