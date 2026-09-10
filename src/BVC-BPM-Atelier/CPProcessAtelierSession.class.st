@@ -94,3 +94,14 @@ CPProcessAtelierSession >> documentContext [
 CPProcessAtelierSession >> documentContext: aDocumentContext [
 	documentContext := aDocumentContext
 ]
+
+
+{ #category : 'converting' }
+CPProcessAtelierSession >> asViewModel [
+	| viewModel |
+	viewModel := CFAtelierViewModel
+		forObject: processMemento model
+		memento: processMemento.
+	viewModel configuration: (CPProcessAtelierConfiguration forSession: self).
+	^ viewModel
+]

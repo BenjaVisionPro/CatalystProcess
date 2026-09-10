@@ -2703,3 +2703,30 @@ CPProcessAtelierExamples >> definitionsEditingSessionKeepsExplicitDepictionChoic
 	self assert: session diagramContext diagram == secondDiagram.
 	^ session
 ]
+
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> documentRootedSessionCreatesProcessFocusedViewModel [
+	<gtExample>
+	| definitions process diagram root session viewModel |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:view-model-session';
+		yourself.
+	process := CPProcess new label: 'Focused process'; yourself.
+	diagram := CPDiagram new.
+	diagram plane modelElement: process.
+	definitions
+		addRootElement: process;
+		addDiagram: diagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: diagram.
+	viewModel := session asViewModel.
+
+	self assert: viewModel object == process.
+	self assert: session rootMemento == root.
+	self assert: session processMemento ~~ root.
+	^ viewModel
+]
