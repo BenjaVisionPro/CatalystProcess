@@ -3100,7 +3100,7 @@ CPProcessVisualElementExamples >> moveFlowNodeAcrossNestedLaneSetBoundaryClearsS
 
 
 { #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> hostedLaneDiagramUsesOrdinaryProcessPlaneNormalization [
+CPProcessVisualElementExamples >> hostedLaneDiagramNormalizesLaneSetToPoolBody [
 	<gtExample>
 	| process laneSet lane diagram laneShape memento visual laneElement |
 	process := CPProcess new label: 'Stable Lane origin'; yourself.
@@ -3124,11 +3124,13 @@ CPProcessVisualElementExamples >> hostedLaneDiagramUsesOrdinaryProcessPlaneNorma
 	laneElement := visual laneShapeElementFor: lane.
 
 	self assert: visual diagramBounds equals: laneShape bounds.
-	self assert: visual diagramContentOffset equals:
-		visual hostedDiagramInset - visual diagramBounds origin.
-	self assert: visual diagramBoundsOriginInContent equals: visual hostedDiagramInset.
+	self assert: visual diagramContentOffset equals: 0 @ 0 - laneShape bounds origin.
+	self assert: visual diagramBoundsOriginInContent equals: 0 @ 0.
 	self assert: visual laneSetVisual parent == visual diagramPresentationParent.
 	self assert: (visual diagramBoundsForElement: laneElement) equals: laneShape bounds.
+	self assert:
+		(visual globalPointToLocal: (visual laneSetVisual localPointToGlobal: 0 @ 0))
+		equals: 0 @ 0.
 	^ visual
 ]
 

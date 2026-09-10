@@ -228,6 +228,10 @@ CPProcessVisualElement >> cameraSlack [
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramContentOffset [
+	| laneSetBounds |
+	collaborationHosted ifTrue: [
+		laneSetBounds := self topLevelLaneSetDiagramBounds.
+		laneSetBounds ifNotNil: [ ^ 0 @ 0 - laneSetBounds origin ] ].
 	^ (collaborationHosted
 		ifTrue: [ self hostedDiagramInset ]
 		ifFalse: [ diagramViewport cameraSlack ])
@@ -544,6 +548,22 @@ CPProcessVisualElement >> installSelectionOnLaneSurface: aSurface forLaneElement
 					ifFalse: [ self selectOnlyDiagramElement: aLaneElement diagramShape ].
 				self requestFocus.
 				anEvent consumed: true ] ])
+]
+
+
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> topLevelLaneSetDiagramBounds [
+	| laneContext topLevelLaneSets laneShapes |
+	diagramElements ifNil: [ ^ nil ].
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	topLevelLaneSets := laneContext stagedLaneSets.
+	topLevelLaneSets ifEmpty: [ ^ nil ].
+	laneShapes := diagramElements select: [ :each | each isShape ].
+	^ self
+		diagramBoundsForLaneSet: topLevelLaneSets first
+		laneShapes: laneShapes
+		laneContext: laneContext
 ]
 
 { #category : 'private - lanes' }
