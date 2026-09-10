@@ -8,7 +8,8 @@ Class {
 		'lane',
 		'bounds',
 		'processMemento',
-		'diagramContext'
+		'diagramContext',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -18,6 +19,11 @@ Class {
 { #category : 'instance creation' }
 CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
 	^ self new lane: aLane; bounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext collaborationContext: aCollaborationContext [
+	^ self new lane: aLane; bounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; collaborationContext: aCollaborationContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -120,7 +126,7 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 { #category : 'private - assessing' }
 CPAtelierCreateLane >> participantResizeOperationForFirstLane [
 	| collaborationContext participant participantShapes participantShape participantBounds headerWidth proposedLeft requiredWidth requiredHeight proposedRight proposedBottom proposedBounds |
-	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	collaborationContext := self stagedCollaborationContext.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext participantForProcess: processMemento model.
 	participant ifNil: [ ^ nil ].
@@ -140,6 +146,8 @@ CPAtelierCreateLane >> participantResizeOperationForFirstLane [
 		shape: participantShape
 		bounds: proposedBounds
 		processMemento: processMemento
+		collaborationContext: collaborationContext
+		processDiagramContext: diagramContext
 ]
 
 { #category : 'private - geometry' }
@@ -167,3 +175,12 @@ CPAtelierCreateLane >> stagedDiagramContext [
 CPAtelierCreateLane >> diagramContext: aDiagramContext [
 	diagramContext := aDiagramContext
 ]
+
+{ #category : 'private - staged state' }
+CPAtelierCreateLane >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateLane >> collaborationContext: aContext [ collaborationContext := aContext ]

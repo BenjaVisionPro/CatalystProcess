@@ -9,7 +9,8 @@ Class {
 		'proposedSource',
 		'proposedTarget',
 		'proposedWaypoints',
-		'processMemento'
+		'processMemento',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -18,19 +19,19 @@ Class {
 
 { #category : 'instance creation' }
 CPAtelierReconnectMessageFlow class >> messageFlow: aMessageFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento [
+	^ self messageFlow: aMessageFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento collaborationContext: nil
+]
+
+{ #category : 'instance creation' }
+CPAtelierReconnectMessageFlow class >> messageFlow: aMessageFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento collaborationContext: aCollaborationContext [
 	^ self new
-		messageFlow: aMessageFlow;
-		proposedSource: aSource;
-		proposedTarget: aTarget;
-		proposedWaypoints: someWaypoints;
-		processMemento: aMemento;
-		yourself
+		messageFlow: aMessageFlow; proposedSource: aSource; proposedTarget: aTarget; proposedWaypoints: someWaypoints; processMemento: aMemento; collaborationContext: aCollaborationContext; yourself
 ]
 
 { #category : 'assessing' }
 CPAtelierReconnectMessageFlow >> assess [
 	| context currentSource currentTarget sourceParticipant targetParticipant ruleResult flowMemento sourceDescription targetDescription edgeMatches edge edgeMemento waypointsDescription |
-	context := self collaborationContext.
+	context := self stagedCollaborationContext.
 	context ifNil: [ ^ self rejectedBecause: 'The Process has no staged definitional Collaboration.' ].
 	messageFlow ifNil: [ ^ self rejectedBecause: 'A MessageFlow is required.' ].
 	(context messageFlows identityIncludes: messageFlow) ifFalse: [
@@ -78,7 +79,7 @@ CPAtelierReconnectMessageFlow >> assess [
 { #category : 'applying' }
 CPAtelierReconnectMessageFlow >> applyAssessment: anAssessment [
 	| context flowMemento sourceDescription targetDescription edge edgeMemento waypointsDescription |
-	context := self collaborationContext.
+	context := self stagedCollaborationContext.
 	flowMemento := context mementoForMember: messageFlow.
 	sourceDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
 	targetDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #targetRef ].
@@ -92,7 +93,8 @@ CPAtelierReconnectMessageFlow >> applyAssessment: anAssessment [
 ]
 
 { #category : 'private - staged state' }
-CPAtelierReconnectMessageFlow >> collaborationContext [
+CPAtelierReconnectMessageFlow >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
 	^ CPProcessCollaborationContext inRootMemento: processMemento
 ]
 
@@ -111,3 +113,6 @@ CPAtelierReconnectMessageFlow >> proposedTarget: anObject [ proposedTarget := an
 CPAtelierReconnectMessageFlow >> proposedWaypoints: aCollection [ proposedWaypoints := aCollection asOrderedCollection ]
 { #category : 'accessing' }
 CPAtelierReconnectMessageFlow >> processMemento: aMemento [ processMemento := aMemento ]
+
+{ #category : 'accessing' }
+CPAtelierReconnectMessageFlow >> collaborationContext: aContext [ collaborationContext := aContext ]

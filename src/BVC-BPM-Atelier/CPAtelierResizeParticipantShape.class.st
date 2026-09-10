@@ -4,10 +4,25 @@ When the Participant hosts the edited Process, I also reflow every staged top-le
 Class {
 	#name : 'CPAtelierResizeParticipantShape',
 	#superclass : 'CPAtelierParticipantShapeBoundsOperation',
+	#instVars : [
+		'processDiagramContext'
+	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
+
+
+{ #category : 'instance creation' }
+CPAtelierResizeParticipantShape class >> shape: aShape bounds: aRectangle processMemento: aMemento collaborationContext: aCollaborationContext processDiagramContext: aDiagramContext [
+	^ self new
+		shape: aShape;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		collaborationContext: aCollaborationContext;
+		processDiagramContext: aDiagramContext;
+		yourself
+]
 
 { #category : 'assessing' }
 CPAtelierResizeParticipantShape >> assess [
@@ -27,17 +42,11 @@ CPAtelierResizeParticipantShape >> assess [
 
 { #category : 'applying' }
 CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
-	| diagramDescription diagram diagramContext |
+	| diagramContext |
 	super applyAssessment: anAssessment.
 	anAssessment proposedLaneBoundsByShape ifEmpty: [ ^ self ].
-	diagramDescription := processMemento magritteDescription
-		detect: [ :each | each handlesSelector: #diagram ].
-	diagram := processMemento readUsing: diagramDescription.
-	diagram ifNil: [ ^ self ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedProcessDiagramContext.
+	diagramContext ifNil: [ ^ self ].
 	anAssessment proposedLaneBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
 		| shapeMemento boundsDescription |
 		shapeMemento := diagramContext mementoFor: aShape.
@@ -48,22 +57,16 @@ CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
 
 { #category : 'private - assessing' }
 CPAtelierResizeParticipantShape >> proposedLaneBoundsForParticipantBounds: proposedParticipantBounds [
-	| collaborationContext participant laneContext diagramDescription diagram diagramContext proposedBounds bodyExtent |
-	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	| collaborationContext participant laneContext diagramContext proposedBounds bodyExtent |
+	collaborationContext := self stagedCollaborationContext.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext diagramContext modelElementOf: shape.
 	(collaborationContext processRefOf: participant) == processMemento model ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneContext stagedLaneSets ifEmpty: [ ^ IdentityDictionary new ].
 
-	diagramDescription := processMemento magritteDescription
-		detect: [ :each | each handlesSelector: #diagram ].
-	diagram := processMemento readUsing: diagramDescription.
-	diagram ifNil: [ ^ nil ].
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: processMemento
-		using: diagramDescription.
+	diagramContext := self stagedProcessDiagramContext.
+	diagramContext ifNil: [ ^ nil ].
 	bodyExtent := (proposedParticipantBounds width - CPParticipantShapeElement processContentOriginOffset x)
 		@ proposedParticipantBounds height.
 	bodyExtent x > 0 ifFalse: [ ^ nil ].
@@ -167,3 +170,20 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 CPAtelierResizeParticipantShape >> endpointDeltaFrom: currentBounds to: proposedBounds [
 	^ proposedBounds center - currentBounds center
 ]
+
+{ #category : 'private - staged state' }
+CPAtelierResizeParticipantShape >> stagedProcessDiagramContext [
+	| diagramDescription diagram |
+	processDiagramContext ifNotNil: [ ^ processDiagramContext ].
+	diagramDescription := processMemento magritteDescription
+		detect: [ :each | each handlesSelector: #diagram ].
+	diagram := processMemento readUsing: diagramDescription.
+	diagram ifNil: [ ^ nil ].
+	^ CPDiagramMementoContext
+		diagram: diagram
+		inMemento: processMemento
+		using: diagramDescription
+]
+
+{ #category : 'accessing' }
+CPAtelierResizeParticipantShape >> processDiagramContext: aContext [ processDiagramContext := aContext ]

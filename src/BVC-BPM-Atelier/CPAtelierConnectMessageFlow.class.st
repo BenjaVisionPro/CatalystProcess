@@ -8,7 +8,8 @@ Class {
 		'source',
 		'target',
 		'waypoints',
-		'processMemento'
+		'processMemento',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -17,18 +18,19 @@ Class {
 
 { #category : 'instance creation' }
 CPAtelierConnectMessageFlow class >> source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento [
+	^ self source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento collaborationContext: nil
+]
+
+{ #category : 'instance creation' }
+CPAtelierConnectMessageFlow class >> source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento collaborationContext: aCollaborationContext [
 	^ self new
-		source: aSource;
-		target: aTarget;
-		waypoints: someWaypoints;
-		processMemento: aMemento;
-		yourself
+		source: aSource; target: aTarget; waypoints: someWaypoints; processMemento: aMemento; collaborationContext: aCollaborationContext; yourself
 ]
 
 { #category : 'assessing' }
 CPAtelierConnectMessageFlow >> assess [
 	| collaborationContext ruleResult sourceParticipant targetParticipant messageFlow sourceDescription targetDescription edge proposedMessageFlows proposedElements |
-	collaborationContext := self collaborationContext.
+	collaborationContext := self stagedCollaborationContext.
 	collaborationContext ifNil: [
 		^ self rejectedBecause: 'The Process has no staged definitional Collaboration.' ].
 	waypoints ifNil: [
@@ -86,7 +88,7 @@ CPAtelierConnectMessageFlow >> assess [
 { #category : 'applying' }
 CPAtelierConnectMessageFlow >> applyAssessment: anAssessment [
 	| context messageFlowMemento sourceDescription targetDescription |
-	context := self collaborationContext.
+	context := self stagedCollaborationContext.
 	context collaborationMemento
 		write: anAssessment proposedMessageFlows
 		using: context messageFlowsDescription.
@@ -103,7 +105,8 @@ CPAtelierConnectMessageFlow >> applyAssessment: anAssessment [
 ]
 
 { #category : 'private - staged state' }
-CPAtelierConnectMessageFlow >> collaborationContext [
+CPAtelierConnectMessageFlow >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
 	^ CPProcessCollaborationContext inRootMemento: processMemento
 ]
 { #category : 'private' }
@@ -122,3 +125,5 @@ CPAtelierConnectMessageFlow >> target: anObject [ target := anObject ]
 CPAtelierConnectMessageFlow >> waypoints: aCollection [ waypoints := aCollection ]
 { #category : 'accessing' }
 CPAtelierConnectMessageFlow >> processMemento: aMemento [ processMemento := aMemento ]
+{ #category : 'accessing' }
+CPAtelierConnectMessageFlow >> collaborationContext: aContext [ collaborationContext := aContext ]

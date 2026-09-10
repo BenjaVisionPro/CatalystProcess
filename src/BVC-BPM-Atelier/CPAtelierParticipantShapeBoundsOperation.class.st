@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'shape',
 		'bounds',
-		'processMemento'
+		'processMemento',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -16,11 +17,12 @@ Class {
 
 { #category : 'instance creation' }
 CPAtelierParticipantShapeBoundsOperation class >> shape: aShape bounds: aRectangle processMemento: aMemento [
-	^ self new
-		shape: aShape;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		yourself
+	^ self shape: aShape bounds: aRectangle processMemento: aMemento collaborationContext: nil
+]
+
+{ #category : 'instance creation' }
+CPAtelierParticipantShapeBoundsOperation class >> shape: aShape bounds: aRectangle processMemento: aMemento collaborationContext: aCollaborationContext [
+	^ self new shape: aShape; bounds: aRectangle; processMemento: aMemento; collaborationContext: aCollaborationContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -28,7 +30,7 @@ CPAtelierParticipantShapeBoundsOperation >> assess [
 	| context elements occurrences shapeMemento boundsDescription modelElementDescription participant currentBounds |
 	shape ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'A Participant diagram shape is required.' ].
 	bounds ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'Participant diagram bounds are required.' ].
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	context ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'The Process has no staged definitional Collaboration diagram.' ].
 	elements := context elements.
 	occurrences := elements count: [ :each | each == shape ].
@@ -58,7 +60,7 @@ CPAtelierParticipantShapeBoundsOperation >> assess [
 { #category : 'applying' }
 CPAtelierParticipantShapeBoundsOperation >> applyAssessment: anAssessment [
 	| context shapeMemento boundsDescription modelElementDescription participant delta |
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	shapeMemento := context diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
@@ -138,3 +140,12 @@ CPAtelierParticipantShapeBoundsOperation >> shape: anObject [ shape := anObject 
 CPAtelierParticipantShapeBoundsOperation >> bounds: aRectangle [ bounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierParticipantShapeBoundsOperation >> processMemento: aMemento [ processMemento := aMemento ]
+
+{ #category : 'private - staged state' }
+CPAtelierParticipantShapeBoundsOperation >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
+]
+
+{ #category : 'accessing' }
+CPAtelierParticipantShapeBoundsOperation >> collaborationContext: aContext [ collaborationContext := aContext ]

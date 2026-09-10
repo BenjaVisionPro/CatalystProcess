@@ -86,6 +86,7 @@ CPProcessAtelierDiagramEditing >> createLane: aLane bounds: proposedBounds [
 		bounds: proposedBounds
 		processMemento: processMemento
 		diagramContext: diagramContext
+		collaborationContext: collaborationContext
 ]
 
 { #category : 'operation factories' }
@@ -95,6 +96,7 @@ CPProcessAtelierDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedB
 		bounds: proposedBounds
 		processMemento: processMemento
 		diagramContext: diagramContext
+		collaborationContext: collaborationContext
 ]
 
 
@@ -120,7 +122,8 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 		^ CPAtelierMoveParticipantShape
 			shape: boundsByShape keys anyOne
 			bounds: boundsByShape values anyOne
-			processMemento: processMemento ].
+			processMemento: processMemento
+			collaborationContext: collaborationContext ].
 
 	targetContainer := self flowContainerHostedBy: aHostShape.
 	targetContainer ifNil: [ ^ nil ].
@@ -248,7 +251,9 @@ CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
 		^ CPAtelierResizeParticipantShape
 			shape: aShape
 			bounds: proposedBounds
-			processMemento: processMemento ].
+			processMemento: processMemento
+			collaborationContext: collaborationContext
+			processDiagramContext: diagramContext ].
 	^ CPAtelierResizeShape
 		shape: aShape
 		bounds: proposedBounds
@@ -309,6 +314,7 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 		target: target
 		waypoints: someWaypoints
 		processMemento: processMemento
+		collaborationContext: collaborationContext
 ]
 
 { #category : 'private - staged state' }
@@ -388,7 +394,8 @@ CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShap
 			source: source
 			target: target
 			waypoints: someWaypoints
-			processMemento: processMemento ].
+			processMemento: processMemento
+			collaborationContext: collaborationContext ].
 
 	flowContainer := self flowContainerContaining: modelEdge.
 	flowContainer ifNil: [ ^ nil ].
@@ -460,6 +467,7 @@ CPProcessAtelierDiagramEditing >> insertLane: aLane relativeTo: aTargetLane afte
 		after: aBoolean
 		processMemento: processMemento
 		diagramContext: diagramContext
+		collaborationContext: collaborationContext
 ]
 
 

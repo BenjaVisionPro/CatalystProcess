@@ -19,6 +19,17 @@ CPAtelierCreateLaneSetWithLane class >> lane: aLane bounds: aRectangle processMe
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierCreateLaneSetWithLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext collaborationContext: aCollaborationContext [
+	^ self new
+		lane: aLane;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		diagramContext: aDiagramContext;
+		collaborationContext: aCollaborationContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierCreateLaneSetWithLane >> assess [
 	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext elements proposedElements participantResizeOperation participantResizeAssessment assessment |

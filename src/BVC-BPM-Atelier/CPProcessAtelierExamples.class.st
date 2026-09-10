@@ -2858,3 +2858,50 @@ CPProcessAtelierExamples >> documentRootedRemoveSoleParticipantRemovesDefinition
 	self assert: process definitionalCollaborationRef == collaboration.
 	^ assessment
 ]
+
+{ #category : 'examples - collaboration message flows' }
+CPProcessAtelierExamples >> documentRootedMessageFlowUsesSessionCollaborationContext [
+	<gtExample>
+	| definitions process collaboration sourceParticipant targetParticipant diagram sourceShape targetShape root session editing operation assessment |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:message-flow-context';
+		yourself.
+	process := CPProcess new label: 'Process'; yourself.
+	collaboration := CPCollaboration new label: 'Collaboration'; yourself.
+	sourceParticipant := CPParticipant new label: 'Source'; processRef: process; yourself.
+	targetParticipant := CPParticipant new label: 'Target'; yourself.
+	collaboration
+		addParticipant: sourceParticipant;
+		addParticipant: targetParticipant.
+	process definitionalCollaborationRef: collaboration.
+	diagram := CPDiagram new modelElement: collaboration; yourself.
+	sourceShape := CPShape new modelElement: sourceParticipant; bounds: (20 @ 20 extent: 400 @ 180); yourself.
+	targetShape := CPShape new modelElement: targetParticipant; bounds: (520 @ 20 extent: 400 @ 180); yourself.
+	diagram
+		addElement: sourceShape;
+		addElement: targetShape.
+	definitions
+		addRootElement: process;
+		addRootElement: collaboration;
+		addDiagram: diagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: diagram.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: session processMemento
+		diagramContext: session diagramContext
+		collaborationContext: session collaborationContext
+		documentContext: session documentContext.
+	operation := editing
+		connectFrom: sourceShape
+		to: targetShape
+		waypoints: (OrderedCollection with: 420 @ 110 with: 520 @ 110).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (session collaborationContext messageFlows identityIncludes: assessment messageFlow).
+	self assert: session collaborationContext collaborationMemento == (session documentContext mementoForRootElement: collaboration).
+	^ assessment
+]

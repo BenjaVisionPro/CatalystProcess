@@ -9,7 +9,8 @@ Class {
 		'targetLane',
 		'insertAfter',
 		'processMemento',
-		'diagramContext'
+		'diagramContext',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -19,6 +20,11 @@ Class {
 { #category : 'instance creation' }
 CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean processMemento: aMemento diagramContext: aDiagramContext [
 	^ self new lane: aLane; targetLane: aTargetLane; insertAfter: aBoolean; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean processMemento: aMemento diagramContext: aDiagramContext collaborationContext: aCollaborationContext [
+	^ self new lane: aLane; targetLane: aTargetLane; insertAfter: aBoolean; processMemento: aMemento; diagramContext: aDiagramContext; collaborationContext: aCollaborationContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -184,7 +190,7 @@ CPAtelierInsertLane >> applyAssessment: anAssessment [
 { #category : 'private - assessing' }
 CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 	| collaborationContext participant participantShapes participantShape participantBounds proposedBounds |
-	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
+	collaborationContext := self stagedCollaborationContext.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext participantForProcess: processMemento model.
 	participant ifNil: [ ^ nil ].
@@ -198,6 +204,8 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 		shape: participantShape
 		bounds: proposedBounds
 		processMemento: processMemento
+		collaborationContext: collaborationContext
+		processDiagramContext: diagramContext
 ]
 
 { #category : 'private - geometry' }
@@ -230,3 +238,12 @@ CPAtelierInsertLane >> stagedDiagramContext [
 CPAtelierInsertLane >> diagramContext: aDiagramContext [
 	diagramContext := aDiagramContext
 ]
+
+{ #category : 'private - staged state' }
+CPAtelierInsertLane >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
+]
+
+{ #category : 'accessing' }
+CPAtelierInsertLane >> collaborationContext: aContext [ collaborationContext := aContext ]

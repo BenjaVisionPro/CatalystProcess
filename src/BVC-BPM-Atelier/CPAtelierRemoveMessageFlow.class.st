@@ -4,7 +4,8 @@ Class {
 	#superclass : 'CFAtelierOperation',
 	#instVars : [
 		'messageFlow',
-		'processMemento'
+		'processMemento',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -13,10 +14,12 @@ Class {
 
 { #category : 'instance creation' }
 CPAtelierRemoveMessageFlow class >> messageFlow: aMessageFlow processMemento: aMemento [
-	^ self new
-		messageFlow: aMessageFlow;
-		processMemento: aMemento;
-		yourself
+	^ self messageFlow: aMessageFlow processMemento: aMemento collaborationContext: nil
+]
+
+{ #category : 'instance creation' }
+CPAtelierRemoveMessageFlow class >> messageFlow: aMessageFlow processMemento: aMemento collaborationContext: aCollaborationContext [
+	^ self new messageFlow: aMessageFlow; processMemento: aMemento; collaborationContext: aCollaborationContext; yourself
 ]
 
 { #category : 'assessing' }
@@ -24,7 +27,7 @@ CPAtelierRemoveMessageFlow >> assess [
 	| context diagramContext proposedMessageFlows removedDiagramElements proposedElements |
 	messageFlow ifNil: [
 		^ CPAtelierRemoveMessageFlowAssessment rejectedBecause: 'A MessageFlow is required.' ].
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	context ifNil: [
 		^ CPAtelierRemoveMessageFlowAssessment rejectedBecause: 'The Process has no staged definitional Collaboration.' ].
 	(context messageFlows identityIncludes: messageFlow) ifFalse: [
@@ -55,7 +58,7 @@ CPAtelierRemoveMessageFlow >> assess [
 { #category : 'applying' }
 CPAtelierRemoveMessageFlow >> applyAssessment: anAssessment [
 	| context |
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	context collaborationMemento
 		write: anAssessment proposedMessageFlows
 		using: context messageFlowsDescription.
@@ -76,3 +79,12 @@ CPAtelierRemoveMessageFlow >> messageFlow: anObject [
 CPAtelierRemoveMessageFlow >> processMemento: anObject [
 	processMemento := anObject
 ]
+
+{ #category : 'private - staged state' }
+CPAtelierRemoveMessageFlow >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
+]
+
+{ #category : 'accessing' }
+CPAtelierRemoveMessageFlow >> collaborationContext: aContext [ collaborationContext := aContext ]

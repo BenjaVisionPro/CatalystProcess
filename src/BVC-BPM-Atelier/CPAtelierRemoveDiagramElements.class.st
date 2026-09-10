@@ -171,7 +171,8 @@ CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwne
 				ifTrue: [
 					operations add: (CPAtelierRemoveMessageFlow
 						messageFlow: messageFlow
-						processMemento: processMemento) ] ] ].
+						processMemento: processMemento
+						collaborationContext: context) ] ] ].
 	^ operations
 ]
 
