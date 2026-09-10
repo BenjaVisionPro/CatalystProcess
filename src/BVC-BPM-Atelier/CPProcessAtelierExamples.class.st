@@ -2689,7 +2689,7 @@ CPProcessAtelierExamples >> legacyProcessNavigationCanBeRepresentedByDefinitions
 
 	self assert: session rootMemento model == definitions.
 	self assert: session processMemento model == process.
-	self assert: session processMemento ~= session rootMemento.
+	self assert: (session processMemento == session rootMemento) not.
 	self assert: session diagramContext diagram == diagram.
 	^ session
 ]
