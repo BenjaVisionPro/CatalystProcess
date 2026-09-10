@@ -260,7 +260,10 @@ CPAtelierReconnectSequenceFlow >> proposedWaypoints: aCollection [ proposedWaypo
 { #category : 'private - staged state' }
 CPAtelierReconnectSequenceFlow >> stagedDiagramContext [
 	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := self stagedDiagramContext.
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
 	^ diagramContext
 ]
 

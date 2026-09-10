@@ -220,7 +220,10 @@ CPAtelierResizeShape >> diagramDescription: aDescription [ diagramDescription :=
 { #category : 'private - staged state' }
 CPAtelierResizeShape >> stagedDiagramContext [
 	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := self stagedDiagramContext.
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
 	^ diagramContext
 ]
 

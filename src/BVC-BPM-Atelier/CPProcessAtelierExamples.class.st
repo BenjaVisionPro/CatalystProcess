@@ -9,6 +9,20 @@ Class {
 	#tag : 'Examples'
 }
 
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> diagramEditingForMemento: aMemento [
+	| diagramDescription diagramContext |
+	diagramDescription := self descriptionFor: #diagram in: aMemento.
+	diagramContext := CPDiagramMementoContext
+		diagram: (aMemento readUsing: diagramDescription)
+		inMemento: aMemento
+		using: diagramDescription.
+	^ CPProcessAtelierDiagramEditing
+		processMemento: aMemento
+		diagramContext: diagramContext
+]
+
 { #category : 'private - fixture' }
 CPProcessAtelierExamples >> fixture [
 	| process start task finish firstFlow secondFlow diagram startShape taskShape finishShape firstEdge secondEdge memento |
@@ -1551,9 +1565,7 @@ CPProcessAtelierExamples >> diagramEditingStagesMessageFlowWaypointsInCollaborat
 		target: fixture sixth
 		waypoints: { 250 @ 270. 250 @ 320 }
 		processMemento: memento) apply.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	proposed := { 250 @ 270. 360 @ 290. 250 @ 320 } asOrderedCollection.
 	operation := editing setWaypoints: proposed forEdge: connectAssessment edge.
 	assessment := operation apply.
@@ -1579,9 +1591,7 @@ CPProcessAtelierExamples >> diagramEditingStagesMessageFlowLabelPlacementInColla
 		waypoints: { 250 @ 270. 250 @ 320 }
 		processMemento: memento) apply.
 	edge := connectAssessment edge.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	operation := editing
 		setLabelSegmentIndex: 1
 		segmentPosition: 0.4
@@ -1967,9 +1977,7 @@ CPProcessAtelierExamples >> diagramEditingReconnectsCollaborationEdgeThroughMess
 		target: fixture sixth
 		waypoints: { 250 @ 270. 250 @ 320 }
 		processMemento: memento) apply.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	operation := editing
 		reconnectEdge: connectAssessment edge
 		sourceShape: fixture eighth
@@ -2276,7 +2284,7 @@ CPProcessAtelierExamples >> diagramEditingBuildsBoundaryEventReattachmentOperati
 	context childMementoFor: secondTask.
 	diagramContext writeElements: (diagramContext elements asOrderedCollection copy add: secondTaskShape; yourself).
 
-	editing := CPProcessAtelierDiagramEditing processMemento: memento diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	operation := editing
 		reattachBoundaryEvent: (fixture at: 9)
 		toActivityShape: secondTaskShape

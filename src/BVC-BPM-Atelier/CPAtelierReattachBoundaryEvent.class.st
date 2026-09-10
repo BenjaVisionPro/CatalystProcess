@@ -118,7 +118,10 @@ CPAtelierReattachBoundaryEvent >> diagramDescription: anObject [ diagramDescript
 { #category : 'private - staged state' }
 CPAtelierReattachBoundaryEvent >> stagedDiagramContext [
 	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := self stagedDiagramContext.
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
 	^ diagramContext
 ]
 

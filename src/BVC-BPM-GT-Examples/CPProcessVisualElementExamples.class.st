@@ -18,9 +18,7 @@ CPProcessVisualElementExamples >> visualElementForFixture: fixture [
 	diagramDescription := self descriptionFor: #diagram in: memento.
 	visual := CPProcessVisualElement new.
 	visual
-		diagramEditing: (CPProcessAtelierDiagramEditing
-			processMemento: memento
-			diagramDescription: diagramDescription);
+		diagramEditing: (self diagramEditingForMemento: memento);
 		memento: memento.
 	^ visual
 ]
@@ -1364,9 +1362,7 @@ CPProcessVisualElementExamples >> collaborationVisualFixture [
 		memento: memento;
 		yourself.
 	collaborationVisual := CPCollaborationVisualElement new
-		diagramEditing: (CPProcessAtelierDiagramEditing
-			processMemento: memento
-			diagramDescription: diagramDescription);
+		diagramEditing: (self diagramEditingForMemento: memento);
 		processMemento: memento
 		processVisual: processVisual;
 		yourself.
@@ -2399,9 +2395,7 @@ CPProcessVisualElementExamples >> createLaneSetWithLaneAddsDistinctTopLevelLaneS
 	process addLaneSet: firstLaneSet.
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	secondLane := CPLane new label: 'Lane'; yourself.
 	operation := editing
 		createLaneSetWithLane: secondLane
@@ -2442,9 +2436,7 @@ CPProcessVisualElementExamples >> insertingLaneAboveShiftsFollowingLaneAndItsFlo
 
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	inserted := CPLane new label: 'Inserted'; yourself.
 	operation := editing insertLane: inserted relativeTo: firstLane after: false.
 	assessment := operation apply.
@@ -2485,9 +2477,7 @@ CPProcessVisualElementExamples >> insertingLaneBelowUsesExistingPoolRoomBeforeGr
 	"Use a fresh memento after adding the fixture Lane."
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	inserted := CPLane new label: 'Inserted'; yourself.
 	operation := editing insertLane: inserted relativeTo: lane after: true.
 	assessment := operation apply.
@@ -2539,9 +2529,7 @@ CPProcessVisualElementExamples >> insertingSecondLaneSplitsRoomyFirstLane [
 	diagram addElement: laneShape.
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	inserted := CPLane new label: 'Inserted'; yourself.
 	assessment := (editing insertLane: inserted relativeTo: existing after: true) apply.
 	self assert: assessment isApplicable.
@@ -2578,9 +2566,7 @@ CPProcessVisualElementExamples >> resizingPoolReflowsSingleLaneToFullBody [
 
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
 	participant := collaborationContext participantForProcess: process.
 	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
@@ -2697,9 +2683,7 @@ CPProcessVisualElementExamples >> firstLanePoolResizeContainsRequiredLaneExtent 
 	process := fixture first.
 	memento := fixture at: 2.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	lane := CPLane new label: 'Lane'; yourself.
 	laneBounds := (26 @ 40 extent: 700 @ 260).
 	operation := editing createLane: lane bounds: laneBounds.
@@ -2765,9 +2749,7 @@ CPProcessVisualElementExamples >> addChildLaneCreatesNestedLaneSetWithoutMutatin
 	diagram addElement: parentShape.
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	childLane := CPLane new label: 'Team'; yourself.
 	operation := editing
 		addChildLane: childLane
@@ -2854,9 +2836,7 @@ CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
 	diagramDescription := self descriptionFor: #diagram in: memento.
 	visual := CPProcessVisualElement new.
 	visual
-		diagramEditing: (CPProcessAtelierDiagramEditing
-			processMemento: memento
-			diagramDescription: diagramDescription);
+		diagramEditing: (self diagramEditingForMemento: memento);
 		beCollaborationHosted;
 		memento: memento.
 	element := visual shapeElementsByModelElement at: task.
@@ -2898,9 +2878,7 @@ CPProcessVisualElementExamples >> assignFlowNodeToLaneChangesOnlyTargetLaneSetPa
 
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	operation := editing assignFlowNode: task toLane: secondLane.
 	assessment := operation apply.
 
@@ -2939,9 +2917,7 @@ CPProcessVisualElementExamples >> moveFlowNodeToLaneStagesBoundsAndPartitionToge
 	diagram addElement: firstLaneShape; addElement: secondLaneShape; addElement: taskShape.
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	editing := CPProcessAtelierDiagramEditing
-		processMemento: memento
-		diagramDescription: diagramDescription.
+	editing := self diagramEditingForMemento: memento.
 	operation := editing
 		moveFlowNode: task
 		shape: taskShape

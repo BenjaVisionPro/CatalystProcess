@@ -148,7 +148,10 @@ CPAtelierRemoveSequenceFlow >> diagramDescription: aDescription [ diagramDescrip
 { #category : 'private - staged state' }
 CPAtelierRemoveSequenceFlow >> stagedDiagramContext [
 	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := self stagedDiagramContext.
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
 	^ diagramContext
 ]
 

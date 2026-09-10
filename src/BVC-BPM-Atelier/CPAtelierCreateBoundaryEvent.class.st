@@ -80,7 +80,10 @@ CPAtelierCreateBoundaryEvent >> diagramDescription: anObject [ diagramDescriptio
 { #category : 'private - staged state' }
 CPAtelierCreateBoundaryEvent >> stagedDiagramContext [
 	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := self stagedDiagramContext.
+	diagramContext := CPDiagramMementoContext
+		diagram: (processMemento readUsing: diagramDescription)
+		inMemento: processMemento
+		using: diagramDescription.
 	^ diagramContext
 ]
 
