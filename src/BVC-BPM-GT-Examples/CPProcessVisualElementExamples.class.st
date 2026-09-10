@@ -3117,6 +3117,168 @@ CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMeme
 ]
 
 
+
+{ #category : 'private - fixture' }
+CPProcessVisualElementExamples >> documentRootedNestedLaneDragFixture [
+	| process node target flow diagram shape targetShape edge outerLaneSet parentLane childLaneSet firstChildLane secondChildLane topLane
+	  definitions collaboration participant collaborationDiagram session editing visual collaborationVisual |
+	process := CPProcess new label: 'Nested lane drag regression'; yourself.
+	node := CPNoneStartEvent new label: 'Start'; yourself.
+	target := CPUserTask new label: 'Review'; yourself.
+	flow := CPSequenceFlow new label: 'Next'; sourceRef: node; targetRef: target; yourself.
+	process addFlowElement: node; addFlowElement: target; addFlowElement: flow.
+
+	firstChildLane := CPLane new label: 'Nested first'; addFlowNodeRef: node; yourself.
+	secondChildLane := CPLane new label: 'Nested second'; yourself.
+	childLaneSet := CPLaneSet new
+		addLane: firstChildLane;
+		addLane: secondChildLane;
+		yourself.
+	parentLane := CPLane new label: 'Department'; childLaneSet: childLaneSet; yourself.
+	topLane := CPLane new label: 'Top level'; addFlowNodeRef: target; yourself.
+	outerLaneSet := CPLaneSet new
+		addLane: parentLane;
+		addLane: topLane;
+		yourself.
+	process addLaneSet: outerLaneSet.
+
+	shape := CPShape new modelElement: node; bounds: (150 @ 65 extent: 42 @ 42); yourself.
+	targetShape := CPShape new modelElement: target; bounds: (400 @ 280 extent: 100 @ 60); yourself.
+	edge := CPEdge new modelElement: flow; addWaypoint: 192 @ 86; addWaypoint: 400 @ 310; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	diagram
+		addElement: (CPShape new modelElement: parentLane; bounds: (40 @ 40 extent: 620 @ 180); yourself);
+		addElement: (CPShape new modelElement: firstChildLane; bounds: (70 @ 40 extent: 590 @ 90); yourself);
+		addElement: (CPShape new modelElement: secondChildLane; bounds: (70 @ 130 extent: 590 @ 90); yourself);
+		addElement: (CPShape new modelElement: topLane; bounds: (40 @ 220 extent: 620 @ 180); yourself);
+		addElement: shape;
+		addElement: targetShape;
+		addElement: edge.
+
+	participant := CPParticipant new label: 'Pool'; processRef: process; yourself.
+	collaboration := CPCollaboration new addParticipant: participant; yourself.
+	process definitionalCollaborationRef: collaboration.
+	collaborationDiagram := CPDiagram new
+		modelElement: collaboration;
+		addElement: (CPShape new modelElement: participant; bounds: (80 @ 60 extent: 700 @ 400); yourself);
+		yourself.
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:nested-lane-drag';
+		addRootElement: process;
+		addRootElement: collaboration;
+		addDiagram: diagram;
+		addDiagram: collaborationDiagram;
+		yourself.
+	session := CPProcessAtelierSession forDefinitions: definitions process: process diagram: diagram.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: session processMemento
+		diagramContext: session diagramContext
+		collaborationContext: session collaborationContext
+		documentContext: session documentContext.
+	visual := CPProcessVisualElement new
+		diagramEditing: editing;
+		beCollaborationHosted;
+		memento: session processMemento
+		flowContainer: process
+		diagramContext: session diagramContext;
+		yourself.
+	collaborationVisual := CPCollaborationVisualElement new
+		diagramEditing: editing;
+		processMemento: session processMemento
+		processVisual: visual
+		documentContext: session documentContext;
+		yourself.
+	collaborationVisual forceLayout.
+	^ { session. visual. collaborationVisual. node. shape. firstChildLane. secondChildLane. topLane. edge }
+]
+
+
+{ #category : 'examples - positioning' }
+CPProcessVisualElementExamples >> documentRootedNestedLaneDragsPreserveDiagramProjection [
+	<gtExample>
+	| fixture session visual node shape original expected element start label edge livePoints stagedPoints
+	  edgeLabel segmentIndex segmentPosition offset placement |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	node := fixture fourth.
+	shape := fixture fifth.
+	edge := fixture ninth.
+	original := session diagramContext boundsOf: shape.
+	expected := original.
+
+	{
+		{ 20 @ 220. fixture eighth }.
+		{ -10 @ -150. fixture seventh }.
+		{ -10 @ -90. fixture sixth }
+	} do: [ :step |
+		| delta targetLane |
+		delta := step first.
+		targetLane := step second.
+		element := visual shapeElementsByModelElement at: node.
+		start := element localPointToGlobal: 10 @ 10.
+		element dispatchEvent: (BlDragStartEvent new position: start; yourself).
+		fixture third forceLayout.
+		element dispatchEvent: (BlDragEvent new position: start + delta; yourself).
+		fixture third forceLayout.
+
+		self assert: (visual diagramBoundsForElement: element) equals: (expected translateBy: delta).
+		label := element externalLabelHost.
+		self assert: label position equals:
+			((expected translateBy: delta) center x - 90) @ ((expected translateBy: delta) bottom + 4).
+		livePoints := visual
+			renderedPathPointsFor: edge
+			waypoints: (visual stagedWaypointsOf: edge)
+			usingLiveBounds: true.
+		stagedPoints := visual
+			renderedPathPointsFor: edge
+			waypoints: (visual stagedWaypointsOf: edge)
+			usingLiveBounds: false.
+		self assert: livePoints first ~= stagedPoints first.
+		edgeLabel := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
+		self assert: edgeLabel notNil.
+		segmentIndex := (visual stagedLabelSegmentIndexOf: edge)
+			ifNil: [ (visual edgeLabelPathFor: edge waypoints: (visual stagedWaypointsOf: edge) usingLiveBounds: true) defaultSegmentIndex ].
+		segmentPosition := (visual stagedLabelSegmentPositionOf: edge) ifNil: [ 0.5 ].
+		offset := (visual stagedLabelOffsetOf: edge) ifNil: [ -14.0 ].
+		placement := visual
+			labelPlacementFor: edge
+			segmentIndex: segmentIndex
+			segmentPosition: segmentPosition
+			offset: offset
+			waypoints: (visual stagedWaypointsOf: edge)
+			usingLiveBounds: true.
+		self assert: edgeLabel position equals:
+			(placement first x - 90) @ (placement first y - 22).
+
+		element dispatchEvent: (BlDragEndEvent new position: start + delta; yourself).
+		fixture third forceLayout.
+		expected := expected translateBy: delta.
+		element := visual shapeElementsByModelElement at: node.
+		self assert: (session diagramContext boundsOf: shape) equals: expected.
+		self assert: (visual diagramBoundsForElement: element) equals: expected.
+		self assert: (visual stagedLaneContainingFlowNode: node) == targetLane.
+		livePoints := visual
+			renderedPathPointsFor: edge
+			waypoints: (visual stagedWaypointsOf: edge)
+			usingLiveBounds: true.
+		stagedPoints := visual
+			renderedPathPointsFor: edge
+			waypoints: (visual stagedWaypointsOf: edge)
+			usingLiveBounds: false.
+		self assert: livePoints equals: stagedPoints ].
+
+	self assert: (visual stagedLaneContainingFlowNode: node) == fixture sixth.
+	self assert: shape bounds equals: original.
+	session rootMemento reset.
+	visual refresh.
+	fixture third forceLayout.
+	self assert: (session diagramContext boundsOf: shape) equals: original.
+	self assert: (visual stagedLaneContainingFlowNode: node) == fixture sixth.
+	self assert: (visual diagramBoundsForElement: (visual shapeElementsByModelElement at: node)) equals: original.
+	^ visual
+]
+
 { #category : 'private - fixture' }
 CPProcessVisualElementExamples >> documentRootedLaneDragFixture [
 	| process node target flow diagram shape targetShape edge laneSet firstLane secondLane
