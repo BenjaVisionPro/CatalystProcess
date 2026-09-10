@@ -3247,6 +3247,37 @@ CPProcessVisualElementExamples >> documentRootedNestedLaneDragFixture [
 ]
 
 
+
+{ #category : 'examples - positioning' }
+CPProcessVisualElementExamples >> documentRootedNestedLaneDragWithoutIntermediateLayoutPreservesDiagramProjection [
+	<gtExample>
+	| fixture session visual node shape original expected element start delta targetLane |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	node := fixture fourth.
+	shape := fixture fifth.
+	original := session diagramContext boundsOf: shape.
+	delta := 20 @ 220.
+	targetLane := fixture eighth.
+	expected := original translateBy: delta.
+
+	element := visual shapeElementsByModelElement at: node.
+	start := element localPointToGlobal: 10 @ 10.
+	element dispatchEvent: (BlDragStartEvent new position: start; yourself).
+	"Deliberately do not force layout between gesture events. A real pointer
+	 interaction receives no synchronous layout barrier here."
+	element dispatchEvent: (BlDragEvent new position: start + delta; yourself).
+	element dispatchEvent: (BlDragEndEvent new position: start + delta; yourself).
+
+	fixture third forceLayout.
+	element := visual shapeElementsByModelElement at: node.
+	self assert: (session diagramContext boundsOf: shape) equals: expected.
+	self assert: (visual diagramBoundsForElement: element) equals: expected.
+	self assert: (visual stagedLaneContainingFlowNode: node) == targetLane.
+	^ visual
+]
+
 { #category : 'examples - positioning' }
 CPProcessVisualElementExamples >> documentRootedNestedLaneDragsPreserveDiagramProjection [
 	<gtExample>
