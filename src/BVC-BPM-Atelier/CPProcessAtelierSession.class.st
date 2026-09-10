@@ -137,6 +137,10 @@ CPProcessAtelierSession >> documentContext: aDocumentContext [
 
 { #category : 'accessing' }
 CPProcessAtelierSession >> collaborationContext [
+	documentContext ifNotNil: [
+		collaborationContext := CPProcessCollaborationContext
+			forProcessMemento: processMemento
+			documentContext: documentContext ].
 	^ collaborationContext
 ]
 

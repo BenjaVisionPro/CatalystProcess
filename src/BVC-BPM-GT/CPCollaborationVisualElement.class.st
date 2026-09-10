@@ -9,6 +9,7 @@ Class {
 	#instVars : [
 		'processMemento',
 		'processVisual',
+		'documentContext',
 		'collaborationContext',
 		'diagramContext',
 		'planeGeometry',
@@ -67,9 +68,24 @@ CPCollaborationVisualElement >> diagramEditing [
 ]
 
 { #category : 'configuration' }
+CPCollaborationVisualElement >> documentContext: aDocumentContext [
+	documentContext := aDocumentContext.
+	processMemento ifNotNil: [ self refresh ]
+]
+
+{ #category : 'configuration' }
 CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcessVisual [
+	^ self
+		processMemento: aMemento
+		processVisual: aProcessVisual
+		documentContext: nil
+]
+
+{ #category : 'configuration' }
+CPCollaborationVisualElement >> processMemento: aMemento processVisual: aProcessVisual documentContext: aDocumentContext [
 	processMemento := aMemento.
 	processVisual := aProcessVisual.
+	documentContext := aDocumentContext.
 	diagramSelection := processVisual diagramSelection.
 	processVisual diagramEditing: diagramEditing.
 	self refresh
@@ -83,8 +99,12 @@ CPCollaborationVisualElement >> refresh [
 	participantElementsByParticipant removeAll.
 	messageFlowVisualsByEdge removeAll.
 
-	collaborationContext := CPProcessCollaborationContext
-		inRootMemento: processMemento.
+	collaborationContext := documentContext
+		ifNil: [ CPProcessCollaborationContext inRootMemento: processMemento ]
+		ifNotNil: [
+			CPProcessCollaborationContext
+				forProcessMemento: processMemento
+				documentContext: documentContext ].
 	collaborationContext ifNil: [ ^ self ].
 	diagramContext := collaborationContext diagramContext.
 	elements := diagramContext elements.

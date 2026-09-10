@@ -18,6 +18,28 @@ Class {
 }
 
 
+
+{ #category : 'instance creation' }
+CPProcessCollaborationContext class >> forProcessMemento: aProcessMemento documentContext: aDocumentContext [
+	| collaborationDescription collaboration diagrams diagramContext collaborationMemento |
+	collaborationDescription := aProcessMemento model definitionalCollaborationRefDescription.
+	collaboration := aProcessMemento readUsing: collaborationDescription.
+	collaboration ifNil: [ ^ nil ].
+	(aDocumentContext rootElements identityIncludes: collaboration) ifFalse: [ ^ nil ].
+	diagrams := aDocumentContext diagramsDepicting: collaboration.
+	diagrams size = 1 ifFalse: [ ^ nil ].
+	diagramContext := aDocumentContext diagramContextFor: diagrams first.
+	collaborationMemento := aDocumentContext mementoForRootElement: collaboration.
+	^ self new
+		rootProcessMemento: aProcessMemento;
+		collaboration: collaboration;
+		collaborationMemento: collaborationMemento;
+		participantsDescription: collaboration participantsDescription;
+		messageFlowsDescription: collaboration messageFlowsDescription;
+		diagramContext: diagramContext;
+		yourself
+]
+
 { #category : 'instance creation' }
 CPProcessCollaborationContext class >> forProcessMemento: aProcessMemento documentContext: aDocumentContext diagramContext: aDiagramContext [
 	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription |

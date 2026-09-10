@@ -14,6 +14,7 @@ Class {
 		'workspaceElement',
 		'diagramEditing',
 		'diagramContext',
+		'documentContext',
 		'contextualAppendPaletteItems',
 		'poolPaletteItem',
 		'diagramCameraInitialized'
@@ -51,7 +52,8 @@ CPProcessPresentation >> prepareHostElement [
 				diagramElementsRemovedDo: [ :someDiagramElements | self diagramElementsRemoved: someDiagramElements ];
 				selectionChangedDo: [ :aDiagramElement | self collaborationDiagramSelectionChanged: aDiagramElement ];
 				processMemento: self memento
-				processVisual: processDiagramElement;
+				processVisual: processDiagramElement
+				documentContext: documentContext;
 				yourself.
 			collaborationDiagramElement ].
 
@@ -167,7 +169,8 @@ CPProcessPresentation >> ensureCollaborationDiagramPresentation [
 			refreshAfterGeometryChangeDo: [ self refreshCollaborationDiagramPreservingCamera ];
 			selectionChangedDo: [ :aDiagramElement | self collaborationDiagramSelectionChanged: aDiagramElement ];
 			processMemento: self memento
-			processVisual: processDiagramElement;
+			processVisual: processDiagramElement
+			documentContext: documentContext;
 			yourself.
 		collaborationDiagramElement viewportExtent: viewport.
 		diagramElement := collaborationDiagramElement.
@@ -260,6 +263,10 @@ CPProcessPresentation >> restoreStandaloneProcessDiagramPreservingCamera [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> collaborationContext [
+	documentContext ifNotNil: [
+		^ CPProcessCollaborationContext
+			forProcessMemento: self memento
+			documentContext: documentContext ].
 	^ CPProcessCollaborationContext inRootMemento: self memento
 ]
 
@@ -439,6 +446,17 @@ CPProcessPresentation >> diagramEditing: anEditing [
 	diagramEditing := anEditing.
 	processDiagramElement ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ].
 	collaborationDiagramElement ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ]
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> documentContext: aDocumentContext [
+	documentContext := aDocumentContext.
+	collaborationDiagramElement ifNotNil: [ :aVisual |
+		aVisual documentContext: aDocumentContext ].
+	diagramScrollElement ifNotNil: [
+		self stagedDefinitionalCollaboration
+			ifNil: [ self restoreStandaloneProcessDiagramPreservingCamera ]
+			ifNotNil: [ self ensureCollaborationDiagramPresentation ] ]
 ]
 
 { #category : 'configuration' }

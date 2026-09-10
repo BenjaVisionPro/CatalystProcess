@@ -3030,3 +3030,49 @@ CPProcessAtelierExamples >> definitionsEntryRecognizesCollaborationDepictionForP
 	^ session
 ]
 
+
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> documentRootedFirstPoolThenLaneUsesCreatedCollaboration [
+	<gtExample>
+	| definitions process processDiagram root session editing participant participantAssessment lane laneOperation laneAssessment collaborationContext |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:first-pool-then-lane';
+		yourself.
+	process := CPProcess new label: 'Process'; yourself.
+	processDiagram := CPDiagram new modelElement: process; yourself.
+	definitions
+		addRootElement: process;
+		addDiagram: processDiagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: processDiagram.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: session processMemento
+		diagramContext: session diagramContext
+		collaborationContext: session collaborationContext
+		documentContext: session documentContext.
+
+	participant := CPParticipant new label: 'Pool'; yourself.
+	participantAssessment := (editing
+		createParticipant: participant
+		bounds: (0 @ 0 extent: 620 @ 230)) apply.
+	self assert: participantAssessment isApplicable.
+
+	collaborationContext := session collaborationContext.
+	self assert: collaborationContext notNil.
+	self assert: collaborationContext collaboration == participantAssessment collaboration.
+	self assert: collaborationContext diagram == participantAssessment diagram.
+
+	lane := CPLane new label: 'Lane'; yourself.
+	laneOperation := editing
+		createLane: lane
+		bounds: (30 @ 0 extent: 590 @ 230).
+	laneAssessment := laneOperation apply.
+	self assert: laneAssessment isApplicable.
+	self assert: laneAssessment participantResizeAssessment notNil.
+	self assert: (session processMemento readUsing: process laneSetsDescription) first lanes first == lane.
+	^ laneAssessment
+]

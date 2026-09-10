@@ -86,7 +86,7 @@ CPProcessAtelierDiagramEditing >> createLane: aLane bounds: proposedBounds [
 		bounds: proposedBounds
 		processMemento: processMemento
 		diagramContext: diagramContext
-		collaborationContext: collaborationContext
+		collaborationContext: self stagedCollaborationContext
 ]
 
 { #category : 'operation factories' }
@@ -96,7 +96,7 @@ CPProcessAtelierDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedB
 		bounds: proposedBounds
 		processMemento: processMemento
 		diagramContext: diagramContext
-		collaborationContext: collaborationContext
+		collaborationContext: self stagedCollaborationContext
 ]
 
 
@@ -107,23 +107,25 @@ CPProcessAtelierDiagramEditing >> createParticipant: aParticipant bounds: propos
 		bounds: proposedBounds
 		processMemento: processMemento
 		documentContext: documentContext
-		collaborationContext: collaborationContext
+		collaborationContext: self stagedCollaborationContext
 ]
 
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: aHostShape waypointsByEdge: waypointsByEdge [
-	| processDiagramContext modelElements currentContainers targetContainer boundsByFlowNode waypointsBySequenceFlow expandedBoundsByShape |
+	| processDiagramContext modelElements currentContainers targetContainer boundsByFlowNode waypointsBySequenceFlow expandedBoundsByShape currentCollaborationContext |
 	boundsByShape ifEmpty: [ ^ nil ].
 
-		(collaborationContext notNil
+
+	currentCollaborationContext := self stagedCollaborationContext.
+	(currentCollaborationContext notNil
 		and: [ boundsByShape size = 1
-		and: [ collaborationContext elements identityIncludes: boundsByShape keys anyOne ] ]) ifTrue: [
+		and: [ currentCollaborationContext elements identityIncludes: boundsByShape keys anyOne ] ]) ifTrue: [
 		^ CPAtelierMoveParticipantShape
 			shape: boundsByShape keys anyOne
 			bounds: boundsByShape values anyOne
 			processMemento: processMemento
-			collaborationContext: collaborationContext ].
+			collaborationContext: currentCollaborationContext ].
 
 	targetContainer := self flowContainerHostedBy: aHostShape.
 	targetContainer ifNil: [ ^ nil ].
@@ -201,6 +203,15 @@ CPProcessAtelierDiagramEditing >> boundsByShapeIncludingAttachedBoundaryEvents: 
 ]
 
 { #category : 'private - staged state' }
+CPProcessAtelierDiagramEditing >> stagedCollaborationContext [
+	documentContext ifNotNil: [
+		^ CPProcessCollaborationContext
+			forProcessMemento: processMemento
+			documentContext: documentContext ].
+	^ collaborationContext
+]
+
+{ #category : 'private - staged state' }
 CPProcessAtelierDiagramEditing >> processDiagramContext [
 	^ diagramContext
 ]
@@ -209,10 +220,11 @@ CPProcessAtelierDiagramEditing >> processDiagramContext [
 
 { #category : 'private - staged state' }
 CPProcessAtelierDiagramEditing >> diagramContextContaining: aDiagramElement [
-	| processDiagramContext |
-		(collaborationContext notNil
-		and: [ collaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
-		^ collaborationContext diagramContext ].
+	| processDiagramContext currentCollaborationContext |
+	currentCollaborationContext := self stagedCollaborationContext.
+	(currentCollaborationContext notNil
+		and: [ currentCollaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
+		^ currentCollaborationContext diagramContext ].
 	processDiagramContext := self processDiagramContext.
 	(processDiagramContext elements identityIncludes: aDiagramElement) ifTrue: [
 		^ processDiagramContext ].
@@ -245,14 +257,15 @@ CPProcessAtelierDiagramEditing >> reattachBoundaryEvent: aBoundaryEventShape toA
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> resizeShape: aShape toBounds: proposedBounds [
-	
-		(collaborationContext notNil
-		and: [ collaborationContext elements identityIncludes: aShape ]) ifTrue: [
+	| currentCollaborationContext |
+	currentCollaborationContext := self stagedCollaborationContext.
+	(currentCollaborationContext notNil
+		and: [ currentCollaborationContext elements identityIncludes: aShape ]) ifTrue: [
 		^ CPAtelierResizeParticipantShape
 			shape: aShape
 			bounds: proposedBounds
 			processMemento: processMemento
-			collaborationContext: collaborationContext
+			collaborationContext: currentCollaborationContext
 			processDiagramContext: diagramContext ].
 	^ CPAtelierResizeShape
 		shape: aShape
@@ -314,7 +327,7 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 		target: target
 		waypoints: someWaypoints
 		processMemento: processMemento
-		collaborationContext: collaborationContext
+		collaborationContext: self stagedCollaborationContext
 ]
 
 { #category : 'private - staged state' }
@@ -342,10 +355,11 @@ CPProcessAtelierDiagramEditing >> flowContainerHostedBy: aHostShape [
 
 { #category : 'private - staged state' }
 CPProcessAtelierDiagramEditing >> modelElementOfDiagramElement: aDiagramElement [
-	| collaborationDiagramContext processDiagramContext |
-		(collaborationContext notNil
-		and: [ collaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
-		collaborationDiagramContext := collaborationContext diagramContext.
+	| collaborationDiagramContext processDiagramContext currentCollaborationContext |
+	currentCollaborationContext := self stagedCollaborationContext.
+	(currentCollaborationContext notNil
+		and: [ currentCollaborationContext elements identityIncludes: aDiagramElement ]) ifTrue: [
+		collaborationDiagramContext := currentCollaborationContext diagramContext.
 		^ collaborationDiagramContext modelElementOf: aDiagramElement ].
 	processDiagramContext := self processDiagramContext.
 	(processDiagramContext elements identityIncludes: aDiagramElement) ifTrue: [
@@ -377,25 +391,26 @@ CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
 		processMemento: processMemento
 		diagramContext: diagramContext
 		documentContext: documentContext
-		collaborationContext: collaborationContext
+		collaborationContext: self stagedCollaborationContext
 ]
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> reconnectEdge: anEdge sourceShape: aSourceShape targetShape: aTargetShape waypoints: someWaypoints [
-	| modelEdge source target flowContainer |
+	| modelEdge source target flowContainer currentCollaborationContext |
 	modelEdge := self modelElementOfDiagramElement: anEdge.
 	source := self modelElementOfDiagramElement: aSourceShape.
 	target := self modelElementOfDiagramElement: aTargetShape.
 	(modelEdge isNil or: [ source isNil or: [ target isNil ] ]) ifTrue: [ ^ nil ].
 
-		(collaborationContext notNil and: [ collaborationContext elements identityIncludes: anEdge ]) ifTrue: [
+	currentCollaborationContext := self stagedCollaborationContext.
+	(currentCollaborationContext notNil and: [ currentCollaborationContext elements identityIncludes: anEdge ]) ifTrue: [
 		^ CPAtelierReconnectMessageFlow
 			messageFlow: modelEdge
 			source: source
 			target: target
 			waypoints: someWaypoints
 			processMemento: processMemento
-			collaborationContext: collaborationContext ].
+			collaborationContext: currentCollaborationContext ].
 
 	flowContainer := self flowContainerContaining: modelEdge.
 	flowContainer ifNil: [ ^ nil ].
@@ -467,7 +482,7 @@ CPProcessAtelierDiagramEditing >> insertLane: aLane relativeTo: aTargetLane afte
 		after: aBoolean
 		processMemento: processMemento
 		diagramContext: diagramContext
-		collaborationContext: collaborationContext
+		collaborationContext: self stagedCollaborationContext
 ]
 
 
