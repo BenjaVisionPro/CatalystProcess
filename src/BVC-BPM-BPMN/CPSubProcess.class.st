@@ -1,11 +1,12 @@
 "I represent an embedded BPMN Sub-Process.
 
-I am both an Activity in my containing flow and a container of my own FlowElements. My nested flow elements use the same containment protocol as CPProcess so sequence-flow inverse relations and removal semantics remain local to the Sub-Process."
+I am both an Activity in my containing flow and a BPMN FlowElementsContainer. I own nested FlowElements and LaneSets. My nested flow elements use the same containment protocol as CPProcess so sequence-flow inverse relations and removal semantics remain local to the Sub-Process."
 Class {
 	#name : 'CPSubProcess',
 	#superclass : 'CPActivity',
 	#instVars : [
-		'flowElements'
+		'flowElements',
+		'laneSets'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -19,7 +20,8 @@ CPSubProcess class >> defaultIcon [
 { #category : 'initialization' }
 CPSubProcess >> initialize [
 	super initialize.
-	flowElements := OrderedCollection new
+	flowElements := OrderedCollection new.
+	laneSets := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -55,6 +57,30 @@ CPSubProcess >> removeFlowElement: aFlowElement [
 	flowElements remove: aFlowElement ifAbsent: [ ]
 ]
 
+
+
+{ #category : 'accessing' }
+CPSubProcess >> laneSets [
+	^ laneSets
+]
+
+{ #category : 'accessing' }
+CPSubProcess >> laneSets: aCollection [
+	laneSets copy do: [ :each | self removeLaneSet: each ].
+	aCollection do: [ :each | self addLaneSet: each ]
+]
+
+{ #category : 'adding' }
+CPSubProcess >> addLaneSet: aLaneSet [
+	(laneSets identityIncludes: aLaneSet) ifTrue: [ ^ self ].
+	laneSets add: aLaneSet
+]
+
+{ #category : 'removing' }
+CPSubProcess >> removeLaneSet: aLaneSet [
+	laneSets remove: aLaneSet ifAbsent: [ ]
+]
+
 { #category : 'descriptions' }
 CPSubProcess >> flowElementsDescription [
 	<magritteDescription>
@@ -64,6 +90,21 @@ CPSubProcess >> flowElementsDescription [
 		reference: self labelDescription;
 		label: 'Flow elements';
 		priority: 100;
+		group: 'Relations';
+		yourself
+]
+
+
+
+{ #category : 'descriptions' }
+CPSubProcess >> laneSetsDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new
+		accessor: #laneSets;
+		classes: { CPLaneSet };
+		reference: CPLaneSet new labelDescription;
+		label: 'Lane sets';
+		priority: 105;
 		group: 'Relations';
 		yourself
 ]

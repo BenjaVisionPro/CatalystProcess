@@ -422,3 +422,69 @@ CPProcessExamples >> nestedLaneSetBelongsToParentLane [
 
 	^ parentLane
 ]
+
+{ #category : 'examples - bpmn conformance' }
+CPProcessExamples >> subProcessSupportsLaneSets [
+	<gtExample>
+	| process subProcess laneSet lane task |
+	process := CPProcess new label: 'Process'; yourself.
+	subProcess := CPNoneSubProcess new label: 'Sub process'; yourself.
+	laneSet := CPLaneSet new label: 'Sub-process lanes'; yourself.
+	lane := CPLane new label: 'Reviewer'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+
+	process addFlowElement: subProcess.
+	subProcess addFlowElement: task.
+	lane addFlowNodeRef: task.
+	laneSet addLane: lane.
+	subProcess addLaneSet: laneSet.
+
+	self assert: subProcess laneSets size equals: 1.
+	self assert: subProcess laneSets first == laneSet.
+	self assert: laneSet lanes first == lane.
+	self assert: lane flowNodeRefs first == task.
+	^ subProcess
+]
+
+{ #category : 'examples - bpmn conformance' }
+CPProcessExamples >> laneSetDescriptionIsOrdered [
+	<gtExample>
+	| description |
+	description := CPLaneSet new lanesDescription.
+	self assert: description isOrdered.
+	^ description
+]
+
+{ #category : 'examples - bpmn conformance' }
+CPProcessExamples >> messageFlowDescriptionsUseInteractionNodeClasses [
+	<gtExample>
+	| messageFlow expectedClasses |
+	messageFlow := CPMessageFlow new.
+	expectedClasses := { CPParticipant. CPActivity. CPEvent } asSet.
+	self assert: messageFlow sourceRefDescription classes asSet equals: expectedClasses.
+	self assert: messageFlow targetRefDescription classes asSet equals: expectedClasses.
+	self deny: (messageFlow sourceRefDescription classes includes: CPGateway).
+	^ messageFlow
+]
+
+{ #category : 'examples - bpmn conformance' }
+CPProcessExamples >> definitionsOwnSemanticRootsAndDiagrams [
+	<gtExample>
+	| definitions process collaboration diagram |
+	definitions := CPDefinitions new targetNamespace: 'urn:catalyst:example'; yourself.
+	process := CPProcess new label: 'Process'; yourself.
+	collaboration := CPCollaboration new label: 'Collaboration'; yourself.
+	diagram := CPDiagram new.
+
+	definitions
+		addRootElement: process;
+		addRootElement: collaboration;
+		addDiagram: diagram.
+
+	self assert: definitions rootElements size equals: 2.
+	self assert: definitions rootElements first == process.
+	self assert: definitions rootElements second == collaboration.
+	self assert: definitions diagrams size equals: 1.
+	self assert: definitions diagrams first == diagram.
+	^ definitions
+]

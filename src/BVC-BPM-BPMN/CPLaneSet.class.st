@@ -70,6 +70,7 @@ CPLaneSet >> lanesDescription [
 	^ MAToManyRelationDescription new
 		accessor: #lanes;
 		classes: { CPLane };
+		beOrdered;
 		reference: CPLane new labelDescription;
 		label: 'Lanes';
 		priority: 100;
@@ -97,6 +98,7 @@ CPLaneSet >> parentLaneDescription [
 	^ MAToOneRelationDescription new
 		accessor: #parentLane;
 		classes: { CPLane };
+		beOrdered;
 		reference: CPLane new labelDescription;
 		label: 'Parent lane';
 		priority: 120;
