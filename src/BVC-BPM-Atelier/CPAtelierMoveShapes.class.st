@@ -89,10 +89,14 @@ CPAtelierMoveShapes >> addAttachedBoundaryEventShapesForMovedShapesTo: proposedB
 	| movedActivities |
 	movedActivities := IdentitySet new.
 	proposedBoundsByShape keysDo: [ :aShape |
-		| modelElement |
+		| modelElement flowContext |
 		modelElement := diagramContext modelElementOf: aShape.
-		(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [
-			movedActivities add: modelElement ] ].
+		modelElement ifNotNil: [
+			flowContext := CPProcessFlowContainerContext
+				containingFlowElement: modelElement
+				inRootMemento: processMemento.
+			(flowContext notNil and: [ modelElement isActivity ]) ifTrue: [
+				movedActivities add: modelElement ] ] ].
 	movedActivities do: [ :anActivity |
 		| flowContext |
 		flowContext := CPProcessFlowContainerContext

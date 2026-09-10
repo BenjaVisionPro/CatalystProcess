@@ -181,11 +181,11 @@ CPProcessAtelierDiagramEditing >> boundsByShapeIncludingAttachedBoundaryEvents: 
 	boundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
 		| modelElement context currentBounds delta |
 		modelElement := aDiagramContext modelElementOf: aShape.
-		(modelElement notNil and: [ modelElement isActivity ]) ifTrue: [
+		modelElement ifNotNil: [
 			context := CPProcessFlowContainerContext
 				containingFlowElement: modelElement
 				inRootMemento: processMemento.
-			context ifNotNil: [
+			(context notNil and: [ modelElement isActivity ]) ifTrue: [
 				currentBounds := aDiagramContext boundsOf: aShape.
 				delta := proposedBounds origin - currentBounds origin.
 				(context attachedBoundaryEventsFor: modelElement) do: [ :aBoundaryEvent |
