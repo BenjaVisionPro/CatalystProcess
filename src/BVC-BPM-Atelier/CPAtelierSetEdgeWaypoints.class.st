@@ -39,10 +39,7 @@ CPAtelierSetEdgeWaypoints >> assess [
 
 { #category : 'applying' }
 CPAtelierSetEdgeWaypoints >> applyAssessment: anAssessment [
-	| edgeMemento waypointsDescription |
-	edgeMemento := diagramContext mementoFor: edge.
-	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
-	edgeMemento write: anAssessment proposedWaypoints using: waypointsDescription
+	diagramContext writeWaypoints: anAssessment proposedWaypoints of: edge
 ]
 
 { #category : 'private' }

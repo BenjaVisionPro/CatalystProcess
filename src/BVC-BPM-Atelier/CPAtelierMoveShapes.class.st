@@ -25,7 +25,7 @@ CPAtelierMoveShapes class >> boundsByShape: aDictionary processMemento: aMemento
 
 { #category : 'assessing' }
 CPAtelierMoveShapes >> assess [
-	| diagram diagramMemento elementsDescription elements currentBoundsByShape proposedBoundsByShape proposedDelta diagramContext |
+	| diagram elements currentBoundsByShape proposedBoundsByShape proposedDelta diagramContext |
 	(boundsByShape isNil or: [ boundsByShape isEmpty ]) ifTrue: [
 		^ self rejectedWithCurrentBounds: IdentityDictionary new delta: nil because: 'At least one diagram shape is required.' ].
 	diagram := processMemento readUsing: diagramDescription.
@@ -35,9 +35,7 @@ CPAtelierMoveShapes >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	currentBoundsByShape := IdentityDictionary new.
 	proposedBoundsByShape := IdentityDictionary new.
 	proposedDelta := nil.
@@ -48,8 +46,7 @@ CPAtelierMoveShapes >> assess [
 			validateShape: shape
 			proposedBounds: proposedBounds
 			inElements: elements
-			diagramMemento: diagramMemento
-			elementsDescription: elementsDescription
+			context: diagramContext
 			currentBoundsByShape: currentBoundsByShape
 			delta: proposedDelta.
 		currentBounds isString ifTrue: [
@@ -78,11 +75,11 @@ CPAtelierMoveShapes >> assess [
 ]
 
 { #category : 'private - assessing' }
-CPAtelierMoveShapes >> validateShape: shape proposedBounds: proposedBounds inElements: elements diagramMemento: diagramMemento elementsDescription: elementsDescription currentBoundsByShape: currentBoundsByShape delta: proposedDelta [
+CPAtelierMoveShapes >> validateShape: shape proposedBounds: proposedBounds inElements: elements context: diagramContext currentBoundsByShape: currentBoundsByShape delta: proposedDelta [
 	| occurrences shapeMemento boundsDescription currentBounds |
 	occurrences := elements count: [ :each | each == shape ].
 	occurrences = 1 ifFalse: [ ^ 'Every moved shape must occur exactly once in the diagram.' ].
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
 	currentBounds := shapeMemento readUsing: boundsDescription.
@@ -123,27 +120,19 @@ CPAtelierMoveShapes >> addAttachedBoundaryEventShapesForMovedShapesTo: proposedB
 
 { #category : 'applying' }
 CPAtelierMoveShapes >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription elements movedModelElements delta diagramContext |
+	| diagram elements movedModelElements delta diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	movedModelElements := IdentitySet new.
 	delta := anAssessment delta.
 
 	anAssessment proposedBoundsByShape keysAndValuesDo: [ :shape :proposedBounds |
-		| shapeMemento boundsDescription modelElementDescription |
-		shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
-		boundsDescription := shapeMemento magritteDescription
-			detect: [ :each | each handlesSelector: #bounds ].
-		modelElementDescription := shapeMemento magritteDescription
-			detect: [ :each | each handlesSelector: #modelElement ].
-		movedModelElements add: (shapeMemento readUsing: modelElementDescription).
-		shapeMemento write: proposedBounds using: boundsDescription ].
+		movedModelElements add: (diagramContext modelElementOf: shape).
+		diagramContext writeBounds: proposedBounds of: shape ].
 
 	elements do: [ :each |
 		each isEdge ifTrue: [
@@ -151,22 +140,18 @@ CPAtelierMoveShapes >> applyAssessment: anAssessment [
 				translateEdge: each
 				forMovedModelElements: movedModelElements
 				by: delta
-				in: diagramMemento
-				elementsDescription: elementsDescription ] ]
+				context: diagramContext ] ]
 ]
 
 { #category : 'private - applying' }
-CPAtelierMoveShapes >> translateEdge: anEdge forMovedModelElements: movedModelElements by: delta in: diagramMemento elementsDescription: elementsDescription [
-	| sequenceFlow sourceMoves targetMoves edgeMemento waypointsDescription waypoints translated |
+CPAtelierMoveShapes >> translateEdge: anEdge forMovedModelElements: movedModelElements by: delta context: diagramContext [
+	| sequenceFlow sourceMoves targetMoves waypoints translated |
 	sequenceFlow := anEdge modelElement.
 	sourceMoves := movedModelElements includes: (self stagedSourceOf: sequenceFlow).
 	targetMoves := movedModelElements includes: (self stagedTargetOf: sequenceFlow).
 	(sourceMoves or: [ targetMoves ]) ifFalse: [ ^ self ].
 
-	edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
-	waypointsDescription := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #waypoints ].
-	waypoints := edgeMemento readUsing: waypointsDescription.
+	waypoints := diagramContext waypointsOf: anEdge.
 	waypoints ifEmpty: [ ^ self ].
 	translated := waypoints asOrderedCollection copy.
 
@@ -179,7 +164,7 @@ CPAtelierMoveShapes >> translateEdge: anEdge forMovedModelElements: movedModelEl
 				translated at: 1 put: translated first + delta ].
 			targetMoves ifTrue: [
 				translated at: translated size put: translated last + delta ] ].
-	edgeMemento write: translated using: waypointsDescription
+	diagramContext writeWaypoints: translated of: anEdge
 ]
 
 { #category : 'private - staged state' }

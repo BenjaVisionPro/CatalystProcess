@@ -167,3 +167,45 @@ CPDiagramMementoContext >> edgesForModelElement: aModelElement [
 	^ self elements select: [ :each |
 		each isEdge and: [ (self modelElementOf: each) == aModelElement ] ]
 ]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> validateElements: aCollection [
+	^ elementsDescription validate: aCollection
+]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> writeElements: aCollection [
+	planeMemento write: aCollection using: elementsDescription
+]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> detachElement: aDiagramElement [
+	planeMemento detachChildMementoFor: aDiagramElement inRelation: elementsDescription
+]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> writeBounds: aRectangle of: aShape [
+	| shapeMemento description |
+	shapeMemento := self mementoFor: aShape.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #bounds ].
+	shapeMemento write: aRectangle using: description
+]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> writeWaypoints: aCollection of: anEdge [
+	| edgeMemento description |
+	edgeMemento := self mementoFor: anEdge.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #waypoints ].
+	edgeMemento write: aCollection using: description
+]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> writeExpanded: aBoolean of: aShape [
+	| shapeMemento description |
+	shapeMemento := self mementoFor: aShape.
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isExpanded ].
+	shapeMemento write: aBoolean using: description
+]

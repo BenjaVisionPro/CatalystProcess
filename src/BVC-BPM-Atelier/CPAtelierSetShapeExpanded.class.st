@@ -27,7 +27,7 @@ CPAtelierSetShapeExpanded class >> shape: aShape expanded: aBoolean processMemen
 
 { #category : 'assessing' }
 CPAtelierSetShapeExpanded >> assess [
-	| diagram diagramMemento elementsDescription elements shapeMemento
+	| diagram elements shapeMemento
 	  expandedDescription boundsDescription modelDescription modelElement
 	  currentExpanded currentBounds proposedBounds proposedExtent diagramContext |
 
@@ -43,13 +43,11 @@ CPAtelierSetShapeExpanded >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	(elements identityIncludes: shape) ifFalse: [
 		^ self rejectedWithCurrentExpanded: nil currentBounds: nil proposedBounds: nil because: 'The shape does not belong to the staged diagram.' ].
 
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	modelDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
 	modelElement := shapeMemento readUsing: modelDescription.
@@ -98,21 +96,14 @@ CPAtelierSetShapeExpanded >> assess [
 
 { #category : 'applying' }
 CPAtelierSetShapeExpanded >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription shapeMemento expandedDescription boundsDescription diagramContext |
+	| diagram diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
-	expandedDescription := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #isExpanded ].
-	boundsDescription := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #bounds ].
-	shapeMemento write: anAssessment proposedExpanded using: expandedDescription.
-	shapeMemento write: anAssessment proposedBounds using: boundsDescription
+	diagramContext writeExpanded: anAssessment proposedExpanded of: shape.
+	diagramContext writeBounds: anAssessment proposedBounds of: shape
 ]
 
 { #category : 'private' }

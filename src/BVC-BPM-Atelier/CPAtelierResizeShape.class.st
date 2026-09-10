@@ -27,7 +27,7 @@ CPAtelierResizeShape class >> shape: aShape bounds: aRectangle processMemento: a
 
 { #category : 'assessing' }
 CPAtelierResizeShape >> assess [
-	| diagram diagramMemento elementsDescription elements shapeMemento boundsDescription currentBounds occurrences diagramContext |
+	| diagram elements shapeMemento boundsDescription currentBounds occurrences diagramContext |
 	shape ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'A diagram shape is required.' ].
 	bounds ifNil: [ ^ self rejectedWithCurrentBounds: nil because: 'Diagram bounds are required.' ].
 	diagram := processMemento readUsing: diagramDescription.
@@ -36,13 +36,11 @@ CPAtelierResizeShape >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	occurrences := elements count: [ :each | each == shape ].
 	occurrences = 1 ifFalse: [
 		^ self rejectedWithCurrentBounds: nil because: 'The shape must occur exactly once in the diagram.' ].
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
 	currentBounds := shapeMemento readUsing: boundsDescription.
@@ -63,32 +61,23 @@ CPAtelierResizeShape >> assess [
 
 { #category : 'applying' }
 CPAtelierResizeShape >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription elements shapeMemento
-	  boundsDescription modelElementDescription resizedModelElement centerDelta diagramContext |
+	| diagram elements resizedModelElement centerDelta diagramContext |
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
-	boundsDescription := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #bounds ].
-	modelElementDescription := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	resizedModelElement := shapeMemento readUsing: modelElementDescription.
+	elements := diagramContext elements.
+	resizedModelElement := diagramContext modelElementOf: shape.
 	centerDelta := anAssessment proposedBounds center - anAssessment currentBounds center.
-	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
+	diagramContext writeBounds: anAssessment proposedBounds of: shape.
 	elements do: [ :each |
 		(each isEdge and: [ self edge: each isIncidentTo: resizedModelElement ]) ifTrue: [
 			self
 				translateEndpointOf: each
 				forResizedModelElement: resizedModelElement
 				by: centerDelta
-				in: diagramMemento
-				elementsDescription: elementsDescription ] ].
+				context: diagramContext ] ].
 	self
 		repositionAttachedBoundaryEventsFor: resizedModelElement
 		fromActivityBounds: anAssessment currentBounds
@@ -128,7 +117,7 @@ CPAtelierResizeShape >> repositionAttachedBoundaryEventsFor: aModelElement fromA
 			fromActivityBounds: currentActivityBounds
 			toActivityBounds: proposedActivityBounds.
 		delta := proposedBoundaryBounds origin - currentBoundaryBounds origin.
-		self writeBounds: proposedBoundaryBounds of: boundaryShape in: aDiagramContext.
+		aDiagramContext writeBounds: proposedBoundaryBounds of: boundaryShape.
 		delta isZero ifFalse: [
 			aDiagramContext elements do: [ :each |
 				(each isEdge and: [ self edge: each isIncidentTo: aBoundaryEvent ]) ifTrue: [
@@ -136,8 +125,7 @@ CPAtelierResizeShape >> repositionAttachedBoundaryEventsFor: aModelElement fromA
 						translateEndpointOf: each
 						forResizedModelElement: aBoundaryEvent
 						by: delta
-						in: aDiagramContext diagramMemento
-						elementsDescription: aDiagramContext elementsDescription ] ] ] ]
+						context: aDiagramContext ] ] ] ]
 ]
 
 { #category : 'private - geometry' }
@@ -173,15 +161,6 @@ CPAtelierResizeShape >> boundaryEventBounds: eventBounds fromActivityBounds: cur
 ]
 
 { #category : 'private - applying' }
-CPAtelierResizeShape >> writeBounds: proposedBounds of: aShape in: aDiagramContext [
-	| shapeMemento boundsDescription |
-	shapeMemento := aDiagramContext mementoFor: aShape.
-	boundsDescription := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #bounds ].
-	shapeMemento write: proposedBounds using: boundsDescription
-]
-
-{ #category : 'private - applying' }
 CPAtelierResizeShape >> edge: anEdge isIncidentTo: aModelElement [
 	| sequenceFlow |
 	sequenceFlow := anEdge modelElement.
@@ -208,12 +187,9 @@ CPAtelierResizeShape >> stagedTargetOf: aSequenceFlow [
 ]
 
 { #category : 'private - applying' }
-CPAtelierResizeShape >> translateEndpointOf: anEdge forResizedModelElement: aModelElement by: delta in: aDiagramMemento elementsDescription: anElementsDescription [
-	| edgeMemento waypointsDescription waypoints translated sequenceFlow |
-	edgeMemento := aDiagramMemento childMementoFor: anEdge inRelation: anElementsDescription.
-	waypointsDescription := edgeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #waypoints ].
-	waypoints := edgeMemento readUsing: waypointsDescription.
+CPAtelierResizeShape >> translateEndpointOf: anEdge forResizedModelElement: aModelElement by: delta context: diagramContext [
+	| waypoints translated sequenceFlow |
+	waypoints := diagramContext waypointsOf: anEdge.
 	waypoints ifEmpty: [ ^ self ].
 	translated := waypoints asOrderedCollection copy.
 	sequenceFlow := anEdge modelElement.
@@ -221,7 +197,7 @@ CPAtelierResizeShape >> translateEndpointOf: anEdge forResizedModelElement: aMod
 		translated at: 1 put: translated first + delta ].
 	(self stagedTargetOf: sequenceFlow) == aModelElement ifTrue: [
 		translated at: translated size put: translated last + delta ].
-	edgeMemento write: translated using: waypointsDescription
+	diagramContext writeWaypoints: translated of: anEdge
 ]
 
 { #category : 'private' }
