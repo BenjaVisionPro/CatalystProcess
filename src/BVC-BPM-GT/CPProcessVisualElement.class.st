@@ -2397,7 +2397,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane currentLane operation |
+							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane operation |
 							rootPoint := self rootDiagramPointForLocalPoint: releaseBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
@@ -2409,12 +2409,9 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								constrainedBounds: targetBounds
 								forFlowContainer: targetVisual flowContainer.
 							targetLane := targetVisual == self
-								ifTrue: [ self laneAtGlobalPoint: anEvent position ]
+								ifTrue: [ self laneAtDiagramPoint: constrainedBounds center ]
 								ifFalse: [ nil ].
-							currentLane := self stagedLaneContainingFlowNode: draggedModelElement.
-							operation := (targetVisual == self
-								and: [ targetLane notNil
-								and: [ targetLane ~~ currentLane ] ])
+							operation := (targetVisual == self and: [ targetLane notNil ])
 								ifTrue: [
 									diagramEditing
 										moveFlowNode: draggedModelElement
@@ -4831,45 +4828,56 @@ CPProcessVisualElement >> hasActiveEditableLabel [
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode [
-	| laneContext |
+	| laneContext topLevelLaneSets |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
+	topLevelLaneSets := laneContext stagedLaneSets.
+	topLevelLaneSets ifEmpty: [ ^ nil ].
+	"The current Bloc projection renders one top-level LaneSet. Independent
+	 BPMN LaneSets remain staged semantic partitions but must not select a
+	 presentation host that this visual has not projected."
 	^ self
 		stagedLaneContainingFlowNode: aFlowNode
-		inLaneSets: laneContext stagedLaneSets
+		inLaneSets: { topLevelLaneSets first }
 		laneContext: laneContext
 ]
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode inLaneSets: laneSets laneContext: laneContext [
+	"The Bloc projection hosts a FlowNode in the deepest Lane that references it.
+	 BPMN nested Lane membership may legitimately reference the same FlowNode from
+	 both an outer Lane and one of its child Lanes. Descend before accepting the
+	 current Lane so projection parentage follows the most specific membership."
 	laneSets do: [ :aLaneSet |
 		(laneContext stagedLanesInLaneSet: aLaneSet) do: [ :aLane |
-			((laneContext stagedFlowNodeRefsOf: aLane) identityIncludes: aFlowNode)
-				ifTrue: [ ^ aLane ].
 			(laneContext stagedChildLaneSetOf: aLane) ifNotNil: [ :aChildLaneSet |
 				(self
 					stagedLaneContainingFlowNode: aFlowNode
 					inLaneSets: { aChildLaneSet }
 					laneContext: laneContext)
-					ifNotNil: [ :aContainingLane | ^ aContainingLane ] ] ] ].
+					ifNotNil: [ :aContainingLane | ^ aContainingLane ] ].
+			((laneContext stagedFlowNodeRefsOf: aLane) identityIncludes: aFlowNode)
+				ifTrue: [ ^ aLane ] ] ].
 	^ nil
 ]
 
 
 { #category : 'private - lanes' }
-CPProcessVisualElement >> laneAtGlobalPoint: aGlobalPoint [
+CPProcessVisualElement >> laneAtDiagramPoint: aDiagramPoint [
 	| candidates |
+	"Lane membership is a BPMN/DI decision, not a Bloc hit-test. Use the staged
+	 BPMNShape bounds and choose the most specific (smallest) containing Lane.
+	 This remains stable while the Bloc projection is being laid out or reparented."
 	candidates := OrderedCollection new.
 	laneElementsByLane keysAndValuesDo: [ :aLane :aLaneElement |
-		| bodyBounds |
-		bodyBounds := aLaneElement bodyHost geometryBoundsInSpace.
-		(bodyBounds containsPoint: aGlobalPoint) ifTrue: [
-			candidates add: { aLane. bodyBounds } ] ].
+		| bounds |
+		bounds := self stagedBoundsOf: aLaneElement diagramShape.
+		(bounds notNil and: [ bounds containsPoint: aDiagramPoint ]) ifTrue: [
+			candidates add: { aLane. bounds } ] ].
 	candidates ifEmpty: [ ^ nil ].
 	^ (candidates detectMin: [ :each |
 		each second width * each second height ]) first
 ]
-
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> presentationPointForAnchor: anAnchor anchoredElement: anElement [

@@ -218,3 +218,46 @@ CPProcessLaneContext >> mementoForLaneSet: aLaneSet inLaneSet: aCurrentLaneSet p
 ]
 
 
+
+
+{ #category : 'resolving' }
+CPProcessLaneContext >> topLevelLaneSetContainingLane: aLane [
+	self stagedLaneSets do: [ :aLaneSet |
+		(self laneSetContainingLane: aLane inLaneSet: aLaneSet) ifNotNil: [
+			^ aLaneSet ] ].
+	^ nil
+]
+
+{ #category : 'resolving' }
+CPProcessLaneContext >> lanePathTo: aLane [
+	self stagedLaneSets do: [ :aLaneSet |
+		(self lanePathTo: aLane inLaneSet: aLaneSet) ifNotNil: [ :aPath |
+			^ aPath ] ].
+	^ #()
+]
+
+{ #category : 'private - resolving' }
+CPProcessLaneContext >> lanePathTo: aLane inLaneSet: aLaneSet [
+	(self stagedLanesInLaneSet: aLaneSet) do: [ :eachLane |
+		eachLane == aLane ifTrue: [ ^ { eachLane } ].
+		(self stagedChildLaneSetOf: eachLane) ifNotNil: [ :aChildLaneSet |
+			(self lanePathTo: aLane inLaneSet: aChildLaneSet) ifNotNil: [ :aChildPath |
+				^ { eachLane } , aChildPath ] ] ].
+	^ nil
+]
+
+{ #category : 'staged state' }
+CPProcessLaneContext >> stagedLanesInHierarchyRootedAt: aLaneSet [
+	| lanes |
+	lanes := OrderedCollection new.
+	self addStagedLanesInHierarchyRootedAt: aLaneSet to: lanes.
+	^ lanes
+]
+
+{ #category : 'private - staged state' }
+CPProcessLaneContext >> addStagedLanesInHierarchyRootedAt: aLaneSet to: someLanes [
+	(self stagedLanesInLaneSet: aLaneSet) do: [ :aLane |
+		someLanes add: aLane.
+		(self stagedChildLaneSetOf: aLane) ifNotNil: [ :aChildLaneSet |
+			self addStagedLanesInHierarchyRootedAt: aChildLaneSet to: someLanes ] ]
+]

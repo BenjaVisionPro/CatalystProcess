@@ -3001,3 +3001,63 @@ CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMeme
 	self assert: (visual stagedBoundsOf: shape) equals: proposedBounds.
 	^ visual
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> nestedLaneMembershipUsesDeepestProjectionHostAndSynchronizesHierarchy [
+	<gtExample>
+	| process task outerLaneSet parentLane siblingLane childLaneSet childLane diagram parentShape siblingShape childShape taskShape memento laneContext operation assessment visual |
+	process := CPProcess new label: 'Nested Lane membership'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+
+	outerLaneSet := CPLaneSet new label: 'Departments'; yourself.
+	parentLane := CPLane new label: 'Operations'; yourself.
+	siblingLane := CPLane new label: 'Sales'; yourself.
+	childLaneSet := CPLaneSet new label: 'Teams'; yourself.
+	childLane := CPLane new label: 'Review team'; yourself.
+	childLaneSet addLane: childLane.
+	parentLane childLaneSet: childLaneSet.
+	outerLaneSet addLane: parentLane; addLane: siblingLane.
+	process addLaneSet: outerLaneSet.
+
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	parentShape := CPShape new modelElement: parentLane; bounds: (30 @ 20 extent: 500 @ 180); yourself.
+	siblingShape := CPShape new modelElement: siblingLane; bounds: (30 @ 200 extent: 500 @ 180); yourself.
+	childShape := CPShape new modelElement: childLane; bounds: (60 @ 20 extent: 470 @ 180); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (140 @ 80 extent: 100 @ 80); yourself.
+	diagram addElement: parentShape; addElement: siblingShape; addElement: childShape; addElement: taskShape.
+
+	memento := CFMaMemento model: process.
+	operation := CPAtelierAssignFlowNodeToLaneHierarchy
+		flowNode: task
+		targetLane: childLane
+		processMemento: memento.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedFlowNodeRefsOf: parentLane) identityIncludes: task.
+	self assert: (laneContext stagedFlowNodeRefsOf: childLane) identityIncludes: task.
+	self assert: ((laneContext stagedFlowNodeRefsOf: siblingLane) identityIncludes: task) not.
+
+	visual := CPProcessVisualElement new
+		diagramEditing: (self diagramEditingForMemento: memento);
+		beCollaborationHosted;
+		memento: memento;
+		yourself.
+	self assert: (visual stagedLaneContainingFlowNode: task) == childLane.
+	self assert: (visual laneAtDiagramPoint: taskShape bounds center) == childLane.
+
+	operation := CPAtelierAssignFlowNodeToLaneHierarchy
+		flowNode: task
+		targetLane: siblingLane
+		processMemento: memento.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+	self assert: ((laneContext stagedFlowNodeRefsOf: parentLane) identityIncludes: task) not.
+	self assert: ((laneContext stagedFlowNodeRefsOf: childLane) identityIncludes: task) not.
+	self assert: (laneContext stagedFlowNodeRefsOf: siblingLane) identityIncludes: task.
+	^ visual
+]
