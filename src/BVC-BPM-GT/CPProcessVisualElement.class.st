@@ -228,8 +228,6 @@ CPProcessVisualElement >> cameraSlack [
 
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramContentOffset [
-	(collaborationHosted and: [ laneSetVisual notNil ]) ifTrue: [
-		^ 0 @ 0 - self topLevelLaneSetDiagramOrigin ].
 	^ (collaborationHosted
 		ifTrue: [ self hostedDiagramInset ]
 		ifFalse: [ diagramViewport cameraSlack ])
@@ -394,12 +392,9 @@ CPProcessVisualElement >> refresh [
 		modelElement notNil and: [ modelElement isBoundaryEvent ] ].
 
 	planeGeometry := CPDiagramPlaneGeometry
-		shapes: flowShapes
+		shapes: shapes
 		edges: edges
 		context: diagramContext.
-
-	laneSetVisual := self newTopLevelLaneSetVisualFromShapes: laneShapes.
-	laneSetVisual ifNotNil: [ self addChild: laneSetVisual ].
 
 	diagramLayer := parentProcessVisual isNil
 		ifTrue: [ BlElement new
@@ -410,6 +405,9 @@ CPProcessVisualElement >> refresh [
 		ifFalse: [ nil ].
 	diagramLayer ifNotNil: [ self addChild: diagramLayer ].
 	self updateCanvasExtent.
+
+	laneSetVisual := self newTopLevelLaneSetVisualFromShapes: laneShapes.
+	laneSetVisual ifNotNil: [ self addDiagramChild: laneSetVisual ].
 	laneSetVisual ifNotNil: [ self forceLayout ].
 	self addPaletteDropSurface.
 
@@ -564,7 +562,7 @@ CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
 		newLaneSetVisualFor: topLevelLaneSets first
 		laneShapes: laneShapes
 		laneContext: laneContext
-		hostDiagramOrigin: laneSetBounds origin
+		hostDiagramOrigin: 0 @ 0
 ]
 
 { #category : 'private - lanes' }
@@ -4931,25 +4929,6 @@ CPProcessVisualElement >> diagramBoundsForElement: aNodeElement [
 	bottomRight := self diagramPresentationParent
 		globalPointToLocal: (aNodeElement localPointToGlobal: aNodeElement extent).
 	^ topLeft corner: bottomRight
-]
-
-
-{ #category : 'private - lanes' }
-CPProcessVisualElement >> topLevelLaneSetDiagramOrigin [
-	| laneContext topLevelLaneSets lanes origins |
-	laneContext := CPProcessLaneContext inRootMemento: memento.
-	topLevelLaneSets := laneContext stagedLaneSets.
-	topLevelLaneSets ifEmpty: [ ^ 0 @ 0 ].
-	lanes := laneContext stagedLanesInLaneSet: topLevelLaneSets first.
-	origins := OrderedCollection new.
-	lanes do: [ :aLane |
-		(laneElementsByLane at: aLane ifAbsent: [ nil ])
-			ifNotNil: [ :aLaneElement |
-				(self stagedBoundsOf: aLaneElement diagramShape)
-					ifNotNil: [ :aBounds | origins add: aBounds origin ] ] ].
-	origins ifEmpty: [ ^ 0 @ 0 ].
-	^ (origins collect: [ :each | each x ]) min
-		@ (origins collect: [ :each | each y ]) min
 ]
 
 

@@ -3048,9 +3048,9 @@ CPProcessVisualElementExamples >> moveFlowNodeToLaneStagesBoundsAndPartitionToge
 
 
 { #category : 'examples - lanes' }
-CPProcessVisualElementExamples >> hostedLaneDiagramLayerUsesLaneSetDiagramOrigin [
+CPProcessVisualElementExamples >> hostedLaneDiagramUsesOrdinaryProcessPlaneNormalization [
 	<gtExample>
-	| process laneSet lane diagram laneShape memento visual |
+	| process laneSet lane diagram laneShape memento visual laneElement |
 	process := CPProcess new label: 'Stable Lane origin'; yourself.
 	diagram := CPDiagram new.
 	process diagram: diagram.
@@ -3068,9 +3068,15 @@ CPProcessVisualElementExamples >> hostedLaneDiagramLayerUsesLaneSetDiagramOrigin
 		beCollaborationHosted;
 		memento: memento;
 		yourself.
+	visual forceLayout.
+	laneElement := visual laneShapeElementFor: lane.
 
-	self assert: visual topLevelLaneSetDiagramOrigin equals: 40 @ 60.
-	self assert: visual diagramContentOffset equals: -40 @ -60.
+	self assert: visual diagramBounds equals: laneShape bounds.
+	self assert: visual diagramContentOffset equals:
+		visual hostedDiagramInset - visual diagramBounds origin.
+	self assert: visual diagramBoundsOriginInContent equals: visual hostedDiagramInset.
+	self assert: visual laneSetVisual parent == visual diagramPresentationParent.
+	self assert: (visual diagramBoundsForElement: laneElement) equals: laneShape bounds.
 	^ visual
 ]
 
