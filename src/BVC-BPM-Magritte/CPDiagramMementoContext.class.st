@@ -1,6 +1,6 @@
 "I provide staged access to one BPMN depiction through its CPDiagram and CPPlane mementos.
 
-CPPlane owns the diagram elements. During the operation migration, diagramMemento remains a compatibility name for the memento that owns the elements; it therefore answers the plane memento. New code should use planeMemento and my staged access messages rather than pairing a raw memento with elementsDescription."
+CPPlane owns the diagram elements. I own the memento/description pairing for CPPlane elements. Callers use staged access and mutation messages rather than reconstructing that ownership path."
 Class {
 	#name : 'CPDiagramMementoContext',
 	#superclass : 'Object',
@@ -17,13 +17,13 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPDiagramMementoContext class >> diagram: aDiagram diagramMemento: aDiagramMemento plane: aPlane planeMemento: aPlaneMemento elementsDescription: aDescription [
+CPDiagramMementoContext class >> diagram: aDiagram owningDiagramMemento: aDiagramMemento plane: aPlane planeMemento: aPlaneMemento planeElementsDescription: aDescription [
 	^ self new
 		diagram: aDiagram;
-		diagramMemento: aDiagramMemento;
+		owningDiagramMemento: aDiagramMemento;
 		plane: aPlane;
 		planeMemento: aPlaneMemento;
-		elementsDescription: aDescription;
+		planeElementsDescription: aDescription;
 		yourself
 ]
 
@@ -43,10 +43,10 @@ CPDiagramMementoContext class >> diagram: aDiagram inMemento: anOwnerMemento usi
 		detect: [ :each | each handlesSelector: #elements ].
 	^ self
 		diagram: aDiagram
-		diagramMemento: diagramMemento
+		owningDiagramMemento: diagramMemento
 		plane: plane
 		planeMemento: planeMemento
-		elementsDescription: elementsDescription
+		planeElementsDescription: elementsDescription
 ]
 
 { #category : 'accessing' }
@@ -67,19 +67,11 @@ CPDiagramMementoContext >> planeMemento: aMemento [ planeMemento := aMemento ]
 { #category : 'accessing' }
 CPDiagramMementoContext >> owningDiagramMemento [ ^ diagramMemento ]
 
-{ #category : 'compatibility - operation migration' }
-CPDiagramMementoContext >> diagramMemento [
-	"Existing operations use this result together with elementsDescription. CPPlane now owns that relation."
-	^ planeMemento
-]
+{ #category : 'private - initialization' }
+CPDiagramMementoContext >> owningDiagramMemento: aMemento [ diagramMemento := aMemento ]
 
-{ #category : 'accessing' }
-CPDiagramMementoContext >> diagramMemento: aMemento [ diagramMemento := aMemento ]
-
-{ #category : 'accessing' }
-CPDiagramMementoContext >> elementsDescription [ ^ elementsDescription ]
-{ #category : 'accessing' }
-CPDiagramMementoContext >> elementsDescription: aDescription [ elementsDescription := aDescription ]
+{ #category : 'private - initialization' }
+CPDiagramMementoContext >> planeElementsDescription: aDescription [ elementsDescription := aDescription ]
 
 { #category : 'staged state' }
 CPDiagramMementoContext >> elements [
@@ -208,4 +200,18 @@ CPDiagramMementoContext >> writeExpanded: aBoolean of: aShape [
 	description := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #isExpanded ].
 	shapeMemento write: aBoolean using: description
+]
+
+{ #category : 'resolving' }
+CPDiagramMementoContext >> shapeForModelElement: aModelElement [
+	| matches |
+	matches := self shapesForModelElement: aModelElement.
+	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
+]
+
+{ #category : 'resolving' }
+CPDiagramMementoContext >> edgeForModelElement: aModelElement [
+	| matches |
+	matches := self edgesForModelElement: aModelElement.
+	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
 ]

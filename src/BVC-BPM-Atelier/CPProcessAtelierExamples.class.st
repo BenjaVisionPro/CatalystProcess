@@ -849,7 +849,7 @@ CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
 		processMemento: memento
 		diagramDescription: (self descriptionFor: #diagram in: memento).
 	assessment := operation apply.
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.
 	boundsDescription := self descriptionFor: #bounds in: shapeMemento.
 
@@ -1105,9 +1105,9 @@ CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBo
 	containerDescription := self descriptionFor: #container in: targetMemento.
 	self assert: (targetMemento readUsing: containerDescription) == subProcess.
 	boundsDescription := self descriptionFor: #bounds in:
-		(diagramMemento childMementoFor: shape inRelation: elementsDescription).
+		(diagramContext mementoFor: shape).
 	self assert:
-		((diagramMemento childMementoFor: shape inRelation: elementsDescription)
+		((diagramContext mementoFor: shape)
 			readUsing: boundsDescription)
 		equals: (260 @ 240 extent: 132 @ 54).
 	self assert: task container isNil.
@@ -2228,7 +2228,7 @@ CPProcessAtelierExamples >> reattachingBoundaryEventStagesNewActivityBoundsAndIn
 	stagedElements := diagramContext elements asOrderedCollection copy
 		add: secondTaskShape;
 		yourself.
-	diagramContext diagramMemento write: stagedElements using: diagramContext elementsDescription.
+	diagramContext writeElements: stagedElements.
 
 	operation := CPAtelierReattachBoundaryEvent
 		boundaryEvent: fixture fourth
@@ -2267,9 +2267,7 @@ CPProcessAtelierExamples >> diagramEditingBuildsBoundaryEventReattachmentOperati
 	secondTaskShape := CPShape new modelElement: secondTask; bounds: (220 @ 260 extent: 160 @ 90); yourself.
 	context writeFlowElements: (context stagedFlowElements asOrderedCollection copy add: secondTask; yourself).
 	context childMementoFor: secondTask.
-	diagramContext diagramMemento
-		write: (diagramContext elements asOrderedCollection copy add: secondTaskShape; yourself)
-		using: diagramContext elementsDescription.
+	diagramContext writeElements: (diagramContext elements asOrderedCollection copy add: secondTaskShape; yourself).
 
 	editing := CPProcessAtelierDiagramEditing processMemento: memento diagramDescription: diagramDescription.
 	operation := editing

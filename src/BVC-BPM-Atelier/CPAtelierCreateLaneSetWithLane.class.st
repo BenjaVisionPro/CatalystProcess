@@ -11,7 +11,7 @@ Class {
 
 { #category : 'assessing' }
 CPAtelierCreateLaneSetWithLane >> assess [
-	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext diagramMemento elementsDescription elements proposedElements participantResizeOperation participantResizeAssessment assessment |
+	| laneSetsDescription laneSets laneSet lanesDescription proposedLaneSets proposedLanes shape boundsDescription diagram diagramContext elements proposedElements participantResizeOperation participantResizeAssessment assessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
 	laneSetsDescription := processMemento magritteDescription
@@ -45,13 +45,11 @@ CPAtelierCreateLaneSetWithLane >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ elementsDescription validate: proposedElements ]
+	[ diagramContext validateElements: proposedElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 

@@ -45,7 +45,7 @@ CPAtelierConnectFlowNodes class >> source: aSource target: aTarget flowContainer
 
 { #category : 'assessing' }
 CPAtelierConnectFlowNodes >> assess [
-	| flowElements topology ruleResult diagram diagramMemento elementsDescription elements sourceShape targetShape sequenceFlow edge proposedFlowElements proposedElements sourceDescription targetDescription diagramContext |
+	| flowElements topology ruleResult diagram elements sourceShape targetShape sequenceFlow edge proposedFlowElements proposedElements sourceDescription targetDescription diagramContext |
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowElements := flowContainerContext stagedFlowElements.
 	(flowElements identityIncludes: source) ifFalse: [
@@ -63,23 +63,13 @@ CPAtelierConnectFlowNodes >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
-	sourceShape := self
-		shapeFor: source
-		in: elements
-		diagramMemento: diagramMemento
-		elementsDescription: elementsDescription.
-	targetShape := self
-		shapeFor: target
-		in: elements
-		diagramMemento: diagramMemento
-		elementsDescription: elementsDescription.
+	sourceShape := diagramContext shapeForModelElement: source.
+	targetShape := diagramContext shapeForModelElement: target.
 	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [ ^ self rejectedBecause: 'Both connection endpoints require diagram shapes.' ].
-	((self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) isNil
-		or: [ (self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) isNil ]) ifTrue: [
+	((diagramContext boundsOf: sourceShape) isNil
+		or: [ (diagramContext boundsOf: targetShape) isNil ]) ifTrue: [
 		^ self rejectedBecause: 'Both connection endpoint shapes require staged bounds.' ].
 
 	sequenceFlow := CPSequenceFlow new.
@@ -89,21 +79,21 @@ CPAtelierConnectFlowNodes >> assess [
 
 	edge := CPEdge new modelElement: sequenceFlow; yourself.
 	edge
-		addWaypoint: (self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) center;
-		addWaypoint: (self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) center.
+		addWaypoint: (diagramContext boundsOf: sourceShape) center;
+		addWaypoint: (diagramContext boundsOf: targetShape) center.
 	proposedFlowElements := flowElements asOrderedCollection copy.
 	proposedFlowElements add: sequenceFlow.
 	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: edge.
-	[ elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+	[ diagramContext validateElements: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
 	^ CPAtelierConnectFlowNodesAssessment source: source target: target sequenceFlow: sequenceFlow edge: edge proposedFlowElements: proposedFlowElements proposedDiagramElements: proposedElements
 ]
 
 { #category : 'applying' }
 CPAtelierConnectFlowNodes >> applyAssessment: anAssessment [
-	| flowMemento sourceDescription targetDescription diagram diagramMemento elementsDescription diagramContext |
+	| flowMemento sourceDescription targetDescription diagram diagramContext |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	flowMemento := flowContainerContext childMementoFor: anAssessment sequenceFlow.
 	sourceDescription := flowMemento magritteDescription detect: [ :each | each handlesSelector: #sourceRef ].
@@ -117,9 +107,7 @@ CPAtelierConnectFlowNodes >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
 { #category : 'private - staged topology' }
@@ -171,34 +159,8 @@ CPAtelierConnectFlowNodes >> stagedTargetOf: aSequenceFlow [
 	^ flowContainerContext stagedTargetOf: aSequenceFlow
 ]
 
-{ #category : 'private - staged state' }
-CPAtelierConnectFlowNodes >> stagedBoundsOf: aShape in: diagramMemento elementsDescription: elementsDescription [
-	| shapeMemento description |
-	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
-	description := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
-	^ shapeMemento readUsing: description
-]
 
-{ #category : 'private' }
-CPAtelierConnectFlowNodes >> shapeFor: aFlowNode in: elements diagramMemento: aDiagramMemento elementsDescription: anElementsDescription [
-	| matches |
-	matches := elements select: [ :each |
-		each isShape and: [
-			(self
-				stagedModelElementOf: each
-				in: aDiagramMemento
-				elementsDescription: anElementsDescription) == aFlowNode ] ].
-	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
-]
 
-{ #category : 'private - staged state' }
-CPAtelierConnectFlowNodes >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
-	| shapeMemento description |
-	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
-]
 { #category : 'private' }
 CPAtelierConnectFlowNodes >> rejectedBecause: aString [ ^ CPAtelierConnectFlowNodesAssessment source: source target: target rejectedBecause: aString ]
 { #category : 'accessing' }

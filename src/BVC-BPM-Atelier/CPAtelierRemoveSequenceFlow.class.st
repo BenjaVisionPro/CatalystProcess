@@ -40,7 +40,7 @@ CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow flowContainer: 
 
 { #category : 'assessing' }
 CPAtelierRemoveSequenceFlow >> assess [
-	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements removedEdges proposedElements diagramContext |
+	| flowElements proposedFlowElements diagram elements removedEdges proposedElements diagramContext |
 	sequenceFlow ifNil: [ ^ self rejectedBecause: 'A sequence flow is required.' ].
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowElements := flowContainerContext stagedFlowElements.
@@ -53,11 +53,9 @@ CPAtelierRemoveSequenceFlow >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
-	removedEdges := elements select: [ :each | each isEdge and: [ each modelElement == sequenceFlow ] ].
+	removedEdges := diagramContext edgesForModelElement: sequenceFlow.
 	removedEdges isEmpty ifTrue: [ ^ self rejectedBecause: 'The sequence flow has no staged diagram edge.' ].
 
 	proposedFlowElements := flowElements species withAll: (flowElements reject: [ :each | each == sequenceFlow ]).
@@ -65,7 +63,7 @@ CPAtelierRemoveSequenceFlow >> assess [
 	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
-	[ elementsDescription validate: proposedElements ]
+	[ diagramContext validateElements: proposedElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -78,7 +76,7 @@ CPAtelierRemoveSequenceFlow >> assess [
 
 { #category : 'applying' }
 CPAtelierRemoveSequenceFlow >> applyAssessment: anAssessment [
-	| source target diagram diagramMemento elementsDescription diagramContext |
+	| source target diagram diagramContext |
 	source := self stagedSourceOf: sequenceFlow.
 	target := self stagedTargetOf: sequenceFlow.
 
@@ -91,12 +89,10 @@ CPAtelierRemoveSequenceFlow >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
+	diagramContext writeElements: anAssessment proposedDiagramElements.
 	flowContainerContext detachChildMementoFor: sequenceFlow.
 	anAssessment removedEdges do: [ :anEdge |
-		diagramMemento detachChildMementoFor: anEdge inRelation: elementsDescription ]
+		diagramContext detachElement: anEdge ]
 ]
 
 { #category : 'private - staged topology' }

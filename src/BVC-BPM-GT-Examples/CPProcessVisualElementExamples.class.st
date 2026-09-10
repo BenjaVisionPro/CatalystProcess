@@ -1650,7 +1650,7 @@ CPProcessVisualElementExamples >> collaborationMessageFlowParticipatesInDiagramS
 { #category : 'examples - geometry' }
 CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
 	<gtExample>
-	| fixture memento diagram diagramDescription diagramMemento elementsDescription diagramContext geometry |
+	| fixture memento diagram diagramDescription diagramContext geometry |
 	fixture := self fixture.
 	memento := fixture second.
 	diagram := fixture at: 8.
@@ -1659,8 +1659,6 @@ CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
 		diagram: diagram
 		inMemento: memento
 		using: diagramDescription.
-	diagramMemento := diagramContext planeMemento.
-	elementsDescription := diagramContext elementsDescription.
 	geometry := CPDiagramPlaneGeometry
 		shapes: {
 			fixture at: 9.

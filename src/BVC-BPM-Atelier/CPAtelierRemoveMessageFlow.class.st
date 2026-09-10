@@ -41,7 +41,7 @@ CPAtelierRemoveMessageFlow >> assess [
 	[ context messageFlowsDescription validate: proposedMessageFlows ]
 		on: MAValidationError do: [ :anException |
 			^ CPAtelierRemoveMessageFlowAssessment rejectedBecause: anException printString ].
-	[ context elementsDescription validate: proposedElements ]
+	[ context diagramContext validateElements: proposedElements ]
 		on: MAValidationError do: [ :anException |
 			^ CPAtelierRemoveMessageFlowAssessment rejectedBecause: anException printString ].
 
@@ -59,16 +59,12 @@ CPAtelierRemoveMessageFlow >> applyAssessment: anAssessment [
 	context collaborationMemento
 		write: anAssessment proposedMessageFlows
 		using: context messageFlowsDescription.
-	context diagramMemento
-		write: anAssessment proposedDiagramElements
-		using: context elementsDescription.
+	context diagramContext writeElements: anAssessment proposedDiagramElements.
 	context collaborationMemento
 		detachChildMementoFor: messageFlow
 		inRelation: context messageFlowsDescription.
 	anAssessment removedDiagramElements do: [ :anElement |
-		context diagramMemento
-			detachChildMementoFor: anElement
-			inRelation: context elementsDescription ]
+		context diagramContext detachElement: anElement ]
 ]
 
 { #category : 'accessing' }

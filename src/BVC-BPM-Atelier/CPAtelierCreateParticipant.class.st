@@ -25,7 +25,7 @@ CPAtelierCreateParticipant class >> participant: aParticipant bounds: aRectangle
 
 { #category : 'assessing' }
 CPAtelierCreateParticipant >> assess [
-	| context collaboration diagram participants elements createsCollaboration referencesProcess shape proposedParticipants proposedElements participantsDescription elementsDescription boundsDescription |
+	| context collaboration diagram participants elements createsCollaboration referencesProcess shape proposedParticipants proposedElements participantsDescription planeElementsDescription boundsDescription |
 	participant ifNil: [ ^ self rejectedBecause: 'A Participant is required.' ].
 	participant isParticipant ifFalse: [ ^ self rejectedBecause: 'Only a Participant can create a Pool.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Pool bounds are required.' ].
@@ -41,14 +41,14 @@ CPAtelierCreateParticipant >> assess [
 			elements := diagram plane elements.
 			participantsDescription := collaboration magritteDescription
 				detect: [ :each | each handlesSelector: #participants ].
-			elementsDescription := diagram plane elementsDescription ]
+			planeElementsDescription := diagram plane elementsDescription ]
 		ifFalse: [
 			collaboration := context collaboration.
 			diagram := context diagram.
 			participants := context participants.
 			elements := context elements.
 			participantsDescription := context participantsDescription.
-			elementsDescription := context elementsDescription ].
+			planeElementsDescription := nil ].
 
 	(participants identityIncludes: participant) ifTrue: [
 		^ self rejectedBecause: 'The Participant is already present in the Collaboration.' ].
@@ -73,7 +73,9 @@ CPAtelierCreateParticipant >> assess [
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ elementsDescription validate: proposedElements ]
+	[ createsCollaboration
+		ifTrue: [ planeElementsDescription validate: proposedElements ]
+		ifFalse: [ context diagramContext validateElements: proposedElements ] ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -131,9 +133,7 @@ CPAtelierCreateParticipant >> applyAssessment: anAssessment [
 		diagram: anAssessment diagram
 		inMemento: collaborationMemento
 		using: diagramDescription.
-	diagramContext planeMemento
-		write: anAssessment proposedDiagramElements
-		using: diagramContext elementsDescription
+	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
 { #category : 'private' }

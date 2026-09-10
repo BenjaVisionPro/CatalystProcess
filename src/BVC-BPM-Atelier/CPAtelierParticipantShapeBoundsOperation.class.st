@@ -34,7 +34,7 @@ CPAtelierParticipantShapeBoundsOperation >> assess [
 	occurrences := elements count: [ :each | each == shape ].
 	occurrences = 1 ifFalse: [
 		^ self rejectedWithCurrentBounds: nil because: 'The Participant shape must occur exactly once in the Collaboration diagram.' ].
-	shapeMemento := context diagramMemento childMementoFor: shape inRelation: context elementsDescription.
+	shapeMemento := context diagramContext mementoFor: shape.
 	modelElementDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
 	participant := shapeMemento readUsing: modelElementDescription.
@@ -59,7 +59,7 @@ CPAtelierParticipantShapeBoundsOperation >> assess [
 CPAtelierParticipantShapeBoundsOperation >> applyAssessment: anAssessment [
 	| context shapeMemento boundsDescription modelElementDescription participant delta |
 	context := CPProcessCollaborationContext inRootMemento: processMemento.
-	shapeMemento := context diagramMemento childMementoFor: shape inRelation: context elementsDescription.
+	shapeMemento := context diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
 	modelElementDescription := shapeMemento magritteDescription
@@ -81,7 +81,7 @@ CPAtelierParticipantShapeBoundsOperation >> applyAssessment: anAssessment [
 { #category : 'private - applying' }
 CPAtelierParticipantShapeBoundsOperation >> translateEndpointOfMessageFlowEdge: anEdge representedBy: aParticipant by: delta in: context [
 	| edgeMemento modelElementDescription messageFlow source target waypointsDescription waypoints translated changed |
-	edgeMemento := context diagramMemento childMementoFor: anEdge inRelation: context elementsDescription.
+	edgeMemento := context diagramContext mementoFor: anEdge.
 	modelElementDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
 	messageFlow := edgeMemento readUsing: modelElementDescription.

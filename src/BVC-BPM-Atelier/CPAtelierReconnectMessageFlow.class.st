@@ -62,7 +62,7 @@ CPAtelierReconnectMessageFlow >> assess [
 	edgeMatches size = 1 ifFalse: [
 		^ self rejectedBecause: 'The MessageFlow requires exactly one staged Collaboration diagram edge.' ].
 	edge := edgeMatches first.
-	edgeMemento := context diagramMemento childMementoFor: edge inRelation: context elementsDescription.
+	edgeMemento := context diagramContext mementoFor: edge.
 	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
 	[ waypointsDescription validate: proposedWaypoints ]
 		on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
@@ -86,7 +86,7 @@ CPAtelierReconnectMessageFlow >> applyAssessment: anAssessment [
 	flowMemento write: anAssessment proposedTarget using: targetDescription.
 	edge := (context elements select: [ :each |
 		each isEdge and: [ (context diagramContext modelElementOf: each) == messageFlow ] ]) first.
-	edgeMemento := context diagramMemento childMementoFor: edge inRelation: context elementsDescription.
+	edgeMemento := context diagramContext mementoFor: edge.
 	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
 	edgeMemento write: proposedWaypoints using: waypointsDescription
 ]

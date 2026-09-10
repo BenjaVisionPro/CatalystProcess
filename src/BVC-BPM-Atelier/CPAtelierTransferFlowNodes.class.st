@@ -1,6 +1,6 @@
 "I atomically transfer a closed selection of FlowNodes between staged Process/Sub-Process containers.
 
-I include every SequenceFlow whose source and target are both in the selection. I reject the transfer when a SequenceFlow crosses the selection boundary because SequenceFlow cannot cross a flow-container boundary. The presentation supplies target-local shape bounds and target-local edge waypoints; I own semantic containment and the coordinated BPMN-DI write."
+I include every SequenceFlow whose source and target are both in the selection. I reject the transfer when a SequenceFlow crosses the selection boundary because SequenceFlow cannot cross a flow-container boundary. The presentation supplies the proposed shape bounds and edge waypoints for this depiction; I own semantic containment and the coordinated BPMN-DI write."
 Class {
 	#name : 'CPAtelierTransferFlowNodes',
 	#superclass : 'CFAtelierOperation',
@@ -32,7 +32,7 @@ CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aT
 { #category : 'assessing' }
 CPAtelierTransferFlowNodes >> assess [
 	| nodes nodeSet sourceContext targetContext sourceElements targetElements internalFlows boundaryFlows
-	  proposedSource proposedTarget diagram diagramMemento elementsDescription elements shapesByNode edgesByFlow
+	  proposedSource proposedTarget diagram elements shapesByNode edgesByFlow
 	  diagramContext |
 
 	flowNodes ifNil: [ ^ self rejectedBecause: 'At least one flow node is required.' ].
@@ -118,20 +118,14 @@ CPAtelierTransferFlowNodes >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 
 	shapesByNode := IdentityDictionary new.
 	nodes do: [ :each |
 		| shape shapeMemento boundsDescription proposed |
-		shape := self
-			shapeFor: each
-			in: elements
-			diagramMemento: diagramMemento
-			elementsDescription: elementsDescription.
+		shape := diagramContext shapeForModelElement: each.
 		shape ifNil: [ ^ self rejectedBecause: 'Every transferred FlowNode requires exactly one diagram shape.' ].
-		shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+		shapeMemento := diagramContext mementoFor: shape.
 		boundsDescription := shapeMemento magritteDescription detect: [ :description | description handlesSelector: #bounds ].
 		proposed := proposedBoundsByFlowNode at: each.
 		[ boundsDescription validate: proposed ]
@@ -142,13 +136,9 @@ CPAtelierTransferFlowNodes >> assess [
 	edgesByFlow := IdentityDictionary new.
 	internalFlows do: [ :each |
 		| edge edgeMemento waypointsDescription proposed |
-		edge := self
-			edgeFor: each
-			in: elements
-			diagramMemento: diagramMemento
-			elementsDescription: elementsDescription.
+		edge := diagramContext edgeForModelElement: each.
 		edge ifNil: [ ^ self rejectedBecause: 'Every transferred SequenceFlow requires exactly one diagram edge.' ].
-		edgeMemento := diagramMemento childMementoFor: edge inRelation: elementsDescription.
+		edgeMemento := diagramContext mementoFor: edge.
 		waypointsDescription := edgeMemento magritteDescription detect: [ :description | description handlesSelector: #waypoints ].
 		proposed := proposedWaypointsBySequenceFlow at: each.
 		[ waypointsDescription validate: proposed ]
@@ -172,7 +162,7 @@ CPAtelierTransferFlowNodes >> assess [
 
 { #category : 'applying' }
 CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
-	| sourceContext targetContext diagram diagramMemento elementsDescription diagramContext |
+	| sourceContext targetContext diagram diagramContext |
 	sourceContext := CPProcessFlowContainerContext
 		forContainer: anAssessment sourceContainer
 		inRootMemento: processMemento.
@@ -190,11 +180,9 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
 	anAssessment shapesByFlowNode keysAndValuesDo: [ :aFlowNode :aShape |
 		| shapeMemento boundsDescription |
-		shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
+		shapeMemento := diagramContext mementoFor: aShape.
 		boundsDescription := shapeMemento magritteDescription
 			detect: [ :each | each handlesSelector: #bounds ].
 		shapeMemento
@@ -202,7 +190,7 @@ CPAtelierTransferFlowNodes >> applyAssessment: anAssessment [
 			using: boundsDescription ].
 	anAssessment edgesBySequenceFlow keysAndValuesDo: [ :aSequenceFlow :anEdge |
 		| edgeMemento waypointsDescription |
-		edgeMemento := diagramMemento childMementoFor: anEdge inRelation: elementsDescription.
+		edgeMemento := diagramContext mementoFor: anEdge.
 		waypointsDescription := edgeMemento magritteDescription
 			detect: [ :each | each handlesSelector: #waypoints ].
 		edgeMemento
@@ -221,31 +209,8 @@ CPAtelierTransferFlowNodes >> stagedTargetOf: aSequenceFlow in: aContext [
 ]
 
 
-{ #category : 'private - diagram' }
-CPAtelierTransferFlowNodes >> shapeFor: aFlowNode in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription [
-	| matches |
-	matches := elements select: [ :each |
-		each isShape and: [
-			(self stagedModelElementOf: each in: diagramMemento elementsDescription: elementsDescription) == aFlowNode ] ].
-	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
-]
 
-{ #category : 'private - diagram' }
-CPAtelierTransferFlowNodes >> edgeFor: aSequenceFlow in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription [
-	| matches |
-	matches := elements select: [ :each |
-		each isEdge and: [
-			(self stagedModelElementOf: each in: diagramMemento elementsDescription: elementsDescription) == aSequenceFlow ] ].
-	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
-]
 
-{ #category : 'private - diagram' }
-CPAtelierTransferFlowNodes >> stagedModelElementOf: aDiagramElement in: diagramMemento elementsDescription: elementsDescription [
-	| memento description |
-	memento := diagramMemento childMementoFor: aDiagramElement inRelation: elementsDescription.
-	description := memento magritteDescription detect: [ :each | each handlesSelector: #modelElement ].
-	^ memento readUsing: description
-]
 
 { #category : 'private' }
 CPAtelierTransferFlowNodes >> rejectedBecause: aString [

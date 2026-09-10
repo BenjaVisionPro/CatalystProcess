@@ -45,7 +45,7 @@ CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle flowCont
 
 { #category : 'assessing' }
 CPAtelierCreateFlowNode >> assess [
-	| flowElements proposedFlowElements diagram diagramMemento elementsDescription elements proposedElements shape boundsDescription diagramContext |
+	| flowElements proposedFlowElements diagram elements proposedElements shape boundsDescription diagramContext |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Diagram bounds are required.' ].
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
@@ -59,9 +59,7 @@ CPAtelierCreateFlowNode >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
 	shape := CPShape new modelElement: flowNode; bounds: bounds; yourself.
@@ -74,7 +72,7 @@ CPAtelierCreateFlowNode >> assess [
 
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+	[ diagramContext validateElements: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
 	^ CPAtelierCreateFlowNodeAssessment
 		flowNode: flowNode
@@ -85,16 +83,14 @@ CPAtelierCreateFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateFlowNode >> applyAssessment: anAssessment [
-	| diagram diagramMemento elementsDescription diagramContext |
+	| diagram diagramContext |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
 { #category : 'private' }

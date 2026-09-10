@@ -27,7 +27,7 @@ CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMem
 
 { #category : 'assessing' }
 CPAtelierCreateLane >> assess [
-	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext diagramMemento elementsDescription elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment |
+	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
 	laneSetsDescription := processMemento magritteDescription
@@ -74,13 +74,11 @@ CPAtelierCreateLane >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ elementsDescription validate: proposedElements ]
+	[ diagramContext validateElements: proposedElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -109,7 +107,7 @@ CPAtelierCreateLane >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateLane >> applyAssessment: anAssessment [
-	| laneSetsDescription laneSetMemento lanesDescription diagram diagramContext diagramMemento elementsDescription |
+	| laneSetsDescription laneSetMemento lanesDescription diagram diagramContext |
 	laneSetsDescription := processMemento magritteDescription
 		detect: [ :each | each handlesSelector: #laneSets ].
 	anAssessment createsLaneSet ifTrue: [
@@ -126,9 +124,7 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription.
+	diagramContext writeElements: anAssessment proposedDiagramElements.
 	anAssessment participantResizeOperation ifNotNil: [ :anOperation |
 		anOperation applyAssessment: anAssessment participantResizeAssessment ]
 ]

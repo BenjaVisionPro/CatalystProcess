@@ -31,7 +31,7 @@ CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetC
 CPAtelierTransferFlowNode >> assess [
 	| sourceContext targetContext sourceElements targetElements sourceMemento
 	  incomingDescription outgoingDescription incoming outgoing
-	  diagram diagramMemento elementsDescription elements shape shapeMemento
+	  diagram elements shape shapeMemento
 	  boundsDescription currentBounds proposedSource proposedTarget diagramContext |
 
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
@@ -86,12 +86,10 @@ CPAtelierTransferFlowNode >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
-	shape := self shapeFor: flowNode in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription.
+	elements := diagramContext elements.
+	shape := diagramContext shapeForModelElement: flowNode.
 	shape ifNil: [ ^ self rejectedBecause: 'The transferred flow node requires exactly one diagram shape.' ].
-	shapeMemento := diagramMemento childMementoFor: shape inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	currentBounds := shapeMemento readUsing: boundsDescription.
 	[ boundsDescription validate: proposedBounds ]
@@ -111,8 +109,7 @@ CPAtelierTransferFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
-	| sourceContext targetContext diagram diagramMemento elementsDescription
-	  shapeMemento boundsDescription diagramContext |
+	| sourceContext targetContext diagram shapeMemento boundsDescription diagramContext |
 
 	sourceContext := CPProcessFlowContainerContext forContainer: anAssessment sourceContainer inRootMemento: processMemento.
 	targetContext := CPProcessFlowContainerContext forContainer: anAssessment targetContainer inRootMemento: processMemento.
@@ -125,29 +122,12 @@ CPAtelierTransferFlowNode >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	shapeMemento := diagramMemento childMementoFor: anAssessment shape inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: anAssessment shape.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription
 ]
 
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNode >> shapeFor: aFlowNode in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription [
-	| matches |
-	matches := elements select: [ :each |
-		each isShape and: [
-			(self stagedModelElementOf: each in: diagramMemento elementsDescription: elementsDescription) == aFlowNode ] ].
-	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
-]
 
-{ #category : 'private - staged state' }
-CPAtelierTransferFlowNode >> stagedModelElementOf: aShape in: diagramMemento elementsDescription: elementsDescription [
-	| shapeMemento description |
-	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
-	description := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
-]
 
 { #category : 'private' }
 CPAtelierTransferFlowNode >> rejectedBecause: aString [

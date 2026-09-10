@@ -43,8 +43,8 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 
 { #category : 'assessing' }
 CPAtelierReplaceFlowNode >> assess [
-	| flowElements proposedFlowElements incidentFlows attachedBoundaryEvents diagram diagramMemento
-	  elementsDescription elements shapeMatches shape modelElementDescription boundsDescription diagramContext |
+	| flowElements proposedFlowElements incidentFlows attachedBoundaryEvents diagram
+	  elements shape shapeMemento modelElementDescription boundsDescription diagramContext |
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
@@ -120,20 +120,17 @@ CPAtelierReplaceFlowNode >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [
 		^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
-	shapeMatches := elements select: [ :each |
-		each isShape and: [ (self stagedModelElementOf: each in: diagramMemento elementsDescription: elementsDescription) == flowNode ] ].
-	shapeMatches size = 1 ifFalse: [
+	shape := diagramContext shapeForModelElement: flowNode.
+	shape ifNil: [
 		^ self rejectedBecause: 'The replaced flow node requires exactly one staged diagram shape.' ].
-	shape := shapeMatches first.
-	modelElementDescription := shape magritteDescription
+	shapeMemento := diagramContext mementoFor: shape.
+	modelElementDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
-	boundsDescription := shape magritteDescription
+	boundsDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
 	[
 		modelElementDescription validate: replacementNode.
@@ -153,7 +150,7 @@ CPAtelierReplaceFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
-	| incoming outgoing preservedLabel preservedNestedFlowElements diagram diagramMemento elementsDescription shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription diagramContext |
+	| incoming outgoing preservedLabel preservedNestedFlowElements diagram shapeMemento modelElementDescription boundsDescription replacementMemento incomingDescription outgoingDescription labelDescription diagramContext |
 
 	incoming := OrderedCollection new.
 	outgoing := OrderedCollection new.
@@ -204,11 +201,7 @@ CPAtelierReplaceFlowNode >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	shapeMemento := diagramMemento
-		childMementoFor: anAssessment shape
-		inRelation: elementsDescription.
+	shapeMemento := diagramContext mementoFor: anAssessment shape.
 	modelElementDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #modelElement ].
 	boundsDescription := shapeMemento magritteDescription
@@ -259,16 +252,6 @@ CPAtelierReplaceFlowNode >> stagedTargetOf: aSequenceFlow [
 	^ flowContainerContext stagedTargetOf: aSequenceFlow
 ]
 
-{ #category : 'private - staged state' }
-CPAtelierReplaceFlowNode >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
-	| shapeMemento description |
-	shapeMemento := aDiagramMemento
-		childMementoFor: aShape
-		inRelation: anElementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
-]
 
 { #category : 'private' }
 CPAtelierReplaceFlowNode >> rejectedBecause: aString [

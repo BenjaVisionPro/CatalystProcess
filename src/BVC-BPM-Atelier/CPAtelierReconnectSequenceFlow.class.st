@@ -47,7 +47,7 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 { #category : 'assessing' }
 CPAtelierReconnectSequenceFlow >> assess [
 	| flowElements currentSource currentTarget topology ruleResult
-	  diagram diagramMemento elementsDescription elements sourceShape targetShape
+	  diagram elements sourceShape targetShape
 	  edgeMatches edge sourceDescription targetDescription diagramContext |
 
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
@@ -90,27 +90,16 @@ CPAtelierReconnectSequenceFlow >> assess [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
 
-	sourceShape := self
-		shapeFor: proposedSource
-		in: elements
-		diagramMemento: diagramMemento
-		elementsDescription: elementsDescription.
-	targetShape := self
-		shapeFor: proposedTarget
-		in: elements
-		diagramMemento: diagramMemento
-		elementsDescription: elementsDescription.
+	sourceShape := diagramContext shapeForModelElement: proposedSource.
+	targetShape := diagramContext shapeForModelElement: proposedTarget.
 	(sourceShape isNil or: [ targetShape isNil ]) ifTrue: [
 		^ self rejectedBecause: 'Both connection endpoints require diagram shapes.' ].
 
-	((self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription) isNil
-		or: [
-			(self stagedBoundsOf: targetShape in: diagramMemento elementsDescription: elementsDescription) isNil ])
+	((diagramContext boundsOf: sourceShape) isNil
+		or: [ (diagramContext boundsOf: targetShape) isNil ])
 		ifTrue: [
 			^ self rejectedBecause: 'Both connection endpoint shapes require staged bounds.' ].
 
@@ -158,9 +147,7 @@ CPAtelierReconnectSequenceFlow >> applyAssessment: anAssessment [
 	edgeMatches := diagramContext elements select: [
 		:each | each isEdge and: [ (diagramContext modelElementOf: each) == sequenceFlow ] ].
 	edge := edgeMatches first.
-	edgeMemento := diagramContext diagramMemento
-		childMementoFor: edge
-		inRelation: diagramContext elementsDescription.
+	edgeMemento := diagramContext mementoFor: edge.
 	waypointsDescription := edgeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #waypoints ].
 	edgeMemento write: proposedWaypoints using: waypointsDescription
@@ -244,36 +231,8 @@ CPAtelierReconnectSequenceFlow >> stageOutgoingWithout: aSequenceFlow for: aFlow
 	nodeMemento write: proposed using: description
 ]
 
-{ #category : 'private - staged state' }
-CPAtelierReconnectSequenceFlow >> stagedBoundsOf: aShape in: diagramMemento elementsDescription: elementsDescription [
-	| shapeMemento description |
-	shapeMemento := diagramMemento childMementoFor: aShape inRelation: elementsDescription.
-	description := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
-	^ shapeMemento readUsing: description
-]
 
-{ #category : 'private' }
-CPAtelierReconnectSequenceFlow >> shapeFor: aFlowNode in: elements diagramMemento: aDiagramMemento elementsDescription: anElementsDescription [
-	| matches |
-	matches := elements select: [ :each |
-		each isShape and: [
-			(self
-				stagedModelElementOf: each
-				in: aDiagramMemento
-				elementsDescription: anElementsDescription) == aFlowNode ] ].
-	^ matches size = 1
-		ifTrue: [ matches first ]
-		ifFalse: [ nil ]
-]
 
-{ #category : 'private - staged state' }
-CPAtelierReconnectSequenceFlow >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
-	| shapeMemento description |
-	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
-	description := shapeMemento magritteDescription
-		detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
-]
 
 { #category : 'private' }
 CPAtelierReconnectSequenceFlow >> rejectedBecause: aString [

@@ -70,7 +70,7 @@ CPAtelierConnectMessageFlow >> assess [
 	proposedElements := collaborationContext elements asOrderedCollection copy.
 	proposedElements add: edge.
 	[
-		collaborationContext elementsDescription validate: proposedElements
+		collaborationContext diagramContext validateElements: proposedElements
 	] on: MAValidationError do: [ :anException |
 		^ self rejectedBecause: anException printString ].
 
@@ -99,9 +99,7 @@ CPAtelierConnectMessageFlow >> applyAssessment: anAssessment [
 		detect: [ :each | each handlesSelector: #targetRef ].
 	messageFlowMemento write: source using: sourceDescription.
 	messageFlowMemento write: target using: targetDescription.
-	context diagramMemento
-		write: anAssessment proposedDiagramElements
-		using: context elementsDescription
+	context diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
 { #category : 'private - staged state' }

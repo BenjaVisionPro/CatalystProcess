@@ -50,7 +50,7 @@ CPAtelierRemoveParticipant >> assess [
 			on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 		[ context messageFlowsDescription validate: proposedMessageFlows ]
 			on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
-		[ context elementsDescription validate: proposedElements ]
+		[ context diagramContext validateElements: proposedElements ]
 			on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ] ].
 
 	^ CPAtelierRemoveParticipantAssessment
@@ -77,14 +77,13 @@ CPAtelierRemoveParticipant >> applyAssessment: anAssessment [
 	context collaborationMemento
 		write: anAssessment proposedParticipants using: context participantsDescription;
 		write: anAssessment proposedMessageFlows using: context messageFlowsDescription.
-	context diagramMemento
-		write: anAssessment proposedDiagramElements using: context elementsDescription.
+	context diagramContext writeElements: anAssessment proposedDiagramElements.
 	context collaborationMemento
 		detachChildMementoFor: participant inRelation: context participantsDescription.
 	anAssessment removedMessageFlows do: [ :aMessageFlow |
 		context collaborationMemento detachChildMementoFor: aMessageFlow inRelation: context messageFlowsDescription ].
 	anAssessment removedDiagramElements do: [ :anElement |
-		context diagramMemento detachChildMementoFor: anElement inRelation: context elementsDescription ]
+		context diagramContext detachElement: anElement ]
 ]
 
 { #category : 'private - staged state' }

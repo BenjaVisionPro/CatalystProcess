@@ -86,10 +86,6 @@ CPProcessCollaborationContext >> diagramContext: aDiagramContext [ diagramContex
 { #category : 'accessing' }
 CPProcessCollaborationContext >> diagram [ ^ diagramContext diagram ]
 { #category : 'accessing' }
-CPProcessCollaborationContext >> diagramMemento [ ^ diagramContext diagramMemento ]
-{ #category : 'accessing' }
-CPProcessCollaborationContext >> elementsDescription [ ^ diagramContext elementsDescription ]
-{ #category : 'accessing' }
 CPProcessCollaborationContext >> elements [
 	^ diagramContext elements
 ]

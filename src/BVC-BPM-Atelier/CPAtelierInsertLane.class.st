@@ -117,7 +117,7 @@ CPAtelierInsertLane >> assess [
 	elements := diagramContext elements.
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ diagramContext elementsDescription validate: proposedElements ]
+	[ diagramContext validateElements: proposedElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -179,9 +179,7 @@ CPAtelierInsertLane >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramContext diagramMemento
-		write: anAssessment proposedDiagramElements
-		using: diagramContext elementsDescription.
+	diagramContext writeElements: anAssessment proposedDiagramElements.
 
 	anAssessment proposedLaneBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
 		| shapeMemento boundsDescription |

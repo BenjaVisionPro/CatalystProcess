@@ -40,7 +40,7 @@ CPAtelierReattachBoundaryEvent >> assess [
 	elements := diagramContext elements.
 	(elements count: [ :each | each == shape ]) = 1 ifFalse: [ ^ self rejectedBecause: 'The boundary event shape must occur exactly once in the diagram.' ].
 	(diagramContext modelElementOf: shape) == boundaryEvent ifFalse: [ ^ self rejectedBecause: 'The supplied shape does not depict the boundary event.' ].
-	shapeMemento := diagramContext diagramMemento childMementoFor: shape inRelation: diagramContext elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 	currentBounds := shapeMemento readUsing: boundsDescription.
@@ -65,7 +65,7 @@ CPAtelierReattachBoundaryEvent >> applyAssessment: anAssessment [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
-	shapeMemento := diagramContext diagramMemento childMementoFor: shape inRelation: diagramContext elementsDescription.
+	shapeMemento := diagramContext mementoFor: shape.
 	boundsDescription := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	shapeMemento write: anAssessment proposedBounds using: boundsDescription.
 	anAssessment delta isZero ifFalse: [
@@ -81,7 +81,7 @@ CPAtelierReattachBoundaryEvent >> translateEdgeEndpoint: anEdge by: delta in: di
 	sourceMoves := (flowContainerContext stagedSourceOf: sequenceFlow) == boundaryEvent.
 	targetMoves := (flowContainerContext stagedTargetOf: sequenceFlow) == boundaryEvent.
 	(sourceMoves or: [ targetMoves ]) ifFalse: [ ^ self ].
-	edgeMemento := diagramContext diagramMemento childMementoFor: anEdge inRelation: diagramContext elementsDescription.
+	edgeMemento := diagramContext mementoFor: anEdge.
 	waypointsDescription := edgeMemento magritteDescription detect: [ :each | each handlesSelector: #waypoints ].
 	waypoints := edgeMemento readUsing: waypointsDescription.
 	waypoints ifEmpty: [ ^ self ].

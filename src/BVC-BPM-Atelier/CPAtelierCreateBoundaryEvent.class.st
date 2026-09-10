@@ -37,7 +37,7 @@ CPAtelierCreateBoundaryEvent >> assess [
 	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ diagramContext elementsDescription validate: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
+	[ diagramContext validateElements: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 	^ CPAtelierCreateBoundaryEventAssessment boundaryEvent: boundaryEvent shape: shape activity: activity proposedFlowElements: proposedFlowElements proposedDiagramElements: proposedElements
 ]
 { #category : 'applying' }
@@ -49,7 +49,7 @@ CPAtelierCreateBoundaryEvent >> applyAssessment: anAssessment [
 	eventMemento write: activity using: attachedDescription.
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
-	diagramContext diagramMemento write: anAssessment proposedDiagramElements using: diagramContext elementsDescription
+	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 { #category : 'private' }
 CPAtelierCreateBoundaryEvent >> rejectedBecause: aString [ ^ CPAtelierCreateBoundaryEventAssessment boundaryEvent: boundaryEvent rejectedBecause: aString ]

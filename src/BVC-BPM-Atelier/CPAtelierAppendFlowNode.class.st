@@ -32,7 +32,7 @@ CPAtelierAppendFlowNode class >> source: aSource flowNode: aFlowNode bounds: aRe
 { #category : 'assessing' }
 CPAtelierAppendFlowNode >> assess [
 	| flowElements topology ruleResult sequenceFlow sourceDescription targetDescription
-	  diagram diagramContext diagramMemento elementsDescription elements sourceShape sourceBounds
+	  diagram diagramContext elements sourceShape sourceBounds
 	  shape boundsDescription edge proposedFlowElements proposedElements |
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	source ifNil: [ ^ self rejectedBecause: 'A source flow node is required.' ].
@@ -60,13 +60,11 @@ CPAtelierAppendFlowNode >> assess [
 	diagram := processMemento readUsing: diagramDescription.
 	diagram ifNil: [ ^ self rejectedBecause: 'The process has no staged diagram.' ].
 	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	elements := diagramMemento readUsing: elementsDescription.
+	elements := diagramContext elements.
 	elements ifNil: [ ^ self rejectedBecause: 'The diagram has no staged elements collection.' ].
-	sourceShape := self shapeFor: source in: elements diagramMemento: diagramMemento elementsDescription: elementsDescription.
+	sourceShape := diagramContext shapeForModelElement: source.
 	sourceShape ifNil: [ ^ self rejectedBecause: 'The source requires exactly one staged diagram shape.' ].
-	sourceBounds := self stagedBoundsOf: sourceShape in: diagramMemento elementsDescription: elementsDescription.
+	sourceBounds := diagramContext boundsOf: sourceShape.
 	sourceBounds ifNil: [ ^ self rejectedBecause: 'The source shape requires staged bounds.' ].
 
 	shape := CPShape new modelElement: flowNode; bounds: bounds; yourself.
@@ -85,7 +83,7 @@ CPAtelierAppendFlowNode >> assess [
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape; add: edge.
-	[ elementsDescription validate: proposedElements ]
+	[ diagramContext validateElements: proposedElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -101,7 +99,7 @@ CPAtelierAppendFlowNode >> assess [
 
 { #category : 'applying' }
 CPAtelierAppendFlowNode >> applyAssessment: anAssessment [
-	| diagram diagramContext diagramMemento elementsDescription |
+	| diagram diagramContext |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	self
 		stageEndpointsOf: anAssessment sequenceFlow
@@ -112,9 +110,7 @@ CPAtelierAppendFlowNode >> applyAssessment: anAssessment [
 
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext diagram: diagram inMemento: processMemento using: diagramDescription.
-	diagramMemento := diagramContext diagramMemento.
-	elementsDescription := diagramContext elementsDescription.
-	diagramMemento write: anAssessment proposedDiagramElements using: elementsDescription
+	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
 { #category : 'private - applying' }
@@ -162,30 +158,8 @@ CPAtelierAppendFlowNode >> stageIncoming: incoming outgoing: outgoing for: aFlow
 	nodeMemento write: outgoing using: outgoingDescription
 ]
 
-{ #category : 'private - staged state' }
-CPAtelierAppendFlowNode >> stagedBoundsOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
-	| shapeMemento description |
-	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
-	description := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #bounds ].
-	^ shapeMemento readUsing: description
-]
 
-{ #category : 'private - staged state' }
-CPAtelierAppendFlowNode >> shapeFor: aFlowNode in: elements diagramMemento: aDiagramMemento elementsDescription: anElementsDescription [
-	| matches |
-	matches := elements select: [ :each |
-		each isShape and: [
-			(self stagedModelElementOf: each in: aDiagramMemento elementsDescription: anElementsDescription) == aFlowNode ] ].
-	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
-]
 
-{ #category : 'private - staged state' }
-CPAtelierAppendFlowNode >> stagedModelElementOf: aShape in: aDiagramMemento elementsDescription: anElementsDescription [
-	| shapeMemento description |
-	shapeMemento := aDiagramMemento childMementoFor: aShape inRelation: anElementsDescription.
-	description := shapeMemento magritteDescription detect: [ :each | each handlesSelector: #modelElement ].
-	^ shapeMemento readUsing: description
-]
 
 { #category : 'private' }
 CPAtelierAppendFlowNode >> rejectedBecause: aString [

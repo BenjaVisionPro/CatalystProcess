@@ -83,7 +83,7 @@ CPAtelierAddChildLane >> assess [
 	elements ifNil: [ ^ self rejectedBecause: 'The Process diagram has no staged elements collection.' ].
 	proposedElements := elements asOrderedCollection copy.
 	proposedElements add: shape.
-	[ diagramContext elementsDescription validate: proposedElements ]
+	[ diagramContext validateElements: proposedElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
@@ -119,9 +119,7 @@ CPAtelierAddChildLane >> applyAssessment: anAssessment [
 		diagram: diagram
 		inMemento: processMemento
 		using: diagramDescription.
-	diagramContext diagramMemento
-		write: anAssessment proposedDiagramElements
-		using: diagramContext elementsDescription
+	diagramContext writeElements: anAssessment proposedDiagramElements
 ]
 
 { #category : 'private' }
