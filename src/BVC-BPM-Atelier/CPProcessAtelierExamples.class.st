@@ -2655,6 +2655,22 @@ CPProcessAtelierExamples >> editingSessionAllowsSemanticFocusWithoutDepiction [
 ]
 
 { #category : 'examples - editing session' }
+CPProcessAtelierExamples >> legacyProcessEntryRetainsConfiguredPalette [
+	<gtExample>
+	| process diagram viewModel |
+	process := CPProcess new label: 'Legacy entry'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	process diagram: diagram.
+
+	viewModel := process asAtelier.
+
+	self assert: viewModel object == process.
+	self assert: viewModel palette notNil.
+	self assert: viewModel palette items isEmpty not.
+	^ viewModel
+]
+
+{ #category : 'examples - editing session' }
 CPProcessAtelierExamples >> definitionsIsCanonicalAtelierEntry [
 	<gtExample>
 	| definitions process diagram viewModel session |
