@@ -2950,6 +2950,7 @@ CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
 	host := visual presentationHostForFlowNode: task.
 	diagramPoint := (visual stagedBoundsOf: taskShape) origin.
 	localPoint := visual diagramPoint: diagramPoint localToPresentationHost: host.
+	visual forceLayout.
 
 	self assert: host == laneElement bodyHost.
 	self assert: element parent == laneElement bodyHost.
