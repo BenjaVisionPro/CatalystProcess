@@ -32,7 +32,7 @@ CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aT
 
 { #category : 'instance creation' }
 CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aTargetContainer boundsByFlowNode: boundsByFlowNode waypointsBySequenceFlow: waypointsBySequenceFlow processMemento: aMemento diagramContext: aDiagramContext [
-	^ self new flowNodes: someFlowNodes; targetContainer: aTargetContainer; boundsByFlowNode: boundsByFlowNode; waypointsBySequenceFlow: waypointsBySequenceFlow; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+	^ self new flowNodes: someFlowNodes; targetContainer: aTargetContainer; proposedBoundsByFlowNode: boundsByFlowNode; proposedWaypointsBySequenceFlow: waypointsBySequenceFlow; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }

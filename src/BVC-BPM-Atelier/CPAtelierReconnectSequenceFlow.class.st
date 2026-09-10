@@ -47,7 +47,7 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 
 { #category : 'instance creation' }
 CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
-	^ self new sequenceFlow: aSequenceFlow; source: aSource; target: aTarget; waypoints: someWaypoints; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramContext: aDiagramContext; yourself
+	^ self new sequenceFlow: aSequenceFlow; proposedSource: aSource; proposedTarget: aTarget; proposedWaypoints: someWaypoints; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }

@@ -30,7 +30,7 @@ CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean
 
 { #category : 'instance creation' }
 CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean processMemento: aMemento diagramContext: aDiagramContext [
-	^ self new lane: aLane; targetLane: aTargetLane; after: aBoolean; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+	^ self new lane: aLane; targetLane: aTargetLane; insertAfter: aBoolean; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }

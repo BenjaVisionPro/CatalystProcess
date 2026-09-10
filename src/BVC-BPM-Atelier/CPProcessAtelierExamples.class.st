@@ -12,12 +12,14 @@ Class {
 
 { #category : 'private - fixture' }
 CPProcessAtelierExamples >> diagramEditingForMemento: aMemento [
-	| diagramDescription diagramContext |
+	| diagramDescription diagram diagramContext |
 	diagramDescription := self descriptionFor: #diagram in: aMemento.
-	diagramContext := CPDiagramMementoContext
-		diagram: (aMemento readUsing: diagramDescription)
-		inMemento: aMemento
-		using: diagramDescription.
+	diagram := aMemento readUsing: diagramDescription.
+	diagramContext := diagram ifNil: [ nil ] ifNotNil: [
+		CPDiagramMementoContext
+			diagram: diagram
+			inMemento: aMemento
+			using: diagramDescription ].
 	^ CPProcessAtelierDiagramEditing
 		processMemento: aMemento
 		diagramContext: diagramContext

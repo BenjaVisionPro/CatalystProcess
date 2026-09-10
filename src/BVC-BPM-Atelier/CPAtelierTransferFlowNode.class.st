@@ -30,7 +30,7 @@ CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetC
 
 { #category : 'instance creation' }
 CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetContainer bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
-	^ self new flowNode: aFlowNode; targetContainer: aTargetContainer; bounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+	^ self new flowNode: aFlowNode; targetContainer: aTargetContainer; proposedBounds: aRectangle; processMemento: aMemento; diagramContext: aDiagramContext; yourself
 ]
 
 { #category : 'assessing' }
