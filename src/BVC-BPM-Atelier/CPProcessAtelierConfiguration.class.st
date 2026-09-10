@@ -1,12 +1,11 @@
-"I configure Atelier editing intentions for the production CPProcess visual presentation.
+"I configure Atelier editing intentions for a Process editing session.
 
-The semantic model remains Magritte-described. I retain the exact root diagram description and translate the production visual editing gestures into Process-specific Atelier operations. Presentation selection remains owned by the CPProcess Magritte container."
+The session supplies the semantic Process memento and the chosen staged BPMN depiction explicitly. Configuration no longer discovers or retains the Process diagram relation."
 Class {
 	#name : 'CPProcessAtelierConfiguration',
 	#superclass : 'CFAtelierConfiguration',
 	#instVars : [
-		'diagramDescription',
-		'flowElementsDescription',
+		'session',
 		'contextualAppendPaletteItems',
 		'poolPaletteItem'
 	],
@@ -17,12 +16,14 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessAtelierConfiguration class >> forProcessMemento: aProcessMemento [
-	| diagramDescription flowElementsDescription configuration |
-	diagramDescription := aProcessMemento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
-	flowElementsDescription := aProcessMemento magritteDescription detect: [ :each | each handlesSelector: #flowElements ].
+	^ self forSession: (CPProcessAtelierSession forProcessMemento: aProcessMemento)
+]
+
+{ #category : 'instance creation' }
+CPProcessAtelierConfiguration class >> forSession: aSession [
+	| configuration |
 	configuration := self new
-		diagramDescription: diagramDescription;
-		flowElementsDescription: flowElementsDescription;
+		session: aSession;
 		yourself.
 	configuration configureProcessPalette.
 	^ configuration
@@ -90,33 +91,21 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
-		| processMemento diagram diagramContext |
-		processMemento := aPresentation memento.
-		diagram := processMemento readUsing: diagramDescription.
-		diagramContext := CPDiagramMementoContext
-			diagram: diagram
-			inMemento: processMemento
-			using: diagramDescription.
 		aPresentation
 			poolPaletteItem: poolPaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
-				processMemento: processMemento
-				diagramContext: diagramContext);
+				processMemento: session processMemento
+				diagramContext: session diagramContext);
 			contextualAppendPaletteItems: contextualAppendPaletteItems ].
 	^ anAtelierViewModel
 ]
 
 { #category : 'accessing' }
-CPProcessAtelierConfiguration >> diagramDescription [
-	^ diagramDescription
+CPProcessAtelierConfiguration >> session [
+	^ session
 ]
 
 { #category : 'accessing' }
-CPProcessAtelierConfiguration >> diagramDescription: aDescription [
-	diagramDescription := aDescription
+CPProcessAtelierConfiguration >> session: aSession [
+	session := aSession
 ]
-
-{ #category : 'accessing' }
-CPProcessAtelierConfiguration >> flowElementsDescription [ ^ flowElementsDescription ]
-{ #category : 'accessing' }
-CPProcessAtelierConfiguration >> flowElementsDescription: aDescription [ flowElementsDescription := aDescription ]

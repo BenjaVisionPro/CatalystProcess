@@ -12,21 +12,16 @@ Class {
 
 { #category : 'private - fixture' }
 CPProcessAtelierExamples >> diagramEditingForMemento: aMemento [
+	| session |
+	session := CPProcessAtelierSession forProcessMemento: aMemento.
 	^ CPProcessAtelierDiagramEditing
-		processMemento: aMemento
-		diagramContext: (self diagramContextForMemento: aMemento)
+		processMemento: session processMemento
+		diagramContext: session diagramContext
 ]
 
 { #category : 'private - fixture' }
 CPProcessAtelierExamples >> diagramContextForMemento: aMemento [
-	| diagramDescription diagram |
-	diagramDescription := self descriptionFor: #diagram in: aMemento.
-	diagram := aMemento readUsing: diagramDescription.
-	^ diagram ifNil: [ nil ] ifNotNil: [
-		CPDiagramMementoContext
-			diagram: diagram
-			inMemento: aMemento
-			using: diagramDescription ]
+	^ (CPProcessAtelierSession forProcessMemento: aMemento) diagramContext
 ]
 
 { #category : 'private - fixture' }
@@ -2630,4 +2625,30 @@ CPProcessAtelierExamples >> reversingNestedContainerOwnershipCommitsWithoutLosin
 	self assert: (root childMementoFor: inner inRelation: (self descriptionFor: #flowElements in: root)) == originalChild.
 	self assert: root hasChangesToCommit not.
 	^ root
+]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> editingSessionCarriesProcessAndDepictionExplicitly [
+	<gtExample>
+	| fixture memento session |
+	fixture := self fixture.
+	memento := fixture second.
+	session := CPProcessAtelierSession forProcessMemento: memento.
+	self assert: session rootMemento == memento.
+	self assert: session processMemento == memento.
+	self assert: session diagramContext diagram == fixture eighth.
+	^ session
+]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> editingSessionAllowsSemanticFocusWithoutDepiction [
+	<gtExample>
+	| process memento session |
+	process := CPProcess new label: 'Undepicted process'; yourself.
+	memento := CFMaMemento model: process.
+	session := CPProcessAtelierSession forProcessMemento: memento.
+	self assert: session rootMemento == memento.
+	self assert: session processMemento == memento.
+	self assert: session diagramContext isNil.
+	^ session
 ]
