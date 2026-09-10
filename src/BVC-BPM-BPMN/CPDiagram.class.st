@@ -1,9 +1,12 @@
+"I represent one BPMNDiagram.
+
+I own exactly one CPPlane and zero or more CPLabelStyles. During the staged editor migration, modelElement/elements/addElement: remain compatibility forwarding messages only; they are not Magritte ownership relations."
 Class {
 	#name : 'CPDiagram',
 	#superclass : 'CFIdentifiableObject',
 	#instVars : [
-		'modelElement',
-		'elements'
+		'plane',
+		'labelStyles'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -12,56 +15,89 @@ Class {
 { #category : 'initialization' }
 CPDiagram >> initialize [
 	super initialize.
-	elements := OrderedCollection new
+	plane := CPPlane new.
+	labelStyles := OrderedCollection new
 ]
 
 { #category : 'accessing' }
-CPDiagram >> modelElement [
-	^ modelElement
+CPDiagram >> plane [
+	^ plane
 ]
 
 { #category : 'accessing' }
-CPDiagram >> modelElement: anObject [
-	modelElement := anObject
+CPDiagram >> plane: aPlane [
+	plane := aPlane
 ]
 
 { #category : 'accessing' }
-CPDiagram >> elements [
-	^ elements
+CPDiagram >> labelStyles [
+	^ labelStyles
 ]
 
 { #category : 'accessing' }
-CPDiagram >> elements: aCollection [
-	elements := aCollection
+CPDiagram >> labelStyles: aCollection [
+	labelStyles := aCollection asOrderedCollection
 ]
 
 { #category : 'adding' }
-CPDiagram >> addElement: aDiagramElement [
-	elements add: aDiagramElement
+CPDiagram >> addLabelStyle: aLabelStyle [
+	labelStyles add: aLabelStyle
+]
+
+{ #category : 'removing' }
+CPDiagram >> removeLabelStyle: aLabelStyle [
+	labelStyles remove: aLabelStyle ifAbsent: [ ]
 ]
 
 { #category : 'descriptions' }
-CPDiagram >> modelElementDescription [
+CPDiagram >> planeDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
-		accessor: #modelElement;
-		classes: { CPProcess. CPCollaboration };
-		reference: CPProcess new labelDescription;
-		label: 'Model element';
+		accessor: #plane;
+		classes: { CPPlane };
+		reference: CPPlane new identifierDescription;
+		label: 'Plane';
 		priority: 100;
-		group: 'Relations';
+		group: 'Diagram';
 		beRequired;
 		yourself
 ]
 
 { #category : 'descriptions' }
-CPDiagram >> elementsDescription [
+CPDiagram >> labelStylesDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new
-		accessor: #elements;
-		classes: { CPDiagramElement };
-		label: 'Elements';
+		accessor: #labelStyles;
+		classes: { CPLabelStyle };
+		reference: CPLabelStyle new identifierDescription;
+		label: 'Label styles';
 		priority: 110;
 		group: 'Diagram';
+		beOrdered;
 		yourself
+]
+
+{ #category : 'compatibility - staged editor migration' }
+CPDiagram >> modelElement [
+	^ plane modelElement
+]
+
+{ #category : 'compatibility - staged editor migration' }
+CPDiagram >> modelElement: anObject [
+	plane modelElement: anObject
+]
+
+{ #category : 'compatibility - staged editor migration' }
+CPDiagram >> elements [
+	^ plane elements
+]
+
+{ #category : 'compatibility - staged editor migration' }
+CPDiagram >> elements: aCollection [
+	plane elements: aCollection
+]
+
+{ #category : 'compatibility - staged editor migration' }
+CPDiagram >> addElement: aDiagramElement [
+	plane addElement: aDiagramElement
 ]

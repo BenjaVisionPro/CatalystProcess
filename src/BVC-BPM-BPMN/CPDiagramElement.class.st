@@ -1,22 +1,12 @@
+"I am the common identifiable BPMN-DI diagram element state.
+
+Semantic model references belong to the concrete DI elements that define them (CPPlane, CPShape and CPEdge), not to every diagram element."
 Class {
 	#name : 'CPDiagramElement',
 	#superclass : 'CFIdentifiableObject',
-	#instVars : [
-		'modelElement'
-	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
-
-{ #category : 'accessing' }
-CPDiagramElement >> modelElement [
-	^ modelElement
-]
-
-{ #category : 'accessing' }
-CPDiagramElement >> modelElement: anObject [
-	modelElement := anObject
-]
 
 { #category : 'testing' }
 CPDiagramElement >> isShape [

@@ -1655,14 +1655,12 @@ CPProcessVisualElementExamples >> diagramPlaneGeometryUsesAuthoredDI [
 	memento := fixture second.
 	diagram := fixture at: 8.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	diagramMemento := memento
-		childMementoFor: diagram
-		inRelation: diagramDescription.
-	elementsDescription := self descriptionFor: #elements in: diagramMemento.
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
-		memento: diagramMemento
-		elementsDescription: elementsDescription.
+		inMemento: memento
+		using: diagramDescription.
+	diagramMemento := diagramContext planeMemento.
+	elementsDescription := diagramContext elementsDescription.
 	geometry := CPDiagramPlaneGeometry
 		shapes: {
 			fixture at: 9.

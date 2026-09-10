@@ -1,12 +1,14 @@
-"I provide staged access to one BPMN DI diagram through its Foundation memento.
+"I provide staged access to one BPMN depiction through its CPDiagram and CPPlane mementos.
 
-I keep diagram-element reads in the Magritte layer so renderers and semantic editing code do not duplicate child-memento traversal and description lookup. I make no assumptions that a semantic BPMN element has only one DI depiction."
+CPPlane owns the diagram elements. During the operation migration, diagramMemento remains a compatibility name for the memento that owns the elements; it therefore answers the plane memento. New code should use planeMemento and my staged access messages rather than pairing a raw memento with elementsDescription."
 Class {
 	#name : 'CPDiagramMementoContext',
 	#superclass : 'Object',
 	#instVars : [
 		'diagram',
 		'diagramMemento',
+		'plane',
+		'planeMemento',
 		'elementsDescription'
 	],
 	#category : 'BVC-BPM-Magritte-Diagram',
@@ -15,67 +17,78 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPDiagramMementoContext class >> diagram: aDiagram memento: aDiagramMemento elementsDescription: aDescription [
+CPDiagramMementoContext class >> diagram: aDiagram diagramMemento: aDiagramMemento plane: aPlane planeMemento: aPlaneMemento elementsDescription: aDescription [
 	^ self new
 		diagram: aDiagram;
 		diagramMemento: aDiagramMemento;
+		plane: aPlane;
+		planeMemento: aPlaneMemento;
 		elementsDescription: aDescription;
 		yourself
 ]
 
-
 { #category : 'instance creation' }
 CPDiagramMementoContext class >> diagram: aDiagram inMemento: anOwnerMemento using: aDiagramDescription [
-	| diagramMemento elementsDescription |
+	| diagramMemento planeDescription plane planeMemento elementsDescription |
 	diagramMemento := anOwnerMemento
 		childMementoFor: aDiagram
 		inRelation: aDiagramDescription.
-	elementsDescription := diagramMemento magritteDescription
+	planeDescription := diagramMemento magritteDescription
+		detect: [ :each | each handlesSelector: #plane ].
+	plane := diagramMemento readUsing: planeDescription.
+	planeMemento := diagramMemento
+		childMementoFor: plane
+		inRelation: planeDescription.
+	elementsDescription := planeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #elements ].
 	^ self
 		diagram: aDiagram
-		memento: diagramMemento
+		diagramMemento: diagramMemento
+		plane: plane
+		planeMemento: planeMemento
 		elementsDescription: elementsDescription
 ]
 
 { #category : 'accessing' }
-CPDiagramMementoContext >> diagram [
-	^ diagram
-]
+CPDiagramMementoContext >> diagram [ ^ diagram ]
+{ #category : 'accessing' }
+CPDiagramMementoContext >> diagram: anObject [ diagram := anObject ]
 
 { #category : 'accessing' }
-CPDiagramMementoContext >> diagram: anObject [
-	diagram := anObject
-]
+CPDiagramMementoContext >> plane [ ^ plane ]
+{ #category : 'accessing' }
+CPDiagramMementoContext >> plane: anObject [ plane := anObject ]
 
 { #category : 'accessing' }
+CPDiagramMementoContext >> planeMemento [ ^ planeMemento ]
+{ #category : 'accessing' }
+CPDiagramMementoContext >> planeMemento: aMemento [ planeMemento := aMemento ]
+
+{ #category : 'accessing' }
+CPDiagramMementoContext >> owningDiagramMemento [ ^ diagramMemento ]
+
+{ #category : 'compatibility - operation migration' }
 CPDiagramMementoContext >> diagramMemento [
-	^ diagramMemento
+	"Existing operations use this result together with elementsDescription. CPPlane now owns that relation."
+	^ planeMemento
 ]
 
 { #category : 'accessing' }
-CPDiagramMementoContext >> diagramMemento: anObject [
-	diagramMemento := anObject
-]
+CPDiagramMementoContext >> diagramMemento: aMemento [ diagramMemento := aMemento ]
 
 { #category : 'accessing' }
-CPDiagramMementoContext >> elementsDescription [
-	^ elementsDescription
-]
-
+CPDiagramMementoContext >> elementsDescription [ ^ elementsDescription ]
 { #category : 'accessing' }
-CPDiagramMementoContext >> elementsDescription: aDescription [
-	elementsDescription := aDescription
-]
+CPDiagramMementoContext >> elementsDescription: aDescription [ elementsDescription := aDescription ]
 
 { #category : 'staged state' }
 CPDiagramMementoContext >> elements [
-	^ diagramMemento readUsing: elementsDescription
+	^ planeMemento readUsing: elementsDescription
 ]
 
 { #category : 'staged state' }
 CPDiagramMementoContext >> mementoFor: aDiagramElement [
-	^ diagramMemento
+	^ planeMemento
 		childMementoFor: aDiagramElement
 		inRelation: elementsDescription
 ]

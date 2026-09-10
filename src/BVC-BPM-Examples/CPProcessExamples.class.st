@@ -488,3 +488,64 @@ CPProcessExamples >> definitionsOwnSemanticRootsAndDiagrams [
 	self assert: definitions diagrams first == diagram.
 	^ definitions
 ]
+
+{ #category : 'examples - bpmn di' }
+CPProcessExamples >> diagramOwnsPlaneAndLabelStyles [
+	<gtExample>
+	| diagram plane style font |
+	diagram := CPDiagram new.
+	plane := diagram plane.
+	font := CPFont new name: 'Inter'; size: 12; yourself.
+	style := CPLabelStyle new font: font; yourself.
+	diagram addLabelStyle: style.
+
+	self assert: plane class equals: CPPlane.
+	self assert: diagram plane == plane.
+	self assert: diagram labelStyles size equals: 1.
+	self assert: diagram labelStyles first == style.
+	self assert: style font == font.
+	^ diagram
+]
+
+{ #category : 'examples - bpmn di' }
+CPProcessExamples >> planeOwnsOrderedShapeAndEdgeElements [
+	<gtExample>
+	| process task flow diagram plane shape edge description |
+	process := CPProcess new.
+	task := CPUserTask new.
+	flow := CPSequenceFlow new sourceRef: task; targetRef: task; yourself.
+	diagram := CPDiagram new.
+	plane := diagram plane modelElement: process; yourself.
+	shape := CPShape new modelElement: task; bounds: (20 @ 30 extent: 100 @ 60); yourself.
+	edge := CPEdge new modelElement: flow; yourself.
+	edge addWaypoint: 120 @ 60; addWaypoint: 160 @ 60.
+	plane addElement: shape; addElement: edge.
+	description := plane elementsDescription.
+
+	self assert: description isOrdered.
+	self assert: plane elements equals: { shape. edge } asOrderedCollection.
+	self assert: diagram elements == plane elements.
+	self assert: diagram modelElement == process.
+	^ plane
+]
+
+{ #category : 'examples - bpmn di' }
+CPProcessExamples >> labelsAreOwnedByTheirDepictions [
+	<gtExample>
+	| task shape label style |
+	task := CPUserTask new.
+	style := CPLabelStyle new font: CPFont new; yourself.
+	label := CPLabel new
+		bounds: (30 @ 90 extent: 120 @ 24);
+		labelStyle: style;
+		yourself.
+	shape := CPShape new
+		modelElement: task;
+		bounds: (20 @ 30 extent: 100 @ 60);
+		label: label;
+		yourself.
+
+	self assert: shape label == label.
+	self assert: label labelStyle == style.
+	^ shape
+]

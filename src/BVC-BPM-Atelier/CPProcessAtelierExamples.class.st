@@ -62,10 +62,14 @@ CPProcessAtelierExamples >> descriptionFor: aSelector in: aMemento [
 
 { #category : 'private - accessing staged state' }
 CPProcessAtelierExamples >> diagramMementoFor: aProcessMemento [
-	| diagramDescription diagram |
+	| diagramDescription diagram diagramContext |
 	diagramDescription := self descriptionFor: #diagram in: aProcessMemento.
 	diagram := aProcessMemento readUsing: diagramDescription.
-	^ aProcessMemento childMementoFor: diagram inRelation: diagramDescription
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: aProcessMemento
+		using: diagramDescription.
+	^ diagramContext planeMemento
 ]
 
 { #category : 'private - accessing staged state' }

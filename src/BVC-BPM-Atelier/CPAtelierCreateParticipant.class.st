@@ -38,11 +38,10 @@ CPAtelierCreateParticipant >> assess [
 			diagram := CPDiagram new.
 			collaboration diagram: diagram.
 			participants := OrderedCollection new.
-			elements := OrderedCollection new.
+			elements := diagram plane elements.
 			participantsDescription := collaboration magritteDescription
 				detect: [ :each | each handlesSelector: #participants ].
-			elementsDescription := diagram magritteDescription
-				detect: [ :each | each handlesSelector: #elements ] ]
+			elementsDescription := diagram plane elementsDescription ]
 		ifFalse: [
 			collaboration := context collaboration.
 			diagram := context diagram.
@@ -91,7 +90,7 @@ CPAtelierCreateParticipant >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateParticipant >> applyAssessment: anAssessment [
-	| collaborationDescription collaborationMemento participantsDescription participantMemento processRefDescription diagramDescription diagramMemento elementsDescription |
+	| collaborationDescription collaborationMemento participantsDescription participantMemento processRefDescription diagramDescription diagramContext |
 
 	anAssessment createsCollaboration ifTrue: [
 		collaborationDescription := processMemento magritteDescription
@@ -128,14 +127,13 @@ CPAtelierCreateParticipant >> applyAssessment: anAssessment [
 			write: processMemento model
 			using: processRefDescription ].
 
-	diagramMemento := collaborationMemento
-		childMementoFor: anAssessment diagram
-		inRelation: diagramDescription.
-	elementsDescription := diagramMemento magritteDescription
-		detect: [ :each | each handlesSelector: #elements ].
-	diagramMemento
+	diagramContext := CPDiagramMementoContext
+		diagram: anAssessment diagram
+		inMemento: collaborationMemento
+		using: diagramDescription.
+	diagramContext planeMemento
 		write: anAssessment proposedDiagramElements
-		using: elementsDescription
+		using: diagramContext elementsDescription
 ]
 
 { #category : 'private' }
