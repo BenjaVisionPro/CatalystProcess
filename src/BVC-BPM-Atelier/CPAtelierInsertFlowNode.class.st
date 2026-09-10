@@ -31,6 +31,18 @@ CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode
 ]
 
 { #category : 'instance creation' }
+CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
+	^ self new
+		sequenceFlow: aSequenceFlow;
+		flowNode: aFlowNode;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
+{ #category : 'instance creation' }
 CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new
 		sequenceFlow: aSequenceFlow;

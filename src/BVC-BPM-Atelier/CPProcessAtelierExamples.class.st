@@ -12,17 +12,21 @@ Class {
 
 { #category : 'private - fixture' }
 CPProcessAtelierExamples >> diagramEditingForMemento: aMemento [
-	| diagramDescription diagram diagramContext |
+	^ CPProcessAtelierDiagramEditing
+		processMemento: aMemento
+		diagramContext: (self diagramContextForMemento: aMemento)
+]
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> diagramContextForMemento: aMemento [
+	| diagramDescription diagram |
 	diagramDescription := self descriptionFor: #diagram in: aMemento.
 	diagram := aMemento readUsing: diagramDescription.
-	diagramContext := diagram ifNil: [ nil ] ifNotNil: [
+	^ diagram ifNil: [ nil ] ifNotNil: [
 		CPDiagramMementoContext
 			diagram: diagram
 			inMemento: aMemento
-			using: diagramDescription ].
-	^ CPProcessAtelierDiagramEditing
-		processMemento: aMemento
-		diagramContext: diagramContext
+			using: diagramDescription ]
 ]
 
 { #category : 'private - fixture' }
@@ -127,7 +131,7 @@ CPProcessAtelierExamples >> moveShapeAssessmentDoesNotMutateStagedState [
 		shape: taskShape
 		bounds: (260 @ 124 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation assess.
 
@@ -153,7 +157,7 @@ CPProcessAtelierExamples >> moveShapeStagesBoundsAndIncidentEdgeEndpoints [
 		shape: taskShape
 		bounds: (260 @ 124 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 
@@ -184,7 +188,7 @@ CPProcessAtelierExamples >> moveConnectedShapesTranslatesCompleteInternalEdgePat
 	operation := CPAtelierMoveShapes
 		boundsByShape: boundsByShape
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 
@@ -208,7 +212,7 @@ CPProcessAtelierExamples >> resizeShapeStagesBoundsAndMovesIncidentEndpointsByCe
 		shape: taskShape
 		bounds: (220 @ 94 extent: 172 @ 74)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 
@@ -261,14 +265,14 @@ CPProcessAtelierExamples >> resizeShapeInsideSubProcessMovesNestedIncidentEndpoi
 		boundsByFlowNode: boundsByNode
 		waypointsBySequenceFlow: waypointsByFlow
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	self assert: transferAssessment isApplicable.
 
 	resizeAssessment := (CPAtelierResizeShape
 		shape: (fixture at: 10)
 		bounds: (160 @ 64 extent: 152 @ 74)
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 
 	self assert: resizeAssessment isApplicable.
 	self assert: (self stagedBoundsOf: (fixture at: 10) processMemento: memento)
@@ -352,7 +356,7 @@ CPProcessAtelierExamples >> connectFlowNodesStagesSemanticFlowAndDiagramEdgeToge
 		target: finish
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -385,7 +389,7 @@ CPProcessAtelierExamples >> commitPersistsStagedMoveAndResetRestoresModelState [
 		shape: taskShape
 		bounds: (260 @ 124 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	self assert: operation apply isApplicable.
 	self assert: taskShape bounds equals: (220 @ 94 extent: 132 @ 54).
@@ -396,7 +400,7 @@ CPProcessAtelierExamples >> commitPersistsStagedMoveAndResetRestoresModelState [
 		shape: taskShape
 		bounds: (260 @ 124 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	self assert: operation apply isApplicable.
 	memento commit.
 	self assert: process diagram elements second == taskShape.
@@ -423,7 +427,7 @@ CPProcessAtelierExamples >> reconnectSequenceFlowPreservesFlowAndEdgeIdentity [
 		waypoints: ({ 121 @ 121. 451 @ 121 } asOrderedCollection)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	flowMemento := memento childMementoFor: firstFlow inRelation: flowElementsDescription.
@@ -454,7 +458,7 @@ CPProcessAtelierExamples >> appendFlowNodeCreatesNodeAndConnectionAsOneStagedOpe
 		bounds: (390 @ 180 extent: 132 @ 54)
 		flowContainer: fixture first
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -505,7 +509,7 @@ CPProcessAtelierExamples >> appendFlowNodeAssessmentHasNoSemanticSideEffects [
 		bounds: (390 @ 180 extent: 132 @ 54)
 		flowContainer: fixture first
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	1 to: 100 do: [ :anIndex | self assert: operation assess isApplicable ].
 
@@ -531,7 +535,7 @@ CPProcessAtelierExamples >> insertFlowNodeReplacesOneFlowWithTwoAsOneStagedOpera
 		bounds: (170 @ 180 extent: 132 @ 54)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -571,7 +575,7 @@ CPProcessAtelierExamples >> removeSequenceFlowStagesSemanticAndDiagramRemovalTog
 		sequenceFlow: firstFlow
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -603,7 +607,7 @@ CPProcessAtelierExamples >> removeFlowNodeStagesIncidentFlowsAndDiagramElementsT
 		flowNode: task
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -635,7 +639,7 @@ CPProcessAtelierExamples >> removeDiagramSelectionSuppressesSelectedIncidentSequ
 	operation := CPAtelierRemoveDiagramElements
 		diagramElements: { taskShape. firstEdge }
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: (self descriptionFor: #flowElements in: memento).
@@ -673,7 +677,7 @@ CPProcessAtelierExamples >> replaceFlowNodePreservesShapeAndIncidentFlowIdentity
 		bounds: (220 @ 94 extent: 132 @ 54)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -719,7 +723,7 @@ CPProcessAtelierExamples >> replacingActivityReattachesBoundaryEventsToReplaceme
 		bounds: (124 @ 84 extent: 32 @ 32)
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	self assert: createAssessment isApplicable.
 	boundaryShape := createAssessment shape.
 
@@ -730,7 +734,7 @@ CPProcessAtelierExamples >> replacingActivityReattachesBoundaryEventsToReplaceme
 		bounds: taskShape bounds
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 
 	flowContext := CPProcessFlowContainerContext rootFor: memento.
 	boundaryMemento := flowContext childMementoFor: boundary.
@@ -761,7 +765,7 @@ CPProcessAtelierExamples >> createCallActivityStagesSemanticNodeAndShapeTogether
 		bounds: (300 @ 220 extent: 132 @ 54)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -824,7 +828,7 @@ CPProcessAtelierExamples >> createSubProcessStagesSemanticNodeAndShapeTogether [
 		bounds: (300 @ 220 extent: 132 @ 72)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	stagedFlowElements := memento readUsing: flowElementsDescription.
@@ -909,7 +913,7 @@ CPProcessAtelierExamples >> replacingSubProcessTypePreservesNestedFlowElements [
 		bounds: (300 @ 220 extent: 132 @ 72)
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	self assert: createAssessment isApplicable.
 
 	replacement := CPMultiInstanceSubProcess new.
@@ -919,7 +923,7 @@ CPProcessAtelierExamples >> replacingSubProcessTypePreservesNestedFlowElements [
 		bounds: createAssessment shape bounds
 		processMemento: memento
 		flowElementsDescription: flowElementsDescription
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 
 	replacementMemento := memento
 		childMementoFor: replacement
@@ -972,13 +976,13 @@ CPProcessAtelierExamples >> nestedContainerCreateConnectDeleteStagesLocally [
 		bounds: (220 @ 220 extent: 42 @ 42)
 		flowContainer: subProcess
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	createTask := (CPAtelierCreateFlowNode
 		flowNode: task
 		bounds: (340 @ 214 extent: 132 @ 54)
 		flowContainer: subProcess
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 
 	self assert: createStart isApplicable.
 	self assert: createTask isApplicable.
@@ -994,7 +998,7 @@ CPProcessAtelierExamples >> nestedContainerCreateConnectDeleteStagesLocally [
 		target: task
 		flowContainer: subProcess
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	self assert: connect isApplicable.
 	sequenceFlow := connect sequenceFlow.
 	nestedFlows := subProcessMemento readUsing: nestedFlowDescription.
@@ -1010,7 +1014,7 @@ CPProcessAtelierExamples >> nestedContainerCreateConnectDeleteStagesLocally [
 		flowNode: task
 		flowContainer: subProcess
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	self assert: delete isApplicable.
 	nestedFlows := subProcessMemento readUsing: nestedFlowDescription.
 	self assert: (nestedFlows identityIncludes: start).
@@ -1067,7 +1071,7 @@ CPProcessAtelierExamples >> sequenceFlowCannotCrossFlowContainerBoundary [
 		target: nestedTask
 		flowContainer: subProcess
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation assess.
 
 	self assert: assessment isApplicable not.
@@ -1118,7 +1122,7 @@ CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBo
 		targetContainer: subProcess
 		bounds: (260 @ 240 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	self assert: assessment isApplicable.
@@ -1163,7 +1167,7 @@ CPProcessAtelierExamples >> transferringConnectedNodeRejectsCrossScopeSequenceFl
 		targetContainer: subProcess
 		bounds: (260 @ 240 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	self assert: assessment isApplicable not.
@@ -1216,7 +1220,7 @@ CPProcessAtelierExamples >> transferringClosedTopologyIntoSubProcessMovesNodesFl
 		boundsByFlowNode: boundsByNode
 		waypointsBySequenceFlow: waypointsByFlow
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	self assert: assessment isApplicable.
@@ -1283,7 +1287,7 @@ CPProcessAtelierExamples >> transferringOpenTopologyRejectsBoundarySequenceFlow 
 		boundsByFlowNode: boundsByNode
 		waypointsBySequenceFlow: waypointsByFlow
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	self assert: assessment isApplicable not.
@@ -1446,7 +1450,7 @@ CPProcessAtelierExamples >> collaborationContextResolvesFreshStagedFlowNodeToRoo
 		bounds: (300 @ 80 extent: 132 @ 54)
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	context := CPProcessCollaborationContext inRootMemento: memento.
 
 	self assert: createAssessment isApplicable.
@@ -1490,7 +1494,7 @@ CPProcessAtelierExamples >> connectMessageFlowObservesFreshStagedFlowNodeContain
 		bounds: (300 @ 80 extent: 132 @ 54)
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 
 	operation := CPAtelierConnectMessageFlow
 		source: freshTask
@@ -1823,7 +1827,7 @@ CPProcessAtelierExamples >> removeDiagramSelectionRemovesMessageFlow [
 	operation := CPAtelierRemoveDiagramElements
 		diagramElements: { connectAssessment edge }
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	context := CPProcessCollaborationContext inRootMemento: memento.
@@ -1851,7 +1855,7 @@ CPProcessAtelierExamples >> removeDiagramSelectionDoesNotDoubleRemoveParticipant
 	operation := CPAtelierRemoveDiagramElements
 		diagramElements: { externalPool. connectAssessment edge }
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	context := CPProcessCollaborationContext inRootMemento: memento.
@@ -2010,7 +2014,7 @@ CPProcessAtelierExamples >> createBoundaryEventStagesAttachmentAndDiagramShape [
 	memento := CFMaMemento model: process.
 	diagramDescription := memento magritteDescription detect: [ :each | each handlesSelector: #diagram ].
 	event := CPBoundaryEvent new eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection; yourself.
-	operation := CPAtelierCreateBoundaryEvent boundaryEvent: event attachedTo: task bounds: (84 @ 124 extent: 32 @ 32) flowContainer: process processMemento: memento diagramDescription: diagramDescription.
+	operation := CPAtelierCreateBoundaryEvent boundaryEvent: event attachedTo: task bounds: (84 @ 124 extent: 32 @ 32) flowContainer: process processMemento: memento diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 	self assert: assessment isApplicable.
 	context := CPProcessFlowContainerContext rootFor: memento.
@@ -2043,7 +2047,7 @@ CPProcessAtelierExamples >> assessingBoundaryEventCreationDoesNotMutateStagedSta
 		bounds: (84 @ 124 extent: 32 @ 32)
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	flowContext := CPProcessFlowContainerContext rootFor: memento.
 	diagramContext := CPDiagramMementoContext
 		diagram: (memento readUsing: diagramDescription)
@@ -2125,7 +2129,7 @@ CPProcessAtelierExamples >> movingActivityCarriesAttachedBoundaryEventAndItsEdge
 	operation := CPAtelierMoveShapes
 		boundsByShape: boundsByShape
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 
@@ -2151,7 +2155,7 @@ CPProcessAtelierExamples >> resizingActivityPreservesAttachedBoundaryEventSideAn
 		shape: (fixture at: 8)
 		bounds: (120 @ 90 extent: 200 @ 120)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 
@@ -2177,7 +2181,7 @@ CPProcessAtelierExamples >> removingActivityOwnsAttachedBoundaryEventAndIncident
 		flowNode: fixture third
 		flowContainer: fixture first
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 	context := CPProcessFlowContainerContext rootFor: memento.
@@ -2211,7 +2215,7 @@ CPProcessAtelierExamples >> removingSelectedActivitySuppressesDependentBoundaryE
 	operation := CPAtelierRemoveDiagramElements
 		diagramElements: { fixture eighth. fixture ninth. (fixture at: 11) }
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation apply.
 
@@ -2254,7 +2258,7 @@ CPProcessAtelierExamples >> reattachingBoundaryEventStagesNewActivityBoundsAndIn
 		bounds: (199 @ 284 extent: 42 @ 42)
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 
 	self assert: assessment isApplicable.
@@ -2338,7 +2342,7 @@ CPProcessAtelierExamples >> createLaneStagesLaneSetLaneAndShapeAtomically [
 		lane: lane
 		bounds: (40 @ 40 extent: 500 @ 140)
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 
 	assessment := operation assess.
 	self assert: assessment isApplicable.
@@ -2429,7 +2433,7 @@ CPProcessAtelierExamples >> transferFixtureGroup: fixture [
 	bounds := IdentityDictionary new.
 	{ fixture third. fixture seventh } do: [ :each | bounds at: each put: (20 @ 20 extent: 160 @ 100) ].
 	waypoints := IdentityDictionary new at: fixture eighth put: { 50 @ 50. 200 @ 50 } asOrderedCollection; yourself.
-	^ CPAtelierTransferFlowNodes flowNodes: { fixture third. fixture seventh } targetContainer: fixture fourth boundsByFlowNode: bounds waypointsBySequenceFlow: waypoints processMemento: fixture second diagramDescription: (self descriptionFor: #diagram in: fixture second)
+	^ CPAtelierTransferFlowNodes flowNodes: { fixture third. fixture seventh } targetContainer: fixture fourth boundsByFlowNode: bounds waypointsBySequenceFlow: waypoints processMemento: fixture second diagramContext: (self diagramContextForMemento: fixture second)
 ]
 
 { #category : 'examples - transaction' }
@@ -2468,7 +2472,7 @@ CPProcessAtelierExamples >> singleTransferPreservesAllFieldsThroughCommit [
 	| f root operation destination |
 	f := self transactionTransferFixture.
 	root := f second.
-	operation := CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f fourth bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramDescription: (self descriptionFor: #diagram in: root).
+	operation := CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f fourth bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramContext: (self diagramContextForMemento: root).
 	self assert: operation apply isApplicable.
 	destination := (CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: f fourth.
 	self assert: (destination childMementoFor: f sixth) == (f at: 10).
@@ -2513,9 +2517,9 @@ CPProcessAtelierExamples >> singleTransferRoundTripResetPreservesIdentity [
 	diagramDescription := self descriptionFor: #diagram in: root.
 	source := CPProcessFlowContainerContext rootFor: root.
 	original := f at: 10.
-	self assert: (CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f fourth bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f fourth bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
 	destination := source childContextForSubProcess: f fourth.
-	self assert: (CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f first bounds: (70 @ 70 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (CPAtelierTransferFlowNode flowNode: f sixth targetContainer: f first bounds: (70 @ 70 extent: 160 @ 100) processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
 	self assert: (source childMementoFor: f sixth) == original.
 	root reset.
 	self assert: (source childMementoFor: f sixth) == original.
@@ -2536,7 +2540,7 @@ CPProcessAtelierExamples >> transferThenRemoveResetRestoresDescendantIdentity [
 	source := CPProcessFlowContainerContext rootFor: root.
 	original := source childMementoFor: f third.
 	self assert: (self transferFixtureGroup: f) apply isApplicable.
-	self assert: (CPAtelierRemoveFlowNode flowNode: f third flowContainer: f fourth processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (CPAtelierRemoveFlowNode flowNode: f third flowContainer: f fourth processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
 	root reset.
 	self assert: (source childMementoFor: f third) == original.
 	self assert: ((source childContextForSubProcess: f third) childMementoFor: f fifth) == f ninth.
@@ -2555,7 +2559,7 @@ CPProcessAtelierExamples >> transferThenRemoveCommitDiscardsRemovedDescendantEdi
 	root := f second.
 	diagramDescription := self descriptionFor: #diagram in: root.
 	self assert: (self transferFixtureGroup: f) apply isApplicable.
-	self assert: (CPAtelierRemoveFlowNode flowNode: f third flowContainer: f fourth processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (CPAtelierRemoveFlowNode flowNode: f third flowContainer: f fourth processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
 	root commit.
 	self assert: f fifth label equals: 'Original child'.
 	self assert: (f first flowElements identityIncludes: f third) not.
@@ -2587,7 +2591,7 @@ CPProcessAtelierExamples >> groupTransferBetweenSiblingContainersCommitsTopology
 	bounds := IdentityDictionary new.
 	{ f third. f seventh } do: [ :each | bounds at: each put: (30 @ 30 extent: 160 @ 100) ].
 	waypoints := IdentityDictionary new at: f eighth put: { 60 @ 60. 210 @ 60 } asOrderedCollection; yourself.
-	self assert: (CPAtelierTransferFlowNodes flowNodes: { f third. f seventh } targetContainer: destination boundsByFlowNode: bounds waypointsBySequenceFlow: waypoints processMemento: root diagramDescription: (self descriptionFor: #diagram in: root)) apply isApplicable.
+	self assert: (CPAtelierTransferFlowNodes flowNodes: { f third. f seventh } targetContainer: destination boundsByFlowNode: bounds waypointsBySequenceFlow: waypoints processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
 	root commit.
 	self assert: source flowElements isEmpty.
 	self assert: f third container == destination.
@@ -2615,8 +2619,8 @@ CPProcessAtelierExamples >> reversingNestedContainerOwnershipCommitsWithoutLosin
 	root := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: root.
 	originalChild := ((CPProcessFlowContainerContext rootFor: root) childContextForSubProcess: outer) childMementoFor: inner.
-	self assert: (CPAtelierTransferFlowNode flowNode: inner targetContainer: process bounds: (60 @ 60 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
-	self assert: (CPAtelierTransferFlowNode flowNode: outer targetContainer: inner bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramDescription: diagramDescription) apply isApplicable.
+	self assert: (CPAtelierTransferFlowNode flowNode: inner targetContainer: process bounds: (60 @ 60 extent: 160 @ 100) processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
+	self assert: (CPAtelierTransferFlowNode flowNode: outer targetContainer: inner bounds: (20 @ 20 extent: 160 @ 100) processMemento: root diagramContext: (self diagramContextForMemento: root)) apply isApplicable.
 	root commit.
 	self assert: inner container == process.
 	self assert: outer container == inner.

@@ -31,6 +31,18 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 ]
 
 { #category : 'instance creation' }
+CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
+	^ self new
+		flowNode: aFlowNode;
+		replacementNode: aReplacementNode;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
+{ #category : 'instance creation' }
 CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new
 		flowNode: aFlowNode;

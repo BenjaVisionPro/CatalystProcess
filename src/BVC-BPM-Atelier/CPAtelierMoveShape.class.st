@@ -26,6 +26,16 @@ CPAtelierMoveShape class >> shape: aShape bounds: aRectangle processMemento: aMe
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierMoveShape class >> shape: aShape bounds: aRectangle processMemento: aMemento diagramContext: aDescription [
+	^ self new
+		shape: aShape;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		diagramContext: aDescription;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierMoveShape >> assess [
 	| diagram elements shapeMemento boundsDescription currentBounds occurrences diagramContext |

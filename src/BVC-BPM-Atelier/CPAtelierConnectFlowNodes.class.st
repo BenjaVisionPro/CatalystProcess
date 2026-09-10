@@ -32,6 +32,20 @@ CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMement
 ]
 
 { #category : 'instance creation' }
+CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
+	^ self new
+		source: aSource;
+		target: aTarget;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext
+			container: aMemento model
+			memento: aMemento
+			flowElementsDescription: aFlowElementsDescription);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
+{ #category : 'instance creation' }
 CPAtelierConnectFlowNodes class >> source: aSource target: aTarget flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new
 		source: aSource;

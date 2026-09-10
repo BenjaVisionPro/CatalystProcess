@@ -33,6 +33,19 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 ]
 
 { #category : 'instance creation' }
+CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
+	^ self new
+		sequenceFlow: aSequenceFlow;
+		proposedSource: aSource;
+		proposedTarget: aTarget;
+		proposedWaypoints: someWaypoints;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
+{ #category : 'instance creation' }
 CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new
 		sequenceFlow: aSequenceFlow;

@@ -28,6 +28,19 @@ CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow processMemento:
 ]
 
 { #category : 'instance creation' }
+CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
+	^ self new
+		sequenceFlow: aSequenceFlow;
+		processMemento: aMemento;
+		flowContainerContext: (CPProcessFlowContainerContext
+			container: aMemento model
+			memento: aMemento
+			flowElementsDescription: aFlowElementsDescription);
+		diagramContext: aDiagramContext;
+		yourself
+]
+
+{ #category : 'instance creation' }
 CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
 	^ self new
 		sequenceFlow: aSequenceFlow;

@@ -986,7 +986,7 @@ CPProcessVisualElementExamples >> transferredNodeRendersInNestedProcessAfterRefr
 		targetContainer: subProcess
 		bounds: (80 @ 50 extent: 132 @ 54)
 		processMemento: memento
-		diagramDescription: diagramDescription) apply.
+		diagramContext: (self diagramContextForMemento: memento)) apply.
 	self assert: assessment isApplicable.
 
 	visual := self visualElementForFixture: fixture.
@@ -2166,7 +2166,7 @@ CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttache
 		bounds: (84 @ 124 extent: 32 @ 32)
 		flowContainer: process
 		processMemento: memento
-		diagramDescription: diagramDescription.
+		diagramContext: (self diagramContextForMemento: memento).
 	assessment := operation apply.
 	self assert: assessment isApplicable.
 
