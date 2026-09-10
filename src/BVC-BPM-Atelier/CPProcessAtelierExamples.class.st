@@ -2836,7 +2836,8 @@ CPProcessAtelierExamples >> definitionsEditingSessionUsesCanonicalCollaborationM
 	self assert: collaborationContext notNil.
 	self assert: collaborationContext collaboration == collaboration.
 	self assert: collaborationContext collaborationMemento == (documentContext mementoForRootElement: collaboration).
-	self assert: collaborationContext diagramContext == session diagramContext.
+	self assert: collaborationContext diagramContext diagram == diagram.
+	self assert: collaborationContext diagramContext diagram == session diagramContext diagram.
 	self assert: collaborationContext participants first == participant.
 	^ session
 ]
@@ -3073,6 +3074,6 @@ CPProcessAtelierExamples >> documentRootedFirstPoolThenLaneUsesCreatedCollaborat
 	laneAssessment := laneOperation apply.
 	self assert: laneAssessment isApplicable.
 	self assert: laneAssessment participantResizeAssessment notNil.
-	self assert: (session processMemento readUsing: process laneSetsDescription) first lanes first == lane.
+	self assert: ((CPProcessLaneContext inRootMemento: session processMemento) stagedLanes identityIncludes: lane).
 	^ laneAssessment
 ]

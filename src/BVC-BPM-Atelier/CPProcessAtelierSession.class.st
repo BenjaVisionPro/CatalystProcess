@@ -137,6 +137,7 @@ CPProcessAtelierSession >> documentContext: aDocumentContext [
 
 { #category : 'accessing' }
 CPProcessAtelierSession >> collaborationContext [
+	"Resolve Collaboration state from the document each time because the first Pool can create it during this session. Its diagram context is the Collaboration depiction; diagramContext remains the independently selected Process depiction."
 	documentContext ifNotNil: [
 		collaborationContext := CPProcessCollaborationContext
 			forProcessMemento: processMemento
