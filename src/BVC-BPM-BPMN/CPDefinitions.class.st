@@ -94,6 +94,7 @@ CPDefinitions >> rootElementsDescription [
 		label: 'Root elements';
 		priority: 100;
 		group: 'Relations';
+		beOrdered;
 		yourself
 ]
 
@@ -107,5 +108,6 @@ CPDefinitions >> diagramsDescription [
 		label: 'Diagrams';
 		priority: 110;
 		group: 'Diagram';
+		beOrdered;
 		yourself
 ]

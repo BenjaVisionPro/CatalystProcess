@@ -215,3 +215,8 @@ CPDiagramMementoContext >> edgeForModelElement: aModelElement [
 	matches := self edgesForModelElement: aModelElement.
 	^ matches size = 1 ifTrue: [ matches first ] ifFalse: [ nil ]
 ]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> planeModelElement [
+	^ planeMemento readUsing: plane modelElementDescription
+]

@@ -2652,3 +2652,54 @@ CPProcessAtelierExamples >> editingSessionAllowsSemanticFocusWithoutDepiction [
 	self assert: session diagramContext isNil.
 	^ session
 ]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> definitionsEditingSessionUsesDocumentRootAndChosenDepiction [
+	<gtExample>
+	| definitions process diagram root session |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:session';
+		yourself.
+	process := CPProcess new label: 'Focused process'; yourself.
+	diagram := CPDiagram new.
+	diagram modelElement: process.
+	definitions
+		addRootElement: process;
+		addDiagram: diagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: diagram.
+	self assert: session rootMemento == root.
+	self assert: session documentContext definitionsMemento == root.
+	self assert: session processMemento model == process.
+	self assert: session diagramContext diagram == diagram.
+	self assert: session diagramContext planeModelElement == process.
+	^ session
+]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> definitionsEditingSessionKeepsExplicitDepictionChoice [
+	<gtExample>
+	| definitions process firstDiagram secondDiagram root session |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:multiple-depictions';
+		yourself.
+	process := CPProcess new label: 'Shared semantic process'; yourself.
+	firstDiagram := CPDiagram new modelElement: process; yourself.
+	secondDiagram := CPDiagram new modelElement: process; yourself.
+	definitions
+		addRootElement: process;
+		addDiagram: firstDiagram;
+		addDiagram: secondDiagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: secondDiagram.
+	self assert: session documentContext diagrams size equals: 2.
+	self assert: (session documentContext diagramsDepicting: process) size equals: 2.
+	self assert: session diagramContext diagram == secondDiagram.
+	^ session
+]

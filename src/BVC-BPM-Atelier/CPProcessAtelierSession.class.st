@@ -1,20 +1,21 @@
-"I identify the semantic focus and active BPMN depiction for one Process Atelier editing session.
+"I identify the transaction, semantic focus and active BPMN depiction for one Process Atelier editing session.
 
-The transaction root is explicit even while the current legacy entry still roots the transaction at the Process itself. This keeps the session contract ready for a CPDefinitions-rooted transaction without making configuration or editing adapters rediscover diagram ownership."
+A document-rooted session carries a CPDefinitionsMementoContext, one Process child memento and one explicitly chosen depiction. The legacy Process-rooted constructor remains only while CPProcess>>asAtelier still uses the old entry shape."
 Class {
 	#name : 'CPProcessAtelierSession',
 	#superclass : 'Object',
 	#instVars : [
 		'rootMemento',
 		'processMemento',
-		'diagramContext'
+		'diagramContext',
+		'documentContext'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Configuration'
 }
 
-{ #category : 'instance creation' }
+{ #category : 'instance creation - legacy' }
 CPProcessAtelierSession class >> forProcessMemento: aProcessMemento [
 	| diagramDescription diagram diagramContext |
 	diagramDescription := aProcessMemento model diagramDescription.
@@ -28,14 +29,29 @@ CPProcessAtelierSession class >> forProcessMemento: aProcessMemento [
 		rootMemento: aProcessMemento
 		processMemento: aProcessMemento
 		diagramContext: diagramContext
+		documentContext: nil
 ]
 
 { #category : 'instance creation' }
-CPProcessAtelierSession class >> rootMemento: aRootMemento processMemento: aProcessMemento diagramContext: aDiagramContext [
+CPProcessAtelierSession class >> forDefinitionsMemento: aDefinitionsMemento process: aProcess diagram: aDiagram [
+	| documentContext |
+	documentContext := CPDefinitionsMementoContext memento: aDefinitionsMemento.
+	^ self
+		rootMemento: aDefinitionsMemento
+		processMemento: (documentContext mementoForRootElement: aProcess)
+		diagramContext: (aDiagram
+			ifNil: [ nil ]
+			ifNotNil: [ documentContext diagramContextFor: aDiagram ])
+		documentContext: documentContext
+]
+
+{ #category : 'instance creation' }
+CPProcessAtelierSession class >> rootMemento: aRootMemento processMemento: aProcessMemento diagramContext: aDiagramContext documentContext: aDocumentContext [
 	^ self new
 		rootMemento: aRootMemento;
 		processMemento: aProcessMemento;
 		diagramContext: aDiagramContext;
+		documentContext: aDocumentContext;
 		yourself
 ]
 
@@ -67,4 +83,14 @@ CPProcessAtelierSession >> diagramContext [
 { #category : 'accessing' }
 CPProcessAtelierSession >> diagramContext: aDiagramContext [
 	diagramContext := aDiagramContext
+]
+
+{ #category : 'accessing' }
+CPProcessAtelierSession >> documentContext [
+	^ documentContext
+]
+
+{ #category : 'accessing' }
+CPProcessAtelierSession >> documentContext: aDocumentContext [
+	documentContext := aDocumentContext
 ]
