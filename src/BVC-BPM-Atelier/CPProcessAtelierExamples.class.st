@@ -2631,25 +2631,40 @@ CPProcessAtelierExamples >> reversingNestedContainerOwnershipCommitsWithoutLosin
 { #category : 'examples - editing session' }
 CPProcessAtelierExamples >> editingSessionCarriesProcessAndDepictionExplicitly [
 	<gtExample>
-	| fixture memento session |
+	| fixture process diagram definitions session |
 	fixture := self fixture.
-	memento := fixture second.
-	session := CPProcessAtelierSession forProcessMemento: memento.
-	self assert: session rootMemento == memento.
-	self assert: session processMemento == memento.
-	self assert: session diagramContext diagram == fixture eighth.
+	process := fixture first.
+	diagram := fixture eighth.
+	definitions := CPDefinitions new
+		addRootElement: process;
+		addDiagram: diagram;
+		yourself.
+	session := CPProcessAtelierSession
+		forDefinitions: definitions
+		process: process
+		diagram: diagram.
+	self assert: session rootMemento model == definitions.
+	self assert: session processMemento model == process.
+	self assert: (session processMemento == session rootMemento) not.
+	self assert: session diagramContext diagram == diagram.
 	^ session
 ]
 
 { #category : 'examples - editing session' }
 CPProcessAtelierExamples >> editingSessionAllowsSemanticFocusWithoutDepiction [
 	<gtExample>
-	| process memento session |
+	| process definitions session |
 	process := CPProcess new label: 'Undepicted process'; yourself.
-	memento := CFMaMemento model: process.
-	session := CPProcessAtelierSession forProcessMemento: memento.
-	self assert: session rootMemento == memento.
-	self assert: session processMemento == memento.
+	definitions := CPDefinitions new
+		addRootElement: process;
+		yourself.
+	session := CPProcessAtelierSession
+		forDefinitions: definitions
+		process: process
+		diagram: nil.
+	self assert: session rootMemento model == definitions.
+	self assert: session processMemento model == process.
+	self assert: (session processMemento == session rootMemento) not.
 	self assert: session diagramContext isNil.
 	^ session
 ]
