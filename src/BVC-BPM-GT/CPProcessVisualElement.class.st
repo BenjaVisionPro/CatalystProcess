@@ -721,12 +721,16 @@ CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
-	| laneElement laneBounds |
+	| hostBounds |
 	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
-	laneElement := self laneElementOwningBodyHost: aHost.
-	laneElement ifNotNil: [
-		laneBounds := self stagedBoundsOf: laneElement diagramShape.
-		^ aPoint - (laneBounds origin + (self laneHeaderWidth @ 0)) ].
+	(self laneElementOwningBodyHost: aHost) ifNotNil: [
+		"A Lane body is a Bloc projection host. Its structural origin is owned by
+		 the laid-out Bloc hierarchy, not reconstructed from BPMNShape bounds plus
+		 an assumed header inset. Convert the diagram point by subtracting the
+		 body's actual projected origin expressed in diagram-layer coordinates.
+		 This keeps nested Lane header depth entirely inside the projection."
+		hostBounds := self diagramBoundsForElement: aHost.
+		^ aPoint - hostBounds origin ].
 	^ aHost globalPointToLocal:
 		(self diagramPresentationParent localPointToGlobal: aPoint)
 ]
@@ -1331,16 +1335,15 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
-	| labelHost interactionSurface label labelWidth presentationBounds |
+	| labelHost interactionSurface label labelWidth |
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ self ].
 	labelWidth := 180.
-	"External FlowNode labels are projection decoration, not persisted BPMN-DI
-	 labels yet. Position them from the FlowNode's actual projected bounds so a
-	 Lane-hosted node and its diagram-layer label share one Bloc projection
-	 space. Using the raw DI bounds here is wrong for nested Lane hosts because
-	 the Lane projection may introduce structural header offsets."
-	presentationBounds := self diagramBoundsForElement: aShapeElement.
+	"External FlowNode labels live directly in diagram-layer coordinates. At
+	 build time the newly-created shape may not yet have valid world geometry,
+	 so its BPMN-DI bounds are the stable authority for the label's diagram
+	 position. The Lane projection must map the node back onto those same diagram
+	 coordinates rather than moving the label into Lane-local space."
 	labelHost := BlElement new
 		clipChildren: false;
 		layout: BlFrameLayout new;
@@ -1349,7 +1352,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c vertical fitContent.
 			c ignoreByLayout ];
 		preventMouseEvents;
-		relocate: (presentationBounds center x - (labelWidth / 2)) @ (presentationBounds bottom + 4);
+		relocate: (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4);
 		yourself.
 	interactionSurface := BlElement new
 		layout: BlFrameLayout new;
