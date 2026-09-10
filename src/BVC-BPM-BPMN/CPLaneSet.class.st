@@ -98,7 +98,6 @@ CPLaneSet >> parentLaneDescription [
 	^ MAToOneRelationDescription new
 		accessor: #parentLane;
 		classes: { CPLane };
-		beOrdered;
 		reference: CPLane new labelDescription;
 		label: 'Parent lane';
 		priority: 120;

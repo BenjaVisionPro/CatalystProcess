@@ -463,7 +463,7 @@ CPProcessExamples >> messageFlowDescriptionsUseInteractionNodeClasses [
 	expectedClasses := { CPParticipant. CPActivity. CPEvent } asSet.
 	self assert: messageFlow sourceRefDescription classes asSet equals: expectedClasses.
 	self assert: messageFlow targetRefDescription classes asSet equals: expectedClasses.
-	self deny: (messageFlow sourceRefDescription classes includes: CPGateway).
+	self assert: (messageFlow sourceRefDescription classes includes: CPGateway) not.
 	^ messageFlow
 ]
 
