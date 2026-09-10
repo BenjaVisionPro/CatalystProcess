@@ -90,10 +90,18 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
+		| processMemento diagram diagramContext |
+		processMemento := aPresentation memento.
+		diagram := processMemento readUsing: diagramDescription.
+		diagramContext := CPDiagramMementoContext
+			diagram: diagram
+			inMemento: processMemento
+			using: diagramDescription.
 		aPresentation
 			poolPaletteItem: poolPaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
-				processMemento: aPresentation memento
+				processMemento: processMemento
+				diagramContext: diagramContext
 				diagramDescription: diagramDescription);
 			contextualAppendPaletteItems: contextualAppendPaletteItems ].
 	^ anAtelierViewModel

@@ -4,7 +4,8 @@ Class {
 	#superclass : 'CPProcessDiagramEditing',
 	#instVars : [
 		'processMemento',
-		'diagramDescription'
+		'diagramDescription',
+		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -19,11 +20,23 @@ CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramDescript
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramContext: aDiagramContext diagramDescription: aDescription [
+	^ self new
+		processMemento: aMemento;
+		diagramContext: aDiagramContext;
+		diagramDescription: aDescription;
+		yourself
+]
+
 { #category : 'accessing' }
 CPProcessAtelierDiagramEditing >> processMemento: aMemento [ processMemento := aMemento ]
 
 { #category : 'accessing' }
 CPProcessAtelierDiagramEditing >> diagramDescription: aDescription [ diagramDescription := aDescription ]
+
+{ #category : 'accessing' }
+CPProcessAtelierDiagramEditing >> diagramContext: aDiagramContext [ diagramContext := aDiagramContext ]
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedToShape: anActivityShape bounds: proposedBounds [
@@ -175,12 +188,15 @@ CPProcessAtelierDiagramEditing >> boundsByShapeIncludingAttachedBoundaryEvents: 
 
 { #category : 'private - staged state' }
 CPProcessAtelierDiagramEditing >> processDiagramContext [
+	diagramContext ifNotNil: [ ^ diagramContext ].
+	"Compatibility for direct callers that still construct the editing adapter from the old Process-owned diagram relation."
 	| diagram |
 	diagram := processMemento readUsing: diagramDescription.
-	^ CPDiagramMementoContext
+	diagramContext := CPDiagramMementoContext
 		diagram: diagram
 		inMemento: processMemento
-		using: diagramDescription
+		using: diagramDescription.
+	^ diagramContext
 ]
 
 
