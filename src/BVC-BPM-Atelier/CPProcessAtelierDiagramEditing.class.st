@@ -188,9 +188,9 @@ CPProcessAtelierDiagramEditing >> boundsByShapeIncludingAttachedBoundaryEvents: 
 
 { #category : 'private - staged state' }
 CPProcessAtelierDiagramEditing >> processDiagramContext [
+	| diagram |
 	diagramContext ifNotNil: [ ^ diagramContext ].
 	"Compatibility for direct callers that still construct the editing adapter from the old Process-owned diagram relation."
-	| diagram |
 	diagram := processMemento readUsing: diagramDescription.
 	diagramContext := CPDiagramMementoContext
 		diagram: diagram
