@@ -1331,10 +1331,16 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
-	| labelHost interactionSurface label labelWidth |
+	| labelHost interactionSurface label labelWidth presentationBounds |
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ self ].
 	labelWidth := 180.
+	"External FlowNode labels are projection decoration, not persisted BPMN-DI
+	 labels yet. Position them from the FlowNode's actual projected bounds so a
+	 Lane-hosted node and its diagram-layer label share one Bloc projection
+	 space. Using the raw DI bounds here is wrong for nested Lane hosts because
+	 the Lane projection may introduce structural header offsets."
+	presentationBounds := self diagramBoundsForElement: aShapeElement.
 	labelHost := BlElement new
 		clipChildren: false;
 		layout: BlFrameLayout new;
@@ -1343,7 +1349,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c vertical fitContent.
 			c ignoreByLayout ];
 		preventMouseEvents;
-		relocate: (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4);
+		relocate: (presentationBounds center x - (labelWidth / 2)) @ (presentationBounds bottom + 4);
 		yourself.
 	interactionSurface := BlElement new
 		layout: BlFrameLayout new;
@@ -2251,6 +2257,18 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 		preview second do: [ :aReference | aReference removeFromParent ] ]
 ]
 
+{ #category : 'private - coordinates' }
+CPProcessVisualElement >> rootPresentationPointForElement: anElement [
+	"Answer the element's current projected top-left in the root diagram
+	 layer. This is deliberately a Bloc projection conversion, not a BPMN-DI
+	 conversion. It is used for transient drag presentation so the proxy starts
+	 exactly over the live source even when the source is hosted by nested Lane
+	 body elements."
+	^ rootVisual diagramPresentationParent
+		globalPointToLocal: (anElement localPointToGlobal: 0 @ 0)
+]
+
+
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
 	| dragStartLabelPosition dragStartBounds dragStartDiagramPointer draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
@@ -2298,9 +2316,13 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						modelElement := draggedModelElement.
 						bounds := originalBounds.
 						localLabelPosition := singleLabelPosition ].
-				rootShapePosition := self rootDiagramPointForLocalPoint: bounds origin.
+				"The drag proxy is a Bloc projection. Seed it from the live source
+				 projection, not from BPMN-DI bounds. The hidden source remains the
+				 geometry used by connection anchors, so this makes proxy, label and
+				 anchors begin the gesture in the same coordinate space."
+				rootShapePosition := self rootPresentationPointForElement: anElement.
 				rootLabelPosition := localLabelPosition ifNotNil: [
-					self rootDiagramPointForLocalPoint: localLabelPosition ].
+					self rootPresentationPointForElement: anElement externalLabelHost ].
 				proxy := self newDragProxyFor: modelElement shape: shape bounds: bounds.
 				proxyLabel := self newDragProxyLabelFor: modelElement.
 				presentation := (CPProcessDragPresentation
