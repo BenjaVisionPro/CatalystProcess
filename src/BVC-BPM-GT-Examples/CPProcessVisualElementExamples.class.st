@@ -2722,7 +2722,7 @@ CPProcessVisualElementExamples >> hostedDiagramUsesLaneSetAsNativeStructuralBoun
 	laneElement := visual laneShapeElementFor: lane.
 
 	self assert: visual laneSetVisual notNil.
-	self assert: visual laneSetVisual parent == visual.
+	self assert: visual laneSetVisual parent == visual diagramPresentationParent.
 	self assert: laneElement parent == visual laneSetVisual lanesHost.
 	self assert: laneElement labelBand notNil.
 	self assert: laneElement bodyHost notNil.
