@@ -1,6 +1,6 @@
-"I resolve the staged definitional Collaboration and its DI from one root Process memento.
+"I resolve one staged definitional Collaboration and its active depiction.
 
-I own the CPDiagramMementoContext for the Collaboration plane so callers share one staged DI boundary instead of reconstructing diagram/memento/description triples."
+Document-rooted construction resolves the Collaboration through CPDefinitions so the Collaboration has one canonical memento identity. The Process-rooted constructor remains only for the legacy Process transaction path."
 Class {
 	#name : 'CPProcessCollaborationContext',
 	#superclass : 'Object',
@@ -17,6 +17,26 @@ Class {
 	#tag : 'Diagram'
 }
 
+
+{ #category : 'instance creation' }
+CPProcessCollaborationContext class >> forProcessMemento: aProcessMemento documentContext: aDocumentContext diagramContext: aDiagramContext [
+	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription |
+	collaborationDescription := aProcessMemento model definitionalCollaborationRefDescription.
+	collaboration := aProcessMemento readUsing: collaborationDescription.
+	collaboration ifNil: [ ^ nil ].
+	collaborationMemento := aDocumentContext mementoForRootElement: collaboration.
+	participantsDescription := collaboration participantsDescription.
+	messageFlowsDescription := collaboration messageFlowsDescription.
+	(aDiagramContext isNil or: [ aDiagramContext planeModelElement ~~ collaboration ]) ifTrue: [ ^ nil ].
+	^ self new
+		rootProcessMemento: aProcessMemento;
+		collaboration: collaboration;
+		collaborationMemento: collaborationMemento;
+		participantsDescription: participantsDescription;
+		messageFlowsDescription: messageFlowsDescription;
+		diagramContext: aDiagramContext;
+		yourself
+]
 { #category : 'instance creation' }
 CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription diagramDescription diagram diagramContext |

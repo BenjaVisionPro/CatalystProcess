@@ -8,7 +8,8 @@ Class {
 		'rootMemento',
 		'processMemento',
 		'diagramContext',
-		'documentContext'
+		'documentContext',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -30,28 +31,37 @@ CPProcessAtelierSession class >> forProcessMemento: aProcessMemento [
 		processMemento: aProcessMemento
 		diagramContext: diagramContext
 		documentContext: nil
+		collaborationContext: (CPProcessCollaborationContext inRootMemento: aProcessMemento)
 ]
 
 { #category : 'instance creation' }
 CPProcessAtelierSession class >> forDefinitionsMemento: aDefinitionsMemento process: aProcess diagram: aDiagram [
-	| documentContext |
+	| documentContext processMemento diagramContext collaborationContext |
 	documentContext := CPDefinitionsMementoContext memento: aDefinitionsMemento.
+	processMemento := documentContext mementoForRootElement: aProcess.
+	diagramContext := aDiagram
+		ifNil: [ nil ]
+		ifNotNil: [ documentContext diagramContextFor: aDiagram ].
+	collaborationContext := CPProcessCollaborationContext
+		forProcessMemento: processMemento
+		documentContext: documentContext
+		diagramContext: diagramContext.
 	^ self
 		rootMemento: aDefinitionsMemento
-		processMemento: (documentContext mementoForRootElement: aProcess)
-		diagramContext: (aDiagram
-			ifNil: [ nil ]
-			ifNotNil: [ documentContext diagramContextFor: aDiagram ])
+		processMemento: processMemento
+		diagramContext: diagramContext
 		documentContext: documentContext
+		collaborationContext: collaborationContext
 ]
 
 { #category : 'instance creation' }
-CPProcessAtelierSession class >> rootMemento: aRootMemento processMemento: aProcessMemento diagramContext: aDiagramContext documentContext: aDocumentContext [
+CPProcessAtelierSession class >> rootMemento: aRootMemento processMemento: aProcessMemento diagramContext: aDiagramContext documentContext: aDocumentContext collaborationContext: aCollaborationContext [
 	^ self new
 		rootMemento: aRootMemento;
 		processMemento: aProcessMemento;
 		diagramContext: aDiagramContext;
 		documentContext: aDocumentContext;
+		collaborationContext: aCollaborationContext;
 		yourself
 ]
 
@@ -93,6 +103,17 @@ CPProcessAtelierSession >> documentContext [
 { #category : 'accessing' }
 CPProcessAtelierSession >> documentContext: aDocumentContext [
 	documentContext := aDocumentContext
+]
+
+
+{ #category : 'accessing' }
+CPProcessAtelierSession >> collaborationContext [
+	^ collaborationContext
+]
+
+{ #category : 'accessing' }
+CPProcessAtelierSession >> collaborationContext: aContext [
+	collaborationContext := aContext
 ]
 
 

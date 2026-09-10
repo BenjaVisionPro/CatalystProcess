@@ -17,6 +17,7 @@ CPProcessAtelierExamples >> diagramEditingForMemento: aMemento [
 	^ CPProcessAtelierDiagramEditing
 		processMemento: session processMemento
 		diagramContext: session diagramContext
+		collaborationContext: session collaborationContext
 ]
 
 { #category : 'private - fixture' }
@@ -2729,4 +2730,45 @@ CPProcessAtelierExamples >> documentRootedSessionCreatesProcessFocusedViewModel 
 	self assert: session rootMemento == root.
 	self assert: session processMemento ~~ root.
 	^ viewModel
+]
+
+{ #category : 'examples - editing session' }
+CPProcessAtelierExamples >> definitionsEditingSessionUsesCanonicalCollaborationMemento [
+	<gtExample>
+	| definitions process collaboration participant diagram shape root session documentContext collaborationContext |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:canonical-collaboration';
+		yourself.
+	process := CPProcess new label: 'Focused process'; yourself.
+	collaboration := CPCollaboration new label: 'Collaboration'; yourself.
+	participant := CPParticipant new
+		label: 'Pool';
+		processRef: process;
+		yourself.
+	collaboration addParticipant: participant.
+	process definitionalCollaborationRef: collaboration.
+	diagram := CPDiagram new modelElement: collaboration; yourself.
+	shape := CPShape new
+		modelElement: participant;
+		bounds: (40 @ 40 extent: 500 @ 240);
+		yourself.
+	diagram addElement: shape.
+	definitions
+		addRootElement: process;
+		addRootElement: collaboration;
+		addDiagram: diagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: diagram.
+	documentContext := session documentContext.
+	collaborationContext := session collaborationContext.
+
+	self assert: collaborationContext notNil.
+	self assert: collaborationContext collaboration == collaboration.
+	self assert: collaborationContext collaborationMemento == (documentContext mementoForRootElement: collaboration).
+	self assert: collaborationContext diagramContext == session diagramContext.
+	self assert: collaborationContext participants first == participant.
+	^ session
 ]
