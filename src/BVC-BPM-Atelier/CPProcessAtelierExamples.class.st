@@ -2657,7 +2657,7 @@ CPProcessAtelierExamples >> editingSessionAllowsSemanticFocusWithoutDepiction [
 { #category : 'examples - editing session' }
 CPProcessAtelierExamples >> definitionsIsCanonicalAtelierEntry [
 	<gtExample>
-	| definitions process diagram viewModel configuration session |
+	| definitions process diagram viewModel session |
 	definitions := CPDefinitions new
 		targetNamespace: 'urn:catalyst:document-entry';
 		yourself.
@@ -2667,9 +2667,11 @@ CPProcessAtelierExamples >> definitionsIsCanonicalAtelierEntry [
 		addRootElement: process;
 		addDiagram: diagram.
 
+	session := CPProcessAtelierSession
+		forDefinitions: definitions
+		process: process
+		diagram: diagram.
 	viewModel := definitions asAtelierForProcess: process diagram: diagram.
-	configuration := viewModel configuration.
-	session := configuration session.
 
 	self assert: viewModel object == process.
 	self assert: session rootMemento model == definitions.
