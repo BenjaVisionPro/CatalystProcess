@@ -2809,6 +2809,112 @@ CPProcessVisualElementExamples >> nestedLaneSetRendersInsideParentLaneBody [
 ]
 
 
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> unequalLaneBoundsProjectExactlyFromDiagramInterchange [
+	<gtExample>
+	| process diagram laneSet firstLane secondLane firstShape secondShape memento visual firstElement secondElement |
+	process := CPProcess new label: 'Unequal Lane projection'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'First'; yourself.
+	secondLane := CPLane new label: 'Second'; yourself.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+	firstShape := CPShape new
+		modelElement: firstLane;
+		bounds: (40 @ 40 extent: 500 @ 137);
+		yourself.
+	secondShape := CPShape new
+		modelElement: secondLane;
+		bounds: (40 @ 177 extent: 500 @ 223);
+		yourself.
+	diagram addElement: firstShape; addElement: secondShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		beCollaborationHosted;
+		memento: memento;
+		yourself.
+	visual forceLayout.
+	firstElement := visual laneShapeElementFor: firstLane.
+	secondElement := visual laneShapeElementFor: secondLane.
+
+	self assert: (visual diagramBoundsForElement: firstElement) equals: firstShape bounds.
+	self assert: (visual diagramBoundsForElement: secondElement) equals: secondShape bounds.
+	self assert: firstElement extent equals: firstShape bounds extent.
+	self assert: secondElement extent equals: secondShape bounds extent.
+
+	visual refresh.
+	visual forceLayout.
+	self
+		assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: firstLane))
+		equals: firstShape bounds.
+	self
+		assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: secondLane))
+		equals: secondShape bounds.
+	^ visual
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> nestedLaneAndFlowNodeBoundsProjectExactlyFromDiagramInterchange [
+	<gtExample>
+	| process task diagram outerLaneSet parentLane childLaneSet childLane parentShape childShape taskShape memento visual parentElement childElement taskElement |
+	process := CPProcess new label: 'Nested Lane projection'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	outerLaneSet := CPLaneSet new.
+	parentLane := CPLane new label: 'Department'; yourself.
+	childLaneSet := CPLaneSet new.
+	childLane := CPLane new label: 'Team'; addFlowNodeRef: task; yourself.
+	childLaneSet addLane: childLane.
+	parentLane childLaneSet: childLaneSet.
+	outerLaneSet addLane: parentLane.
+	process addLaneSet: outerLaneSet.
+	parentShape := CPShape new
+		modelElement: parentLane;
+		bounds: (30 @ 20 extent: 500 @ 240);
+		yourself.
+	childShape := CPShape new
+		modelElement: childLane;
+		bounds: (60 @ 20 extent: 470 @ 240);
+		yourself.
+	taskShape := CPShape new
+		modelElement: task;
+		bounds: (140 @ 80 extent: 100 @ 60);
+		yourself.
+	diagram addElement: parentShape; addElement: childShape; addElement: taskShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new
+		beCollaborationHosted;
+		memento: memento;
+		yourself.
+	visual forceLayout.
+	parentElement := visual laneShapeElementFor: parentLane.
+	childElement := visual laneShapeElementFor: childLane.
+	taskElement := visual shapeElementsByModelElement at: task.
+
+	self assert: (visual diagramBoundsForElement: parentElement) equals: parentShape bounds.
+	self assert: (visual diagramBoundsForElement: childElement) equals: childShape bounds.
+	self assert: (visual diagramBoundsForElement: taskElement) equals: taskShape bounds.
+	self assert: taskElement parent == childElement bodyHost.
+
+	visual refresh.
+	visual forceLayout.
+	self
+		assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: parentLane))
+		equals: parentShape bounds.
+	self
+		assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: childLane))
+		equals: childShape bounds.
+	self
+		assert: (visual diagramBoundsForElement: (visual shapeElementsByModelElement at: task))
+		equals: taskShape bounds.
+	^ visual
+]
+
+
 { #category : 'examples - containment' }
 CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
 	<gtExample>
@@ -2849,8 +2955,9 @@ CPProcessVisualElementExamples >> laneFlowNodeUsesLaneBodyAsPresentationHost [
 	self assert: element parent == laneElement bodyHost.
 	self assert: (visual stagedLaneContainingFlowNode: task) == lane.
 	self
-		assert: localPoint
-		equals: diagramPoint - ((visual stagedBoundsOf: laneShape) origin + (visual laneHeaderWidth @ 0)).
+		assert: (visual diagramPresentationParent globalPointToLocal: (host localPointToGlobal: localPoint))
+		equals: diagramPoint.
+	self assert: (visual diagramBoundsForElement: element) equals: taskShape bounds.
 	^ visual
 ]
 

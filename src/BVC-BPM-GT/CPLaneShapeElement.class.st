@@ -1,6 +1,6 @@
 "I render one BPMN Lane as a native Bloc structural row inside CPLaneSetVisualElement.
 
-I own the Lane header and body surfaces. My live size is supplied by the enclosing LaneSet layout rather than by directly applying CPShape bounds to the Bloc element. The CPShape remains the durable BPMN-DI representation."
+I own the Lane header and body surfaces. My outer geometry is an exact projection of the staged CPShape bounds supplied by CPProcessVisualElement. The CPShape remains the durable BPMN-DI representation."
 Class {
 	#name : 'CPLaneShapeElement',
 	#superclass : 'BlElement',
@@ -76,6 +76,11 @@ CPLaneShapeElement >> addLaneHeaderBorderColor: aBorderColor [
 		transformDo: [ :aTransform | aTransform rotateBy: -90 ].
 	labelBand addChild: labelElement.
 	self addChild: labelBand
+]
+
+{ #category : 'geometry' }
+CPLaneShapeElement >> bodyOriginOffset [
+	^ self laneHeaderWidth @ 0
 ]
 
 { #category : 'geometry' }

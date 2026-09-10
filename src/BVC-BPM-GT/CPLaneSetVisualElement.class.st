@@ -1,6 +1,6 @@
 "I render one staged BPMN LaneSet as native Bloc structure.
 
-I own only structural presentation: ordered Lane rows in a vertical linear layout. Lane heights are represented as Bloc linear weights, so the LaneSet fills its host and resizes live with it. Semantic ordering and durable DI remain owned by the staged BPMN model and Atelier operations."
+I own only structural presentation. My extent is derived by CPProcessVisualElement from the staged DI bounds of my immediate Lanes; each Lane is positioned explicitly from those bounds. I do not independently redistribute or resize Lane geometry. Semantic ordering and durable DI remain owned by the staged BPMN model and Atelier operations."
 Class {
 	#name : 'CPLaneSetVisualElement',
 	#superclass : 'BlElement',
@@ -19,12 +19,9 @@ CPLaneSetVisualElement >> laneSet: aLaneSet [
 	self
 		layout: BlFrameLayout new;
 		background: Color transparent;
-		clipChildren: true;
-		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical matchParent ].
+		clipChildren: true.
 	lanesHost := BlElement new
-		layout: BlLinearLayout vertical;
+		layout: BlFrameLayout new;
 		background: Color transparent;
 		constraintsDo: [ :c |
 			c horizontal matchParent.
@@ -34,11 +31,11 @@ CPLaneSetVisualElement >> laneSet: aLaneSet [
 ]
 
 { #category : 'building' }
-CPLaneSetVisualElement >> addLaneElement: aLaneElement weight: aWeight [
-	aLaneElement constraintsDo: [ :c |
-		c horizontal matchParent.
-		c vertical matchParent.
-		c linear weight: aWeight ].
+CPLaneSetVisualElement >> addLaneElement: aLaneElement at: aPoint extent: anExtent [
+	aLaneElement
+		constraintsDo: [ :c | c ignoreByLayout ];
+		extent: anExtent;
+		relocate: aPoint.
 	lanesHost addChild: aLaneElement
 ]
 

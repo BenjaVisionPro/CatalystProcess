@@ -550,25 +550,29 @@ CPProcessVisualElement >> installSelectionOnLaneSurface: aSurface forLaneElement
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
-	| laneContext topLevelLaneSets |
+	| laneContext topLevelLaneSets laneSetBounds |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
 	topLevelLaneSets := laneContext stagedLaneSets.
 	topLevelLaneSets ifEmpty: [ ^ nil ].
+	laneSetBounds := self
+		diagramBoundsForLaneSet: topLevelLaneSets first
+		laneShapes: laneShapes
+		laneContext: laneContext.
+	laneSetBounds ifNil: [ ^ nil ].
 	^ self
 		newLaneSetVisualFor: topLevelLaneSets first
 		laneShapes: laneShapes
 		laneContext: laneContext
+		hostDiagramOrigin: laneSetBounds origin
 ]
 
 { #category : 'private - lanes' }
-CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes laneContext: laneContext [
-	| lanes laneSetElement currentBounds totalHeight |
+CPProcessVisualElement >> diagramBoundsForLaneSet: aLaneSet laneShapes: laneShapes laneContext: laneContext [
+	| lanes points |
 	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
 	lanes ifEmpty: [ ^ nil ].
-	laneSetElement := CPLaneSetVisualElement new laneSet: aLaneSet.
-	currentBounds := IdentityDictionary new.
-	totalHeight := 0.
+	points := OrderedCollection new.
 	lanes do: [ :aLane |
 		| shapes laneShape bounds |
 		shapes := laneShapes select: [ :each |
@@ -577,12 +581,40 @@ CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes l
 		laneShape := shapes anyOne.
 		bounds := self stagedBoundsOf: laneShape.
 		bounds ifNil: [ ^ nil ].
-		currentBounds at: aLane put: { laneShape. bounds }.
-		totalHeight := totalHeight + bounds height ].
-	totalHeight > 0 ifFalse: [ totalHeight := lanes size ].
+		points
+			add: bounds topLeft;
+			add: bounds bottomRight ].
+	^ Rectangle encompassing: points
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes laneContext: laneContext hostDiagramOrigin: hostDiagramOrigin [
+	| lanes laneSetElement currentBounds laneSetBounds |
+	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
+	lanes ifEmpty: [ ^ nil ].
+	laneSetBounds := self
+		diagramBoundsForLaneSet: aLaneSet
+		laneShapes: laneShapes
+		laneContext: laneContext.
+	laneSetBounds ifNil: [ ^ nil ].
+	laneSetElement := CPLaneSetVisualElement new laneSet: aLaneSet.
+	laneSetElement
+		constraintsDo: [ :c | c ignoreByLayout ];
+		extent: laneSetBounds extent;
+		relocate: laneSetBounds origin - hostDiagramOrigin.
+	currentBounds := IdentityDictionary new.
+	lanes do: [ :aLane |
+		| shapes laneShape bounds |
+		shapes := laneShapes select: [ :each |
+			(self stagedModelElementOf: each) == aLane ].
+		shapes size = 1 ifFalse: [ ^ nil ].
+		laneShape := shapes anyOne.
+		bounds := self stagedBoundsOf: laneShape.
+		bounds ifNil: [ ^ nil ].
+		currentBounds at: aLane put: { laneShape. bounds } ].
 
 	lanes do: [ :aLane |
-		| pair laneShape bounds laneMemento label element weight childLaneSet childVisual |
+		| pair laneShape bounds laneMemento label element childLaneSet childVisual |
 		pair := currentBounds at: aLane.
 		laneShape := pair first.
 		bounds := pair second.
@@ -594,12 +626,12 @@ CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes l
 			shape: laneShape
 			borderColor: self shapeBorderColor
 			label: label.
-		weight := bounds height > 0
-			ifTrue: [ bounds height / totalHeight ]
-			ifFalse: [ 1.0 / lanes size ].
 		laneElementsByShape at: laneShape put: element.
 		laneElementsByLane at: aLane put: element.
-		laneSetElement addLaneElement: element weight: weight.
+		laneSetElement
+			addLaneElement: element
+			at: bounds origin - laneSetBounds origin
+			extent: bounds extent.
 		self
 			installLabelEditingOn: element labelBand label: label;
 			installSelectionOnLaneElement: element;
@@ -610,11 +642,9 @@ CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes l
 			childVisual := self
 				newLaneSetVisualFor: childLaneSet
 				laneShapes: laneShapes
-				laneContext: laneContext.
+				laneContext: laneContext
+				hostDiagramOrigin: bounds origin + element bodyOriginOffset.
 			childVisual ifNotNil: [
-				childVisual constraintsDo: [ :c |
-					c horizontal matchParent.
-					c vertical matchParent ].
 				element bodyHost addChild: childVisual ] ] ].
 	^ laneSetElement
 ]
@@ -721,12 +751,7 @@ CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
-	| laneElement laneBounds |
 	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
-	laneElement := self laneElementOwningBodyHost: aHost.
-	laneElement ifNotNil: [
-		laneBounds := self stagedBoundsOf: laneElement diagramShape.
-		^ aPoint - (laneBounds origin + (self laneHeaderWidth @ 0)) ].
 	^ aHost globalPointToLocal:
 		(self diagramPresentationParent localPointToGlobal: aPoint)
 ]
