@@ -3001,3 +3001,113 @@ CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMeme
 	self assert: (visual stagedBoundsOf: shape) equals: proposedBounds.
 	^ visual
 ]
+
+
+{ #category : 'private - fixture' }
+CPProcessVisualElementExamples >> documentRootedLaneDragFixture [
+	| process node target flow diagram shape targetShape edge laneSet firstLane secondLane
+	  definitions collaboration participant collaborationDiagram session editing visual collaborationVisual |
+	process := CPProcess new label: 'Lane drag regression'; yourself.
+	node := CPNoneStartEvent new label: 'Start'; yourself.
+	target := CPUserTask new label: 'Review'; yourself.
+	flow := CPSequenceFlow new sourceRef: node; targetRef: target; yourself.
+	process addFlowElement: node; addFlowElement: target; addFlowElement: flow.
+	firstLane := CPLane new label: 'First'; addFlowNodeRef: node; yourself.
+	secondLane := CPLane new label: 'Second'; addFlowNodeRef: target; yourself.
+	laneSet := CPLaneSet new addLane: firstLane; addLane: secondLane; yourself.
+	process addLaneSet: laneSet.
+	shape := CPShape new modelElement: node; bounds: (140 @ 70 extent: 42 @ 42); yourself.
+	targetShape := CPShape new modelElement: target; bounds: (300 @ 210 extent: 100 @ 60); yourself.
+	edge := CPEdge new modelElement: flow; addWaypoint: 182 @ 91; addWaypoint: 300 @ 240; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	diagram
+		addElement: (CPShape new modelElement: firstLane; bounds: (40 @ 40 extent: 500 @ 140); yourself);
+		addElement: (CPShape new modelElement: secondLane; bounds: (40 @ 180 extent: 500 @ 140); yourself);
+		addElement: shape; addElement: targetShape; addElement: edge.
+	participant := CPParticipant new label: 'Pool'; processRef: process; yourself.
+	collaboration := CPCollaboration new addParticipant: participant; yourself.
+	process definitionalCollaborationRef: collaboration.
+	collaborationDiagram := CPDiagram new modelElement: collaboration;
+		addElement: (CPShape new modelElement: participant; bounds: (80 @ 60 extent: 530 @ 280); yourself);
+		yourself.
+	definitions := CPDefinitions new targetNamespace: 'urn:catalyst:lane-drag';
+		addRootElement: process; addRootElement: collaboration;
+		addDiagram: diagram; addDiagram: collaborationDiagram; yourself.
+	session := CPProcessAtelierSession forDefinitions: definitions process: process diagram: diagram.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: session processMemento diagramContext: session diagramContext
+		collaborationContext: session collaborationContext documentContext: session documentContext.
+	visual := CPProcessVisualElement new diagramEditing: editing; beCollaborationHosted;
+		memento: session processMemento flowContainer: process diagramContext: session diagramContext; yourself.
+	collaborationVisual := CPCollaborationVisualElement new diagramEditing: editing;
+		processMemento: session processMemento processVisual: visual documentContext: session documentContext; yourself.
+	collaborationVisual forceLayout.
+	^ { session. visual. collaborationVisual. node. shape. firstLane. secondLane. edge }
+]
+
+
+{ #category : 'examples - positioning' }
+CPProcessVisualElementExamples >> documentRootedLaneDragUsesFinalPointerDelta [
+	<gtExample>
+	| fixture session visual node shape element start original expected |
+	fixture := self documentRootedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	node := fixture fourth.
+	shape := fixture fifth.
+	element := visual shapeElementsByModelElement at: node.
+	original := session diagramContext boundsOf: shape.
+	start := element localPointToGlobal: 10 @ 10.
+	element dispatchEvent: (BlDragStartEvent new position: start; yourself).
+	fixture third forceLayout.
+	element dispatchEvent: (BlDragEvent new position: start + (20 @ 10); yourself).
+	fixture third forceLayout.
+	element dispatchEvent: (BlDragEndEvent new position: start + (35 @ 15); yourself).
+	fixture third forceLayout.
+	expected := original translateBy: 35 @ 15.
+	self assert: (session diagramContext boundsOf: shape) equals: expected.
+	self assert: (visual diagramBoundsForElement: (visual shapeElementsByModelElement at: node)) equals: expected.
+	self assert: shape bounds equals: original.
+	session rootMemento reset.
+	visual refresh.
+	fixture third forceLayout.
+	self assert: (session diagramContext boundsOf: shape) equals: original.
+	^ visual
+]
+
+
+{ #category : 'examples - positioning' }
+CPProcessVisualElementExamples >> documentRootedRepeatedLaneDragsPreserveProjectionAndReset [
+	<gtExample>
+	| fixture session visual node shape original expected element start label |
+	fixture := self documentRootedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	node := fixture fourth.
+	shape := fixture fifth.
+	original := session diagramContext boundsOf: shape.
+	expected := original.
+	{ 0 @ 140. 0 @ -140. 20 @ 0. 0 @ 140. 0 @ -140 } do: [ :delta |
+		element := visual shapeElementsByModelElement at: node.
+		start := element localPointToGlobal: 10 @ 10.
+		element dispatchEvent: (BlDragStartEvent new position: start; yourself).
+		fixture third forceLayout.
+		element dispatchEvent: (BlDragEvent new position: start + delta; yourself).
+		fixture third forceLayout.
+		element dispatchEvent: (BlDragEndEvent new position: start + delta; yourself).
+		fixture third forceLayout.
+		expected := expected translateBy: delta.
+		element := visual shapeElementsByModelElement at: node.
+		label := element externalLabelHost.
+		self assert: (session diagramContext boundsOf: shape) equals: expected.
+		self assert: (visual diagramBoundsForElement: element) equals: expected.
+		self assert: label position equals: (expected center x - 90) @ (expected bottom + 4) ].
+	self assert: (visual stagedLaneContainingFlowNode: node) == fixture sixth.
+	self assert: shape bounds equals: original.
+	session rootMemento reset.
+	visual refresh.
+	fixture third forceLayout.
+	self assert: (session diagramContext boundsOf: shape) equals: original.
+	self assert: (visual diagramBoundsForElement: (visual shapeElementsByModelElement at: node)) equals: original.
+	^ visual
+]

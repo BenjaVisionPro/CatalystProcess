@@ -2381,8 +2381,9 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						to: targetVisual ]
 				ifFalse: [
 					| insertionEdge releaseBounds |
-					releaseBounds := self
-						diagramBoundsForElement: aShapeElement.
+					"Use the final pointer delta supplied by the gesture. Live geometry
+					 can still describe the preceding drag event/layout."
+					releaseBounds := proposedBounds.
 					insertionEdge := self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement.

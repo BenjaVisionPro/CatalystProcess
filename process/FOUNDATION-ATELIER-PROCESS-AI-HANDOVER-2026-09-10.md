@@ -18,7 +18,11 @@ The important distinction for the next chat is:
 
 ## B. Which source to resume from
 
-### Recommended recovery baseline: Phase 21
+### Current recovered checkout
+
+Source inspection after the recovery found clean checkouts at Process `afa2394a53ab62cfce5202c1875c86209156b92b` (`recover`) and Foundation `1d801e7` (`p11`). The Process recovery commit removes the Phase 22 Lane hierarchy operation and restores the earlier coordinate paths. Start by verifying this checkout against the connected image; do not automatically replace it with an archive. Archive identity has not been proven by a byte-for-byte comparison. No new runtime verification was possible in the subsequent cleanup session because GT MCP tools were unavailable.
+
+### Historical recommended recovery baseline: Phase 21
 
 Use **`ProcessSep10-conformance-phase21.zip`** as the conservative code baseline for the next chat.
 
@@ -231,13 +235,13 @@ gestures
 projection -> DI/domain    explicit assessed operations
 ```
 
-A drag overlay/portal remains a legitimate future projection technique: a node can have a nested resting parent but temporarily move in an unclipped interaction layer. This was discussed only as a design possibility; it was **not implemented** in this chat.
+A drag proxy already exists in the recovered source: `CPProcessDragPresentation>>beginIn:shapeAt:labelAt:` hides the real shape and external label, adds inert proxies to the root diagram, mirrors drag deltas, and restores the originals on finish. The real shape stays under its original parent and supplies live connection geometry. This is not reparenting the original shape through a portal. The existing proxy must be included in the coordinate investigation rather than implemented again.
 
 ## H. Recommended first investigation in the next chat
 
 Do not start with another coordinate patch. Start from Phase 21 and make the spaces observable.
 
-1. Load/compare `ProcessSep10-conformance-phase21.zip` and reproduce the original ~header-depth cross-Lane problem before changing code.
+1. Verify the recovered checkout against the connected GT image and reproduce the original ~header-depth cross-Lane problem before changing code. Compare the Phase 21 archive only if needed to establish provenance; do not load it automatically over the recovery.
 2. Inspect these methods together, not individually:
    - `CPProcessVisualElement>>presentationHostForFlowNode:`
    - `CPProcessVisualElement>>diagramPoint:localToPresentationHost:`
@@ -267,6 +271,37 @@ Do not start with another coordinate patch. Start from Phase 21 and make the spa
 7. Keep semantic Lane-membership cleanup separate from projection-coordinate cleanup so a failure can be localized.
 
 ## I. Remaining work to finish the original Definitions-root refactor
+
+### Source trace from the recovered checkout
+
+Cleanup follow-up: GT MCP became available again. Source spot checks matched the recovered Lane conversion and Definitions session constructor. `laneFlowNodeUsesLaneBodyAsPresentationHost`, `definitionsRootedVisualUsesSelectedDiagramMemento`, and `documentRootedFirstPoolThenLaneUsesCreatedCollaboration` passed in the connected image.
+
+A bounded drag-event reproduction proved that single-node release persisted the preceding drag event's position instead of the final pointer delta. `CPProcessVisualElement>>installPositioningFrom:moving:for:` now uses its supplied `proposedBounds` on release. `documentRootedLaneDragUsesFinalPointerDelta` failed before this fix and passed after it. `documentRootedRepeatedLaneDragsPreserveProjectionAndReset` also passed, covering repeated same/sibling-Lane drags, live-vs-staged bounds, external event-label position, and document-root reset. Both use the new Definitions-rooted `documentRootedLaneDragFixture`, with separate Process and Collaboration diagrams and a connected event/task pair. The fix and examples are compiled through GT MCP and saved as uncommitted source changes.
+
+This is a verified release-position fix, not proof that the original reported cross-Lane offset is fully resolved. The consistent two-Lane fixture reproduced no header-offset error after layout. Full suites, manual live gestures, nested Lane projection, edge-label continuity and commit coverage for this new fixture remain outstanding. Legacy ownership/fixture removal has not started. Continue from this small patch rather than claiming the whole cleanup is complete.
+
+The following source findings describe the recovered baseline before that release fix:
+
+- `CPProcessVisualElement>>diagramPoint:localToPresentationHost:` places Lane-hosted nodes by subtracting staged Lane origin plus one 30-pixel header. `CPLaneShapeElement` obtains its actual body origin from Bloc frame layout, while `CPLaneSetVisualElement` and the enclosing presentation determine its actual size and position.
+- `CPProcessVisualElement>>diagramBoundsForElement:` maps both live corners through global coordinates into the diagram presentation parent. The critical invariant is that placement followed by this inverse conversion returns the original staged DI bounds after layout. For a translation-only host, this requires the body's actual origin in diagram coordinates to equal the assumed Lane origin plus header. Measure both sides; do not assume their equality or the cause of any discrepancy.
+- `CPProcessVisualElementExamples>>laneFlowNodeUsesLaneBodyAsPresentationHost` checks parent identity and the subtraction formula. It does not check that inverse conversion after live layout reproduces the staged bounds. A passing result therefore does not establish projection correctness.
+- `CPProcessShapeElement>>installPositioningFrom:stagedBounds:dragStarted:dragStartPosition:dragged:dragEnded:` computes a final pointer delta and proposed bounds on `BlDragEndEvent`, but does not relocate the real shape to that final pointer position. The single-node callback in `CPProcessVisualElement>>installPositioningFrom:moving:for:` instead reads live shape bounds and ignores the supplied proposed bounds. Test a release position different from the last drag event. This discrepancy is separate from the unproven Lane-header root cause.
+- Drag proxies start from staged shape bounds converted through `rootDiagramPointForLocalPoint:`. External FlowNode labels start directly from DI bounds; live edge labels use live endpoint bounds. Capture each path in the same laid-out diagram space during the reproduction.
+
+### Legacy consumer inventory
+
+The exact `CPProcessAtelierSession forProcessMemento:` sends are confined to `CPProcessAtelierExamples>>diagramEditingForMemento:` and `>>diagramContextForMemento:`. Their callers and fixtures still construct Process-rooted mementos, read `#diagram`, and often commit/reset that Process root. Migrate the fixture transaction and its consumers, not just the two helper implementations.
+
+Production compatibility paths still include:
+
+- `CPProcess>>asAtelier`, which creates temporary Definitions but obtains its selected depiction through `self diagram`.
+- `CPProcessVisualElement>>memento:flowContainer:` and `>>refresh`, which discover a Process diagram when no explicit context is supplied.
+- `CPAtelierResizeParticipantShape>>stagedProcessDiagramContext`, which still falls back to the Process diagram description.
+- `CPProcessCollaborationContext class>>inRootMemento:`, used as a fallback by Process/Collaboration presentations and Participant, MessageFlow, Lane and diagram-removal operations.
+- `CPAtelierCreateParticipant>>applyLegacyAssessment:` and the corresponding legacy removal path, which retain Process-owned Collaboration state.
+- Both `CPProcess` and `CPCollaboration` still expose `diagram`, `diagram:` and `diagramDescription`.
+
+When removing these paths, distinguish the legitimate semantic Process child memento from the obsolete transaction authority. Flow-container and Lane contexts may still need the Process child. They must not be mechanically redirected to a Definitions model. Preserve the independently selected session depiction and Collaboration depiction. Resolve compatibility navigation explicitly before deleting its only current depiction source.
 
 Once the projection is back to a trustworthy baseline, the remaining refactor cleanup was intended to be narrow:
 
