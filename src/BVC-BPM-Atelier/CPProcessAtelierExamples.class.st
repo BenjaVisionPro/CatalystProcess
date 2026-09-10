@@ -2671,6 +2671,30 @@ CPProcessAtelierExamples >> legacyProcessEntryRetainsConfiguredPalette [
 ]
 
 { #category : 'examples - editing session' }
+CPProcessAtelierExamples >> legacyProcessNavigationCanBeRepresentedByDefinitionsSession [
+	<gtExample>
+	| process diagram definitions session |
+	process := CPProcess new label: 'Legacy navigation'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	process diagram: diagram.
+	definitions := CPDefinitions new
+		addRootElement: process;
+		addDiagram: diagram;
+		yourself.
+
+	session := CPProcessAtelierSession
+		forDefinitions: definitions
+		process: process
+		diagram: diagram.
+
+	self assert: session rootMemento model == definitions.
+	self assert: session processMemento model == process.
+	self assert: session processMemento ~= session rootMemento.
+	self assert: session diagramContext diagram == diagram.
+	^ session
+]
+
+{ #category : 'examples - editing session' }
 CPProcessAtelierExamples >> definitionsIsCanonicalAtelierEntry [
 	<gtExample>
 	| definitions process diagram viewModel session |

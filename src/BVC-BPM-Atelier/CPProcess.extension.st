@@ -2,7 +2,19 @@ Extension { #name : 'CPProcess' }
 
 { #category : '*BVC-BPM-Atelier' }
 CPProcess >> asAtelier [
-	"Compatibility entry while existing Process-oriented navigation is migrated to the canonical CPDefinitions entry. Keep the configured Process palette and editing adapter rather than falling through to Foundation's generic Atelier entry."
-	^ (CPProcessAtelierSession
-		forProcessMemento: (CFMaMemento model: self)) asViewModel
+	"Compatibility navigation entry while callers are migrated to CPDefinitions. Even this bridge now enters through a Definitions-rooted transaction; the legacy Process-owned diagram relation is used only to recover the depiction that old callers cannot yet supply explicitly."
+	| definitions currentDiagram |
+	currentDiagram := self diagram.
+	definitions := CPDefinitions new
+		addRootElement: self;
+		yourself.
+	currentDiagram ifNotNil: [ definitions addDiagram: currentDiagram ].
+	^ currentDiagram
+		ifNil: [ (CPProcessAtelierSession
+			forDefinitions: definitions
+			process: self
+			diagram: nil) asViewModel ]
+		ifNotNil: [ definitions
+			asAtelierForProcess: self
+			diagram: currentDiagram ]
 ]

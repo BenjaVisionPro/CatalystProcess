@@ -1,6 +1,6 @@
 "I identify the transaction, semantic focus and active BPMN depiction for one Process Atelier editing session.
 
-The canonical entry is document-rooted: CPDefinitions owns the transaction, the Process is the semantic focus and the Diagram is an explicitly chosen depiction. The Process-rooted constructor remains temporarily for legacy executable fixtures while they are migrated."
+The canonical entry is document-rooted: CPDefinitions owns the transaction, the Process is the semantic focus and the Diagram is an explicitly chosen depiction. The Process-rooted constructor remains only for legacy executable fixtures while they are migrated; production navigation, including the CPProcess compatibility entry, is Definitions-rooted."
 Class {
 	#name : 'CPProcessAtelierSession',
 	#superclass : 'Object',
