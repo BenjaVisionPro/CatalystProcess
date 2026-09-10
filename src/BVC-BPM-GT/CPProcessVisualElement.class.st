@@ -3401,7 +3401,7 @@ CPProcessVisualElement >> installConnectionOn: aNodeElement for: aFlowNode [
 						relocate: localPoint;
 						yourself.
 					previewLine := BlLineElement new
-						fromAnchor: (BlAbsolutePositionAnchor position: previewSourcePoint);
+						fromAnchor: (BlAbsolutePositionAnchor position: localPoint);
 						toAnchor: (BlAbsolutePositionAnchor position: localPoint);
 						border: (BlBorder paint: self selectionColor width: 1.5);
 						constraintsDo: [ :c | c ignoreByLayout ];
