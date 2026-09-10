@@ -1186,6 +1186,57 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints moving: aModelElement toBounds: proposedBounds [
+	| sequenceFlow source target sourceBounds targetBounds sourcePoint targetPoint points |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceBounds := source == aModelElement
+		ifTrue: [ proposedBounds ]
+		ifFalse: [ self diagramBoundsForElement: (self shapeElementForModelElement: source) ].
+	targetBounds := target == aModelElement
+		ifTrue: [ proposedBounds ]
+		ifFalse: [ self diagramBoundsForElement: (self shapeElementForModelElement: target) ].
+
+	someWaypoints size = 2 ifTrue: [
+		sourcePoint := self
+			dockingPointFor: source
+			bounds: sourceBounds
+			toward: targetBounds center.
+		targetPoint := self
+			dockingPointFor: target
+			bounds: targetBounds
+			toward: sourceBounds center.
+		^ { sourcePoint. targetPoint } ].
+
+	sourcePoint := self
+		dockingPointFor: source
+		bounds: sourceBounds
+		toward: (someWaypoints at: 2).
+	targetPoint := self
+		dockingPointFor: target
+		bounds: targetBounds
+		toward: (someWaypoints at: someWaypoints size - 1).
+	points := OrderedCollection new.
+	points add: sourcePoint.
+	2 to: someWaypoints size - 1 do: [ :index |
+		points add: (someWaypoints at: index) ].
+	points add: targetPoint.
+	^ points
+]
+
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> edgeLabelPathFor: anEdge waypoints: someWaypoints moving: aModelElement toBounds: proposedBounds [
+	^ CPProcessEdgeLabelPath points: (self
+		renderedPathPointsFor: anEdge
+		waypoints: someWaypoints
+		moving: aModelElement
+		toBounds: proposedBounds)
+]
+
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> edgeLabelPathFor: anEdge waypoints: someWaypoints usingLiveBounds: useLiveBounds [
 	^ CPProcessEdgeLabelPath points: (self
 		renderedPathPointsFor: anEdge
@@ -1321,12 +1372,48 @@ CPProcessVisualElement >> updateIncidentReconnectHandlesFor: aModelElement [
 				fromLines: anEdgeVisual lineElements ] ]
 ]
 
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement proposedBounds: proposedBounds [
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		(anEdgeVisual hasLabelHost
+			and: [ self edge: anEdge isIncidentTo: aModelElement ]) ifTrue: [
+			self
+				positionLiveEdgeLabelFor: anEdge
+				moving: aModelElement
+				toBounds: proposedBounds ] ]
+]
+
 { #category : 'private - labels' }
 CPProcessVisualElement >> updateIncidentEdgeLabelsFor: aModelElement [
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		(anEdgeVisual hasLabelHost
 			and: [ self edge: anEdge isIncidentTo: aModelElement ]) ifTrue: [
 			self positionLiveEdgeLabelFor: anEdge ] ]
+]
+
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge moving: aModelElement toBounds: proposedBounds [
+	| labelHost waypoints segmentIndex segmentPosition offset path placement |
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
+	waypoints := self stagedWaypointsOf: anEdge.
+	path := self
+		edgeLabelPathFor: anEdge
+		waypoints: waypoints
+		moving: aModelElement
+		toBounds: proposedBounds.
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+		ifNil: [ path defaultSegmentIndex ].
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+	placement := path
+		placementAtSegmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset.
+	self
+		positionEdgeLabelFor: anEdge
+		centeredAt: placement first
 ]
 
 { #category : 'private - labels' }
@@ -2340,6 +2427,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						do: [ :aLine | aLine visibility: BlVisibility hidden ] ] ] ]
 		dragStartPosition: [ aShapeElement position ]
 		dragged: [ :anEvent :delta |
+			| proposedDragBounds |
 			dragPresentations valuesDo: [ :aPresentation |
 				aPresentation moveBy: delta ].
 			groupMode
@@ -2372,11 +2460,16 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self bringReconnectHandlesToFront.
 					self bringBendpointHandlesToFront ]
 				ifFalse: [
+					proposedDragBounds := (self stagedBoundsOf: aShape) translateBy: delta.
 					dragStartLabelPosition ifNotNil: [
 						aShapeElement externalLabelHost
 							relocate: dragStartLabelPosition + delta ].
-					self updateIncidentEdgeGeometryFor: draggedModelElement.
-					self updateIncidentEdgeLabelsFor: draggedModelElement.
+					self
+						updateIncidentEdgeGeometryFor: draggedModelElement
+						proposedBounds: proposedDragBounds.
+					self
+						updateIncidentEdgeLabelsFor: draggedModelElement
+						proposedBounds: proposedDragBounds.
 					self updateIncidentReconnectHandlesFor: draggedModelElement.
 					self insertionTargetEdge: (self
 						insertionEdgeAtGlobalPoint: anEvent position
@@ -4933,6 +5026,18 @@ CPProcessVisualElement >> diagramBoundsForElement: aNodeElement [
 
 
 { #category : 'private - edges' }
+
+CPProcessVisualElement >> updateIncidentEdgeGeometryFor: aModelElement proposedBounds: proposedBounds [
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
+			self
+				updateLiveGeometryForEdge: anEdge
+				visual: anEdgeVisual
+				moving: aModelElement
+				toBounds: proposedBounds ] ]
+]
+
+
 CPProcessVisualElement >> updateIncidentEdgeGeometryFor: aModelElement [
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		(self edge: anEdge isIncidentTo: aModelElement) ifTrue: [
@@ -4940,6 +5045,31 @@ CPProcessVisualElement >> updateIncidentEdgeGeometryFor: aModelElement [
 ]
 
 { #category : 'private - edges' }
+
+CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual moving: aModelElement toBounds: proposedBounds [
+	| points lines hitLines |
+	points := self
+		renderedPathPointsFor: anEdge
+		waypoints: (self stagedWaypointsOf: anEdge)
+		moving: aModelElement
+		toBounds: proposedBounds.
+	lines := anEdgeVisual lineElements.
+	hitLines := anEdgeVisual hitElements.
+	(points size = (lines size + 1)
+		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
+	1 to: lines size do: [ :index |
+		| fromAnchor toAnchor |
+		fromAnchor := BlAbsolutePositionAnchor position: (points at: index).
+		toAnchor := BlAbsolutePositionAnchor position: (points at: index + 1).
+		(lines at: index)
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor.
+		(hitLines at: index)
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor ]
+]
+
+
 CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual [
 	| points lines hitLines |
 	points := self
