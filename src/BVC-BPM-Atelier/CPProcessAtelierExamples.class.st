@@ -829,19 +829,23 @@ CPProcessAtelierExamples >> createSubProcessStagesSemanticNodeAndShapeTogether [
 { #category : 'examples - subprocess' }
 CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
 	<gtExample>
-	| fixture memento diagramMemento elementsDescription subProcess shape elements operation assessment shapeMemento expandedDescription boundsDescription |
+	| fixture memento diagramDescription diagram diagramContext subProcess shape elements operation assessment shapeMemento expandedDescription boundsDescription |
 	fixture := self fixture.
 	memento := fixture second.
-	diagramMemento := self diagramMementoFor: memento.
-	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	diagram := memento readUsing: diagramDescription.
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: memento
+		using: diagramDescription.
 	subProcess := CPSubProcess new label: 'Fulfil order'; yourself.
 	shape := CPShape new
 		modelElement: subProcess;
 		bounds: (180 @ 140 extent: 348 @ 168);
 		yourself.
-	elements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	elements := diagramContext elements asOrderedCollection copy.
 	elements add: shape.
-	diagramMemento write: elements using: elementsDescription.
+	diagramContext writeElements: elements.
 
 	operation := CPAtelierSetShapeExpanded
 		shape: shape
@@ -1059,7 +1063,7 @@ CPProcessAtelierExamples >> sequenceFlowCannotCrossFlowContainerBoundary [
 { #category : 'examples - subprocess' }
 CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBounds [
 	<gtExample>
-	| fixture memento rootDescription diagramDescription diagramMemento elementsDescription
+	| fixture memento rootDescription diagramDescription diagram diagramContext
 	  subProcess task rootElements subMemento subDescription shape diagramElements
 	  operation assessment targetMemento containerDescription boundsDescription |
 
@@ -1067,8 +1071,11 @@ CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBo
 	memento := fixture second.
 	rootDescription := self descriptionFor: #flowElements in: memento.
 	diagramDescription := self descriptionFor: #diagram in: memento.
-	diagramMemento := self diagramMementoFor: memento.
-	elementsDescription := self diagramElementsDescriptionIn: diagramMemento.
+	diagram := memento readUsing: diagramDescription.
+	diagramContext := CPDiagramMementoContext
+		diagram: diagram
+		inMemento: memento
+		using: diagramDescription.
 
 	subProcess := CPNoneSubProcess new label: 'Nested'; yourself.
 	task := CPUserTask new label: 'Move me'; yourself.
@@ -1086,9 +1093,9 @@ CPProcessAtelierExamples >> transferringNodeIntoSubProcessStagesContainmentAndBo
 		modelElement: task;
 		bounds: (80 @ 80 extent: 132 @ 54);
 		yourself.
-	diagramElements := (diagramMemento readUsing: elementsDescription) asOrderedCollection copy.
+	diagramElements := diagramContext elements asOrderedCollection copy.
 	diagramElements add: shape.
-	diagramMemento write: diagramElements using: elementsDescription.
+	diagramContext writeElements: diagramElements.
 
 	operation := CPAtelierTransferFlowNode
 		flowNode: task
