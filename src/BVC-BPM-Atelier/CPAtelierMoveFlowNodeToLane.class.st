@@ -1,11 +1,9 @@
 "I coordinate one drag intention that moves a FlowNode's BPMN-DI shape and
-reassigns that FlowNode consistently through one nested Lane hierarchy.
+reassigns that FlowNode within one LaneSet partition.
 
 I reuse CPAtelierMoveShapes for geometry/edge routing and
-CPAtelierAssignFlowNodeToLaneHierarchy for Lane semantics. The Lane operation
-synchronizes the complete nested path to the deepest target Lane while preserving
-independent top-level LaneSet partitions. Both operations are assessed first, so
-a rejected Lane assignment cannot leave the DI move partially staged."
+CPAtelierAssignFlowNodeToLane for Lane semantics. Both are assessed first, so a
+rejected Lane assignment cannot leave the DI move partially staged."
 Class {
 	#name : 'CPAtelierMoveFlowNodeToLane',
 	#superclass : 'CFAtelierOperation',
@@ -43,7 +41,7 @@ CPAtelierMoveFlowNodeToLane >> assess [
 	moveAssessment isApplicable ifFalse: [
 		^ self rejectedBecause: moveAssessment rejectionMessage ].
 
-	laneOperation := CPAtelierAssignFlowNodeToLaneHierarchy
+	laneOperation := CPAtelierAssignFlowNodeToLane
 		flowNode: flowNode
 		targetLane: targetLane
 		processMemento: processMemento.

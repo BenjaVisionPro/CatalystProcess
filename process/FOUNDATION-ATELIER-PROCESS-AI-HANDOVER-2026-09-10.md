@@ -1,3 +1,333 @@
+# CURRENT CONTINUATION SNAPSHOT — 10 September 2026, ~21:32 Sydney
+
+This section supersedes the implementation-status and continuation advice in the older handover below. The older material is retained because it contains the original source audit, normative references, class map and historical findings. Do **not** treat its old `CPProcess>>diagram` / Process-root transaction descriptions as the current target architecture.
+
+## A. The singular refactor goal
+
+The work in this chat has had one architectural goal:
+
+> Move Catalyst Process editing from a Process-rooted transaction/depiction model, where `CPProcess>>diagram` and Process-local Collaboration discovery act as authority, to a `CPDefinitions`-rooted editing session with an explicit semantic Process focus and an explicit selected BPMN depiction.
+
+This goal is still the boundary. The chat did **not** intentionally start the later Atelier features (lane/pool reorder, smooth animated layout, stable visual identity, general Motion integration, XML interchange, auto-layout, etc.). Lane dragging became a blocker because exercising the newly document-rooted Pool/Lane path exposed a pre-existing, fragile Bloc projection/coordinate model.
+
+The important distinction for the next chat is:
+
+- **BPMN model and BPMN DI must conform to BPMN.** Semantic containment, Lane references, diagram ownership and persisted plane-relative geometry are domain/interchange concerns.
+- **Bloc is a projection.** It does not need to mimic BPMN ownership. Its hierarchy should be chosen to support excellent interaction, staging, reordering, animation, clipping, focus, selection and smooth shape changes.
+- The projection contract must nevertheless be exact: changing Bloc parentage must not silently change BPMN meaning or BPMN-DI position.
+
+## B. Which source to resume from
+
+### Recommended recovery baseline: Phase 21
+
+Use **`ProcessSep10-conformance-phase21.zip`** as the conservative code baseline for the next chat.
+
+Phase 21 contains the document-root/session work plus the beginning of legacy fixture migration. Its Phase 21 production behavior is essentially the last point before the coordinate/projection experiments in Phases 21-coordinate and 22. At that baseline:
+
+- ordinary node movement worked;
+- ordinary palette drag worked;
+- connecting nodes worked;
+- Pool creation worked after the document-context wiring fix;
+- Lane creation worked;
+- the known unresolved bug was cross-Lane dragging / projection coordinates, especially a displacement approximately equal to Lane-header depth.
+
+Do **not** take the latest Phase 22 projection-origin build as a new baseline. By the end of this chat it was visibly worse: even same-Lane drags could reposition nodes and connector labels were moving incorrectly.
+
+### Builds after Phase 21 that should be treated as experiments, not accepted baseline
+
+The following builds contain useful evidence but should not be carried forward wholesale:
+
+- `ProcessSep10-conformance-phase21-coordinate-fix.zip`
+- `ProcessSep10-conformance-phase21-lane-coordinate-fix.zip` — caused very large (~1000 px+) displacements; explicitly rolled back.
+- `ProcessSep10-conformance-phase21-lane-coordinate-rollback.zip`
+- `ProcessSep10-conformance-phase22-lane-projection-stability.zip`
+- `ProcessSep10-conformance-phase22-example-fix.zip`
+- `ProcessSep10-conformance-phase22-projection-coordinate-fix.zip`
+- `ProcessSep10-conformance-phase22-projection-origin-fix.zip` — latest experimental state; **known runtime-broken**.
+
+Do not assume every idea in Phase 22 is wrong. In particular, the deeper-Lane membership and DI-based Lane-target ideas may be useful. They need to be re-derived and tested independently from the failed coordinate changes.
+
+## C. Architecture established by the refactor
+
+The intended transaction/editing structure now is:
+
+```text
+CPDefinitions                              transaction/document authority
+  rootElements ordered
+    CPProcess                             semantic focus
+    CPCollaboration                      sibling root element
+  diagrams ordered
+    CPDiagram depicting Process          possible selected depiction
+    CPDiagram depicting Collaboration    independent depiction
+
+CPProcessAtelierSession
+  rootMemento                            Definitions memento
+  processMemento                         child memento for semantic focus
+  diagramContext                         explicitly selected depiction
+  documentContext                        CPDefinitionsMementoContext
+  collaborationContext                   resolved from Definitions when present
+```
+
+Critical invariant: **the session's selected `diagramContext` and the Collaboration's `diagramContext` are separate concepts.** If the selected diagram depicts the Collaboration they can refer to the same underlying diagram, but code must not infer that they are always the same or borrow one as the other.
+
+Important classes introduced/refined during this refactor include:
+
+- `CPDefinitions`
+- `CPDefinitionsMementoContext`
+- `CPProcessAtelierSession`
+- `CPDiagramMementoContext`
+- `CPProcessCollaborationContext`
+- `CPProcessAtelierDiagramEditing`
+- `CPProcessAtelierConfiguration`
+- `CPProcessPresentation`
+- `CPProcessVisualElement`
+
+Foundation gained an explicit transaction-root seam on presentations: `CFMaPresentation>>transactionMemento`. Ordinary Detail/form editing still uses the visible object's memento, while toolbar transaction actions and Escape/reset can target the shared document transaction root.
+
+## D. What the refactor changed, by phase
+
+The original plan had fewer than ten conceptual steps. The phase count reached 22 because each small green checkpoint and regression repair was numbered separately. Do not read “22 phases” as 22 new features.
+
+### Phases 1–8 — model/DI/context groundwork
+
+- Introduced `CPDefinitions` as the document concept and added ordered `rootElements` / `diagrams`.
+- Added/expanded faithful DI structures (`CPDiagram`, `CPPlane`, `CPShape`, `CPEdge`, labels/styles/font structures) toward BPMN DI shape rather than the earlier simplified Process-owned depiction concept.
+- Added `laneSets` to `CPSubProcess` as a FlowElementsContainer concern.
+- Corrected MessageFlow endpoint typing toward InteractionNode-compatible domain objects.
+- Fixed imported identifier preservation in Foundation identity handling.
+- Introduced `CPDiagramMementoContext` and migrated operations toward explicit diagram context instead of rediscovering a raw diagram description from Process state.
+
+### Phases 9–14 — document-rooted editing session and Collaboration ownership
+
+- Introduced `CPProcessAtelierSession` carrying transaction/document/process/depiction context.
+- Introduced `CPDefinitionsMementoContext`.
+- Added Definitions-rooted session construction.
+- Added Foundation `transactionMemento` so a nested presentation can commit/reset the shared root transaction without making the root object the form's visible model.
+- Moved canonical Collaboration/Participant/MessageFlow creation toward `CPDefinitions` ownership.
+- First Pool creation can stage a new `CPCollaboration` root element plus a Collaboration diagram and stage `CPProcess>>definitionalCollaborationRef`.
+- Participant, MessageFlow and Lane-related operations were threaded with explicit Collaboration/document context rather than assuming Collaboration is a Process child.
+
+### Phases 15–18 — entry-path and live-presentation integration
+
+- Added canonical `CPDefinitions>>asAtelierForProcess:diagram:` entry.
+- `CPProcess>>asAtelier` had to remain as a compatibility/user entry because removing it caused the Process palette to disappear through Foundation's generic path.
+- Definitions convenience entry gained sole-relevant-depiction selection and ambiguity rejection.
+- Phase 18 changed compatibility `CPProcess>>asAtelier` to create a temporary Definitions document so even the compatibility path uses a Definitions-rooted transaction.
+- A major Phase 18 live bug was found: renderer code was rebuilding DI context through legacy `CPProcess>>diagram` while operations wrote the Definitions-owned diagram memento. This made node movement, palette drops and connects appear inert.
+- The Phase 18 interaction fix added explicit `diagramContext` to `CPProcessPresentation` / `CPProcessVisualElement` and inherited it into nested visuals. User runtime confirmation: ordinary move, palette drag and connect worked again.
+
+### Phases 19–20 — first Pool/Lane transition and depiction separation
+
+- Pool/Lane remained broken because after the first Pool creation the presentation still resolved Collaboration through the old Process-rooted path.
+- `CPProcessCollaborationContext` was given a document-aware resolver using staged `CPProcess>>definitionalCollaborationRef`, Definitions root elements and Definitions-owned diagrams.
+- Session/editing/presentation Collaboration context became dynamically resolvable because before first Pool the Collaboration legitimately does not exist, while the operation can create it during the session.
+- A further live bug was found: `CPProcessAtelierConfiguration` did not actually pass `session documentContext` into `CPProcessPresentation`. Adding that wiring made first Pool -> Lane interaction work. User said “looks good”.
+- Phase 20 removed the constructor that let document-rooted Collaboration context borrow the session's selected diagram context. Collaboration now resolves its own depiction from Definitions. This locks in the selected-depiction vs Collaboration-depiction separation.
+
+### Phase 21 — begin final legacy fixture migration
+
+- Converted the two editing-session examples that explicitly asserted Process-rooted session semantics to Definitions-rooted construction.
+- Production behavior was intentionally left alone.
+- The remaining legacy `CPProcessAtelierSession forProcessMemento:` callers were reportedly confined to shared legacy fixture helpers, to be migrated before removing that constructor.
+
+### Phase 21-coordinate / Phase 22 — projection investigation; NOT COMPLETE
+
+User then reported cross-Lane drag instability. The sequence of experiments did not produce a reliable fix and should be treated as investigation evidence, not completed implementation.
+
+## E. Exact current runtime failure evidence
+
+These observations are user-reproduced in the live editor and are more authoritative than passing examples for interaction behavior.
+
+### Initial symptom after Phase 21
+
+- Dragging nodes between Lanes caused a release-time reposition.
+- Offset looked approximately like one Lane header width/depth (~30 px).
+- Nodes could disappear during cross-Lane dragging.
+
+### More precise observation during investigation
+
+User identified that during a drag, **node, external label and connection anchor appeared to use different coordinate systems**:
+
+- connection anchor appeared correct;
+- node was wrong during drag but could reposition correctly on release;
+- label was wrong during drag and remained wrong after release.
+
+This is strong evidence of multiple projection-coordinate paths, not one bad persisted BPMN-DI value.
+
+### Failed experiment: native global/local replacement
+
+One attempt replaced the Lane-body manual mapping with direct Bloc global/local conversion. Result: catastrophic displacement, often 1000+ px, and even same-Lane dragging broke. This was explicitly rolled back. Conclusion: the relevant elements are not safely interchangeable through that world-coordinate conversion at the point it was used; layout/refresh/sibling projection structure matters.
+
+### Phase 22 nested Lane / target changes
+
+A Phase 22 experiment:
+
+- made staged Lane lookup choose the deepest referenced Lane in the rendered hierarchy;
+- constrained projection host lookup to the rendered first top-level LaneSet;
+- chose Lane target using staged Lane BPMNShape bounds rather than `bodyHost geometryBoundsInSpace`;
+- introduced `CPAtelierAssignFlowNodeToLaneHierarchy` so moving into a nested Lane can stage the Lane path rather than only one sibling partition.
+
+An example initially failed only because `self assert: ... identityIncludes:` was parsed as `#assert:identityIncludes:`; the example was fixed with parentheses. This says nothing by itself about the runtime projection behavior.
+
+### Failed transient-proxy / label experiment
+
+Another experiment seeded drag proxies from the live projected source element and tried to use live projected geometry for labels. Newly built event labels then stacked at the top-left because their source shape did not yet have reliable world geometry during build.
+
+### Latest experiment: projection-origin mapping
+
+The latest experiment tried to compute a Lane body's projected origin from its live `bodyHost` bounds rather than reconstructing it as `lane DI origin + laneHeaderWidth`.
+
+Latest user runtime result (screenshot at ~21:29):
+
+- things reposition even **without** moving between Lanes;
+- connector labels are now broken and reposition;
+- therefore the latest Phase 22 projection-origin build is not acceptable.
+
+This is the stopping point of the chat.
+
+## F. What is proven vs what is still hypothesis in the Lane problem
+
+### Proven by source/runtime
+
+1. The current Bloc renderer structurally nests FlowNodes under Lane `bodyHost`s in at least the Phase 21 design (`presentationHostForFlowNode:`).
+2. The Lane projection has a visual header/body structure with a fixed header-width concept.
+3. BPMN-DI shape bounds are plane-relative by BPMN DI definition; visual Bloc parentage is a separate concern.
+4. Cross-Lane movement changes staged Lane membership and refresh can rebuild/reparent visuals.
+5. `CPProcessVisualElement>>refresh` historically rebuilds live visual elements rather than preserving their identity.
+6. There are multiple coordinate consumers: shape placement, transient drag proxy, external labels, edge/anchor geometry, connector labels, Lane hit/target logic.
+7. These consumers were demonstrably not all in the same coordinate space during the failed runtime runs.
+
+### Do NOT treat these as proven root causes yet
+
+- “subtracting exactly one header is the bug” — the symptom matched header depth, but attempts to remove/rederive that offset exposed larger inconsistencies.
+- “nested Bloc parentage is wrong” — not established. Nested Bloc structure may be desirable for future animated Lane/Pool interactions.
+- “FlowNodes must be flat on `diagramLayer` because bpmn-js does it” — false as a requirement. bpmn-js is comparative evidence, not Catalyst's projection specification.
+- “Phase 22 hierarchy membership operation is correct” — plausible, but it has not had sufficient runtime/lifecycle verification and should not be accepted merely because its focused example is green.
+
+## G. Projection design requirement for future Atelier work
+
+The user explicitly wants the Bloc projection to be capable of later Atelier behaviors:
+
+- stage and visualize changes before commit;
+- reorder Lanes within a Pool;
+- reorder Pools within a diagram;
+- smoothly animate resulting shape/layout changes;
+- support joyful, coherent interaction rather than a minimal static BPMN renderer.
+
+Therefore do **not** “fix” the Lane bug by flattening or simplifying Bloc purely to resemble BPMN ownership unless source/interaction evidence shows that projection is actually the best long-term structure.
+
+A good projection architecture must make these boundaries explicit:
+
+```text
+BPMN semantics             authoritative meaning/ownership/references
+BPMN DI                    authoritative persisted plane geometry
+       ↓
+projection mapping         explicit, testable conversion boundary
+       ↓
+Bloc hierarchy             interaction/layout/animation structure
+       ↓
+gestures
+       ↓
+projection -> DI/domain    explicit assessed operations
+```
+
+A drag overlay/portal remains a legitimate future projection technique: a node can have a nested resting parent but temporarily move in an unclipped interaction layer. This was discussed only as a design possibility; it was **not implemented** in this chat.
+
+## H. Recommended first investigation in the next chat
+
+Do not start with another coordinate patch. Start from Phase 21 and make the spaces observable.
+
+1. Load/compare `ProcessSep10-conformance-phase21.zip` and reproduce the original ~header-depth cross-Lane problem before changing code.
+2. Inspect these methods together, not individually:
+   - `CPProcessVisualElement>>presentationHostForFlowNode:`
+   - `CPProcessVisualElement>>diagramPoint:localToPresentationHost:`
+   - `CPProcessVisualElement>>diagramBoundsForElement:`
+   - `CPProcessVisualElement>>rootDiagramPointForLocalPoint:`
+   - `CPProcessVisualElement>>diagramPointForGlobalPoint:`
+   - `CPProcessVisualElement>>installPositioningFrom:moving:for:`
+   - external FlowNode label creation/positioning
+   - connector/edge label positioning
+   - anchor positioning and edge refresh
+   - `CPLaneShapeElement` body/header layout and clipping
+   - `CPProcessVisualElement>>refresh`
+3. For one drag, record at drag start, each update, release, and post-refresh:
+   - persisted/staged BPMN-DI bounds;
+   - source and target Lane DI bounds;
+   - actual Bloc parent of the shape;
+   - shape local position;
+   - shape position converted into the Process diagram projection;
+   - proxy position;
+   - external label position;
+   - anchor position;
+   - edge label position;
+   - Lane bodyHost origin and nesting depth.
+4. Establish **one named projection-coordinate contract** for each conversion rather than making ad-hoc global/local calls or subtracting header values in unrelated methods.
+5. Only after the numbers explain the original 30 px displacement should code change.
+6. Verify, manually and with focused examples: same Lane repeated, sibling Lane A↔B repeated, outer→nested, nested→outer, multiple nesting depths, connected nodes, event labels, connector labels, boundary events, commit and reset.
+7. Keep semantic Lane-membership cleanup separate from projection-coordinate cleanup so a failure can be localized.
+
+## I. Remaining work to finish the original Definitions-root refactor
+
+Once the projection is back to a trustworthy baseline, the remaining refactor cleanup was intended to be narrow:
+
+1. Migrate the shared legacy Process-rooted fixture helpers to Definitions-rooted sessions/transactions.
+2. Remove `CPProcessAtelierSession class >> forProcessMemento:` when there are no production/example consumers.
+3. Remove the legacy `CPProcess>>diagram` ownership path and its Magritte description **only after** every real consumer has moved to explicit Definitions-owned diagrams / `CPDiagramMementoContext`.
+4. Remove Process-rooted Collaboration fallback paths that exist solely for old fixtures/compatibility, after proving the compatibility entry remains functional.
+5. Run the relevant full Process/Foundation example groups and manually verify palette, move, connect, first Pool, first Lane, commit/reset.
+6. Stop and reassess. Do not automatically begin the broader BPMN-DI coordinate/interchange project or Atelier reorder/animation work as part of this refactor.
+
+## J. Source and behavioral rules carried forward
+
+- GT examples here are GT examples, not `TestCase` subclasses. Do not use `deny:`; use `self assert: condition not`.
+- Parenthesize boolean message expressions under `assert:` where keyword parsing can otherwise form selectors such as `#assert:identityIncludes:`.
+- `beOrdered` belongs on to-many relation descriptions where ordering is domain-significant; never add it to `MAToOneRelationDescription`.
+- Avoid `respondsTo:`, protocol probing and class-switch compatibility seams. If callers cannot rely on an explicit collaborator contract, fix the abstraction.
+- Avoid arbitrary symbol-dispatch configuration APIs.
+- Process classes use `CP` prefix, not `CPBPMN*`.
+- Do not modify GT/dependency framework source without explicit user authorization and evidence.
+- Source claims require exact source proof; distinguish proven source fact, runtime observation, and inference.
+- Preserve BPMN semantics separately from Bloc projection choices.
+
+## K. Important artifacts from this chat
+
+Conservative continuation baseline:
+
+- `ProcessSep10-conformance-phase21.zip`
+- `ProcessSep10-conformance-phase21.patch`
+
+Foundation document-transaction change:
+
+- `FoundationSep10-transaction-root-phase11.zip`
+- `FoundationSep10-phase11.patch`
+
+Useful earlier accepted Process checkpoints:
+
+- `ProcessSep10-conformance-phase18-interaction-fix.zip` — restored move/drop/connect after explicit diagram context wiring.
+- `ProcessSep10-conformance-phase19-interaction-fix.zip` — supplied `documentContext` to presentation, restoring first Pool/Lane transition.
+- `ProcessSep10-conformance-phase20.zip` — removed selected-depiction borrowing from document-rooted Collaboration context.
+
+Investigation-only Phase 22 artifacts are listed in section B and should not be loaded as accepted baseline.
+
+Reference sources:
+
+- `formal-11-01-03(6).pdf` — BPMN 2.0 normative specification.
+- `bpmn-js-18.16.0(6).zip` — behavioral/architecture comparison only.
+- `Foundation-Sep10-0925.zip`
+- `GTUI(20260909-232601).zip`
+- original `FOUNDATION-ATELIER-PROCESS-AI-HANDOVER.md`
+- `Foundation-Atelier-Project-Definition-v3(6).docx`
+
+## L. Bottom line for the next chat
+
+The document-root/session refactor is substantially established, but it should **not** be called finished yet because legacy fixture/compatibility cleanup remains. The immediate blocker is an older Lane/Bloc projection coordinate problem exposed by the now-working document-rooted Pool/Lane interaction path.
+
+Do not continue from the visibly broken Phase 22 projection-origin experiment. Return to Phase 21, reproduce the smaller original bug, instrument the projection spaces, and derive the mapping before altering it. Preserve the freedom to design a sophisticated nested Bloc projection suitable for staged reorder and smooth animation; BPMN conformance belongs to the semantic/DI layers, not to copying BPMN ownership into Bloc.
+
+---
+
+# HISTORICAL SOURCE-AUDIT HANDOVER (retained for evidence and class map)
+
 # Foundation Atelier and Process AI handover
 
 Source audit and working context, 10 September 2026

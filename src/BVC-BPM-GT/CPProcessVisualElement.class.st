@@ -721,16 +721,12 @@ CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
-	| hostBounds |
+	| laneElement laneBounds |
 	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
-	(self laneElementOwningBodyHost: aHost) ifNotNil: [
-		"A Lane body is a Bloc projection host. Its structural origin is owned by
-		 the laid-out Bloc hierarchy, not reconstructed from BPMNShape bounds plus
-		 an assumed header inset. Convert the diagram point by subtracting the
-		 body's actual projected origin expressed in diagram-layer coordinates.
-		 This keeps nested Lane header depth entirely inside the projection."
-		hostBounds := self diagramBoundsForElement: aHost.
-		^ aPoint - hostBounds origin ].
+	laneElement := self laneElementOwningBodyHost: aHost.
+	laneElement ifNotNil: [
+		laneBounds := self stagedBoundsOf: laneElement diagramShape.
+		^ aPoint - (laneBounds origin + (self laneHeaderWidth @ 0)) ].
 	^ aHost globalPointToLocal:
 		(self diagramPresentationParent localPointToGlobal: aPoint)
 ]
@@ -1339,11 +1335,6 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ self ].
 	labelWidth := 180.
-	"External FlowNode labels live directly in diagram-layer coordinates. At
-	 build time the newly-created shape may not yet have valid world geometry,
-	 so its BPMN-DI bounds are the stable authority for the label's diagram
-	 position. The Lane projection must map the node back onto those same diagram
-	 coordinates rather than moving the label into Lane-local space."
 	labelHost := BlElement new
 		clipChildren: false;
 		layout: BlFrameLayout new;
@@ -2260,21 +2251,9 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 		preview second do: [ :aReference | aReference removeFromParent ] ]
 ]
 
-{ #category : 'private - coordinates' }
-CPProcessVisualElement >> rootPresentationPointForElement: anElement [
-	"Answer the element's current projected top-left in the root diagram
-	 layer. This is deliberately a Bloc projection conversion, not a BPMN-DI
-	 conversion. It is used for transient drag presentation so the proxy starts
-	 exactly over the live source even when the source is hosted by nested Lane
-	 body elements."
-	^ rootVisual diagramPresentationParent
-		globalPointToLocal: (anElement localPointToGlobal: 0 @ 0)
-]
-
-
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartLabelPosition dragStartBounds dragStartDiagramPointer draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
+	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
@@ -2288,8 +2267,6 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 		dragStarted: [ :anEvent :originalBounds |
 			| elementsToPresent singleLabelPosition |
 			self clearInsertionTarget.
-			dragStartBounds := originalBounds.
-			dragStartDiagramPointer := self diagramPointForGlobalPoint: anEvent position.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
 			groupMode := groupEntries size > 1.
@@ -2319,13 +2296,9 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						modelElement := draggedModelElement.
 						bounds := originalBounds.
 						localLabelPosition := singleLabelPosition ].
-				"The drag proxy is a Bloc projection. Seed it from the live source
-				 projection, not from BPMN-DI bounds. The hidden source remains the
-				 geometry used by connection anchors, so this makes proxy, label and
-				 anchors begin the gesture in the same coordinate space."
-				rootShapePosition := self rootPresentationPointForElement: anElement.
+				rootShapePosition := self rootDiagramPointForLocalPoint: bounds origin.
 				rootLabelPosition := localLabelPosition ifNotNil: [
-					self rootPresentationPointForElement: anElement externalLabelHost ].
+					self rootDiagramPointForLocalPoint: localLabelPosition ].
 				proxy := self newDragProxyFor: modelElement shape: shape bounds: bounds.
 				proxyLabel := self newDragProxyLabelFor: modelElement.
 				presentation := (CPProcessDragPresentation
@@ -2408,21 +2381,15 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						to: targetVisual ]
 				ifFalse: [
 					| insertionEdge releaseBounds |
-					"Persist the drag in BPMN-DI coordinates, not in the source
-					 Lane body's local coordinate system. A FlowNode remains parented
-					 by its source Lane for the duration of the drag, so deriving the
-					 committed bounds from that presentation hierarchy can introduce
-					 the source Lane's offset when the node is reassigned on release."
-					releaseBounds := dragStartBounds translateBy:
-						((self diagramPointForGlobalPoint: anEvent position)
-							- dragStartDiagramPointer).
+					releaseBounds := self
+						diagramBoundsForElement: aShapeElement.
 					insertionEdge := self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement.
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane operation |
+							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane currentLane operation |
 							rootPoint := self rootDiagramPointForLocalPoint: releaseBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
@@ -2434,9 +2401,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 								constrainedBounds: targetBounds
 								forFlowContainer: targetVisual flowContainer.
 							targetLane := targetVisual == self
-								ifTrue: [ self laneAtDiagramPoint: constrainedBounds center ]
+								ifTrue: [ self laneAtGlobalPoint: anEvent position ]
 								ifFalse: [ nil ].
-							operation := (targetVisual == self and: [ targetLane notNil ])
+							currentLane := self stagedLaneContainingFlowNode: draggedModelElement.
+							operation := (targetVisual == self
+								and: [ targetLane notNil
+								and: [ targetLane ~~ currentLane ] ])
 								ifTrue: [
 									diagramEditing
 										moveFlowNode: draggedModelElement
@@ -4853,56 +4823,45 @@ CPProcessVisualElement >> hasActiveEditableLabel [
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode [
-	| laneContext topLevelLaneSets |
+	| laneContext |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
-	topLevelLaneSets := laneContext stagedLaneSets.
-	topLevelLaneSets ifEmpty: [ ^ nil ].
-	"The current Bloc projection renders one top-level LaneSet. Independent
-	 BPMN LaneSets remain staged semantic partitions but must not select a
-	 presentation host that this visual has not projected."
 	^ self
 		stagedLaneContainingFlowNode: aFlowNode
-		inLaneSets: { topLevelLaneSets first }
+		inLaneSets: laneContext stagedLaneSets
 		laneContext: laneContext
 ]
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode inLaneSets: laneSets laneContext: laneContext [
-	"The Bloc projection hosts a FlowNode in the deepest Lane that references it.
-	 BPMN nested Lane membership may legitimately reference the same FlowNode from
-	 both an outer Lane and one of its child Lanes. Descend before accepting the
-	 current Lane so projection parentage follows the most specific membership."
 	laneSets do: [ :aLaneSet |
 		(laneContext stagedLanesInLaneSet: aLaneSet) do: [ :aLane |
+			((laneContext stagedFlowNodeRefsOf: aLane) identityIncludes: aFlowNode)
+				ifTrue: [ ^ aLane ].
 			(laneContext stagedChildLaneSetOf: aLane) ifNotNil: [ :aChildLaneSet |
 				(self
 					stagedLaneContainingFlowNode: aFlowNode
 					inLaneSets: { aChildLaneSet }
 					laneContext: laneContext)
-					ifNotNil: [ :aContainingLane | ^ aContainingLane ] ].
-			((laneContext stagedFlowNodeRefsOf: aLane) identityIncludes: aFlowNode)
-				ifTrue: [ ^ aLane ] ] ].
+					ifNotNil: [ :aContainingLane | ^ aContainingLane ] ] ] ].
 	^ nil
 ]
 
 
 { #category : 'private - lanes' }
-CPProcessVisualElement >> laneAtDiagramPoint: aDiagramPoint [
+CPProcessVisualElement >> laneAtGlobalPoint: aGlobalPoint [
 	| candidates |
-	"Lane membership is a BPMN/DI decision, not a Bloc hit-test. Use the staged
-	 BPMNShape bounds and choose the most specific (smallest) containing Lane.
-	 This remains stable while the Bloc projection is being laid out or reparented."
 	candidates := OrderedCollection new.
 	laneElementsByLane keysAndValuesDo: [ :aLane :aLaneElement |
-		| bounds |
-		bounds := self stagedBoundsOf: aLaneElement diagramShape.
-		(bounds notNil and: [ bounds containsPoint: aDiagramPoint ]) ifTrue: [
-			candidates add: { aLane. bounds } ] ].
+		| bodyBounds |
+		bodyBounds := aLaneElement bodyHost geometryBoundsInSpace.
+		(bodyBounds containsPoint: aGlobalPoint) ifTrue: [
+			candidates add: { aLane. bodyBounds } ] ].
 	candidates ifEmpty: [ ^ nil ].
 	^ (candidates detectMin: [ :each |
 		each second width * each second height ]) first
 ]
+
 
 { #category : 'private - coordinates' }
 CPProcessVisualElement >> presentationPointForAnchor: anAnchor anchoredElement: anElement [
