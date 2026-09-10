@@ -9,24 +9,12 @@ Class {
 		'targetLane',
 		'insertAfter',
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		lane: aLane;
-		targetLane: aTargetLane;
-		insertAfter: aBoolean;
-		processMemento: aMemento;
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean processMemento: aMemento diagramContext: aDiagramContext [
@@ -233,16 +221,8 @@ CPAtelierInsertLane >> targetLane: anObject [ targetLane := anObject ]
 CPAtelierInsertLane >> insertAfter: aBoolean [ insertAfter := aBoolean ]
 { #category : 'accessing' }
 CPAtelierInsertLane >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierInsertLane >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierInsertLane >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

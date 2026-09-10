@@ -8,23 +8,12 @@ Class {
 		'shape',
 		'bounds',
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierMoveShape class >> shape: aShape bounds: aRectangle processMemento: aMemento diagramDescription: aDescription [
-	^ self new
-		shape: aShape;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		diagramDescription: aDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierMoveShape class >> shape: aShape bounds: aRectangle processMemento: aMemento diagramContext: aDescription [
@@ -142,18 +131,8 @@ CPAtelierMoveShape >> bounds: aRectangle [ bounds := aRectangle ]
 CPAtelierMoveShape >> processMemento [ ^ processMemento ]
 { #category : 'accessing' }
 CPAtelierMoveShape >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierMoveShape >> diagramDescription [ ^ diagramDescription ]
-{ #category : 'accessing' }
-CPAtelierMoveShape >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierMoveShape >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

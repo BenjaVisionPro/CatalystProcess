@@ -10,25 +10,12 @@ Class {
 		'bounds',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
-	^ self new
-		flowNode: aFlowNode;
-		replacementNode: aReplacementNode;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
@@ -39,18 +26,6 @@ CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bou
 		processMemento: aMemento;
 		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
 		diagramContext: aDiagramContext;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPAtelierReplaceFlowNode class >> flowNode: aFlowNode with: aReplacementNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		flowNode: aFlowNode;
-		replacementNode: aReplacementNode;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
 		yourself
 ]
 
@@ -285,10 +260,6 @@ CPAtelierReplaceFlowNode >> processMemento: aMemento [ processMemento := aMement
 CPAtelierReplaceFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 
 { #category : 'accessing' }
-CPAtelierReplaceFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
-
-{ #category : 'accessing' }
 CPAtelierReplaceFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
 
 { #category : 'private - staged state' }
@@ -303,11 +274,6 @@ CPAtelierReplaceFlowNode >> stagedNestedFlowElementsOf: aFlowNode [
 
 { #category : 'private - staged state' }
 CPAtelierReplaceFlowNode >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

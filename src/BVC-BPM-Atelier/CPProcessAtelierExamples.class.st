@@ -871,7 +871,7 @@ CPProcessAtelierExamples >> shapeExpansionIsStagedDiagramState [
 		shape: shape
 		expanded: true
 		processMemento: memento
-		diagramDescription: (self descriptionFor: #diagram in: memento).
+		diagramContext: diagramContext.
 	assessment := operation apply.
 	shapeMemento := diagramContext mementoFor: shape.
 	expandedDescription := self descriptionFor: #isExpanded in: shapeMemento.

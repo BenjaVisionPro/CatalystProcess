@@ -9,27 +9,12 @@ Class {
 		'target',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
-	^ self new
-		source: aSource;
-		target: aTarget;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext
-			container: aMemento model
-			memento: aMemento
-			flowElementsDescription: aFlowElementsDescription);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
@@ -42,19 +27,6 @@ CPAtelierConnectFlowNodes class >> source: aSource target: aTarget processMement
 			memento: aMemento
 			flowElementsDescription: aFlowElementsDescription);
 		diagramContext: aDiagramContext;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPAtelierConnectFlowNodes class >> source: aSource target: aTarget flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		source: aSource;
-		target: aTarget;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext
-			forContainer: aContainer
-			inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
 		yourself
 ]
 
@@ -184,16 +156,8 @@ CPAtelierConnectFlowNodes >> target: anObject [ target := anObject ]
 CPAtelierConnectFlowNodes >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierConnectFlowNodes >> flowContainerContext: aContext [ flowContainerContext := aContext ]
-{ #category : 'accessing' }
-CPAtelierConnectFlowNodes >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierConnectFlowNodes >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

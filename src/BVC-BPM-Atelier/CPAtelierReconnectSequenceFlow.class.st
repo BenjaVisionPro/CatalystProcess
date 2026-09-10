@@ -11,26 +11,12 @@ Class {
 		'proposedWaypoints',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
-	^ self new
-		sequenceFlow: aSequenceFlow;
-		proposedSource: aSource;
-		proposedTarget: aTarget;
-		proposedWaypoints: someWaypoints;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
@@ -42,19 +28,6 @@ CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSou
 		processMemento: aMemento;
 		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
 		diagramContext: aDiagramContext;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPAtelierReconnectSequenceFlow class >> sequenceFlow: aSequenceFlow source: aSource target: aTarget waypoints: someWaypoints flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		sequenceFlow: aSequenceFlow;
-		proposedSource: aSource;
-		proposedTarget: aTarget;
-		proposedWaypoints: someWaypoints;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
 		yourself
 ]
 
@@ -265,18 +238,10 @@ CPAtelierReconnectSequenceFlow >> processMemento: aMemento [ processMemento := a
 { #category : 'accessing' }
 CPAtelierReconnectSequenceFlow >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 { #category : 'accessing' }
-CPAtelierReconnectSequenceFlow >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
-{ #category : 'accessing' }
 CPAtelierReconnectSequenceFlow >> proposedWaypoints: aCollection [ proposedWaypoints := aCollection asOrderedCollection ]
 
 { #category : 'private - staged state' }
 CPAtelierReconnectSequenceFlow >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

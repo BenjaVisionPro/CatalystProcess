@@ -6,26 +6,12 @@ Class {
 		'sequenceFlow',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
-	^ self new
-		sequenceFlow: aSequenceFlow;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext
-			container: aMemento model
-			memento: aMemento
-			flowElementsDescription: aFlowElementsDescription);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
@@ -37,18 +23,6 @@ CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow processMemento:
 			memento: aMemento
 			flowElementsDescription: aFlowElementsDescription);
 		diagramContext: aDiagramContext;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPAtelierRemoveSequenceFlow class >> sequenceFlow: aSequenceFlow flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		sequenceFlow: aSequenceFlow;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext
-			forContainer: aContainer
-			inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
 		yourself
 ]
 
@@ -155,16 +129,8 @@ CPAtelierRemoveSequenceFlow >> sequenceFlow: anObject [ sequenceFlow := anObject
 CPAtelierRemoveSequenceFlow >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierRemoveSequenceFlow >> flowContainerContext: aContext [ flowContainerContext := aContext ]
-{ #category : 'accessing' }
-CPAtelierRemoveSequenceFlow >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierRemoveSequenceFlow >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

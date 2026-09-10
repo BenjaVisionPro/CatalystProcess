@@ -2,24 +2,11 @@
 Class {
 	#name : 'CPAtelierReattachBoundaryEvent',
 	#superclass : 'CFAtelierOperation',
-	#instVars : [ 'boundaryEvent', 'activity', 'shape', 'bounds', 'processMemento', 'flowContainerContext', 'diagramDescription', 'diagramContext' ],
+	#instVars : [ 'boundaryEvent', 'activity', 'shape', 'bounds', 'processMemento', 'flowContainerContext', 'diagramContext' ],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierReattachBoundaryEvent class >> boundaryEvent: anEvent shape: aShape attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		boundaryEvent: anEvent;
-		shape: aShape;
-		activity: anActivity;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierReattachBoundaryEvent class >> boundaryEvent: anEvent shape: aShape attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
@@ -112,16 +99,8 @@ CPAtelierReattachBoundaryEvent >> bounds: anObject [ bounds := anObject ]
 CPAtelierReattachBoundaryEvent >> processMemento: anObject [ processMemento := anObject ]
 { #category : 'accessing' }
 CPAtelierReattachBoundaryEvent >> flowContainerContext: anObject [ flowContainerContext := anObject ]
-{ #category : 'accessing' }
-CPAtelierReattachBoundaryEvent >> diagramDescription: anObject [ diagramDescription := anObject ]
-
 { #category : 'private - staged state' }
 CPAtelierReattachBoundaryEvent >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

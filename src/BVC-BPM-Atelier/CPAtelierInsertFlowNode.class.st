@@ -10,25 +10,12 @@ Class {
 		'bounds',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
-	^ self new
-		sequenceFlow: aSequenceFlow;
-		flowNode: aFlowNode;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: aRectangle processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
@@ -39,18 +26,6 @@ CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode
 		processMemento: aMemento;
 		flowContainerContext: (CPProcessFlowContainerContext container: aMemento model memento: aMemento flowElementsDescription: aFlowElementsDescription);
 		diagramContext: aDiagramContext;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPAtelierInsertFlowNode class >> sequenceFlow: aSequenceFlow flowNode: aFlowNode bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		sequenceFlow: aSequenceFlow;
-		flowNode: aFlowNode;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
 		yourself
 ]
 
@@ -330,16 +305,8 @@ CPAtelierInsertFlowNode >> bounds: aRectangle [ bounds := aRectangle ]
 CPAtelierInsertFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierInsertFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
-{ #category : 'accessing' }
-CPAtelierInsertFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierInsertFlowNode >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

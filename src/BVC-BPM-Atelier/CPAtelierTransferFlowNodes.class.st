@@ -10,25 +10,12 @@ Class {
 		'proposedBoundsByFlowNode',
 		'proposedWaypointsBySequenceFlow',
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aTargetContainer boundsByFlowNode: boundsByFlowNode waypointsBySequenceFlow: waypointsBySequenceFlow processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		flowNodes: someFlowNodes;
-		targetContainer: aTargetContainer;
-		proposedBoundsByFlowNode: boundsByFlowNode;
-		proposedWaypointsBySequenceFlow: waypointsBySequenceFlow;
-		processMemento: aMemento;
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierTransferFlowNodes class >> flowNodes: someFlowNodes targetContainer: aTargetContainer boundsByFlowNode: boundsByFlowNode waypointsBySequenceFlow: waypointsBySequenceFlow processMemento: aMemento diagramContext: aDiagramContext [
@@ -228,16 +215,8 @@ CPAtelierTransferFlowNodes >> proposedBoundsByFlowNode: aDictionary [ proposedBo
 CPAtelierTransferFlowNodes >> proposedWaypointsBySequenceFlow: aDictionary [ proposedWaypointsBySequenceFlow := aDictionary ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNodes >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNodes >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierTransferFlowNodes >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

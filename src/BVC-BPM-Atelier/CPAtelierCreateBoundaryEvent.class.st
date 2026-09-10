@@ -2,15 +2,11 @@
 Class {
 	#name : 'CPAtelierCreateBoundaryEvent',
 	#superclass : 'CFAtelierOperation',
-	#instVars : [ 'boundaryEvent', 'activity', 'bounds', 'processMemento', 'flowContainerContext', 'diagramDescription', 'diagramContext' ],
+	#instVars : [ 'boundaryEvent', 'activity', 'bounds', 'processMemento', 'flowContainerContext', 'diagramContext' ],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-{ #category : 'instance creation' }
-CPAtelierCreateBoundaryEvent class >> boundaryEvent: anEvent attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new boundaryEvent: anEvent; activity: anActivity; bounds: aRectangle; processMemento: aMemento; flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento); diagramDescription: aDiagramDescription; yourself
-]
 { #category : 'instance creation' }
 CPAtelierCreateBoundaryEvent class >> boundaryEvent: anEvent attachedTo: anActivity bounds: aRectangle flowContainer: aContainer processMemento: aMemento diagramContext: aDiagramContext [
 	^ self new
@@ -74,16 +70,8 @@ CPAtelierCreateBoundaryEvent >> bounds: anObject [ bounds := anObject ]
 CPAtelierCreateBoundaryEvent >> processMemento: anObject [ processMemento := anObject ]
 { #category : 'accessing' }
 CPAtelierCreateBoundaryEvent >> flowContainerContext: anObject [ flowContainerContext := anObject ]
-{ #category : 'accessing' }
-CPAtelierCreateBoundaryEvent >> diagramDescription: anObject [ diagramDescription := anObject ]
-
 { #category : 'private - staged state' }
 CPAtelierCreateBoundaryEvent >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

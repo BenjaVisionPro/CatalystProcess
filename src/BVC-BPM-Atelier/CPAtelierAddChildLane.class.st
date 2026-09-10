@@ -9,24 +9,12 @@ Class {
 		'lane',
 		'bounds',
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierAddChildLane class >> lane: aLane toParentLane: aParentLane bounds: aRectangle processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		lane: aLane;
-		parentLane: aParentLane;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierAddChildLane class >> lane: aLane toParentLane: aParentLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
@@ -138,16 +126,8 @@ CPAtelierAddChildLane >> lane: anObject [ lane := anObject ]
 CPAtelierAddChildLane >> bounds: aRectangle [ bounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierAddChildLane >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierAddChildLane >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierAddChildLane >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

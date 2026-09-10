@@ -6,26 +6,12 @@ Class {
 		'flowNode',
 		'processMemento',
 		'flowContainerContext',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierRemoveFlowNode class >> flowNode: aFlowNode processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramDescription: aDiagramDescription [
-	^ self new
-		flowNode: aFlowNode;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext
-			container: aMemento model
-			memento: aMemento
-			flowElementsDescription: aFlowElementsDescription);
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierRemoveFlowNode class >> flowNode: aFlowNode processMemento: aMemento flowElementsDescription: aFlowElementsDescription diagramContext: aDiagramContext [
@@ -37,18 +23,6 @@ CPAtelierRemoveFlowNode class >> flowNode: aFlowNode processMemento: aMemento fl
 			memento: aMemento
 			flowElementsDescription: aFlowElementsDescription);
 		diagramContext: aDiagramContext;
-		yourself
-]
-
-{ #category : 'instance creation' }
-CPAtelierRemoveFlowNode class >> flowNode: aFlowNode flowContainer: aContainer processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		flowNode: aFlowNode;
-		processMemento: aMemento;
-		flowContainerContext: (CPProcessFlowContainerContext
-			forContainer: aContainer
-			inRootMemento: aMemento);
-		diagramDescription: aDiagramDescription;
 		yourself
 ]
 
@@ -185,16 +159,8 @@ CPAtelierRemoveFlowNode >> flowNode: anObject [ flowNode := anObject ]
 CPAtelierRemoveFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
 { #category : 'accessing' }
 CPAtelierRemoveFlowNode >> flowContainerContext: aContext [ flowContainerContext := aContext ]
-{ #category : 'accessing' }
-CPAtelierRemoveFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierRemoveFlowNode >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

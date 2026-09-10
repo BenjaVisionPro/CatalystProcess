@@ -8,23 +8,12 @@ Class {
 		'lane',
 		'bounds',
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		lane: aLane;
-		bounds: aRectangle;
-		processMemento: aMemento;
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
@@ -169,16 +158,8 @@ CPAtelierCreateLane >> lane: anObject [ lane := anObject ]
 CPAtelierCreateLane >> bounds: aRectangle [ bounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierCreateLane >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierCreateLane >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierCreateLane >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 

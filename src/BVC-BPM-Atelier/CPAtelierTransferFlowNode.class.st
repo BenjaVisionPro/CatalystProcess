@@ -9,24 +9,12 @@ Class {
 		'targetContainer',
 		'proposedBounds',
 		'processMemento',
-		'diagramDescription',
 		'diagramContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
 	#tag : 'Diagram'
 }
-
-{ #category : 'instance creation' }
-CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetContainer bounds: aRectangle processMemento: aMemento diagramDescription: aDiagramDescription [
-	^ self new
-		flowNode: aFlowNode;
-		targetContainer: aTargetContainer;
-		proposedBounds: aRectangle;
-		processMemento: aMemento;
-		diagramDescription: aDiagramDescription;
-		yourself
-]
 
 { #category : 'instance creation' }
 CPAtelierTransferFlowNode class >> flowNode: aFlowNode targetContainer: aTargetContainer bounds: aRectangle processMemento: aMemento diagramContext: aDiagramContext [
@@ -141,16 +129,8 @@ CPAtelierTransferFlowNode >> targetContainer: anObject [ targetContainer := anOb
 CPAtelierTransferFlowNode >> proposedBounds: aRectangle [ proposedBounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierTransferFlowNode >> processMemento: aMemento [ processMemento := aMemento ]
-{ #category : 'accessing' }
-CPAtelierTransferFlowNode >> diagramDescription: aDescription [ diagramDescription := aDescription ]
-
 { #category : 'private - staged state' }
 CPAtelierTransferFlowNode >> stagedDiagramContext [
-	diagramContext ifNotNil: [ ^ diagramContext ].
-	diagramContext := CPDiagramMementoContext
-		diagram: (processMemento readUsing: diagramDescription)
-		inMemento: processMemento
-		using: diagramDescription.
 	^ diagramContext
 ]
 
