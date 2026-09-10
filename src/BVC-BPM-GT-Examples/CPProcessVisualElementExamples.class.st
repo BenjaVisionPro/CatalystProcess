@@ -2965,3 +2965,39 @@ CPProcessVisualElementExamples >> hostedLaneDiagramLayerUsesLaneSetDiagramOrigin
 	self assert: visual diagramContentOffset equals: -40 @ -60.
 	^ visual
 ]
+
+{ #category : 'examples - editing session' }
+CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMemento [
+	<gtExample>
+	| definitions process task diagram shape session visual proposedBounds |
+	process := CPProcess new label: 'Document-rooted visual'; yourself.
+	task := CPUserTask new label: 'Move me'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new modelElement: process; yourself.
+	shape := CPShape new
+		modelElement: task;
+		bounds: (100 @ 100 extent: 132 @ 54);
+		yourself.
+	diagram addElement: shape.
+	"Keep the legacy relation populated deliberately: the visual must still read
+	 the selected Definitions-owned diagram memento, not create/read a second DI
+	 memento through Process>>diagram."
+	process diagram: diagram.
+	definitions := CPDefinitions new
+		addRootElement: process;
+		addDiagram: diagram;
+		yourself.
+	session := CPProcessAtelierSession
+		forDefinitions: definitions
+		process: process
+		diagram: diagram.
+	visual := CPProcessVisualElement new.
+	visual
+		memento: session processMemento
+		flowContainer: process
+		diagramContext: session diagramContext.
+	proposedBounds := 240 @ 180 extent: 132 @ 54.
+	session diagramContext writeBounds: proposedBounds of: shape.
+	self assert: (visual stagedBoundsOf: shape) equals: proposedBounds.
+	^ visual
+]

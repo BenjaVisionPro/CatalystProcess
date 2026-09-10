@@ -143,10 +143,27 @@ CPProcessVisualElement >> memento: aMemento [
 CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer [
 	memento := aMemento.
 	flowContainer := aFlowContainer.
+	diagramContext := nil.
 	diagramDescription := memento magritteDescription
 		detect: [ :each | each handlesSelector: #diagram ].
 	self refresh.
 	self installMementoObserver
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> memento: aMemento flowContainer: aFlowContainer diagramContext: aDiagramContext [
+	memento := aMemento.
+	flowContainer := aFlowContainer.
+	diagramDescription := nil.
+	diagramContext := aDiagramContext.
+	self refresh.
+	self installMementoObserver
+]
+
+{ #category : 'accessing' }
+CPProcessVisualElement >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext.
+	memento ifNotNil: [ self refresh ]
 ]
 
 { #category : 'accessing - presentation' }
@@ -345,13 +362,15 @@ CPProcessVisualElement >> refresh [
 	insertionTargetEdge := nil.
 	connectionTargetModelElement := nil.
 	boundaryEventPaletteTargetModelElement := nil.
-	diagram := memento readUsing: diagramDescription.
-	diagram ifNil: [ ^ self ].
-
-	diagramContext := CPDiagramMementoContext
-		diagram: diagram
-		inMemento: memento
-		using: diagramDescription.
+	diagramContext ifNil: [
+		diagram := memento readUsing: diagramDescription.
+		diagram ifNil: [ ^ self ].
+		diagramContext := CPDiagramMementoContext
+			diagram: diagram
+			inMemento: memento
+			using: diagramDescription ]
+	ifNotNil: [
+		diagram := diagramContext diagram ].
 	elements := diagramContext elements.
 	elements ifNil: [ ^ self ].
 	diagramElements := elements.
@@ -4537,6 +4556,7 @@ CPProcessVisualElement >> installNestedProcessVisualIn: aShapeElement for: aSubP
 	nestedVisual
 		memento: memento
 		flowContainer: aSubProcess
+		diagramContext: diagramContext
 ]
 
 { #category : 'private - subprocess' }

@@ -88,6 +88,7 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	anAtelierViewModel presentationDo: [ :aPresentation |
 		aPresentation
 			transactionMemento: session rootMemento;
+			diagramContext: session diagramContext;
 			poolPaletteItem: poolPaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
 				processMemento: session processMemento

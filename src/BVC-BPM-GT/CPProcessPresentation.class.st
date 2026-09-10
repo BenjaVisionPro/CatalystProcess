@@ -13,6 +13,7 @@ Class {
 		'detailScrollElement',
 		'workspaceElement',
 		'diagramEditing',
+		'diagramContext',
 		'contextualAppendPaletteItems',
 		'poolPaletteItem',
 		'diagramCameraInitialized'
@@ -113,8 +114,14 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 		diagramEditing: diagramEditing;
 		poolPaletteItem: poolPaletteItem;
 		contextualAppendPaletteItems: contextualAppendPaletteItems;
-		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ];
-		memento: self memento.
+		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ].
+	diagramContext
+		ifNil: [ visual memento: self memento ]
+		ifNotNil: [
+			visual
+				memento: self memento
+				flowContainer: self memento model
+				diagramContext: diagramContext ].
 	^ visual
 ]
 
@@ -432,6 +439,12 @@ CPProcessPresentation >> diagramEditing: anEditing [
 	diagramEditing := anEditing.
 	processDiagramElement ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ].
 	collaborationDiagramElement ifNotNil: [ :aVisual | aVisual diagramEditing: anEditing ]
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> diagramContext: aDiagramContext [
+	diagramContext := aDiagramContext.
+	processDiagramElement ifNotNil: [ :aVisual | aVisual diagramContext: aDiagramContext ]
 ]
 
 { #category : 'accessing' }
