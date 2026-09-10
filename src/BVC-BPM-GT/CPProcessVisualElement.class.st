@@ -39,7 +39,8 @@ Class {
 		'viewportExtent',
 		'laneSetVisual',
 		'diagramLayer',
-		'activeEditableLabel'
+		'activeEditableLabel',
+		'presentationHostDiagramOrigins'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -59,6 +60,7 @@ CPProcessVisualElement >> initialize [
 	laneElementsByShape := IdentityDictionary new.
 	laneElementsByLane := IdentityDictionary new.
 	edgeVisualsByEdge := IdentityDictionary new.
+	presentationHostDiagramOrigins := IdentityDictionary new.
 	boundaryEventPaletteTargetModelElement := nil.
 	rootVisual := self.
 	parentProcessVisual := nil.
@@ -359,6 +361,7 @@ CPProcessVisualElement >> refresh [
 	laneElementsByShape removeAll.
 	laneElementsByLane removeAll.
 	edgeVisualsByEdge removeAll.
+	presentationHostDiagramOrigins removeAll.
 	laneSetVisual := nil.
 	hoveredModelElement := nil.
 	insertionTargetEdge := nil.
@@ -644,6 +647,9 @@ CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes l
 			shape: laneShape
 			borderColor: self shapeBorderColor
 			label: label.
+		presentationHostDiagramOrigins
+			at: element bodyHost
+			put: bounds origin + element bodyOriginOffset.
 		laneElementsByShape at: laneShape put: element.
 		laneElementsByLane at: aLane put: element.
 		laneSetElement
@@ -769,9 +775,12 @@ CPProcessVisualElement >> presentationHostForFlowNode: aFlowNode [
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramPoint: aPoint localToPresentationHost: aHost [
+	| hostDiagramOrigin |
 	aHost == self diagramPresentationParent ifTrue: [ ^ aPoint ].
-	^ aHost globalPointToLocal:
-		(self diagramPresentationParent localPointToGlobal: aPoint)
+	hostDiagramOrigin := presentationHostDiagramOrigins
+		at: aHost
+		ifAbsent: [ self error: 'Unknown Process presentation host.' ].
+	^ aPoint - hostDiagramOrigin
 ]
 
 { #category : 'private - containment' }
