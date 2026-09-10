@@ -2253,7 +2253,7 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
+	| dragStartLabelPosition dragStartBounds dragStartDiagramPointer draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
@@ -2267,6 +2267,8 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 		dragStarted: [ :anEvent :originalBounds |
 			| elementsToPresent singleLabelPosition |
 			self clearInsertionTarget.
+			dragStartBounds := originalBounds.
+			dragStartDiagramPointer := self diagramPointForGlobalPoint: anEvent position.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
 			groupMode := groupEntries size > 1.
@@ -2381,8 +2383,14 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						to: targetVisual ]
 				ifFalse: [
 					| insertionEdge releaseBounds |
-					releaseBounds := self
-						diagramBoundsForElement: aShapeElement.
+					"Persist the drag in BPMN-DI coordinates, not in the source
+					 Lane body's local coordinate system. A FlowNode remains parented
+					 by its source Lane for the duration of the drag, so deriving the
+					 committed bounds from that presentation hierarchy can introduce
+					 the source Lane's offset when the node is reassigned on release."
+					releaseBounds := dragStartBounds translateBy:
+						((self diagramPointForGlobalPoint: anEvent position)
+							- dragStartDiagramPointer).
 					insertionEdge := self
 						insertionEdgeAtGlobalPoint: anEvent position
 						for: draggedModelElement.
