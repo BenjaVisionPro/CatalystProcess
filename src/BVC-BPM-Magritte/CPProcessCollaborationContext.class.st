@@ -1,6 +1,6 @@
 "I resolve one staged definitional Collaboration and its active depiction.
 
-Document-rooted construction resolves the Collaboration through CPDefinitions so the Collaboration has one canonical memento identity. The Process-rooted constructor remains only for the legacy Process transaction path."
+Document-rooted construction resolves both the Collaboration and its own depiction through CPDefinitions so the Collaboration has one canonical memento identity. The Process session's selected depiction is intentionally not an input here: a Process depiction and a Collaboration depiction are independent BPMN diagrams. The Process-rooted constructor remains only for the legacy Process transaction path."
 Class {
 	#name : 'CPProcessCollaborationContext',
 	#superclass : 'Object',
@@ -40,25 +40,6 @@ CPProcessCollaborationContext class >> forProcessMemento: aProcessMemento docume
 		yourself
 ]
 
-{ #category : 'instance creation' }
-CPProcessCollaborationContext class >> forProcessMemento: aProcessMemento documentContext: aDocumentContext diagramContext: aDiagramContext [
-	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription |
-	collaborationDescription := aProcessMemento model definitionalCollaborationRefDescription.
-	collaboration := aProcessMemento readUsing: collaborationDescription.
-	collaboration ifNil: [ ^ nil ].
-	collaborationMemento := aDocumentContext mementoForRootElement: collaboration.
-	participantsDescription := collaboration participantsDescription.
-	messageFlowsDescription := collaboration messageFlowsDescription.
-	(aDiagramContext isNil or: [ aDiagramContext planeModelElement ~~ collaboration ]) ifTrue: [ ^ nil ].
-	^ self new
-		rootProcessMemento: aProcessMemento;
-		collaboration: collaboration;
-		collaborationMemento: collaborationMemento;
-		participantsDescription: participantsDescription;
-		messageFlowsDescription: messageFlowsDescription;
-		diagramContext: aDiagramContext;
-		yourself
-]
 { #category : 'instance creation' }
 CPProcessCollaborationContext class >> inRootMemento: aProcessMemento [
 	| collaborationDescription collaboration collaborationMemento participantsDescription messageFlowsDescription diagramDescription diagram diagramContext |

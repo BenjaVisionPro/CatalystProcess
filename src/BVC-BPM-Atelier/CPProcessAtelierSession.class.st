@@ -73,8 +73,7 @@ CPProcessAtelierSession class >> forDefinitionsMemento: aDefinitionsMemento proc
 		ifNotNil: [ documentContext diagramContextFor: aDiagram ].
 	collaborationContext := CPProcessCollaborationContext
 		forProcessMemento: processMemento
-		documentContext: documentContext
-		diagramContext: diagramContext.
+		documentContext: documentContext.
 	^ self
 		rootMemento: aDefinitionsMemento
 		processMemento: processMemento
