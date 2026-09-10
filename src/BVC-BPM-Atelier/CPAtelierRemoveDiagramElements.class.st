@@ -7,7 +7,9 @@ Class {
 	#instVars : [
 		'diagramElements',
 		'processMemento',
-		'diagramContext'
+		'diagramContext',
+		'documentContext',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -17,6 +19,17 @@ Class {
 { #category : 'instance creation' }
 CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements processMemento: aMemento diagramContext: aDiagramContext [
 	^ self new diagramElements: someDiagramElements; processMemento: aMemento; diagramContext: aDiagramContext; yourself
+]
+
+{ #category : 'instance creation' }
+CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements processMemento: aMemento diagramContext: aDiagramContext documentContext: aDocumentContext collaborationContext: aCollaborationContext [
+	^ self new
+		diagramElements: someDiagramElements;
+		processMemento: aMemento;
+		diagramContext: aDiagramContext;
+		documentContext: aDocumentContext;
+		collaborationContext: aCollaborationContext;
+		yourself
 ]
 
 { #category : 'assessing' }
@@ -51,21 +64,23 @@ CPAtelierRemoveDiagramElements >> applyAssessment: anAssessment [
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> participantRemovalOperations [
-	| operations collaborationContext collaborationDiagramContext |
+	| operations context collaborationDiagramContext |
 	operations := OrderedCollection new.
-	collaborationContext := CPProcessCollaborationContext inRootMemento: processMemento.
-	collaborationContext ifNil: [ ^ operations ].
-	collaborationDiagramContext := collaborationContext diagramContext.
+	context := self stagedCollaborationContext.
+	context ifNil: [ ^ operations ].
+	collaborationDiagramContext := context diagramContext.
 	diagramElements do: [ :aDiagramElement |
-		((collaborationContext elements identityIncludes: aDiagramElement)
+		((context elements identityIncludes: aDiagramElement)
 			and: [ aDiagramElement isShape ]) ifTrue: [
 			| participant |
 			participant := collaborationDiagramContext modelElementOf: aDiagramElement.
 			(participant notNil and: [
-				collaborationContext participants identityIncludes: participant ]) ifTrue: [
+				context participants identityIncludes: participant ]) ifTrue: [
 				operations add: (CPAtelierRemoveParticipant
 					participant: participant
-					processMemento: processMemento) ] ] ].
+					processMemento: processMemento
+					documentContext: documentContext
+					collaborationContext: context) ] ] ].
 	^ operations
 ]
 
@@ -136,7 +151,7 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> messageFlowRemovalOperationsExcludingThoseOwnedBy: participantOperations [
 	| context diagramContext participantAssessments ownedMessageFlows operations |
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	context ifNil: [ ^ #() ].
 	diagramContext := context diagramContext.
 	participantAssessments := participantOperations collect: [ :anOperation | anOperation assess ].
@@ -194,4 +209,22 @@ CPAtelierRemoveDiagramElements >> stagedDiagramContext [
 { #category : 'accessing' }
 CPAtelierRemoveDiagramElements >> diagramContext: aDiagramContext [
 	diagramContext := aDiagramContext
+]
+
+
+{ #category : 'private - staged state' }
+CPAtelierRemoveDiagramElements >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	documentContext ifNotNil: [ ^ nil ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
+]
+
+{ #category : 'accessing' }
+CPAtelierRemoveDiagramElements >> documentContext: aContext [
+	documentContext := aContext
+]
+
+{ #category : 'accessing' }
+CPAtelierRemoveDiagramElements >> collaborationContext: aContext [
+	collaborationContext := aContext
 ]

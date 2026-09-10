@@ -1,13 +1,15 @@
 "I stage creation of one BPMN Participant and its Pool CPShape.
 
-If the root Process has no staged definitional Collaboration, I establish one together with its Collaboration diagram. The first Participant that can represent the edited Process receives that processRef; later Participants are black boxes by default."
+In a document-rooted session I create a missing Collaboration and its Diagram as siblings owned by CPDefinitions, while Process.definitionalCollaborationRef remains a reference. The legacy Process-rooted path remains temporarily for the old CPProcess>>asAtelier entry."
 Class {
 	#name : 'CPAtelierCreateParticipant',
 	#superclass : 'CFAtelierOperation',
 	#instVars : [
 		'participant',
 		'bounds',
-		'processMemento'
+		'processMemento',
+		'documentContext',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -23,24 +25,35 @@ CPAtelierCreateParticipant class >> participant: aParticipant bounds: aRectangle
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierCreateParticipant class >> participant: aParticipant bounds: aRectangle processMemento: aMemento documentContext: aDocumentContext collaborationContext: aCollaborationContext [
+	^ self new
+		participant: aParticipant;
+		bounds: aRectangle;
+		processMemento: aMemento;
+		documentContext: aDocumentContext;
+		collaborationContext: aCollaborationContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierCreateParticipant >> assess [
-	| context collaboration diagram participants elements createsCollaboration referencesProcess shape proposedParticipants proposedElements participantsDescription planeElementsDescription boundsDescription |
+	| context collaboration diagram participants elements createsCollaboration referencesProcess shape proposedParticipants proposedElements participantsDescription planeElementsDescription boundsDescription proposedRootElements proposedDiagrams |
 	participant ifNil: [ ^ self rejectedBecause: 'A Participant is required.' ].
 	participant isParticipant ifFalse: [ ^ self rejectedBecause: 'Only a Participant can create a Pool.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Pool bounds are required.' ].
 
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	createsCollaboration := context isNil.
 	createsCollaboration
 		ifTrue: [
 			collaboration := CPCollaboration new label: 'Collaboration'; yourself.
 			diagram := CPDiagram new.
-			collaboration diagram: diagram.
+			diagram plane modelElement: collaboration.
+			documentContext ifNil: [ collaboration diagram: diagram ].
 			participants := OrderedCollection new.
 			elements := diagram plane elements.
-			participantsDescription := collaboration magritteDescription
-				detect: [ :each | each handlesSelector: #participants ].
+			participantsDescription := collaboration participantsDescription.
 			planeElementsDescription := diagram plane elementsDescription ]
 		ifFalse: [
 			collaboration := context collaboration.
@@ -60,8 +73,7 @@ CPAtelierCreateParticipant >> assess [
 		modelElement: participant;
 		bounds: bounds;
 		yourself.
-	boundsDescription := shape magritteDescription
-		detect: [ :each | each handlesSelector: #bounds ].
+	boundsDescription := shape boundsDescription.
 	[ boundsDescription validate: bounds ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
@@ -79,6 +91,18 @@ CPAtelierCreateParticipant >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
+	(createsCollaboration and: [ documentContext notNil ]) ifTrue: [
+		proposedRootElements := documentContext rootElements asOrderedCollection copy.
+		proposedRootElements add: collaboration.
+		proposedDiagrams := documentContext diagrams asOrderedCollection copy.
+		proposedDiagrams add: diagram.
+		[ documentContext validateRootElements: proposedRootElements ]
+			on: MAValidationError
+			do: [ :anException | ^ self rejectedBecause: anException printString ].
+		[ documentContext validateDiagrams: proposedDiagrams ]
+			on: MAValidationError
+			do: [ :anException | ^ self rejectedBecause: anException printString ] ].
+
 	^ CPAtelierCreateParticipantAssessment
 		participant: participant
 		shape: shape
@@ -92,30 +116,28 @@ CPAtelierCreateParticipant >> assess [
 
 { #category : 'applying' }
 CPAtelierCreateParticipant >> applyAssessment: anAssessment [
-	| collaborationDescription collaborationMemento participantsDescription participantMemento processRefDescription diagramDescription diagramContext |
+	documentContext
+		ifNil: [ self applyLegacyAssessment: anAssessment ]
+		ifNotNil: [ self applyDocumentAssessment: anAssessment ]
+]
+
+{ #category : 'private - applying' }
+CPAtelierCreateParticipant >> applyDocumentAssessment: anAssessment [
+	| collaborationMemento participantsDescription participantMemento processRefDescription diagramContext collaborationDescription rootElements diagrams |
+	collaborationDescription := processMemento model definitionalCollaborationRefDescription.
 
 	anAssessment createsCollaboration ifTrue: [
-		collaborationDescription := processMemento magritteDescription
-			detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
-		processMemento
-			write: anAssessment collaboration
-			using: collaborationDescription.
-		collaborationMemento := processMemento
-			childMementoFor: anAssessment collaboration
-			inRelation: collaborationDescription.
-		diagramDescription := collaborationMemento magritteDescription
-			detect: [ :each | each handlesSelector: #diagram ].
-		collaborationMemento
-			write: anAssessment diagram
-			using: diagramDescription ]
-	ifFalse: [
-		collaborationMemento := (CPProcessCollaborationContext
-			inRootMemento: processMemento) collaborationMemento.
-		diagramDescription := collaborationMemento magritteDescription
-			detect: [ :each | each handlesSelector: #diagram ] ].
+		rootElements := documentContext rootElements asOrderedCollection copy.
+		rootElements add: anAssessment collaboration.
+		diagrams := documentContext diagrams asOrderedCollection copy.
+		diagrams add: anAssessment diagram.
+		documentContext
+			writeRootElements: rootElements;
+			writeDiagrams: diagrams.
+		processMemento write: anAssessment collaboration using: collaborationDescription ].
 
-	participantsDescription := collaborationMemento magritteDescription
-		detect: [ :each | each handlesSelector: #participants ].
+	collaborationMemento := documentContext mementoForRootElement: anAssessment collaboration.
+	participantsDescription := anAssessment collaboration participantsDescription.
 	collaborationMemento
 		write: anAssessment proposedParticipants
 		using: participantsDescription.
@@ -123,8 +145,44 @@ CPAtelierCreateParticipant >> applyAssessment: anAssessment [
 		participantMemento := collaborationMemento
 			childMementoFor: anAssessment participant
 			inRelation: participantsDescription.
-		processRefDescription := participantMemento magritteDescription
-			detect: [ :each | each handlesSelector: #processRef ].
+		processRefDescription := anAssessment participant processRefDescription.
+		participantMemento
+			write: processMemento model
+			using: processRefDescription ].
+
+	diagramContext := documentContext diagramContextFor: anAssessment diagram.
+	diagramContext writeElements: anAssessment proposedDiagramElements
+]
+
+{ #category : 'private - applying' }
+CPAtelierCreateParticipant >> applyLegacyAssessment: anAssessment [
+	| collaborationDescription collaborationMemento participantsDescription participantMemento processRefDescription diagramDescription diagramContext |
+
+	anAssessment createsCollaboration ifTrue: [
+		collaborationDescription := processMemento model definitionalCollaborationRefDescription.
+		processMemento
+			write: anAssessment collaboration
+			using: collaborationDescription.
+		collaborationMemento := processMemento
+			childMementoFor: anAssessment collaboration
+			inRelation: collaborationDescription.
+		diagramDescription := anAssessment collaboration diagramDescription.
+		collaborationMemento
+			write: anAssessment diagram
+			using: diagramDescription ]
+	ifFalse: [
+		collaborationMemento := self stagedCollaborationContext collaborationMemento.
+		diagramDescription := anAssessment collaboration diagramDescription ].
+
+	participantsDescription := anAssessment collaboration participantsDescription.
+	collaborationMemento
+		write: anAssessment proposedParticipants
+		using: participantsDescription.
+	anAssessment referencesProcess ifTrue: [
+		participantMemento := collaborationMemento
+			childMementoFor: anAssessment participant
+			inRelation: participantsDescription.
+		processRefDescription := anAssessment participant processRefDescription.
 		participantMemento
 			write: processMemento model
 			using: processRefDescription ].
@@ -134,6 +192,13 @@ CPAtelierCreateParticipant >> applyAssessment: anAssessment [
 		inMemento: collaborationMemento
 		using: diagramDescription.
 	diagramContext writeElements: anAssessment proposedDiagramElements
+]
+
+{ #category : 'private - staged state' }
+CPAtelierCreateParticipant >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	documentContext ifNotNil: [ ^ nil ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
 ]
 
 { #category : 'private' }
@@ -149,3 +214,7 @@ CPAtelierCreateParticipant >> participant: anObject [ participant := anObject ]
 CPAtelierCreateParticipant >> bounds: aRectangle [ bounds := aRectangle ]
 { #category : 'accessing' }
 CPAtelierCreateParticipant >> processMemento: aMemento [ processMemento := aMemento ]
+{ #category : 'accessing' }
+CPAtelierCreateParticipant >> documentContext: aContext [ documentContext := aContext ]
+{ #category : 'accessing' }
+CPAtelierCreateParticipant >> collaborationContext: aContext [ collaborationContext := aContext ]

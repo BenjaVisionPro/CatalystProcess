@@ -1,12 +1,14 @@
-"I stage removal of one Participant from the root Process's definitional Collaboration.
+"I stage removal of one Participant from the edited Process's Collaboration.
 
-I remove its Pool CPShape and every incident MessageFlow/CPEdge. Removing the sole Participant also removes the definitional Collaboration so the edited Process returns to its standalone diagram. I reject removal of the Participant that hosts the edited Process while other Participants remain, because that would leave the Process invisible in the Collaboration presentation."
+In a document-rooted session I mutate the canonical Collaboration and Diagram owned by CPDefinitions. The legacy Process-rooted path remains temporarily for the old CPProcess>>asAtelier entry."
 Class {
 	#name : 'CPAtelierRemoveParticipant',
 	#superclass : 'CFAtelierOperation',
 	#instVars : [
 		'participant',
-		'processMemento'
+		'processMemento',
+		'documentContext',
+		'collaborationContext'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -18,11 +20,21 @@ CPAtelierRemoveParticipant class >> participant: aParticipant processMemento: aM
 	^ self new participant: aParticipant; processMemento: aMemento; yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierRemoveParticipant class >> participant: aParticipant processMemento: aMemento documentContext: aDocumentContext collaborationContext: aCollaborationContext [
+	^ self new
+		participant: aParticipant;
+		processMemento: aMemento;
+		documentContext: aDocumentContext;
+		collaborationContext: aCollaborationContext;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierRemoveParticipant >> assess [
 	| context participants proposedParticipants removedMessageFlows removedDiagramElements proposedMessageFlows proposedElements removesCollaboration |
 	participant ifNil: [ ^ self rejectedBecause: 'A Participant is required.' ].
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	context := self stagedCollaborationContext.
 	context ifNil: [ ^ self rejectedBecause: 'The Process has no staged definitional Collaboration.' ].
 	participants := context participants.
 	(participants identityIncludes: participant) ifFalse: [
@@ -65,15 +77,47 @@ CPAtelierRemoveParticipant >> assess [
 
 { #category : 'applying' }
 CPAtelierRemoveParticipant >> applyAssessment: anAssessment [
-	| context collaborationDescription |
-	context := CPProcessCollaborationContext inRootMemento: processMemento.
+	documentContext
+		ifNil: [ self applyLegacyAssessment: anAssessment ]
+		ifNotNil: [ self applyDocumentAssessment: anAssessment ]
+]
+
+{ #category : 'private - applying' }
+CPAtelierRemoveParticipant >> applyDocumentAssessment: anAssessment [
+	| context collaborationDescription rootElements diagrams |
+	context := self stagedCollaborationContext.
 	anAssessment removesCollaboration ifTrue: [
-		collaborationDescription := processMemento magritteDescription
-			detect: [ :each | each handlesSelector: #definitionalCollaborationRef ].
+		collaborationDescription := processMemento model definitionalCollaborationRefDescription.
+		processMemento write: nil using: collaborationDescription.
+		rootElements := documentContext rootElements species withAll:
+			(documentContext rootElements reject: [ :each | each == context collaboration ]).
+		diagrams := documentContext diagrams species withAll:
+			(documentContext diagrams reject: [ :each | each == context diagram ]).
+		documentContext
+			writeRootElements: rootElements;
+			writeDiagrams: diagrams;
+			detachRootElement: context collaboration;
+			detachDiagram: context diagram.
+		^ self ].
+
+	self applyRemovalAssessment: anAssessment in: context
+]
+
+{ #category : 'private - applying' }
+CPAtelierRemoveParticipant >> applyLegacyAssessment: anAssessment [
+	| context collaborationDescription |
+	context := self stagedCollaborationContext.
+	anAssessment removesCollaboration ifTrue: [
+		collaborationDescription := processMemento model definitionalCollaborationRefDescription.
 		processMemento write: nil using: collaborationDescription.
 		processMemento detachChildMementoFor: context collaboration inRelation: collaborationDescription.
 		^ self ].
 
+	self applyRemovalAssessment: anAssessment in: context
+]
+
+{ #category : 'private - applying' }
+CPAtelierRemoveParticipant >> applyRemovalAssessment: anAssessment in: context [
 	context collaborationMemento
 		write: anAssessment proposedParticipants using: context participantsDescription;
 		write: anAssessment proposedMessageFlows using: context messageFlowsDescription.
@@ -84,6 +128,13 @@ CPAtelierRemoveParticipant >> applyAssessment: anAssessment [
 		context collaborationMemento detachChildMementoFor: aMessageFlow inRelation: context messageFlowsDescription ].
 	anAssessment removedDiagramElements do: [ :anElement |
 		context diagramContext detachElement: anElement ]
+]
+
+{ #category : 'private - staged state' }
+CPAtelierRemoveParticipant >> stagedCollaborationContext [
+	collaborationContext ifNotNil: [ ^ collaborationContext ].
+	documentContext ifNotNil: [ ^ nil ].
+	^ CPProcessCollaborationContext inRootMemento: processMemento
 ]
 
 { #category : 'private - staged state' }
@@ -120,3 +171,7 @@ CPAtelierRemoveParticipant >> rejectedBecause: aString [
 CPAtelierRemoveParticipant >> participant: anObject [ participant := anObject ]
 { #category : 'accessing' }
 CPAtelierRemoveParticipant >> processMemento: aMemento [ processMemento := aMemento ]
+{ #category : 'accessing' }
+CPAtelierRemoveParticipant >> documentContext: aContext [ documentContext := aContext ]
+{ #category : 'accessing' }
+CPAtelierRemoveParticipant >> collaborationContext: aContext [ collaborationContext := aContext ]

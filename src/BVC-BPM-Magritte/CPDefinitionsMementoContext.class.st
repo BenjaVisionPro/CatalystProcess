@@ -80,3 +80,34 @@ CPDefinitionsMementoContext >> diagramsDepicting: aModelElement [
 	^ self diagrams select: [ :each |
 		(self diagramContextFor: each) planeModelElement == aModelElement ]
 ]
+
+
+{ #category : 'validation' }
+CPDefinitionsMementoContext >> validateRootElements: aCollection [
+	^ rootElementsDescription validate: aCollection
+]
+
+{ #category : 'validation' }
+CPDefinitionsMementoContext >> validateDiagrams: aCollection [
+	^ diagramsDescription validate: aCollection
+]
+
+{ #category : 'staged state' }
+CPDefinitionsMementoContext >> writeRootElements: aCollection [
+	definitionsMemento write: aCollection using: rootElementsDescription
+]
+
+{ #category : 'staged state' }
+CPDefinitionsMementoContext >> writeDiagrams: aCollection [
+	definitionsMemento write: aCollection using: diagramsDescription
+]
+
+{ #category : 'staged state' }
+CPDefinitionsMementoContext >> detachRootElement: aRootElement [
+	definitionsMemento detachChildMementoFor: aRootElement inRelation: rootElementsDescription
+]
+
+{ #category : 'staged state' }
+CPDefinitionsMementoContext >> detachDiagram: aDiagram [
+	definitionsMemento detachChildMementoFor: aDiagram inRelation: diagramsDescription
+]

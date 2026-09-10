@@ -2772,3 +2772,89 @@ CPProcessAtelierExamples >> definitionsEditingSessionUsesCanonicalCollaborationM
 	self assert: collaborationContext participants first == participant.
 	^ session
 ]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> documentRootedCreateFirstParticipantUsesDefinitionsOwnership [
+	<gtExample>
+	| definitions process processDiagram root session participant operation assessment collaboration collaborationDiagram |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:participant-create';
+		yourself.
+	process := CPProcess new label: 'Process'; yourself.
+	processDiagram := CPDiagram new modelElement: process; yourself.
+	definitions
+		addRootElement: process;
+		addDiagram: processDiagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: processDiagram.
+	participant := CPParticipant new label: 'Pool'; yourself.
+	operation := CPAtelierCreateParticipant
+		participant: participant
+		bounds: (40 @ 40 extent: 620 @ 230)
+		processMemento: session processMemento
+		documentContext: session documentContext
+		collaborationContext: session collaborationContext.
+
+	assessment := operation apply.
+	collaboration := assessment collaboration.
+	collaborationDiagram := assessment diagram.
+
+	self assert: assessment isApplicable.
+	self assert: assessment createsCollaboration.
+	self assert: (session documentContext rootElements identityIncludes: collaboration).
+	self assert: (session documentContext diagrams identityIncludes: collaborationDiagram).
+	self assert: (session processMemento readUsing: process definitionalCollaborationRefDescription) == collaboration.
+	self assert: (session documentContext mementoForRootElement: collaboration) model == collaboration.
+	self assert: collaboration diagram isNil.
+	^ assessment
+]
+
+{ #category : 'examples - collaboration participants' }
+CPProcessAtelierExamples >> documentRootedRemoveSoleParticipantRemovesDefinitionsOwnedCollaboration [
+	<gtExample>
+	| definitions process collaboration participant diagram shape root session operation assessment |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:participant-remove';
+		yourself.
+	process := CPProcess new label: 'Process'; yourself.
+	collaboration := CPCollaboration new label: 'Collaboration'; yourself.
+	participant := CPParticipant new
+		label: 'Pool';
+		processRef: process;
+		yourself.
+	collaboration addParticipant: participant.
+	process definitionalCollaborationRef: collaboration.
+	diagram := CPDiagram new modelElement: collaboration; yourself.
+	shape := CPShape new
+		modelElement: participant;
+		bounds: (40 @ 40 extent: 620 @ 230);
+		yourself.
+	diagram addElement: shape.
+	definitions
+		addRootElement: process;
+		addRootElement: collaboration;
+		addDiagram: diagram.
+	root := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: root
+		process: process
+		diagram: diagram.
+	operation := CPAtelierRemoveParticipant
+		participant: participant
+		processMemento: session processMemento
+		documentContext: session documentContext
+		collaborationContext: session collaborationContext.
+
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment removesCollaboration.
+	self assert: (session documentContext rootElements identityIncludes: collaboration) not.
+	self assert: (session documentContext diagrams identityIncludes: diagram) not.
+	self assert: (session processMemento readUsing: process definitionalCollaborationRefDescription) isNil.
+	self assert: process definitionalCollaborationRef == collaboration.
+	^ assessment
+]

@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'processMemento',
 		'diagramContext',
-		'collaborationContext'
+		'collaborationContext',
+		'documentContext'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -16,15 +17,21 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramContext: aDiagramContext [
-	^ self processMemento: aMemento diagramContext: aDiagramContext collaborationContext: nil
+	^ self processMemento: aMemento diagramContext: aDiagramContext collaborationContext: nil documentContext: nil
 ]
 
 { #category : 'instance creation' }
 CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramContext: aDiagramContext collaborationContext: aCollaborationContext [
+	^ self processMemento: aMemento diagramContext: aDiagramContext collaborationContext: aCollaborationContext documentContext: nil
+]
+
+{ #category : 'instance creation' }
+CPProcessAtelierDiagramEditing class >> processMemento: aMemento diagramContext: aDiagramContext collaborationContext: aCollaborationContext documentContext: aDocumentContext [
 	^ self new
 		processMemento: aMemento;
 		diagramContext: aDiagramContext;
 		collaborationContext: aCollaborationContext;
+		documentContext: aDocumentContext;
 		yourself
 ]
 
@@ -37,6 +44,9 @@ CPProcessAtelierDiagramEditing >> diagramContext: aDiagramContext [ diagramConte
 
 { #category : 'accessing' }
 CPProcessAtelierDiagramEditing >> collaborationContext: aCollaborationContext [ collaborationContext := aCollaborationContext ]
+
+{ #category : 'accessing' }
+CPProcessAtelierDiagramEditing >> documentContext: aDocumentContext [ documentContext := aDocumentContext ]
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedToShape: anActivityShape bounds: proposedBounds [
@@ -94,6 +104,8 @@ CPProcessAtelierDiagramEditing >> createParticipant: aParticipant bounds: propos
 		participant: aParticipant
 		bounds: proposedBounds
 		processMemento: processMemento
+		documentContext: documentContext
+		collaborationContext: collaborationContext
 ]
 
 
@@ -358,6 +370,8 @@ CPProcessAtelierDiagramEditing >> remove: someDiagramElements [
 		diagramElements: someDiagramElements
 		processMemento: processMemento
 		diagramContext: diagramContext
+		documentContext: documentContext
+		collaborationContext: collaborationContext
 ]
 
 { #category : 'operation factories' }
