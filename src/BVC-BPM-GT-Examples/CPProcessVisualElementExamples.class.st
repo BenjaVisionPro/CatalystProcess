@@ -3038,8 +3038,8 @@ CPProcessVisualElementExamples >> nestedLaneMembershipUsesDeepestProjectionHostA
 	self assert: assessment isApplicable.
 
 	laneContext := CPProcessLaneContext inRootMemento: memento.
-	self assert: (laneContext stagedFlowNodeRefsOf: parentLane) identityIncludes: task.
-	self assert: (laneContext stagedFlowNodeRefsOf: childLane) identityIncludes: task.
+	self assert: ((laneContext stagedFlowNodeRefsOf: parentLane) identityIncludes: task).
+	self assert: ((laneContext stagedFlowNodeRefsOf: childLane) identityIncludes: task).
 	self assert: ((laneContext stagedFlowNodeRefsOf: siblingLane) identityIncludes: task) not.
 
 	visual := CPProcessVisualElement new
@@ -3058,6 +3058,6 @@ CPProcessVisualElementExamples >> nestedLaneMembershipUsesDeepestProjectionHostA
 	self assert: assessment isApplicable.
 	self assert: ((laneContext stagedFlowNodeRefsOf: parentLane) identityIncludes: task) not.
 	self assert: ((laneContext stagedFlowNodeRefsOf: childLane) identityIncludes: task) not.
-	self assert: (laneContext stagedFlowNodeRefsOf: siblingLane) identityIncludes: task.
+	self assert: ((laneContext stagedFlowNodeRefsOf: siblingLane) identityIncludes: task).
 	^ visual
 ]
