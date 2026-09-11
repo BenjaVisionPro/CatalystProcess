@@ -5225,7 +5225,9 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 						width: 180) ] ] ] ].
 	self forceLayout.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
-		self updateLiveGeometryForEdge: anEdge visual: anEdgeVisual ]
+		self updateLiveGeometryForEdge: anEdge visual: anEdgeVisual.
+		anEdgeVisual hasLabelHost ifTrue: [
+			self positionLiveEdgeLabelFor: anEdge ] ]
 ]
 
 { #category : 'private - lanes' }

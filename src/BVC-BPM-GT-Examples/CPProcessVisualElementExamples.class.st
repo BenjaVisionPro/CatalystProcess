@@ -3295,6 +3295,66 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesExternalFlowNodeLabel [
 
 
 { #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
+	<gtExample>
+	| fixture session visual edge edgeLabel topLane topShape participant participantShape editing assessment laneBounds flowNodeBounds target targetShape proposedTargetBounds segmentIndex segmentPosition offset placement |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	edge := fixture ninth.
+	edgeLabel := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
+	self assert: edgeLabel notNil.
+	topLane := fixture eighth.
+	topShape := (session diagramContext shapesForModelElement: topLane) anyOne.
+	target := session processMemento model flowElements
+		detect: [ :each | each isActivity ].
+	targetShape := (session diagramContext shapesForModelElement: target) anyOne.
+	participant := session collaborationContext
+		participantForProcess: session processMemento model.
+	participantShape := (session collaborationContext diagramContext
+		shapesForModelElement: participant) anyOne.
+	editing := visual diagramEditing.
+
+	assessment := (editing
+		resizeShape: participantShape
+		toBounds: (80 @ 60 extent: 820 @ 500)) assess.
+	self assert: assessment isApplicable.
+	laneBounds := assessment proposedLaneBoundsByShape.
+	flowNodeBounds := assessment proposedFlowNodeBoundsByShape.
+	proposedTargetBounds := flowNodeBounds at: targetShape.
+
+	visual
+		previewLaneBoundsByShape: laneBounds
+		flowNodeBoundsByShape: flowNodeBounds.
+
+	segmentIndex := (visual stagedLabelSegmentIndexOf: edge)
+		ifNil: [
+			(visual
+				edgeLabelPathFor: edge
+				waypoints: (visual stagedWaypointsOf: edge)
+				usingLiveBounds: true) defaultSegmentIndex ].
+	segmentPosition := (visual stagedLabelSegmentPositionOf: edge) ifNil: [ 0.5 ].
+	offset := (visual stagedLabelOffsetOf: edge) ifNil: [ -14.0 ].
+	placement := visual
+		labelPlacementFor: edge
+		segmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset
+		waypoints: (visual stagedWaypointsOf: edge)
+		usingLiveBounds: true.
+
+	self
+		assert: edgeLabel position
+		equals: (placement first x - 90) @ (placement first y - 22).
+	self
+		assert: (visual diagramBoundsForElement:
+			(visual shapeElementsByModelElement at: target))
+		equals: proposedTargetBounds.
+	^ visual
+]
+
+
+{ #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> resizingPoolMovesFlowNodesWithTheirLanes [
 	<gtExample>
 	| fixture session target targetShape edge participant participantShape originalTargetBounds originalWaypoints assessment topLane topShape originalTopBounds resizedTopBounds expectedDelta resizedTargetBounds resizedWaypoints |
