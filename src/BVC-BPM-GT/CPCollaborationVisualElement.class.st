@@ -320,11 +320,12 @@ CPCollaborationVisualElement >> minimumParticipantExtent [
 
 { #category : 'private - sizing' }
 CPCollaborationVisualElement >> minimumParticipantExtentForShape: aShape [
-	| baseExtent laneMinimumHeight |
+	| baseExtent laneMinimumWidth laneMinimumHeight |
 	baseExtent := self minimumParticipantExtent.
+	laneMinimumWidth := diagramEditing minimumWidthForResizeShape: aShape.
 	laneMinimumHeight := diagramEditing minimumHeightForResizeShape: aShape.
-	laneMinimumHeight ifNil: [ ^ baseExtent ].
-	^ baseExtent x @ (baseExtent y max: laneMinimumHeight)
+	^ (baseExtent x max: (laneMinimumWidth ifNil: [ 0 ]))
+		@ (baseExtent y max: (laneMinimumHeight ifNil: [ 0 ]))
 ]
 
 { #category : 'private - building' }

@@ -1295,6 +1295,66 @@ CPProcessAtelierExamples >> transferringOpenTopologyRejectsBoundarySequenceFlow 
 ]
 
 
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> verticalLaneResizeFixture [
+	| process processDiagram laneSet firstLane secondLane firstLaneShape secondLaneShape collaboration participant collaborationDiagram participantShape memento |
+	process := CPProcess new label: 'Vertical process'; yourself.
+	processDiagram := CPDiagram new.
+	process diagram: processDiagram.
+
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'Left'; yourself.
+	secondLane := CPLane new label: 'Right'; yourself.
+	laneSet
+		addLane: firstLane;
+		addLane: secondLane.
+	process addLaneSet: laneSet.
+
+	firstLaneShape := CPShape new
+		modelElement: firstLane;
+		bounds: (0 @ 0 extent: 200 @ 300);
+		isHorizontal: false;
+		yourself.
+	secondLaneShape := CPShape new
+		modelElement: secondLane;
+		bounds: (200 @ 0 extent: 200 @ 300);
+		isHorizontal: false;
+		yourself.
+	processDiagram
+		addElement: firstLaneShape;
+		addElement: secondLaneShape.
+
+	collaboration := CPCollaboration new label: 'Vertical collaboration'; yourself.
+	participant := CPParticipant new
+		label: 'Vertical pool';
+		processRef: process;
+		yourself.
+	collaboration addParticipant: participant.
+	collaborationDiagram := CPDiagram new.
+	collaboration diagram: collaborationDiagram.
+	participantShape := CPShape new
+		modelElement: participant;
+		bounds: (0 @ 0 extent: 400 @ 336);
+		isHorizontal: false;
+		yourself.
+	collaborationDiagram addElement: participantShape.
+	process definitionalCollaborationRef: collaboration.
+
+	memento := CFMaMemento model: process.
+	^ {
+		process.
+		memento.
+		participant.
+		participantShape.
+		firstLane.
+		firstLaneShape.
+		secondLane.
+		secondLaneShape
+	}
+]
+
+
 { #category : 'private - fixture' }
 CPProcessAtelierExamples >> collaborationFixture [
 	| process localTask collaboration localParticipant externalParticipant processDiagram taskShape collaborationDiagram localPool externalPool memento |
@@ -2320,6 +2380,56 @@ CPProcessAtelierExamples >> changingBoundaryEventDefinitionPreservesBoundaryIden
 	self assert: definitions first class equals: CPEscalationEventDefinition.
 	self assert: boundary eventDefinitions first class equals: CPTimerEventDefinition.
 	self assert: (context stagedFlowElements identityIncludes: boundary).
+	^ assessment
+]
+
+
+
+{ #category : 'examples - lanes - vertical' }
+CPProcessAtelierExamples >> verticalPoolResizeReflowsLanesByWidth [
+	<gtExample>
+	| fixture memento participantShape context diagramContext operation assessment firstBounds secondBounds |
+	fixture := self verticalLaneResizeFixture.
+	memento := fixture second.
+	participantShape := fixture fourth.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+	diagramContext := self diagramContextForMemento: memento.
+
+	operation := CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (0 @ 0 extent: 600 @ 336)
+		processMemento: memento
+		collaborationContext: context
+		processDiagramContext: diagramContext.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable.
+	firstBounds := assessment proposedLaneBoundsByShape at: fixture sixth.
+	secondBounds := assessment proposedLaneBoundsByShape at: fixture eighth.
+	self assert: firstBounds equals: (0 @ 0 extent: 300 @ 300).
+	self assert: secondBounds equals: (300 @ 0 extent: 300 @ 300).
+	^ assessment
+]
+
+{ #category : 'examples - lanes - vertical' }
+CPProcessAtelierExamples >> verticalPoolResizeRejectsBelowLaneMinimumWidth [
+	<gtExample>
+	| fixture memento participantShape context diagramContext operation assessment |
+	fixture := self verticalLaneResizeFixture.
+	memento := fixture second.
+	participantShape := fixture fourth.
+	context := CPProcessCollaborationContext inRootMemento: memento.
+	diagramContext := self diagramContextForMemento: memento.
+
+	operation := CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (0 @ 0 extent: 279 @ 336)
+		processMemento: memento
+		collaborationContext: context
+		processDiagramContext: diagramContext.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable not.
 	^ assessment
 ]
 

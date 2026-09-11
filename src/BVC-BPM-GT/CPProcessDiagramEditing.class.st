@@ -158,3 +158,10 @@ CPProcessDiagramEditing >> resizePreviewForShape: aShape toBounds: proposedBound
 CPProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ self subclassResponsibility
 ]
+
+{ #category : 'geometry constraints' }
+CPProcessDiagramEditing >> minimumWidthForResizeShape: aShape [
+	^ self subclassResponsibility
+]
+
+

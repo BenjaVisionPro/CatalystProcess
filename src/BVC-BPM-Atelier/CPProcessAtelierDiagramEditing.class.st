@@ -572,3 +572,22 @@ CPProcessAtelierDiagramEditing >> minimumHeightForResizeShape: aShape [
 		processDiagramContext: diagramContext.
 	^ operation minimumParticipantHeightForStagedLanes
 ]
+
+{ #category : 'geometry constraints' }
+CPProcessAtelierDiagramEditing >> minimumWidthForResizeShape: aShape [
+	| collaboration participant operation |
+	collaboration := self stagedCollaborationContext.
+	collaboration ifNil: [ ^ nil ].
+	(collaboration elements identityIncludes: aShape) ifFalse: [ ^ nil ].
+	participant := collaboration diagramContext modelElementOf: aShape.
+	(collaboration processRefOf: participant) == processMemento model ifFalse: [ ^ nil ].
+	operation := CPAtelierResizeParticipantShape
+		shape: aShape
+		bounds: (collaboration diagramContext boundsOf: aShape)
+		processMemento: processMemento
+		collaborationContext: collaboration
+		processDiagramContext: diagramContext.
+	^ operation minimumParticipantWidthForStagedLanes
+]
+
+

@@ -144,6 +144,13 @@ CPReadOnlyProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ nil
 ]
 
+{ #category : 'geometry constraints' }
+CPReadOnlyProcessDiagramEditing >> minimumWidthForResizeShape: aShape [
+	^ nil
+]
+
+
+
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedBounds [
 	^ nil

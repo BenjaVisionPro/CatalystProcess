@@ -26,14 +26,21 @@ CPAtelierResizeParticipantShape class >> shape: aShape bounds: aRectangle proces
 
 { #category : 'assessing' }
 CPAtelierResizeParticipantShape >> assess [
-	| baseAssessment proposedLaneBounds proposedFlowNodeBounds proposedWaypoints minimumHeight validationError |
+	| baseAssessment proposedLaneBounds proposedFlowNodeBounds proposedWaypoints minimumHeight minimumWidth validationError |
 	baseAssessment := super assess.
 	baseAssessment isApplicable ifFalse: [ ^ baseAssessment ].
+
 	minimumHeight := self minimumParticipantHeightForStagedLanes.
 	(minimumHeight notNil and: [ baseAssessment proposedBounds height < minimumHeight ]) ifTrue: [
 		^ self
 			rejectedWithCurrentBounds: baseAssessment currentBounds
 			because: 'The Pool is too short to preserve the computed minimum heights of its Lanes.' ].
+
+	minimumWidth := self minimumParticipantWidthForStagedLanes.
+	(minimumWidth notNil and: [ baseAssessment proposedBounds width < minimumWidth ]) ifTrue: [
+		^ self
+			rejectedWithCurrentBounds: baseAssessment currentBounds
+			because: 'The Pool is too narrow to preserve the computed minimum widths of its Lanes.' ].
 
 	proposedLaneBounds := self
 		proposedLaneBoundsForParticipantBounds: baseAssessment proposedBounds.
@@ -97,8 +104,9 @@ CPAtelierResizeParticipantShape >> proposedLaneBoundsForParticipantBounds: propo
 
 	diagramContext := self stagedProcessDiagramContext.
 	diagramContext ifNil: [ ^ nil ].
-	bodyExtent := (proposedParticipantBounds width - CPParticipantShapeElement processContentOriginOffset x)
-		@ proposedParticipantBounds height.
+	bodyExtent := proposedParticipantBounds extent
+		- ((CPPoolLaneOrientation forShape: shape)
+			participantContentOriginOffset).
 	bodyExtent x > 0 ifFalse: [ ^ nil ].
 	bodyExtent y > 0 ifFalse: [ ^ nil ].
 	proposedBounds := IdentityDictionary new.
@@ -135,6 +143,7 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
 	| laneContext laneSets diagramContext |
+	shape isHorizontal ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSets := laneContext stagedLaneSets.
 	laneSets ifEmpty: [ ^ CPAtelierLaneLayout minimumLaneHeight ].
@@ -143,7 +152,28 @@ CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
 	^ laneSets
 		inject: 0
 		into: [ :minimum :aLaneSet |
-			minimum max: (self minimumHeightForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext) ]
+			minimum max: (self
+				minimumHeightForLaneSet: aLaneSet
+				using: laneContext
+				diagramContext: diagramContext) ]
+]
+
+{ #category : 'private - geometry' }
+CPAtelierResizeParticipantShape >> minimumParticipantWidthForStagedLanes [
+	| laneContext laneSets diagramContext |
+	shape isHorizontal ifTrue: [ ^ nil ].
+	laneContext := CPProcessLaneContext inRootMemento: processMemento.
+	laneSets := laneContext stagedLaneSets.
+	laneSets ifEmpty: [ ^ CPAtelierLaneLayout minimumLaneWidth ].
+	diagramContext := self stagedProcessDiagramContext.
+	diagramContext ifNil: [ ^ nil ].
+	^ laneSets
+		inject: 0
+		into: [ :minimum :aLaneSet |
+			minimum max: (CPAtelierLaneLayout
+				minimumWidthForLaneSet: aLaneSet
+				using: laneContext
+				diagramContext: diagramContext) ]
 ]
 
 { #category : 'private - geometry' }
