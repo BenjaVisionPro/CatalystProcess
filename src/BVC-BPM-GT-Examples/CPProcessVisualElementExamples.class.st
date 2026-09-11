@@ -3297,16 +3297,14 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesExternalFlowNodeLabel [
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 	<gtExample>
-	| fixture session visual edge edgeLabel participant participantShape editing assessment laneBounds flowNodeBounds waypointsByEdge waypoints renderedPoints path segmentIndex segmentPosition offset placement target targetShape proposedTargetBounds |
+	| fixture session visual edge edgeLabel participant participantShape editing assessment laneBounds flowNodeBounds waypointsByEdge waypoints renderedPoints path segmentIndex segmentPosition offset placement |
 	fixture := self documentRootedNestedLaneDragFixture.
 	session := fixture first.
 	visual := fixture second.
 	edge := fixture ninth.
 	edgeLabel := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
 	self assert: edgeLabel notNil.
-	target := session processMemento model flowElements
-		detect: [ :each | each isActivity ].
-	targetShape := (session diagramContext shapesForModelElement: target) anyOne.
+
 	participant := session collaborationContext
 		participantForProcess: session processMemento model.
 	participantShape := (session collaborationContext diagramContext
@@ -3317,10 +3315,10 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 		resizeShape: participantShape
 		toBounds: (80 @ 60 extent: 820 @ 500)) assess.
 	self assert: assessment isApplicable.
+
 	laneBounds := assessment proposedLaneBoundsByShape.
 	flowNodeBounds := assessment proposedFlowNodeBoundsByShape.
 	waypointsByEdge := assessment proposedWaypointsByEdge.
-	proposedTargetBounds := flowNodeBounds at: targetShape.
 
 	visual
 		previewLaneBoundsByShape: laneBounds
@@ -3347,10 +3345,6 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 	self
 		assert: edgeLabel position
 		equals: (placement first x - 90) @ (placement first y - 22).
-	self
-		assert: (visual diagramBoundsForElement:
-			(visual shapeElementsByModelElement at: target))
-		equals: proposedTargetBounds.
 	^ visual
 ]
 

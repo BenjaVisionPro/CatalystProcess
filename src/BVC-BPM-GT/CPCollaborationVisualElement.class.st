@@ -301,18 +301,22 @@ CPCollaborationVisualElement >> previewLaneGeometryForParticipantShape: aShape b
 	| participant laneBounds flowNodeBounds waypointsByEdge |
 	participant := self stagedModelElementOf: aShape.
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifFalse: [ ^ self ].
+
 	laneBounds := diagramEditing
 		laneBoundsPreviewForResizeShape: aShape
 		toBounds: proposedBounds.
 	laneBounds ifNil: [ ^ self ].
+
 	flowNodeBounds := diagramEditing
 		flowNodeBoundsPreviewForResizeShape: aShape
 		toBounds: proposedBounds.
 	flowNodeBounds ifNil: [ flowNodeBounds := IdentityDictionary new ].
+
 	waypointsByEdge := diagramEditing
 		waypointsPreviewForResizeShape: aShape
 		toBounds: proposedBounds.
 	waypointsByEdge ifNil: [ waypointsByEdge := IdentityDictionary new ].
+
 	processVisual
 		previewLaneBoundsByShape: laneBounds
 		flowNodeBoundsByShape: flowNodeBounds

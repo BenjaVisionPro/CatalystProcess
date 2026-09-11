@@ -1176,6 +1176,7 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 	target := self stagedTargetOf: sequenceFlow.
 	sourceShape := self shapeForModelElement: source.
 	targetShape := self shapeForModelElement: target.
+
 	sourceBounds := proposedFlowNodeBounds
 		at: sourceShape
 		ifAbsent: [ self stagedBoundsOf: sourceShape ].
@@ -1203,6 +1204,7 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 		dockingPointFor: target
 		bounds: targetBounds
 		toward: (someWaypoints at: someWaypoints size - 1).
+
 	points := OrderedCollection new.
 	points add: sourcePoint.
 	2 to: someWaypoints size - 1 do: [ :index |
@@ -1417,6 +1419,8 @@ CPProcessVisualElement >> diamondDockingPointForBounds: bounds toward: aPoint [
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingRenderedPoints: renderedPoints [
 	| labelHost path segmentIndex segmentPosition offset placement |
 	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
+	renderedPoints size < 2 ifTrue: [ ^ self ].
+
 	path := CPProcessEdgeLabelPath points: renderedPoints.
 	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
 		ifNil: [ path defaultSegmentIndex ].
@@ -1427,6 +1431,7 @@ CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingRenderedPoints: rend
 		placementAtSegmentIndex: segmentIndex
 		segmentPosition: segmentPosition
 		offset: offset.
+
 	self
 		positionEdgeLabelFor: anEdge
 		centeredAt: placement first
@@ -5217,6 +5222,7 @@ CPProcessVisualElement >> updateEdgeVisual: anEdgeVisual withRenderedPoints: poi
 	hitLines := anEdgeVisual hitElements.
 	(points size = (lines size + 1)
 		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
+
 	1 to: lines size do: [ :index |
 		| fromAnchor toAnchor |
 		fromAnchor := BlAbsolutePositionAnchor position: (points at: index).
@@ -5263,7 +5269,7 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 	lines := anEdgeVisual lineElements.
 	hitLines := anEdgeVisual hitElements.
 	(points size = (lines size + 1)
-		and: [ hitLines size = lines size ]) ifFalse: [ ^ #() ].
+		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
 	1 to: lines size do: [ :index |
 		| fromAnchor toAnchor |
 		fromAnchor := BlAbsolutePositionAnchor position: (points at: index).
@@ -5273,8 +5279,7 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 			toAnchor: toAnchor.
 		(hitLines at: index)
 			fromAnchor: fromAnchor;
-			toAnchor: toAnchor ].
-	^ points
+			toAnchor: toAnchor ]
 ]
 
 { #category : 'geometry preview' }
@@ -5296,6 +5301,7 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNodeBoundsByShape: proposedFlowNodeBounds waypointsByEdge: proposedWaypointsByEdge [
 	| laneContext |
 	proposedBoundsByShape ifEmpty: [ ^ self ].
+
 	laneContext := CPProcessLaneContext inRootMemento: memento.
 	laneContext stagedLaneSets do: [ :aLaneSet |
 		self
@@ -5303,6 +5309,7 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 			boundsByShape: proposedBoundsByShape
 			laneContext: laneContext
 			hostDiagramOrigin: 0 @ 0 ].
+
 	shapeElementsByModelElement keysAndValuesDo: [ :aFlowNode :anElement |
 		aFlowNode isBoundaryEvent ifFalse: [
 			| aShape bounds |
@@ -5316,7 +5323,9 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 					aLabel relocate: (self
 						externalLabelOriginForBounds: bounds
 						width: 180) ] ] ] ].
+
 	self forceLayout.
+
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		| waypoints renderedPoints |
 		waypoints := proposedWaypointsByEdge
@@ -5329,7 +5338,7 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 		self
 			updateEdgeVisual: anEdgeVisual
 			withRenderedPoints: renderedPoints.
-		(anEdgeVisual hasLabelHost and: [ renderedPoints notEmpty ]) ifTrue: [
+		anEdgeVisual hasLabelHost ifTrue: [
 			self
 				positionEdgeLabelFor: anEdge
 				usingRenderedPoints: renderedPoints ] ]
