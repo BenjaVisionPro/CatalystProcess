@@ -3666,7 +3666,7 @@ CPProcessVisualElementExamples >> resizingPoolRespectsRecursiveMinimumLaneHeight
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> resizingPoolMinimumTracksLaneContents [
 	<gtExample>
-	| fixture process processDiagram task taskShape laneSet firstLane secondLane firstShape secondShape localPool memento collaborationContext participant participantShape diagramDescription tooSmallAssessment assessment processDiagramContext firstBounds secondBounds |
+	| fixture process processDiagram task taskShape laneSet firstLane secondLane firstShape secondShape memento collaborationContext participant participantShape diagramDescription tooSmallAssessment assessment processDiagramContext firstBounds secondBounds |
 	fixture := self collaborationVisualFixture.
 	process := fixture first.
 	processDiagram := process diagram.
@@ -3683,9 +3683,6 @@ CPProcessVisualElementExamples >> resizingPoolMinimumTracksLaneContents [
 	firstShape := CPShape new modelElement: firstLane; bounds: (56 @ 40 extent: 584 @ 220); yourself.
 	secondShape := CPShape new modelElement: secondLane; bounds: (56 @ 260 extent: 584 @ 140); yourself.
 	processDiagram addElement: firstShape; addElement: secondShape.
-	localPool := fixture seventh.
-	localPool bounds: (40 @ 40 extent: 620 @ 400).
-
 	memento := CFMaMemento model: process.
 	diagramDescription := self descriptionFor: #diagram in: memento.
 	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
