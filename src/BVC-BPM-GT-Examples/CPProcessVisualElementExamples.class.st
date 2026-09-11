@@ -4125,3 +4125,21 @@ CPProcessVisualElementExamples >> connectionLabelAnchorMatchesAuthoritativePlace
 	self assert: recoveredAnchor equals: anchor.
 	^ recoveredAnchor
 ]
+
+{ #category : 'examples - orientation' }
+CPProcessVisualElementExamples >> connectionLabelMotionUsesLiveVisualCenterNotPlacementAnchor [
+	<gtExample>
+	| placementAnchorOffset labelExtent visualCenterOffset sourceOrigin sourceAnchor sourceVisualCenter |
+	placementAnchorOffset := 90 @ 22.
+	labelExtent := 180 @ 14.
+	visualCenterOffset := labelExtent / 2.0.
+	sourceOrigin := 210 @ 178.
+	sourceAnchor := sourceOrigin + placementAnchorOffset.
+	sourceVisualCenter := sourceOrigin + visualCenterOffset.
+
+	self assert: sourceAnchor equals: 300 @ 200.
+	self assert: sourceVisualCenter equals: 300 @ 185.
+	self assert: sourceAnchor - sourceVisualCenter equals: 0 @ 15.
+	^ sourceVisualCenter
+]
+

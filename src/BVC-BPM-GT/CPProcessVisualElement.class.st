@@ -5424,7 +5424,7 @@ CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: an
 
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual labelHost ifNotNil: [ :aLabel |
-			| waypoints renderedPoints path segmentIndex segmentPosition offset finalCenter sourceCenter rigidFinalCenter |
+			| waypoints renderedPoints path segmentIndex segmentPosition offset finalAnchor placementAnchorOffset visualCenterOffset sourceVisualCenter rigidFinalVisualCenter finalVisualCenter |
 			waypoints := proposedWaypoints
 				at: anEdge
 				ifAbsent: [ self stagedWaypointsOf: anEdge ].
@@ -5439,20 +5439,26 @@ CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: an
 				segmentIndex := segmentIndex min: renderedPoints size - 1.
 				segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
 				offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
-				finalCenter := (path
+				finalAnchor := (path
 					placementAtSegmentIndex: segmentIndex
 					segmentPosition: segmentPosition
 					offset: offset) first.
-				"CPProcessEdgeVisual>>positionLabelCenteredAt: defines the
-				connection-label anchor as 90@22 from the host origin. The host
-				is vertically fit-content, so its live extent is not the 180@44
-				placement box and must not be used to recover that anchor."
-				sourceCenter := aLabel position + (90 @ 22).
-				rigidFinalCenter := self
-					orientationPoint: sourceCenter
+				"CPProcessEdgeVisual>>positionLabelCenteredAt: positions the host from
+				a fixed 180@44 placement box, whose anchor offset is 90@22. Motion,
+				however, counter-rotates the live label around its real Bloc centre.
+				Because the host is vertically fit-content, that centre is usually
+				about 15 pixels above the placement anchor. Compare like with like:
+				rigidly rotate the live visual centre and target the final visual
+				centre implied by the authoritative anchor."
+				placementAnchorOffset := 90 @ 22.
+				visualCenterOffset := aLabel extent / 2.0.
+				sourceVisualCenter := aLabel position + visualCenterOffset.
+				rigidFinalVisualCenter := self
+					orientationPoint: sourceVisualCenter
 					within: currentBodyExtent
 					horizontal: isHorizontal.
-				corrections at: aLabel put: finalCenter - rigidFinalCenter ] ] ].
+				finalVisualCenter := finalAnchor - placementAnchorOffset + visualCenterOffset.
+				corrections at: aLabel put: finalVisualCenter - rigidFinalVisualCenter ] ] ].
 	^ corrections
 ]
 
