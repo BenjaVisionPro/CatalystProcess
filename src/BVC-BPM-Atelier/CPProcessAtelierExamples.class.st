@@ -2325,6 +2325,15 @@ CPProcessAtelierExamples >> changingBoundaryEventDefinitionPreservesBoundaryIden
 
 
 { #category : 'examples - lanes' }
+CPProcessAtelierExamples >> horizontalPoolLaneMutationRegression [
+	<gtExample>
+	self createLaneStagesLaneSetLaneAndShapeAtomically.
+	self documentRootedFirstPoolThenLaneUsesCreatedCollaboration.
+	^ self removeLanePreservesReferencedFlowNodes
+]
+
+
+{ #category : 'examples - lanes' }
 CPProcessAtelierExamples >> createLaneStagesLaneSetLaneAndShapeAtomically [
 	<gtExample>
 	| process diagram memento diagramDescription lane operation assessment laneSetsDescription stagedLaneSets laneSetMemento lanesDescription stagedLanes diagramMemento elementsDescription stagedElements laneShape |

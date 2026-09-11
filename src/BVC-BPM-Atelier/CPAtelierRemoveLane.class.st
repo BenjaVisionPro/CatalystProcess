@@ -1,6 +1,8 @@
 "I remove one Lane from the staged Lane hierarchy.
 
-Lane membership is partition metadata, not FlowNode ownership. I therefore remove the Lane (and any nested Lane hierarchy it owns) plus its BPMN DI shapes while preserving every Process FlowNode. When the removal empties a LaneSet I remove that LaneSet from its semantic parent. For a Collaboration-hosted Process I then reflow the surviving Lane hierarchy into the unchanged Participant bounds."
+Lane membership is partition metadata, not FlowNode ownership. I therefore remove the Lane (and any nested Lane hierarchy it owns) plus its BPMN DI shapes while preserving every Process FlowNode. When the removal empties a LaneSet I remove that LaneSet from its semantic parent. For a Collaboration-hosted Process I then reflow the surviving Lane hierarchy into the unchanged Participant bounds.
+
+CPAtelierLaneLayout owns the shared Lane minimum and recursive reflow policy. I own only the removal orchestration and staged writes."
 Class {
 	#name : 'CPAtelierRemoveLane',
 	#superclass : 'CFAtelierOperation',

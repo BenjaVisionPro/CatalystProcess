@@ -1,6 +1,8 @@
 "I insert one fresh Lane before or after an existing Lane in the same staged LaneSet.
 
-I preserve Lane ordering, create the Lane CPShape, shift later Lane DI to make space, move the FlowNodes referenced by shifted Lane subtrees through CPAtelierMoveShapes, and grow the hosting Participant only when the proposed Lane structure no longer fits its current height."
+I preserve Lane ordering, create the Lane CPShape, shift later Lane DI to make space, move the FlowNodes referenced by shifted Lane subtrees through CPAtelierMoveShapes, and grow the hosting Participant only when the proposed Lane structure no longer fits its current height.
+
+CPAtelierLaneLayout owns the shared Lane minimum and recursive reflow policy. I orchestrate the semantic/DI mutation around that policy."
 Class {
 	#name : 'CPAtelierInsertLane',
 	#superclass : 'CFAtelierOperation',
@@ -169,7 +171,7 @@ CPAtelierInsertLane >> assess [
 
 { #category : 'applying' }
 CPAtelierInsertLane >> applyAssessment: anAssessment [
-	| laneContext laneSetMemento lanesDescription diagram diagramContext |
+	| laneContext laneSetMemento lanesDescription diagramContext |
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSetMemento := laneContext mementoForLaneSet: anAssessment laneSet.
 	lanesDescription := laneSetMemento magritteDescription
