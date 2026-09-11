@@ -5405,3 +5405,86 @@ CPProcessVisualElement >> orientationUprightElements [
 		anEdgeVisual labelHost ifNotNil: [ :aLabel | elements add: aLabel ] ].
 	^ elements
 ]
+
+
+{ #category : 'accessing - orientation' }
+CPProcessVisualElement >> orientationLabelTranslationsForAssessment: anAssessment horizontal: isHorizontal [
+	"Labels are diagram children whose final placement is derived from the rotated
+	FlowNode/edge geometry rather than being a rigidly rotated label offset. Answer
+	the additional old-coordinate translation that lets Motion carry each upright
+	label continuously to that derived final placement before the DI handoff."
+	| translations proposedFlowNodeBounds proposedWaypoints currentExtent |
+	translations := IdentityDictionary new.
+	proposedFlowNodeBounds := anAssessment proposedFlowNodeBoundsByShape.
+	proposedWaypoints := anAssessment proposedWaypointsByEdge.
+	currentExtent := self extent.
+
+	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
+		aShapeElement externalLabelHost ifNotNil: [ :aLabel |
+			(proposedFlowNodeBounds at: aShape ifAbsent: [ nil ]) ifNotNil: [ :proposedBounds |
+				| currentCenter rotatedCenter desiredOrigin desiredCenter finalDelta |
+				currentCenter := aLabel position + (aLabel extent / 2.0).
+				rotatedCenter := self
+					orientationRotatePoint: currentCenter
+					within: currentExtent
+					horizontal: isHorizontal.
+				desiredOrigin := self
+					externalLabelOriginForBounds: proposedBounds
+					width: aLabel extent x.
+				desiredCenter := desiredOrigin + (aLabel extent / 2.0).
+				finalDelta := desiredCenter - rotatedCenter.
+				translations
+					at: aLabel
+					put: (self orientationInverseRotateVector: finalDelta horizontal: isHorizontal) ] ] ].
+
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		anEdgeVisual labelHost ifNotNil: [ :aLabel |
+			| waypoints renderedPoints path segmentIndex segmentPosition offset placement currentCenter rotatedCenter finalDelta |
+			waypoints := proposedWaypoints
+				at: anEdge
+				ifAbsent: [ self stagedWaypointsOf: anEdge ].
+			renderedPoints := self
+				renderedPathPointsFor: anEdge
+				waypoints: waypoints
+				flowNodeBoundsByShape: proposedFlowNodeBounds.
+			renderedPoints size >= 2 ifTrue: [
+				path := CPProcessEdgeLabelPath points: renderedPoints.
+				segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+					ifNil: [ path defaultSegmentIndex ].
+				segmentIndex := segmentIndex min: renderedPoints size - 1.
+				segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+				offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+				placement := path
+					placementAtSegmentIndex: segmentIndex
+					segmentPosition: segmentPosition
+					offset: offset.
+				currentCenter := aLabel position + (aLabel extent / 2.0).
+				rotatedCenter := self
+					orientationRotatePoint: currentCenter
+					within: currentExtent
+					horizontal: isHorizontal.
+				finalDelta := placement first - rotatedCenter.
+				translations
+					at: aLabel
+					put: (self orientationInverseRotateVector: finalDelta horizontal: isHorizontal) ] ] ].
+	^ translations
+]
+
+{ #category : 'private - orientation' }
+CPProcessVisualElement >> orientationRotatePoint: aPoint within: currentExtent horizontal: isHorizontal [
+	"Use the same quarter-turn coordinate transform as the Atelier orientation
+	operation. isHorizontal is the requested destination orientation."
+	^ isHorizontal
+		ifTrue: [ (currentExtent y - aPoint y) @ aPoint x ]
+		ifFalse: [ aPoint y @ (currentExtent x - aPoint x) ]
+]
+
+{ #category : 'private - orientation' }
+CPProcessVisualElement >> orientationInverseRotateVector: aVector horizontal: isHorizontal [
+	"Convert a destination-coordinate correction into the current Pool coordinate
+	system so the parent quarter-turn carries the Motion translation to the desired
+	destination vector."
+	^ isHorizontal
+		ifTrue: [ aVector y @ aVector x negated ]
+		ifFalse: [ aVector y negated @ aVector x ]
+]

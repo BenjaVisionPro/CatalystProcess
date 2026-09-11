@@ -517,10 +517,11 @@ CPProcessPresentation >> newParticipantDetailElementFor: aParticipant semanticDe
 		shape: participantShape
 		horizontal: stagedIsHorizontal
 		diagramEditing: diagramEditing
-		changedDo: [ :isHorizontal :commitBlock |
+		changedDo: [ :isHorizontal :commitBlock :assessment |
 			self
 				animateParticipantOrientationFor: aParticipant
 				horizontal: isHorizontal
+				assessment: assessment
 				commit: commitBlock ].
 	selectionViewModel := CFMaViewModel forObject: selection.
 	selectionViewModel
@@ -548,8 +549,8 @@ CPProcessPresentation >> isParticipantModelElement: aModelElement [
 
 
 { #category : 'private - collaboration' }
-CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal commit: commitBlock [
-	| participantElement processVisual uprightElements rootTargetRotation uprightTargetRotation tracks space motion |
+CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal assessment: assessment commit: commitBlock [
+	| participantElement processVisual uprightElements labelTranslations rootTargetRotation uprightTargetRotation tracks space motion |
 	collaborationDiagramElement ifNil: [
 		^ self
 			commitParticipantOrientationFor: aParticipant
@@ -579,11 +580,19 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 	processVisual := participantElement processVisual.
 	processVisual ifNotNil: [
 		uprightElements := processVisual orientationUprightElements.
+		labelTranslations := processVisual
+			orientationLabelTranslationsForAssessment: assessment
+			horizontal: isHorizontal.
 		uprightElements do: [ :anElement |
 			tracks add: ((CFMotionRotationTrack
 				on: anElement
 				from: 0
-				to: uprightTargetRotation) adoptAtDestination) ] ].
+				to: uprightTargetRotation) adoptAtDestination).
+			(labelTranslations at: anElement ifAbsent: [ nil ]) ifNotNil: [ :aTranslation |
+				tracks add: ((CFMotionTranslationTrack
+					on: anElement
+					from: 0 @ 0
+					to: aTranslation) adoptAtDestination) ] ] ].
 
 	motion := CFMotion
 		coordinator: space motionCoordinator

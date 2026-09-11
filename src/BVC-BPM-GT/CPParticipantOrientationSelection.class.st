@@ -44,7 +44,8 @@ CPParticipantOrientationSelection >> isHorizontal: aBoolean [
 	changedBlock ifNotNil: [
 		changedBlock
 			cull: aBoolean
-			cull: [ operation apply ] ]
+			cull: [ operation apply ]
+			cull: assessment ]
 ]
 
 { #category : 'descriptions' }
