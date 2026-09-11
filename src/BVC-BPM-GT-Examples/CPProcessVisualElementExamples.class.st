@@ -3695,7 +3695,7 @@ CPProcessVisualElementExamples >> resizingPoolMinimumTracksLaneContents [
 
 	tooSmallAssessment := (CPAtelierResizeParticipantShape
 		shape: participantShape
-		bounds: (40 @ 40 extent: 620 @ 350)
+		bounds: (40 @ 40 extent: 620 @ 330)
 		processMemento: memento
 		collaborationContext: collaborationContext
 		processDiagramContext: processDiagramContext) apply.

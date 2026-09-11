@@ -221,7 +221,6 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 		bounds: proposedBounds
 		processMemento: processMemento
 		collaborationContext: collaborationContext
-		processDiagramContext: diagramContext
 ]
 
 { #category : 'private - geometry' }
