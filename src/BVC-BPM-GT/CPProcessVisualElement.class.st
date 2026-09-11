@@ -5339,7 +5339,9 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 		anEdgeVisual hasLabelHost ifTrue: [
 			self
 				positionEdgeLabelFor: anEdge
-				usingRenderedPoints: renderedPoints ] ]
+				usingRenderedPoints: renderedPoints ] ].
+
+	self forceLayout
 ]
 
 { #category : 'private - lanes' }
