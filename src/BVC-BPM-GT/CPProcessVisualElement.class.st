@@ -5408,14 +5408,14 @@ CPProcessVisualElement >> orientationUprightElements [
 
 
 { #category : 'accessing - orientation' }
-CPProcessVisualElement >> orientationConnectionLabelTranslationsForAssessment: anAssessment horizontal: isHorizontal [
-	"Answer the local Motion translation required for each SequenceFlow label so
-	its transformed endpoint is exactly the authoritative label placement derived
-	from the rotated edge geometry. The Pool rotation supplies the main orbital
-	movement; this is only the docking/path correction introduced because FlowNodes
-	remain upright while their centres rotate."
-	| translations proposedFlowNodeBounds proposedWaypoints currentBodyExtent |
-	translations := IdentityDictionary new.
+CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: anAssessment horizontal: isHorizontal [
+	"Answer the final screen-space correction for each SequenceFlow label after
+	the Pool's rigid quarter-turn. The inherited Pool rotation already carries
+	the current label centre to its rigidly rotated centre. Upright endpoint
+	docking can make CPProcessEdgeLabelPath derive a slightly different final
+	centre; only that difference is animated by Motion."
+	| corrections proposedFlowNodeBounds proposedWaypoints currentBodyExtent |
+	corrections := IdentityDictionary new.
 	proposedFlowNodeBounds := anAssessment proposedFlowNodeBoundsByShape.
 	proposedWaypoints := anAssessment proposedWaypointsByEdge.
 	currentBodyExtent := self
@@ -5424,7 +5424,7 @@ CPProcessVisualElement >> orientationConnectionLabelTranslationsForAssessment: a
 
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual labelHost ifNotNil: [ :aLabel |
-			| waypoints renderedPoints path segmentIndex segmentPosition offset finalCenter sourceCenter targetCurrentCenter |
+			| waypoints renderedPoints path segmentIndex segmentPosition offset finalCenter sourceCenter rigidFinalCenter |
 			waypoints := proposedWaypoints
 				at: anEdge
 				ifAbsent: [ self stagedWaypointsOf: anEdge ].
@@ -5444,12 +5444,12 @@ CPProcessVisualElement >> orientationConnectionLabelTranslationsForAssessment: a
 					segmentPosition: segmentPosition
 					offset: offset) first.
 				sourceCenter := aLabel position + (aLabel extent / 2.0).
-				targetCurrentCenter := self
-					inverseOrientationPoint: finalCenter
+				rigidFinalCenter := self
+					orientationPoint: sourceCenter
 					within: currentBodyExtent
 					horizontal: isHorizontal.
-				translations at: aLabel put: targetCurrentCenter - sourceCenter ] ] ].
-	^ translations
+				corrections at: aLabel put: finalCenter - rigidFinalCenter ] ] ].
+	^ corrections
 ]
 
 
@@ -5460,6 +5460,16 @@ CPProcessVisualElement >> orientationCurrentBodyExtentForAssessment: anAssessmen
 		ifTrue: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
 		ifFalse: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ].
 	^ anAssessment currentBounds extent - offset
+]
+
+
+{ #category : 'private - orientation' }
+CPProcessVisualElement >> orientationPoint: aPoint within: currentBodyExtent horizontal: isHorizontal [
+	"Match CPAtelierSetParticipantOrientation>>rotateProcessPoint:within:.
+	The supplied Boolean is the destination orientation."
+	^ isHorizontal
+		ifTrue: [ aPoint y @ (currentBodyExtent x - aPoint x) ]
+		ifFalse: [ (currentBodyExtent y - aPoint y) @ aPoint x ]
 ]
 
 
