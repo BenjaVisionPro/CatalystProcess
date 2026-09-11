@@ -5214,8 +5214,6 @@ CPProcessVisualElement >> updateIncidentEdgeGeometryFor: aModelElement [
 ]
 
 { #category : 'private - edges' }
-
-{ #category : 'private - edges' }
 CPProcessVisualElement >> updateEdgeVisual: anEdgeVisual withRenderedPoints: points [
 	| lines hitLines |
 	lines := anEdgeVisual lineElements.
