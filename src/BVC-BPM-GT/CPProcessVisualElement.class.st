@@ -5408,12 +5408,78 @@ CPProcessVisualElement >> orientationUprightElements [
 
 
 { #category : 'accessing - orientation' }
+CPProcessVisualElement >> orientationConnectionLabelTranslationsForAssessment: anAssessment horizontal: isHorizontal [
+	"Answer the local Motion translation required for each SequenceFlow label so
+	its transformed endpoint is exactly the authoritative label placement derived
+	from the rotated edge geometry. The Pool rotation supplies the main orbital
+	movement; this is only the docking/path correction introduced because FlowNodes
+	remain upright while their centres rotate."
+	| translations proposedFlowNodeBounds proposedWaypoints currentBodyExtent |
+	translations := IdentityDictionary new.
+	proposedFlowNodeBounds := anAssessment proposedFlowNodeBoundsByShape.
+	proposedWaypoints := anAssessment proposedWaypointsByEdge.
+	currentBodyExtent := self
+		orientationCurrentBodyExtentForAssessment: anAssessment
+		horizontal: isHorizontal.
+
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		anEdgeVisual labelHost ifNotNil: [ :aLabel |
+			| waypoints renderedPoints path segmentIndex segmentPosition offset finalCenter sourceCenter targetCurrentCenter |
+			waypoints := proposedWaypoints
+				at: anEdge
+				ifAbsent: [ self stagedWaypointsOf: anEdge ].
+			renderedPoints := self
+				renderedPathPointsFor: anEdge
+				waypoints: waypoints
+				flowNodeBoundsByShape: proposedFlowNodeBounds.
+			renderedPoints size >= 2 ifTrue: [
+				path := CPProcessEdgeLabelPath points: renderedPoints.
+				segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+					ifNil: [ path defaultSegmentIndex ].
+				segmentIndex := segmentIndex min: renderedPoints size - 1.
+				segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+				offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+				finalCenter := (path
+					placementAtSegmentIndex: segmentIndex
+					segmentPosition: segmentPosition
+					offset: offset) first.
+				sourceCenter := aLabel position + (aLabel extent / 2.0).
+				targetCurrentCenter := self
+					inverseOrientationPoint: finalCenter
+					within: currentBodyExtent
+					horizontal: isHorizontal.
+				translations at: aLabel put: targetCurrentCenter - sourceCenter ] ] ].
+	^ translations
+]
+
+
+{ #category : 'private - orientation' }
+CPProcessVisualElement >> orientationCurrentBodyExtentForAssessment: anAssessment horizontal: isHorizontal [
+	| offset |
+	offset := isHorizontal
+		ifTrue: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
+		ifFalse: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ].
+	^ anAssessment currentBounds extent - offset
+]
+
+
+{ #category : 'private - orientation' }
+CPProcessVisualElement >> inverseOrientationPoint: aPoint within: currentBodyExtent horizontal: isHorizontal [
+	"Inverse of CPAtelierSetParticipantOrientation>>rotateProcessPoint:within:.
+	The supplied Boolean is the destination orientation."
+	^ isHorizontal
+		ifTrue: [ (currentBodyExtent x - aPoint y) @ aPoint x ]
+		ifFalse: [ aPoint y @ (currentBodyExtent y - aPoint x) ]
+]
+
+
+{ #category : 'accessing - orientation' }
 CPProcessVisualElement >> orientationExternalLabelOffsets [
 	"Answer each external FlowNode label's current centre offset from its
 	upright owner. During a Pool quarter-turn that offset is held in screen
 	coordinates by CPProcessOrientationExternalLabelMotionBehaviour. Connection
-	labels are deliberately absent: their path-relative placement rotates with the
-	SequenceFlow geometry, so only their text needs counter-rotation."
+	labels are handled separately from their authoritative rotated edge path,
+	because upright endpoint docking can slightly change their final placement."
 	| offsets |
 	offsets := IdentityDictionary new.
 	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |

@@ -4073,3 +4073,39 @@ CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpa
 	self assert: ((rotatedOffset + correction) y closeTo: offset y).
 	^ behaviour
 ]
+
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> orientationConnectionLabelInversePointMatchesHorizontalDestination [
+	<gtExample>
+	| visual currentBodyExtent sourcePoint destinationPoint recoveredPoint |
+	visual := CPProcessVisualElement new.
+	currentBodyExtent := 300 @ 500.
+	sourcePoint := 80 @ 210.
+	destinationPoint := sourcePoint y @ (currentBodyExtent x - sourcePoint x).
+	recoveredPoint := visual
+		inverseOrientationPoint: destinationPoint
+		within: currentBodyExtent
+		horizontal: true.
+
+	self assert: recoveredPoint equals: sourcePoint.
+	^ visual
+]
+
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> orientationConnectionLabelInversePointMatchesVerticalDestination [
+	<gtExample>
+	| visual currentBodyExtent sourcePoint destinationPoint recoveredPoint |
+	visual := CPProcessVisualElement new.
+	currentBodyExtent := 500 @ 300.
+	sourcePoint := 210 @ 80.
+	destinationPoint := (currentBodyExtent y - sourcePoint y) @ sourcePoint x.
+	recoveredPoint := visual
+		inverseOrientationPoint: destinationPoint
+		within: currentBodyExtent
+		horizontal: false.
+
+	self assert: recoveredPoint equals: sourcePoint.
+	^ visual
+]
