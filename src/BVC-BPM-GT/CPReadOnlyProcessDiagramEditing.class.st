@@ -134,3 +134,14 @@ CPReadOnlyProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBou
 CPReadOnlyProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ nil
 ]
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> createLaneSetWithLane: aLane bounds: proposedBounds [
+	^ nil
+]
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> insertLane: aLane relativeTo: aTargetLane after: aBoolean [
+	^ nil
+]
+
