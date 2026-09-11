@@ -68,15 +68,26 @@ CPProcessAtelierDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedTo
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
-	| targetContainer |
+	^ self
+		createFlowNode: aFlowNode
+		bounds: proposedBounds
+		inProcessHostedBy: aHostShape
+		targetLane: nil
+]
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape targetLane: aLane [
+	| targetContainer operation |
 	targetContainer := self flowContainerHostedBy: aHostShape.
 	targetContainer ifNil: [ ^ nil ].
-	^ CPAtelierCreateFlowNode
+	operation := CPAtelierCreateFlowNode
 		flowNode: aFlowNode
 		bounds: proposedBounds
 		flowContainer: targetContainer
 		processMemento: processMemento
-		diagramContext: diagramContext
+		diagramContext: diagramContext.
+	operation targetLane: aLane.
+	^ operation
 ]
 
 { #category : 'operation factories' }
@@ -293,18 +304,29 @@ CPProcessAtelierDiagramEditing >> replaceShape: aShape with: aReplacementNode bo
 
 { #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds [
-	| source flowContainer |
+	^ self
+		appendFlowNode: aFlowNode
+		fromShape: aSourceShape
+		bounds: proposedBounds
+		targetLane: nil
+]
+
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds targetLane: aLane [
+	| source flowContainer operation |
 	source := self modelElementOfDiagramElement: aSourceShape.
 	source ifNil: [ ^ nil ].
 	flowContainer := self flowContainerContaining: source.
 	flowContainer ifNil: [ ^ nil ].
-	^ CPAtelierAppendFlowNode
+	operation := CPAtelierAppendFlowNode
 		source: source
 		flowNode: aFlowNode
 		bounds: proposedBounds
 		flowContainer: flowContainer
 		processMemento: processMemento
-		diagramContext: diagramContext
+		diagramContext: diagramContext.
+	operation targetLane: aLane.
+	^ operation
 ]
 
 { #category : 'operation factories' }

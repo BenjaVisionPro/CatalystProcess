@@ -3159,7 +3159,7 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
-	| candidate elementExtent bounds operation assessment |
+	| candidate elementExtent bounds operation assessment targetLane |
 	candidate := aDragItem domainObject.
 	(self isPoolPaletteDragItem: aDragItem) ifTrue: [
 		collaborationVisual
@@ -3179,10 +3179,13 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		boundsCenteredAtRootDiagramPoint: aRootPoint
 		extent: elementExtent.
 	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
+	targetLane := self stagedLaneAtDiagramPoint:
+		(self localPointForRootDiagramPoint: aRootPoint).
 	operation := diagramEditing
 		createFlowNode: candidate
 		bounds: bounds
-		inProcessHostedBy: hostShape.
+		inProcessHostedBy: hostShape
+		targetLane: targetLane.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
@@ -3816,7 +3819,7 @@ CPProcessVisualElement >> acceptsContextualAppendDragItem: aDragItem [
 
 { #category : 'private - contextual append' }
 CPProcessVisualElement >> dropContextualAppendEvent: anEvent [
-	| dragItem context candidate sourceShape rootPoint elementExtent bounds operation assessment |
+	| dragItem context candidate sourceShape rootPoint elementExtent bounds operation assessment targetLane |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	dragItem := anEvent items first.
 	context := self contextualAppendContextFor: dragItem.
@@ -3829,10 +3832,13 @@ CPProcessVisualElement >> dropContextualAppendEvent: anEvent [
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self boundsCenteredAtRootDiagramPoint: rootPoint extent: elementExtent.
 	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
+	targetLane := self stagedLaneAtDiagramPoint:
+		(self localPointForRootDiagramPoint: rootPoint).
 	operation := diagramEditing
 		appendFlowNode: candidate
 		fromShape: sourceShape
-		bounds: bounds.
+		bounds: bounds
+		targetLane: targetLane.
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
@@ -4994,6 +5000,23 @@ CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode inLaneSets: la
 	^ nil
 ]
 
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> stagedLaneAtDiagramPoint: aPoint [
+	| candidates |
+	candidates := OrderedCollection new.
+	self lanesForCurrentProcess do: [ :aLane |
+		| shapes shape bounds |
+		shapes := diagramContext shapesForModelElement: aLane.
+		shapes size = 1 ifTrue: [
+			shape := shapes anyOne.
+			bounds := self stagedBoundsOf: shape.
+			(bounds notNil and: [ bounds containsPoint: aPoint ]) ifTrue: [
+				candidates add: { aLane. bounds } ] ] ].
+	candidates ifEmpty: [ ^ nil ].
+	^ (candidates detectMin: [ :each |
+		each second width * each second height ]) first
+]
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> laneAtGlobalPoint: aGlobalPoint [

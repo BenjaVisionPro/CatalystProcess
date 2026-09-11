@@ -19,6 +19,11 @@ CPReadOnlyProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBou
 ]
 
 { #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape targetLane: aLane [
+	^ nil
+]
+
+{ #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> createLane: aLane bounds: proposedBounds [
 	^ nil
 ]
@@ -55,6 +60,11 @@ CPReadOnlyProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode b
 	^ nil
 ]
 
+
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds targetLane: aLane [
+	^ nil
+]
 { #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> connectFrom: aSourceShape to: aTargetShape waypoints: someWaypoints [
 	^ nil

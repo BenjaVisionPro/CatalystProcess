@@ -21,6 +21,11 @@ CPProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inPr
 ]
 
 { #category : 'operation factories' }
+CPProcessDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape targetLane: aLane [
+	^ self subclassResponsibility
+]
+
+{ #category : 'operation factories' }
 CPProcessDiagramEditing >> createLane: aLane bounds: proposedBounds [
 	^ self subclassResponsibility
 ]
@@ -65,6 +70,11 @@ CPProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode bounds: p
 
 { #category : 'operation factories' }
 CPProcessDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds targetLane: aLane [
 	^ self subclassResponsibility
 ]
 

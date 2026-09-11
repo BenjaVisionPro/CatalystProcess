@@ -6,7 +6,9 @@ Class {
 		'flowNode',
 		'shape',
 		'proposedFlowElements',
-		'proposedDiagramElements'
+		'proposedDiagramElements',
+		'laneOperation',
+		'laneAssessment'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -44,3 +46,12 @@ CPAtelierCreateFlowNodeAssessment >> proposedFlowElements: aCollection [ propose
 CPAtelierCreateFlowNodeAssessment >> proposedDiagramElements [ ^ proposedDiagramElements ]
 { #category : 'accessing' }
 CPAtelierCreateFlowNodeAssessment >> proposedDiagramElements: aCollection [ proposedDiagramElements := aCollection ]
+
+{ #category : 'accessing' }
+CPAtelierCreateFlowNodeAssessment >> laneOperation [ ^ laneOperation ]
+{ #category : 'accessing' }
+CPAtelierCreateFlowNodeAssessment >> laneOperation: anObject [ laneOperation := anObject ]
+{ #category : 'accessing' }
+CPAtelierCreateFlowNodeAssessment >> laneAssessment [ ^ laneAssessment ]
+{ #category : 'accessing' }
+CPAtelierCreateFlowNodeAssessment >> laneAssessment: anObject [ laneAssessment := anObject ]

@@ -3472,3 +3472,57 @@ CPProcessVisualElementExamples >> documentRootedRepeatedLaneDragsPreserveProject
 	self assert: (visual diagramBoundsForElement: (visual shapeElementsByModelElement at: node)) equals: original.
 	^ visual
 ]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> paletteCreatedFlowNodeIsAssignedToDropLane [
+	<gtExample>
+	| fixture visual candidate dragItem assessment targetLane |
+	fixture := self documentRootedNestedLaneDragFixture.
+	visual := fixture second.
+	targetLane := fixture seventh.
+	candidate := CPUserTask new label: 'Palette task'; yourself.
+	dragItem := BlDragItem new
+		domainObject: candidate;
+		yourself.
+
+	self assert: (visual stagedLaneAtDiagramPoint: 300 @ 170) == targetLane.
+	assessment := visual
+		createPaletteItem: dragItem
+		atRootDiagramPoint: 300 @ 170.
+
+	self assert: assessment isApplicable.
+	self assert: (visual stagedLaneContainingFlowNode: candidate) == targetLane.
+	self assert:
+		((CPProcessLaneContext inRootMemento: fixture first processMemento)
+			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate.
+	^ visual
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> contextualAppendFlowNodeIsAssignedToDropLane [
+	<gtExample>
+	| fixture visual edge source sourceShape candidate targetLane operation assessment |
+	fixture := self documentRootedNestedLaneDragFixture.
+	visual := fixture second.
+	edge := fixture ninth.
+	source := visual stagedTargetOf: edge.
+	sourceShape := visual shapeForModelElement: source.
+	targetLane := fixture seventh.
+	candidate := CPUserTask new label: 'Contextual task'; yourself.
+
+	self assert: (visual stagedLaneAtDiagramPoint: 300 @ 170) == targetLane.
+	operation := visual diagramEditing
+		appendFlowNode: candidate
+		fromShape: sourceShape
+		bounds: (250 @ 145 extent: 100 @ 50)
+		targetLane: targetLane.
+	assessment := operation apply.
+	visual refresh.
+
+	self assert: assessment isApplicable.
+	self assert: (visual stagedLaneContainingFlowNode: candidate) == targetLane.
+	self assert:
+		((CPProcessLaneContext inRootMemento: fixture first processMemento)
+			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate.
+	^ visual
+]

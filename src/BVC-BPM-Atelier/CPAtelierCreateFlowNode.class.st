@@ -9,7 +9,8 @@ Class {
 		'bounds',
 		'processMemento',
 		'flowContainerContext',
-		'diagramContext'
+		'diagramContext',
+		'targetLane'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -43,7 +44,7 @@ CPAtelierCreateFlowNode class >> flowNode: aFlowNode bounds: aRectangle flowCont
 
 { #category : 'assessing' }
 CPAtelierCreateFlowNode >> assess [
-	| flowElements proposedFlowElements diagram elements proposedElements shape boundsDescription diagramContext |
+	| flowElements proposedFlowElements diagram elements proposedElements shape boundsDescription diagramContext assessment laneOperation laneAssessment |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A flow node is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Diagram bounds are required.' ].
 	flowContainerContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
@@ -69,11 +70,24 @@ CPAtelierCreateFlowNode >> assess [
 	proposedElements add: shape.
 	[ diagramContext validateElements: proposedElements ] on: MAValidationError do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	^ CPAtelierCreateFlowNodeAssessment
+	assessment := CPAtelierCreateFlowNodeAssessment
 		flowNode: flowNode
 		shape: shape
 		proposedFlowElements: proposedFlowElements
-		proposedDiagramElements: proposedElements
+		proposedDiagramElements: proposedElements.
+	targetLane ifNotNil: [
+		laneOperation := CPAtelierMoveFlowNodeLaneMembership
+			flowNode: flowNode
+			sourceLane: nil
+			targetLane: targetLane
+			processMemento: processMemento.
+		laneAssessment := laneOperation assess.
+		laneAssessment isApplicable ifFalse: [
+			^ self rejectedBecause: laneAssessment rejectionMessage ].
+		assessment
+			laneOperation: laneOperation;
+			laneAssessment: laneAssessment ].
+	^ assessment
 ]
 
 { #category : 'applying' }
@@ -81,7 +95,9 @@ CPAtelierCreateFlowNode >> applyAssessment: anAssessment [
 	| diagram diagramContext |
 	flowContainerContext writeFlowElements: anAssessment proposedFlowElements.
 	diagramContext := self stagedDiagramContext.
-	diagramContext writeElements: anAssessment proposedDiagramElements
+	diagramContext writeElements: anAssessment proposedDiagramElements.
+	anAssessment laneOperation ifNotNil: [ :anOperation |
+		anOperation applyAssessment: anAssessment laneAssessment ]
 ]
 
 { #category : 'private' }
@@ -110,3 +126,6 @@ CPAtelierCreateFlowNode >> stagedDiagramContext [
 CPAtelierCreateFlowNode >> diagramContext: aDiagramContext [
 	diagramContext := aDiagramContext
 ]
+
+{ #category : 'accessing' }
+CPAtelierCreateFlowNode >> targetLane: aLane [ targetLane := aLane ]

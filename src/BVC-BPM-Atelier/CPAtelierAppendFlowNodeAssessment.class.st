@@ -9,7 +9,9 @@ Class {
 		'sequenceFlow',
 		'edge',
 		'proposedFlowElements',
-		'proposedDiagramElements'
+		'proposedDiagramElements',
+		'laneOperation',
+		'laneAssessment'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -62,3 +64,12 @@ CPAtelierAppendFlowNodeAssessment >> proposedFlowElements: aCollection [ propose
 CPAtelierAppendFlowNodeAssessment >> proposedDiagramElements [ ^ proposedDiagramElements ]
 { #category : 'accessing' }
 CPAtelierAppendFlowNodeAssessment >> proposedDiagramElements: aCollection [ proposedDiagramElements := aCollection ]
+
+{ #category : 'accessing' }
+CPAtelierAppendFlowNodeAssessment >> laneOperation [ ^ laneOperation ]
+{ #category : 'accessing' }
+CPAtelierAppendFlowNodeAssessment >> laneOperation: anObject [ laneOperation := anObject ]
+{ #category : 'accessing' }
+CPAtelierAppendFlowNodeAssessment >> laneAssessment [ ^ laneAssessment ]
+{ #category : 'accessing' }
+CPAtelierAppendFlowNodeAssessment >> laneAssessment: anObject [ laneAssessment := anObject ]
