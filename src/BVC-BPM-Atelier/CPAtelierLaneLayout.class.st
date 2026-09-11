@@ -123,9 +123,7 @@ CPAtelierLaneLayout class >> bodyBoundsForLaneBounds: laneBounds shape: laneShap
 { #category : 'geometry - reflow' }
 CPAtelierLaneLayout class >> bodyBoundsForLaneBounds: laneBounds horizontal: isHorizontal [
 	| offset |
-	offset := isHorizontal
-		ifTrue: [ CPHorizontalPoolLaneOrientation new laneBodyOriginOffset ]
-		ifFalse: [ CPVerticalPoolLaneOrientation new laneBodyOriginOffset ].
+	offset := CPPoolLaneGeometry laneBodyOriginOffsetForHorizontal: isHorizontal.
 	^ (laneBounds origin + offset)
 		extent: (laneBounds extent - offset)
 ]

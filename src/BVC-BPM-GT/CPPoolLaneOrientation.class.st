@@ -1,6 +1,6 @@
-"I define the presentation/editing geometry implied by BPMNShape isHorizontal for Pools and Lanes.
+"I define the Bloc presentation policy implied by BPMNShape isHorizontal for Pools and Lanes.
 
-Concrete orientations expose explicit geometry messages so GT and Atelier do not scatter boolean or symbol dispatch."
+Presentation-independent offsets and quarter-turn geometry belong to CPPoolLaneGeometry in the BPMN-DI layer. Concrete orientations here configure Bloc layout and orientation-specific interaction ordering."
 Class {
 	#name : 'CPPoolLaneOrientation',
 	#superclass : 'Object',
@@ -11,7 +11,12 @@ Class {
 
 { #category : 'instance creation' }
 CPPoolLaneOrientation class >> forShape: aShape [
-	^ aShape isHorizontal
+	^ self forHorizontal: aShape isHorizontal
+]
+
+{ #category : 'instance creation' }
+CPPoolLaneOrientation class >> forHorizontal: isHorizontal [
+	^ isHorizontal
 		ifTrue: [ CPHorizontalPoolLaneOrientation new ]
 		ifFalse: [ CPVerticalPoolLaneOrientation new ]
 ]

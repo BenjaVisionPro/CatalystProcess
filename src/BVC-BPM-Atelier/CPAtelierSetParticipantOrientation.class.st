@@ -151,56 +151,47 @@ CPAtelierSetParticipantOrientation >> applyAssessment: anAssessment [
 
 { #category : 'private - geometry' }
 CPAtelierSetParticipantOrientation >> currentProcessBodyExtentForParticipantBounds: participantBounds [
-	| offset |
-	offset := isHorizontal
-		ifTrue: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
-		ifFalse: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ].
-	^ participantBounds extent - offset
+	| currentOrientationOffset |
+	currentOrientationOffset := CPPoolLaneGeometry
+		participantContentOriginOffsetForHorizontal: isHorizontal not.
+	^ participantBounds extent - currentOrientationOffset
 ]
 
 { #category : 'private - geometry' }
 CPAtelierSetParticipantOrientation >> rotateProcessPoint: aPoint within: currentBodyExtent [
-	"Horizontal -> vertical is a clockwise quarter-turn, which carries the left Pool header to the top. The reverse transition is the exact inverse."
-	^ isHorizontal
-		ifTrue: [ aPoint y @ (currentBodyExtent x - aPoint x) ]
-		ifFalse: [ (currentBodyExtent y - aPoint y) @ aPoint x ]
+	^ CPPoolLaneGeometry
+		rotateProcessPoint: aPoint
+		within: currentBodyExtent
+		toHorizontal: isHorizontal
 ]
 
 { #category : 'private - geometry' }
 CPAtelierSetParticipantOrientation >> rotateStructuralBounds: aRectangle within: currentBodyExtent [
-	"Pool/Lane structure really rotates, so width and height exchange."
-	^ isHorizontal
-		ifTrue: [
-			aRectangle top @ (currentBodyExtent x - aRectangle right)
-				extent: aRectangle height @ aRectangle width ]
-		ifFalse: [
-			(currentBodyExtent y - aRectangle bottom) @ aRectangle left
-				extent: aRectangle height @ aRectangle width ]
+	^ CPPoolLaneGeometry
+		rotateStructuralBounds: aRectangle
+		within: currentBodyExtent
+		toHorizontal: isHorizontal
 ]
 
 { #category : 'private - geometry' }
 CPAtelierSetParticipantOrientation >> rotateUprightBounds: aRectangle within: currentBodyExtent [
-	"A BPMN node follows the Pool rotation by its centre but remains upright, so its own extent does not rotate."
-	| proposedCenter |
-	proposedCenter := self rotateProcessPoint: aRectangle center within: currentBodyExtent.
-	^ (proposedCenter - (aRectangle extent / 2)) extent: aRectangle extent
+	^ CPPoolLaneGeometry
+		rotateUprightBounds: aRectangle
+		within: currentBodyExtent
+		toHorizontal: isHorizontal
 ]
 
 { #category : 'private - geometry' }
 CPAtelierSetParticipantOrientation >> rotatedParticipantBoundsFrom: aRectangle [
-	| proposedExtent |
-	proposedExtent := aRectangle height @ aRectangle width.
-	^ (aRectangle center - (proposedExtent / 2)) extent: proposedExtent
+	^ CPPoolLaneGeometry rotatedParticipantBoundsFrom: aRectangle
 ]
 
 { #category : 'private - geometry' }
 CPAtelierSetParticipantOrientation >> rotateCollaborationPoint: aPoint around: aCenter [
-	| relative rotated |
-	relative := aPoint - aCenter.
-	rotated := isHorizontal
-		ifTrue: [ relative y @ relative x negated ]
-		ifFalse: [ relative y negated @ relative x ].
-	^ aCenter + rotated
+	^ CPPoolLaneGeometry
+		rotateCollaborationPoint: aPoint
+		around: aCenter
+		toHorizontal: isHorizontal
 ]
 
 { #category : 'private - assessing' }

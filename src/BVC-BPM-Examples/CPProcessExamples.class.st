@@ -561,3 +561,32 @@ CPProcessExamples >> shapeOrientationDefaultsHorizontalAndSupportsVertical [
 	self assert: shape isHorizontal not.
 	^ shape
 ]
+
+
+{ #category : 'examples - diagram orientation' }
+CPProcessExamples >> poolLaneGeometryUsesBpmnHeaderOffsets [
+	<gtExample>
+	self assert: (CPPoolLaneGeometry participantContentOriginOffsetForHorizontal: true) equals: 36 @ 0.
+	self assert: (CPPoolLaneGeometry participantContentOriginOffsetForHorizontal: false) equals: 0 @ 36.
+	self assert: (CPPoolLaneGeometry laneBodyOriginOffsetForHorizontal: true) equals: 30 @ 0.
+	self assert: (CPPoolLaneGeometry laneBodyOriginOffsetForHorizontal: false) equals: 0 @ 30.
+	^ CPPoolLaneGeometry
+]
+
+{ #category : 'examples - diagram orientation' }
+CPProcessExamples >> poolLaneGeometryQuarterTurnIsExactlyReversible [
+	<gtExample>
+	| horizontalExtent point verticalPoint restoredPoint |
+	horizontalExtent := 500 @ 300.
+	point := 120 @ 80.
+	verticalPoint := CPPoolLaneGeometry
+		rotateProcessPoint: point
+		within: horizontalExtent
+		toHorizontal: false.
+	restoredPoint := CPPoolLaneGeometry
+		rotateProcessPoint: verticalPoint
+		within: horizontalExtent y @ horizontalExtent x
+		toHorizontal: true.
+	self assert: restoredPoint equals: point.
+	^ restoredPoint
+]

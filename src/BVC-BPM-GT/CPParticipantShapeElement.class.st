@@ -34,9 +34,7 @@ CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRe
 	diagramShape := aShape.
 	modelElement := aParticipant.
 	labelElement := anEditableLabel.
-	orientation := isHorizontal
-		ifTrue: [ CPHorizontalPoolLaneOrientation new ]
-		ifFalse: [ CPVerticalPoolLaneOrientation new ].
+	orientation := CPPoolLaneOrientation forHorizontal: isHorizontal.
 	normalBorderColor := aBorderColor.
 	resizeHandles := #().
 	self

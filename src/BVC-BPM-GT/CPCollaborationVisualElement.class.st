@@ -1463,9 +1463,8 @@ CPCollaborationVisualElement >> hostedProcessBodyExtent [
 	participantShape := self participantShapeFor: participant.
 	participantShape ifNil: [ ^ nil ].
 	bounds := self stagedBoundsOf: participantShape.
-	offset := (self stagedIsHorizontalOf: participantShape)
-		ifTrue: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ]
-		ifFalse: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ].
+	offset := CPPoolLaneGeometry
+		participantContentOriginOffsetForHorizontal: (self stagedIsHorizontalOf: participantShape).
 	^ bounds extent - offset
 ]
 

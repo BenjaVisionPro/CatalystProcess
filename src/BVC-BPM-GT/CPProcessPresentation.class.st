@@ -572,9 +572,10 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 	old presentation and the new authoritative DI presentation are identical."
 	rootTargetRotation := isHorizontal ifTrue: [ -90 ] ifFalse: [ 90 ].
 	uprightTargetRotation := rootTargetRotation negated.
-	tracks := OrderedCollection with: (CPProcessOrientationParticipantMotionBehaviour
+	tracks := OrderedCollection with: ((CFMotionRotationTrack
 		on: participantElement
-		to: rootTargetRotation).
+		from: 0
+		to: rootTargetRotation) adoptAtDestination).
 
 	processVisual := participantElement processVisual.
 	processVisual ifNotNil: [
@@ -604,9 +605,10 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 				ifNil: [
 					connectionCorrection
 						ifNotNil: [
-							tracks add: (CPProcessOrientationConnectionLabelMotionBehaviour
+							tracks add: ((CFMotionTranslationTrack
 								on: anElement
-								finalCorrection: connectionCorrection + contentHandoffCorrection) ]
+								from: 0 @ 0
+								to: connectionCorrection + contentHandoffCorrection) adoptAtDestination) ]
 						ifNil: [
 							tracks add: ((CFMotionTranslationTrack
 								on: anElement

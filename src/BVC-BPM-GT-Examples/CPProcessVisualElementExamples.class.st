@@ -4075,40 +4075,8 @@ CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpa
 ]
 
 
-{ #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationConnectionLabelInversePointMatchesHorizontalDestination [
-	<gtExample>
-	| visual currentBodyExtent sourcePoint destinationPoint recoveredPoint |
-	visual := CPProcessVisualElement new.
-	currentBodyExtent := 300 @ 500.
-	sourcePoint := 80 @ 210.
-	destinationPoint := sourcePoint y @ (currentBodyExtent x - sourcePoint x).
-	recoveredPoint := visual
-		inverseOrientationPoint: destinationPoint
-		within: currentBodyExtent
-		horizontal: true.
-
-	self assert: recoveredPoint equals: sourcePoint.
-	^ visual
-]
 
 
-{ #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationConnectionLabelInversePointMatchesVerticalDestination [
-	<gtExample>
-	| visual currentBodyExtent sourcePoint destinationPoint recoveredPoint |
-	visual := CPProcessVisualElement new.
-	currentBodyExtent := 500 @ 300.
-	sourcePoint := 210 @ 80.
-	destinationPoint := (currentBodyExtent y - sourcePoint y) @ sourcePoint x.
-	recoveredPoint := visual
-		inverseOrientationPoint: destinationPoint
-		within: currentBodyExtent
-		horizontal: false.
-
-	self assert: recoveredPoint equals: sourcePoint.
-	^ visual
-]
 
 { #category : 'examples - orientation' }
 CPProcessVisualElementExamples >> connectionLabelAnchorMatchesAuthoritativePlacementBox [
@@ -4144,33 +4112,7 @@ CPProcessVisualElementExamples >> connectionLabelMotionUsesLiveVisualCenterNotPl
 ]
 
 
-{ #category : 'examples - orientation' }
-CPProcessVisualElementExamples >> participantOrientationMotionKeepsGeometricCenterForClockwiseQuarterTurn [
-	<gtExample>
-	| center translation rotatedCenter |
-	center := 268 @ 150.
-	translation := CPProcessOrientationParticipantMotionBehaviour
-		translationForRotation: 90
-		center: center.
-	rotatedCenter := (-150 @ 268) + translation.
-	self assert: translation equals: 418 @ -118.
-	self assert: rotatedCenter equals: center.
-	^ translation
-]
 
-{ #category : 'examples - orientation' }
-CPProcessVisualElementExamples >> participantOrientationMotionKeepsGeometricCenterForCounterClockwiseQuarterTurn [
-	<gtExample>
-	| center translation rotatedCenter |
-	center := 150 @ 268.
-	translation := CPProcessOrientationParticipantMotionBehaviour
-		translationForRotation: -90
-		center: center.
-	rotatedCenter := (268 @ -150) + translation.
-	self assert: translation equals: -118 @ 418.
-	self assert: rotatedCenter equals: center.
-	^ translation
-]
 
 { #category : 'examples - orientation' }
 CPProcessVisualElementExamples >> orientationProcessContentHandoffCorrectionToHorizontal [

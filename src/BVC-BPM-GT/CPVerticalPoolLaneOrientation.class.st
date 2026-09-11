@@ -13,12 +13,12 @@ CPVerticalPoolLaneOrientation >> isHorizontal [
 
 { #category : 'geometry' }
 CPVerticalPoolLaneOrientation >> participantContentOriginOffset [
-	^ 0 @ 36
+	^ CPPoolLaneGeometry participantContentOriginOffsetForHorizontal: false
 ]
 
 { #category : 'geometry' }
 CPVerticalPoolLaneOrientation >> laneBodyOriginOffset [
-	^ 0 @ 30
+	^ CPPoolLaneGeometry laneBodyOriginOffsetForHorizontal: false
 ]
 
 { #category : 'building' }

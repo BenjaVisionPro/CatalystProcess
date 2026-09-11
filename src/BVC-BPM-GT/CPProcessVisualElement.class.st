@@ -5465,12 +5465,11 @@ CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: an
 
 { #category : 'private - orientation' }
 CPProcessVisualElement >> orientationContentHandoffCorrectionForAssessment: anAssessment horizontal: isHorizontal [
-	"BPMN-DI point rotation uses the geometric far edge at the full body
-	extent. The live Bloc quarter-turn carries pixel-aligned presentation
-	origins through the last drawable coordinate, one less on each axis.
-	Pool/Lane structural rectangles do not use this path and already hand off
-	exactly. Answer only the residual needed by non-structural Process content
-	so the Motion endpoint coincides with the authoritative DI endpoint."
+	"Bridge the verified one-pixel difference between the live Process-content
+	Motion endpoint and the authoritative BPMN-DI quarter-turn. Pool/Lane
+	structure already hands off exactly and does not use this correction. Keep
+	this presentation-only adjustment in GT; persisted DI continues to use the
+	exact geometric extent."
 	| geometricExtent presentationExtent geometricEndpoint presentationEndpoint |
 	geometricExtent := self
 		orientationCurrentBodyExtentForAssessment: anAssessment
@@ -5491,31 +5490,20 @@ CPProcessVisualElement >> orientationContentHandoffCorrectionForAssessment: anAs
 { #category : 'private - orientation' }
 CPProcessVisualElement >> orientationCurrentBodyExtentForAssessment: anAssessment horizontal: isHorizontal [
 	| offset |
-	offset := isHorizontal
-		ifTrue: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
-		ifFalse: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ].
+	offset := CPPoolLaneGeometry participantContentOriginOffsetForHorizontal: isHorizontal not.
 	^ anAssessment currentBounds extent - offset
 ]
 
 
 { #category : 'private - orientation' }
 CPProcessVisualElement >> orientationPoint: aPoint within: currentBodyExtent horizontal: isHorizontal [
-	"Match CPAtelierSetParticipantOrientation>>rotateProcessPoint:within:.
-	The supplied Boolean is the destination orientation."
-	^ isHorizontal
-		ifTrue: [ aPoint y @ (currentBodyExtent x - aPoint x) ]
-		ifFalse: [ (currentBodyExtent y - aPoint y) @ aPoint x ]
+	^ CPPoolLaneGeometry
+		rotateProcessPoint: aPoint
+		within: currentBodyExtent
+		toHorizontal: isHorizontal
 ]
 
 
-{ #category : 'private - orientation' }
-CPProcessVisualElement >> inverseOrientationPoint: aPoint within: currentBodyExtent horizontal: isHorizontal [
-	"Inverse of CPAtelierSetParticipantOrientation>>rotateProcessPoint:within:.
-	The supplied Boolean is the destination orientation."
-	^ isHorizontal
-		ifTrue: [ (currentBodyExtent x - aPoint y) @ aPoint x ]
-		ifFalse: [ aPoint y @ (currentBodyExtent y - aPoint x) ]
-]
 
 
 { #category : 'accessing - orientation' }

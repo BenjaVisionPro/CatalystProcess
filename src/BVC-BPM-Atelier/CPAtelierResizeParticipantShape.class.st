@@ -394,7 +394,6 @@ CPAtelierResizeParticipantShape >> participantIsHorizontal [
 
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> participantContentOriginOffset [
-	^ self participantIsHorizontal
-		ifTrue: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ]
-		ifFalse: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
+	^ CPPoolLaneGeometry
+		participantContentOriginOffsetForHorizontal: self participantIsHorizontal
 ]

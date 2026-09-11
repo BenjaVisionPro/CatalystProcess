@@ -32,9 +32,7 @@ CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label:
 	lane := aLane.
 	diagramShape := aShape.
 	labelElement := anEditableLabel.
-	orientation := isHorizontal
-		ifTrue: [ CPHorizontalPoolLaneOrientation new ]
-		ifFalse: [ CPVerticalPoolLaneOrientation new ].
+	orientation := CPPoolLaneOrientation forHorizontal: isHorizontal.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aLane.
 	self
