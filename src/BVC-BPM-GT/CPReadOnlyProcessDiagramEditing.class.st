@@ -135,6 +135,7 @@ CPReadOnlyProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape t
 	^ nil
 ]
 
+
 { #category : 'geometry constraints' }
 CPReadOnlyProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ nil

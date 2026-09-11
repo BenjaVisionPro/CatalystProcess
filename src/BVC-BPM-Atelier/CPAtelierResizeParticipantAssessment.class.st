@@ -1,12 +1,11 @@
-"I describe one Participant resize together with the Lane DI reflow required to keep every LaneSet covering the full Pool body."
+"I describe one Participant resize together with its proposed Lane bounds, FlowNode bounds, and Sequence Flow waypoints."
 Class {
 	#name : 'CPAtelierResizeParticipantAssessment',
 	#superclass : 'CPAtelierMoveShapeAssessment',
 	#instVars : [
 		'proposedLaneBoundsByShape',
 		'proposedFlowNodeBoundsByShape',
-		'flowNodeMoveOperations',
-		'flowNodeMoveAssessments'
+		'proposedWaypointsByEdge'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -35,21 +34,11 @@ CPAtelierResizeParticipantAssessment >> proposedFlowNodeBoundsByShape: aDictiona
 ]
 
 { #category : 'accessing' }
-CPAtelierResizeParticipantAssessment >> flowNodeMoveOperations [
-	^ flowNodeMoveOperations
+CPAtelierResizeParticipantAssessment >> proposedWaypointsByEdge [
+	^ proposedWaypointsByEdge
 ]
 
 { #category : 'accessing' }
-CPAtelierResizeParticipantAssessment >> flowNodeMoveOperations: someOperations [
-	flowNodeMoveOperations := someOperations asArray
-]
-
-{ #category : 'accessing' }
-CPAtelierResizeParticipantAssessment >> flowNodeMoveAssessments [
-	^ flowNodeMoveAssessments
-]
-
-{ #category : 'accessing' }
-CPAtelierResizeParticipantAssessment >> flowNodeMoveAssessments: someAssessments [
-	flowNodeMoveAssessments := someAssessments asArray
+CPAtelierResizeParticipantAssessment >> proposedWaypointsByEdge: aDictionary [
+	proposedWaypointsByEdge := aDictionary
 ]

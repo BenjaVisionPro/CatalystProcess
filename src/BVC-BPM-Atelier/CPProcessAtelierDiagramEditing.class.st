@@ -560,6 +560,7 @@ CPProcessAtelierDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape to
 	^ assessment proposedFlowNodeBoundsByShape
 ]
 
+
 { #category : 'geometry constraints' }
 CPProcessAtelierDiagramEditing >> minimumHeightForResizeShape: aShape [
 	| collaboration participant operation |

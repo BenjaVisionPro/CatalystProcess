@@ -2668,21 +2668,13 @@ CPProcessVisualElementExamples >> resizingPoolReflowsSingleLaneToFullBody [
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> resizingPoolPreservesLanePartitionAndFillsBody [
 	<gtExample>
-	| fixture process memento collaborationContext participant participantShape processDiagram laneSet firstLane secondLane firstShape secondShape task taskShape firstEdge secondEdge diagramDescription assessment processDiagramContext |
+	| fixture process memento collaborationContext participant participantShape processDiagram laneSet firstLane secondLane firstShape secondShape diagramDescription assessment processDiagramContext |
 	fixture := self collaborationVisualFixture.
 	process := fixture first.
 	processDiagram := process diagram.
-	task := fixture at: 13.
-	taskShape := (processDiagram elements
-		detect: [ :each | each isShape and: [ each modelElement == task ] ]).
-	taskShape bounds: (180 @ 180 extent: 132 @ 54).
-	firstEdge := processDiagram elements
-		detect: [ :each | each isEdge and: [ each modelElement sourceRef ~~ task and: [ each modelElement targetRef == task ] ] ].
-	secondEdge := processDiagram elements
-		detect: [ :each | each isEdge and: [ each modelElement sourceRef == task ] ].
 	laneSet := CPLaneSet new.
 	firstLane := CPLane new label: 'First'; yourself.
-	secondLane := CPLane new label: 'Second'; addFlowNodeRef: task; yourself.
+	secondLane := CPLane new label: 'Second'; yourself.
 	laneSet addLane: firstLane; addLane: secondLane.
 	process addLaneSet: laneSet.
 	firstShape := CPShape new modelElement: firstLane; bounds: (56 @ 40 extent: 584 @ 115); yourself.
@@ -2705,9 +2697,6 @@ CPProcessVisualElementExamples >> resizingPoolPreservesLanePartitionAndFillsBody
 		using: diagramDescription.
 	self assert: (processDiagramContext boundsOf: firstShape) equals: (56 @ 40 extent: 784 @ 180).
 	self assert: (processDiagramContext boundsOf: secondShape) equals: (56 @ 220 extent: 784 @ 180).
-	self assert: (processDiagramContext boundsOf: taskShape) equals: (180 @ 245 extent: 132 @ 54).
-	self assert: (processDiagramContext waypointsOf: firstEdge) last equals: 180 @ 156.
-	self assert: (processDiagramContext waypointsOf: secondEdge) first equals: 312 @ 156.
 	^ assessment
 ]
 
@@ -3262,6 +3251,51 @@ CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMeme
 	^ visual
 ]
 
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> resizingPoolMovesFlowNodesWithTheirLanes [
+	<gtExample>
+	| fixture session target targetShape edge participant participantShape originalTargetBounds originalWaypoints assessment topLane topShape originalTopBounds resizedTopBounds expectedDelta resizedTargetBounds resizedWaypoints |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	target := session processMemento model flowElements
+		detect: [ :each | each isActivity ].
+	targetShape := (session diagramContext shapesForModelElement: target) anyOne.
+	edge := fixture ninth.
+	topLane := fixture eighth.
+	topShape := (session diagramContext shapesForModelElement: topLane) anyOne.
+	participant := session collaborationContext
+		participantForProcess: session processMemento model.
+	participantShape := (session collaborationContext diagramContext
+		shapesForModelElement: participant) anyOne.
+
+	originalTargetBounds := session diagramContext boundsOf: targetShape.
+	originalTopBounds := session diagramContext boundsOf: topShape.
+	originalWaypoints := session diagramContext waypointsOf: edge.
+
+	assessment := (CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (80 @ 60 extent: 820 @ 500)
+		processMemento: session processMemento
+		collaborationContext: session collaborationContext
+		processDiagramContext: session diagramContext) apply.
+	self assert: assessment isApplicable.
+
+	resizedTopBounds := session diagramContext boundsOf: topShape.
+	expectedDelta := resizedTopBounds origin - originalTopBounds origin.
+	resizedTargetBounds := session diagramContext boundsOf: targetShape.
+	resizedWaypoints := session diagramContext waypointsOf: edge.
+
+	self
+		assert: resizedTargetBounds
+		equals: (originalTargetBounds translateBy: expectedDelta).
+	self assert: resizedWaypoints first equals: originalWaypoints first.
+	self
+		assert: resizedWaypoints last
+		equals: originalWaypoints last + expectedDelta.
+	^ assessment
+]
 
 
 { #category : 'examples - lanes' }

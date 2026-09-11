@@ -154,6 +154,7 @@ CPProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds:
 	^ self subclassResponsibility
 ]
 
+
 { #category : 'geometry constraints' }
 CPProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ self subclassResponsibility
