@@ -4058,6 +4058,23 @@ CPProcessVisualElementExamples >> orientationLabelPointTransformMatchesAtelierQu
 ]
 
 { #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> orientationLabelOffsetRemainsInScreenSpace [
+	<gtExample>
+	| visual currentOffset desiredOffset rotatedOffset correction |
+	visual := CPProcessVisualElement new.
+	currentOffset := 0 @ 34.
+	desiredOffset := 0 @ 34.
+
+	rotatedOffset := visual orientationRotateVector: currentOffset horizontal: false.
+	correction := desiredOffset - rotatedOffset.
+	self assert: rotatedOffset equals: -34 @ 0.
+	self
+		assert: ((visual orientationRotateVector: currentOffset horizontal: false) + correction)
+		equals: desiredOffset.
+	^ visual
+]
+
+{ #category : 'examples - lanes - orientation' }
 CPProcessVisualElementExamples >> orientationLabelCorrectionUsesInverseQuarterTurn [
 	<gtExample>
 	| visual correction |
