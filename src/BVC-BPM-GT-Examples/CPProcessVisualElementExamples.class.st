@@ -4143,3 +4143,31 @@ CPProcessVisualElementExamples >> connectionLabelMotionUsesLiveVisualCenterNotPl
 	^ sourceVisualCenter
 ]
 
+
+{ #category : 'examples - orientation' }
+CPProcessVisualElementExamples >> participantOrientationMotionKeepsGeometricCenterForClockwiseQuarterTurn [
+	<gtExample>
+	| center translation rotatedCenter |
+	center := 268 @ 150.
+	translation := CPProcessOrientationParticipantMotionBehaviour
+		translationForRotation: 90
+		center: center.
+	rotatedCenter := (-150 @ 268) + translation.
+	self assert: translation equals: 418 @ -118.
+	self assert: rotatedCenter equals: center.
+	^ translation
+]
+
+{ #category : 'examples - orientation' }
+CPProcessVisualElementExamples >> participantOrientationMotionKeepsGeometricCenterForCounterClockwiseQuarterTurn [
+	<gtExample>
+	| center translation rotatedCenter |
+	center := 150 @ 268.
+	translation := CPProcessOrientationParticipantMotionBehaviour
+		translationForRotation: -90
+		center: center.
+	rotatedCenter := (268 @ -150) + translation.
+	self assert: translation equals: -118 @ 418.
+	self assert: rotatedCenter equals: center.
+	^ translation
+]
