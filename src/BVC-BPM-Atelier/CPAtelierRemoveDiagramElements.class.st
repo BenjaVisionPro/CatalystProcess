@@ -34,14 +34,19 @@ CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements pro
 
 { #category : 'assessing' }
 CPAtelierRemoveDiagramElements >> assess [
-	| participantOperations flowOperations messageFlowOperations operations operationAssessments rejectedAssessment |
+	| participantOperations laneOperations flowOperations messageFlowOperations operations operationAssessments rejectedAssessment |
 	diagramElements ifEmpty: [
 		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'At least one diagram element is required.' ].
 
 	participantOperations := self participantRemovalOperations.
+	laneOperations := self laneRemovalOperations.
+	laneOperations size > 1 ifTrue: [
+		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'Remove one Lane at a time.' ].
+	(laneOperations notEmpty and: [ participantOperations notEmpty or: [ self hasSelectedNonLaneProcessElements ] ]) ifTrue: [
+		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'Remove a Lane separately from other diagram elements.' ].
 	flowOperations := self flowRemovalOperations.
 	messageFlowOperations := self messageFlowRemovalOperationsExcludingThoseOwnedBy: participantOperations.
-	operations := participantOperations , flowOperations , messageFlowOperations.
+	operations := participantOperations , laneOperations , flowOperations , messageFlowOperations.
 	operationAssessments := operations collect: [ :anOperation | anOperation assess ].
 	rejectedAssessment := operationAssessments
 		detect: [ :anAssessment | anAssessment isApplicable not ]
@@ -85,10 +90,45 @@ CPAtelierRemoveDiagramElements >> participantRemovalOperations [
 ]
 
 { #category : 'private - resolving' }
-CPAtelierRemoveDiagramElements >> flowRemovalOperations [
-	| operations processDiagramContext selectedNodes operationOwnerNodes selectedSequenceFlows |
+CPAtelierRemoveDiagramElements >> laneRemovalOperations [
+	| operations processDiagramContext laneContext stagedLanes |
 	operations := OrderedCollection new.
 	processDiagramContext := self processDiagramContext.
+	laneContext := CPProcessLaneContext inRootMemento: processMemento.
+	stagedLanes := laneContext stagedLanes.
+	diagramElements do: [ :aDiagramElement |
+		((processDiagramContext elements identityIncludes: aDiagramElement) and: [ aDiagramElement isShape ]) ifTrue: [
+			| modelElement |
+			modelElement := processDiagramContext modelElementOf: aDiagramElement.
+			(modelElement notNil and: [ stagedLanes identityIncludes: modelElement ]) ifTrue: [
+				operations add: (CPAtelierRemoveLane
+					lane: modelElement
+					processMemento: processMemento
+					diagramContext: processDiagramContext
+					collaborationContext: self stagedCollaborationContext) ] ] ].
+	^ operations
+]
+
+{ #category : 'private - resolving' }
+CPAtelierRemoveDiagramElements >> hasSelectedNonLaneProcessElements [
+	| processDiagramContext laneContext stagedLanes |
+	processDiagramContext := self processDiagramContext.
+	laneContext := CPProcessLaneContext inRootMemento: processMemento.
+	stagedLanes := laneContext stagedLanes.
+	^ diagramElements anySatisfy: [ :aDiagramElement |
+		(processDiagramContext elements identityIncludes: aDiagramElement) and: [
+			| modelElement |
+			modelElement := processDiagramContext modelElementOf: aDiagramElement.
+			modelElement notNil and: [ (stagedLanes identityIncludes: modelElement) not ] ] ]
+]
+
+{ #category : 'private - resolving' }
+CPAtelierRemoveDiagramElements >> flowRemovalOperations [
+	| operations processDiagramContext laneContext stagedLanes selectedNodes operationOwnerNodes selectedSequenceFlows |
+	operations := OrderedCollection new.
+	processDiagramContext := self processDiagramContext.
+	laneContext := CPProcessLaneContext inRootMemento: processMemento.
+	stagedLanes := laneContext stagedLanes.
 	selectedNodes := IdentitySet new.
 	selectedSequenceFlows := IdentitySet new.
 	diagramElements do: [ :aDiagramElement |
@@ -97,7 +137,9 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 			modelElement := processDiagramContext modelElementOf: aDiagramElement.
 			modelElement ifNotNil: [
 				aDiagramElement isShape
-					ifTrue: [ selectedNodes add: modelElement ]
+					ifTrue: [
+						(stagedLanes identityIncludes: modelElement) ifFalse: [
+							selectedNodes add: modelElement ] ]
 					ifFalse: [
 						modelElement isSequenceFlow ifTrue: [
 							selectedSequenceFlows add: modelElement ] ] ] ] ].

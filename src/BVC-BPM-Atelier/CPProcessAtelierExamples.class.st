@@ -3092,3 +3092,42 @@ CPProcessAtelierExamples >> documentRootedFirstPoolThenLaneUsesCreatedCollaborat
 	self assert: ((CPProcessLaneContext inRootMemento: session processMemento) stagedLanes identityIncludes: lane).
 	^ laneAssessment
 ]
+
+{ #category : 'examples - lanes' }
+CPProcessAtelierExamples >> removeLanePreservesReferencedFlowNodes [
+	<gtExample>
+	| process task diagram taskShape laneSet firstLane secondLane firstLaneShape secondLaneShape memento diagramContext operation assessment laneContext stagedElements |
+	process := CPProcess new label: 'Lane removal'; yourself.
+	task := CPUserTask new label: 'Keep me'; yourself.
+	process addFlowElement: task.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	taskShape := CPShape new modelElement: task; bounds: (180 @ 70 extent: 132 @ 54); yourself.
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'First'; addFlowNodeRef: task; yourself.
+	secondLane := CPLane new label: 'Second'; yourself.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+	firstLaneShape := CPShape new modelElement: firstLane; bounds: (40 @ 40 extent: 500 @ 140); yourself.
+	secondLaneShape := CPShape new modelElement: secondLane; bounds: (40 @ 180 extent: 500 @ 140); yourself.
+	diagram addElement: taskShape; addElement: firstLaneShape; addElement: secondLaneShape.
+
+	memento := CFMaMemento model: process.
+	diagramContext := self diagramContextForMemento: memento.
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { firstLaneShape }
+		processMemento: memento
+		diagramContext: diagramContext.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	self assert: (laneContext stagedLanesInLaneSet: laneSet) size equals: 1.
+	self assert: (laneContext stagedLanesInLaneSet: laneSet) first == secondLane.
+	self assert: ((memento readUsing: (self descriptionFor: #flowElements in: memento)) identityIncludes: task).
+	stagedElements := diagramContext elements.
+	self assert: (stagedElements identityIncludes: firstLaneShape) not.
+	self assert: (stagedElements identityIncludes: secondLaneShape).
+	self assert: (stagedElements identityIncludes: taskShape).
+	^ assessment
+]

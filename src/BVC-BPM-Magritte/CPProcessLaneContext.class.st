@@ -218,3 +218,22 @@ CPProcessLaneContext >> mementoForLaneSet: aLaneSet inLaneSet: aCurrentLaneSet p
 ]
 
 
+
+{ #category : 'resolving' }
+CPProcessLaneContext >> parentLaneOfLaneSet: aLaneSet [
+	(self stagedLaneSets identityIncludes: aLaneSet) ifTrue: [ ^ nil ].
+	self stagedLaneSets do: [ :aTopLevelLaneSet |
+		(self parentLaneOfLaneSet: aLaneSet inLaneSet: aTopLevelLaneSet) ifNotNil: [ :aLane |
+			^ aLane ] ].
+	^ nil
+]
+
+{ #category : 'private - resolving' }
+CPProcessLaneContext >> parentLaneOfLaneSet: aTargetLaneSet inLaneSet: aCurrentLaneSet [
+	(self stagedLanesInLaneSet: aCurrentLaneSet) do: [ :aLane |
+		(self stagedChildLaneSetOf: aLane) ifNotNil: [ :aChildLaneSet |
+			aChildLaneSet == aTargetLaneSet ifTrue: [ ^ aLane ].
+			(self parentLaneOfLaneSet: aTargetLaneSet inLaneSet: aChildLaneSet) ifNotNil: [ :aParentLane |
+				^ aParentLane ] ] ].
+	^ nil
+]
