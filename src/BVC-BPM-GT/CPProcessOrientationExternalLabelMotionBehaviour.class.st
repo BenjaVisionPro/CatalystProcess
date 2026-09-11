@@ -69,9 +69,9 @@ CPProcessOrientationExternalLabelMotionBehaviour >> label: anElement [
 ]
 
 { #category : 'private - geometry' }
-CPProcessOrientationExternalLabelMotionBehaviour >> localOffsetAtProgress: aProgress [
+CPProcessOrientationExternalLabelMotionBehaviour >> rotatedOffsetAtProgress: aProgress [
 	| radians cosine sine |
-	radians := parentRotation negated * aProgress * Float pi / 180.0.
+	radians := parentRotation * aProgress * Float pi / 180.0.
 	cosine := radians cos.
 	sine := radians sin.
 	^ ((offset x * cosine) - (offset y * sine))
@@ -123,5 +123,11 @@ CPProcessOrientationExternalLabelMotionBehaviour >> reversed [
 
 { #category : 'private - geometry' }
 CPProcessOrientationExternalLabelMotionBehaviour >> translationAtProgress: aProgress [
-	^ (self localOffsetAtProgress: aProgress) - offset
+	"The label already inherits the Pool's parent rotation. Its own Motion
+	counter-rotation keeps the text upright and also changes the coordinate
+	space in which this translation is composed. The correction therefore has
+	to be expressed as the desired screen-space owner offset minus the offset
+	already produced by the Pool rotation. Using the inverse-rotated local
+	offset here makes a below-label travel to the opposite side before handoff."
+	^ offset - (self rotatedOffsetAtProgress: aProgress)
 ]

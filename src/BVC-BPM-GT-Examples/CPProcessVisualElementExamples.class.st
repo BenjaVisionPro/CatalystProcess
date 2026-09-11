@@ -4043,31 +4043,33 @@ CPProcessVisualElementExamples >> participantOrientationDescriptionUsesGroupedIc
 { #category : 'examples - lanes - orientation' }
 CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceClockwise [
 	<gtExample>
-	| behaviour offset finalLocalOffset |
+	| behaviour offset correction rotatedOffset |
 	offset := 0 @ 34.
 	behaviour := CPProcessOrientationExternalLabelMotionBehaviour
 		on: BlElement new
 		offset: offset
 		parentRotation: 90.
-	finalLocalOffset := offset + (behaviour translationAtProgress: 1.0).
+	rotatedOffset := behaviour rotatedOffsetAtProgress: 1.0.
+	correction := behaviour translationAtProgress: 1.0.
 
-	self assert: (finalLocalOffset x closeTo: 34.0).
-	self assert: (finalLocalOffset y closeTo: 0.0).
+	self assert: ((rotatedOffset + correction) x closeTo: offset x).
+	self assert: ((rotatedOffset + correction) y closeTo: offset y).
 	^ behaviour
 ]
 
 { #category : 'examples - lanes - orientation' }
 CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceCounterClockwise [
 	<gtExample>
-	| behaviour offset finalLocalOffset |
+	| behaviour offset correction rotatedOffset |
 	offset := 0 @ 34.
 	behaviour := CPProcessOrientationExternalLabelMotionBehaviour
 		on: BlElement new
 		offset: offset
 		parentRotation: -90.
-	finalLocalOffset := offset + (behaviour translationAtProgress: 1.0).
+	rotatedOffset := behaviour rotatedOffsetAtProgress: 1.0.
+	correction := behaviour translationAtProgress: 1.0.
 
-	self assert: (finalLocalOffset x closeTo: -34.0).
-	self assert: (finalLocalOffset y closeTo: 0.0).
+	self assert: ((rotatedOffset + correction) x closeTo: offset x).
+	self assert: ((rotatedOffset + correction) y closeTo: offset y).
 	^ behaviour
 ]
