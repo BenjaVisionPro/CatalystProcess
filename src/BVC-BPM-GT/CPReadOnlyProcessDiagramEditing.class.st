@@ -124,3 +124,13 @@ CPReadOnlyProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
 CPReadOnlyProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle fromLane: aSourceLane toLane: aTargetLane [
 	^ nil
 ]
+
+{ #category : 'geometry preview' }
+CPReadOnlyProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	^ nil
+]
+
+{ #category : 'geometry constraints' }
+CPReadOnlyProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
+	^ nil
+]

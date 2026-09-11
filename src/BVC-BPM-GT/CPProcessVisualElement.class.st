@@ -5144,3 +5144,62 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 			fromAnchor: fromAnchor;
 			toAnchor: toAnchor ]
 ]
+
+{ #category : 'geometry preview' }
+CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape [
+	| laneContext |
+	proposedBoundsByShape ifEmpty: [ ^ self ].
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	laneContext stagedLaneSets do: [ :aLaneSet |
+		self
+			previewLaneSet: aLaneSet
+			boundsByShape: proposedBoundsByShape
+			laneContext: laneContext
+			hostDiagramOrigin: 0 @ 0 ].
+	shapeElementsByModelElement keysAndValuesDo: [ :aFlowNode :anElement |
+		aFlowNode isBoundaryEvent ifFalse: [
+			| aShape bounds |
+			aShape := self shapeForModelElement: aFlowNode.
+			bounds := self stagedBoundsOf: aShape.
+			bounds ifNotNil: [ self relocateFlowNodeElement: anElement toDiagramPoint: bounds origin ] ] ].
+	self forceLayout
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> previewLaneSet: aLaneSet boundsByShape: proposedBoundsByShape laneContext: laneContext hostDiagramOrigin: hostDiagramOrigin [
+	| lanes laneBoundsByLane points laneSetBounds laneSetElement |
+	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
+	lanes ifEmpty: [ ^ self ].
+	laneBoundsByLane := IdentityDictionary new.
+	points := OrderedCollection new.
+	lanes do: [ :aLane |
+		| element aShape bounds |
+		element := laneElementsByLane at: aLane ifAbsent: [ ^ self ].
+		aShape := element diagramShape.
+		bounds := proposedBoundsByShape at: aShape ifAbsent: [ self stagedBoundsOf: aShape ].
+		bounds ifNil: [ ^ self ].
+		laneBoundsByLane at: aLane put: bounds.
+		points add: bounds topLeft; add: bounds bottomRight ].
+	laneSetBounds := Rectangle encompassing: points.
+	laneSetElement := (laneElementsByLane at: lanes first) parent parent.
+	laneSetElement
+		extent: laneSetBounds extent;
+		relocate: laneSetBounds origin - hostDiagramOrigin.
+	lanes do: [ :aLane |
+		| element bounds childLaneSet |
+		element := laneElementsByLane at: aLane.
+		bounds := laneBoundsByLane at: aLane.
+		element
+			extent: bounds extent;
+			relocate: bounds origin - laneSetBounds origin.
+		presentationHostDiagramOrigins
+			at: element bodyHost
+			put: bounds origin + element bodyOriginOffset.
+		childLaneSet := laneContext stagedChildLaneSetOf: aLane.
+		childLaneSet ifNotNil: [
+			self
+				previewLaneSet: childLaneSet
+				boundsByShape: proposedBoundsByShape
+				laneContext: laneContext
+				hostDiagramOrigin: bounds origin + element bodyOriginOffset ] ]
+]

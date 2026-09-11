@@ -539,3 +539,30 @@ CPProcessAtelierDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: 
 		processMemento: processMemento
 		diagramContext: diagramContext
 ]
+
+{ #category : 'geometry preview' }
+CPProcessAtelierDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	| operation assessment |
+	operation := self resizeShape: aShape toBounds: proposedBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation assess.
+	assessment isApplicable ifFalse: [ ^ nil ].
+	^ assessment proposedLaneBoundsByShape
+]
+
+{ #category : 'geometry constraints' }
+CPProcessAtelierDiagramEditing >> minimumHeightForResizeShape: aShape [
+	| collaboration participant operation |
+	collaboration := self stagedCollaborationContext.
+	collaboration ifNil: [ ^ nil ].
+	(collaboration elements identityIncludes: aShape) ifFalse: [ ^ nil ].
+	participant := collaboration diagramContext modelElementOf: aShape.
+	(collaboration processRefOf: participant) == processMemento model ifFalse: [ ^ nil ].
+	operation := CPAtelierResizeParticipantShape
+		shape: aShape
+		bounds: (collaboration diagramContext boundsOf: aShape)
+		processMemento: processMemento
+		collaborationContext: collaboration
+		processDiagramContext: diagramContext.
+	^ operation minimumParticipantHeightForStagedLanes
+]

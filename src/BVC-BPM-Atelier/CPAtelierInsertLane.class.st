@@ -29,7 +29,7 @@ CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean
 
 { #category : 'assessing' }
 CPAtelierInsertLane >> assess [
-	| laneContext laneSet laneSetMemento lanesDescription lanes targetIndex insertionIndex diagram diagramContext targetShapes targetShape targetBounds minimumLaneHeight canSplit newLaneHeight newBounds targetProposedBounds shape elements proposedElements proposedLanes proposedLaneBoundsByShape shiftedLanes shiftAmount flowNodeBoundsByShape moveOperation moveAssessment participantResizeOperation participantResizeAssessment |
+	| laneContext laneSet laneSetMemento lanesDescription lanes targetIndex insertionIndex diagram diagramContext targetShapes targetShape targetBounds minimumLaneHeight targetMinimumHeight canSplit newLaneHeight newBounds targetProposedBounds shape elements proposedElements proposedLanes proposedLaneBoundsByShape shiftedLanes shiftAmount flowNodeBoundsByShape moveOperation moveAssessment participantResizeOperation participantResizeAssessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A fresh Lane is required.' ].
 	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
 	lane == targetLane ifTrue: [ ^ self rejectedBecause: 'The inserted Lane must differ from the target Lane.' ].
@@ -58,14 +58,21 @@ CPAtelierInsertLane >> assess [
 	targetBounds height > 0 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have positive height.' ].
 
 	minimumLaneHeight := self minimumLaneHeight.
-	canSplit := targetBounds height >= (minimumLaneHeight * 2).
+	targetMinimumHeight := CPAtelierLaneLayout
+		minimumHeightForLane: targetLane
+		using: laneContext
+		diagramContext: diagramContext.
+	canSplit := targetBounds height >= (targetMinimumHeight + minimumLaneHeight).
 	proposedLaneBoundsByShape := IdentityDictionary new.
 	shiftedLanes := OrderedCollection new.
 	shiftAmount := 0.
 
 	canSplit
 		ifTrue: [
-			newLaneHeight := targetBounds height / 2.
+			newLaneHeight := (targetBounds height / 2)
+				max: minimumLaneHeight.
+			newLaneHeight := newLaneHeight
+				min: (targetBounds height - targetMinimumHeight).
 			insertAfter
 				ifTrue: [
 					targetProposedBounds := targetBounds origin
@@ -184,7 +191,16 @@ CPAtelierInsertLane >> applyAssessment: anAssessment [
 	anAssessment flowNodeMoveOperation ifNotNil: [ :anOperation |
 		anOperation applyAssessment: anAssessment flowNodeMoveAssessment ].
 	anAssessment participantResizeOperation ifNotNil: [ :anOperation |
-		anOperation applyAssessment: anAssessment participantResizeAssessment ]
+		| resizeAssessment reflowOperation |
+		resizeAssessment := anAssessment participantResizeAssessment.
+		anOperation applyAssessment: resizeAssessment.
+		reflowOperation := CPAtelierResizeParticipantShape
+			shape: resizeAssessment shape
+			bounds: resizeAssessment proposedBounds
+			processMemento: processMemento
+			collaborationContext: self stagedCollaborationContext
+			processDiagramContext: diagramContext.
+		reflowOperation applyLaneReflowForParticipantBounds: resizeAssessment proposedBounds ]
 ]
 
 { #category : 'private - assessing' }
@@ -200,7 +216,7 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
 	proposedBounds := participantBounds origin
 		extent: participantBounds width @ (participantBounds height + aHeight).
-	^ CPAtelierResizeParticipantShape
+	^ CPAtelierResizeParticipantFrame
 		shape: participantShape
 		bounds: proposedBounds
 		processMemento: processMemento

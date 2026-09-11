@@ -285,18 +285,41 @@ CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement sha
 	| handles |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	handles := anElement
-		installResizeHandleMinimumExtent: self minimumParticipantExtent
+		installResizeHandleMinimumExtent: (self minimumParticipantExtentForShape: aShape)
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds |
 			(diagramEditing resizeShape: aShape toBounds: proposedBounds) apply.
 			self refreshAfterGeometryChange ]
-		geometryChanged: nil.
+		geometryChanged: [ :proposedBounds |
+			self previewLaneGeometryForParticipantShape: aShape bounds: proposedBounds ].
 	handles do: [ :aHandle | anElement addChild: aHandle ]
+]
+
+
+{ #category : 'private - resizing' }
+CPCollaborationVisualElement >> previewLaneGeometryForParticipantShape: aShape bounds: proposedBounds [
+	| participant laneBounds |
+	participant := self stagedModelElementOf: aShape.
+	(self stagedProcessRefOfParticipant: participant) == processMemento model ifFalse: [ ^ self ].
+	laneBounds := diagramEditing
+		laneBoundsPreviewForResizeShape: aShape
+		toBounds: proposedBounds.
+	laneBounds ifNil: [ ^ self ].
+	processVisual previewLaneBoundsByShape: laneBounds
 ]
 
 { #category : 'private - sizing' }
 CPCollaborationVisualElement >> minimumParticipantExtent [
 	^ 120 @ 80
+]
+
+{ #category : 'private - sizing' }
+CPCollaborationVisualElement >> minimumParticipantExtentForShape: aShape [
+	| baseExtent laneMinimumHeight |
+	baseExtent := self minimumParticipantExtent.
+	laneMinimumHeight := diagramEditing minimumHeightForResizeShape: aShape.
+	laneMinimumHeight ifNil: [ ^ baseExtent ].
+	^ baseExtent x @ (baseExtent y max: laneMinimumHeight)
 ]
 
 { #category : 'private - building' }

@@ -143,3 +143,13 @@ CPProcessDiagramEditing >> assignFlowNode: aFlowNode toLane: aLane [
 CPProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectangle fromLane: aSourceLane toLane: aTargetLane [
 	^ self subclassResponsibility
 ]
+
+{ #category : 'geometry preview' }
+CPProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
+{ #category : 'geometry constraints' }
+CPProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
+	^ self subclassResponsibility
+]

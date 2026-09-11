@@ -207,37 +207,18 @@ CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
 
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> minimumHeightForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext [
-	^ (laneContext stagedLanesInLaneSet: aLaneSet)
-		inject: 0
-		into: [ :height :aLane |
-			height + (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ]
+	^ CPAtelierLaneLayout
+		minimumHeightForLaneSet: aLaneSet
+		using: laneContext
+		diagramContext: diagramContext
 ]
 
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext [
-	| childLaneSet childMinimum contentMinimum |
-	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
-	childMinimum := childLaneSet
-		ifNil: [ 0 ]
-		ifNotNil: [ self minimumHeightForLaneSet: childLaneSet using: laneContext diagramContext: diagramContext ].
-	contentMinimum := self minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext.
-	^ CPAtelierLaneLayout minimumLaneHeight
-		max: (childMinimum max: contentMinimum)
-]
-
-{ #category : 'private - geometry' }
-CPAtelierResizeParticipantShape >> minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext [
-	| contentBounds |
-	contentBounds := OrderedCollection new.
-	(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
-		| shapes |
-		shapes := diagramContext shapesForModelElement: aFlowNode.
-		shapes size = 1 ifTrue: [
-			contentBounds add: (diagramContext boundsOf: shapes anyOne) ] ].
-	contentBounds ifEmpty: [ ^ 0 ].
-	^ ((contentBounds collect: [ :each | each bottom ]) max
-		- (contentBounds collect: [ :each | each top ]) min)
-		+ (CPAtelierLaneLayout contentClearance * 2)
+	^ CPAtelierLaneLayout
+		minimumHeightForLane: aLane
+		using: laneContext
+		diagramContext: diagramContext
 ]
 
 { #category : 'private - geometry' }
@@ -269,3 +250,18 @@ CPAtelierResizeParticipantShape >> stagedProcessDiagramContext [
 
 { #category : 'accessing' }
 CPAtelierResizeParticipantShape >> processDiagramContext: aContext [ processDiagramContext := aContext ]
+
+{ #category : 'applying' }
+CPAtelierResizeParticipantShape >> applyLaneReflowForParticipantBounds: participantBounds [
+	| proposedLaneBounds diagramContext |
+	proposedLaneBounds := self proposedLaneBoundsForParticipantBounds: participantBounds.
+	proposedLaneBounds ifNil: [ ^ self ].
+	diagramContext := self stagedProcessDiagramContext.
+	diagramContext ifNil: [ ^ self ].
+	proposedLaneBounds keysAndValuesDo: [ :aShape :proposedBounds |
+		| shapeMemento boundsDescription |
+		shapeMemento := diagramContext mementoFor: aShape.
+		boundsDescription := shapeMemento magritteDescription
+			detect: [ :each | each handlesSelector: #bounds ].
+		shapeMemento write: proposedBounds using: boundsDescription ]
+]
