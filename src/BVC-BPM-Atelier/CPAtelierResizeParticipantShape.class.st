@@ -33,7 +33,7 @@ CPAtelierResizeParticipantShape >> assess [
 	(minimumHeight notNil and: [ baseAssessment proposedBounds height < minimumHeight ]) ifTrue: [
 		^ self
 			rejectedWithCurrentBounds: baseAssessment currentBounds
-			because: 'The Pool is too short to preserve Atelier minimum Lane heights.' ].
+			because: 'The Pool is too short to preserve the computed minimum heights of its Lanes.' ].
 	proposedLaneBounds := self
 		proposedLaneBoundsForParticipantBounds: baseAssessment proposedBounds.
 	proposedLaneBounds ifNil: [ proposedLaneBounds := IdentityDictionary new ].
@@ -103,7 +103,7 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinExtent: anExten
 		laneBounds := diagramContext boundsOf: laneShape.
 		laneShapes at: aLane put: laneShape.
 		currentBoundsByLane at: aLane put: laneBounds.
-		minimumHeightByLane at: aLane put: (self minimumHeightForLane: aLane using: laneContext) ].
+		minimumHeightByLane at: aLane put: (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ].
 	minX := (currentBoundsByLane values collect: [ :each | each left ]) min.
 	minY := (currentBoundsByLane values collect: [ :each | each top ]) min.
 	totalHeight := (currentBoundsByLane values collect: [ :each | each height ]) sum.
@@ -156,7 +156,7 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 		laneBounds := diagramContext boundsOf: laneShape.
 		laneShapes at: aLane put: laneShape.
 		currentBoundsByLane at: aLane put: laneBounds.
-		minimumHeightByLane at: aLane put: (self minimumHeightForLane: aLane using: laneContext) ].
+		minimumHeightByLane at: aLane put: (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ].
 	totalHeight := (currentBoundsByLane values collect: [ :each | each height ]) sum.
 	totalHeight > 0 ifFalse: [ ^ self ].
 	requiredHeight := minimumHeightByLane values sum.
@@ -193,32 +193,51 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
-	| laneContext laneSets |
+	| laneContext laneSets diagramContext |
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSets := laneContext stagedLaneSets.
 	laneSets ifEmpty: [ ^ nil ].
+	diagramContext := self stagedProcessDiagramContext.
+	diagramContext ifNil: [ ^ nil ].
 	^ laneSets
 		inject: 0
 		into: [ :minimum :aLaneSet |
-			minimum max: (self minimumHeightForLaneSet: aLaneSet using: laneContext) ]
+			minimum max: (self minimumHeightForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext) ]
 ]
 
 { #category : 'private - geometry' }
-CPAtelierResizeParticipantShape >> minimumHeightForLaneSet: aLaneSet using: laneContext [
+CPAtelierResizeParticipantShape >> minimumHeightForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext [
 	^ (laneContext stagedLanesInLaneSet: aLaneSet)
 		inject: 0
 		into: [ :height :aLane |
-			height + (self minimumHeightForLane: aLane using: laneContext) ]
+			height + (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ]
 ]
 
 { #category : 'private - geometry' }
-CPAtelierResizeParticipantShape >> minimumHeightForLane: aLane using: laneContext [
-	| childLaneSet childMinimum |
+CPAtelierResizeParticipantShape >> minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext [
+	| childLaneSet childMinimum contentMinimum |
 	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
 	childMinimum := childLaneSet
 		ifNil: [ 0 ]
-		ifNotNil: [ self minimumHeightForLaneSet: childLaneSet using: laneContext ].
-	^ CPAtelierLaneLayout minimumLaneHeight max: childMinimum
+		ifNotNil: [ self minimumHeightForLaneSet: childLaneSet using: laneContext diagramContext: diagramContext ].
+	contentMinimum := self minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext.
+	^ CPAtelierLaneLayout minimumLaneHeight
+		max: (childMinimum max: contentMinimum)
+]
+
+{ #category : 'private - geometry' }
+CPAtelierResizeParticipantShape >> minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext [
+	| contentBounds |
+	contentBounds := OrderedCollection new.
+	(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
+		| shapes |
+		shapes := diagramContext shapesForModelElement: aFlowNode.
+		shapes size = 1 ifTrue: [
+			contentBounds add: (diagramContext boundsOf: shapes anyOne) ] ].
+	contentBounds ifEmpty: [ ^ 0 ].
+	^ ((contentBounds collect: [ :each | each bottom ]) max
+		- (contentBounds collect: [ :each | each top ]) min)
+		+ (CPAtelierLaneLayout contentClearance * 2)
 ]
 
 { #category : 'private - geometry' }

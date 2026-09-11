@@ -3661,3 +3661,61 @@ CPProcessVisualElementExamples >> resizingPoolRespectsRecursiveMinimumLaneHeight
 	self assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: secondChildLane)) equals: secondChildBounds.
 	^ collaborationVisual
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> resizingPoolMinimumTracksLaneContents [
+	<gtExample>
+	| fixture process processDiagram task taskShape laneSet firstLane secondLane firstShape secondShape localPool memento collaborationContext participant participantShape diagramDescription tooSmallAssessment assessment processDiagramContext firstBounds secondBounds |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	processDiagram := process diagram.
+	task := fixture thirteenth.
+	taskShape := processDiagram elements
+		detect: [ :each | each isShape and: [ each modelElement == task ] ].
+	taskShape bounds: (180 @ 40 extent: 132 @ 180).
+
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'Content'; addFlowNodeRef: task; yourself.
+	secondLane := CPLane new label: 'Other'; yourself.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+	firstShape := CPShape new modelElement: firstLane; bounds: (56 @ 40 extent: 584 @ 220); yourself.
+	secondShape := CPShape new modelElement: secondLane; bounds: (56 @ 260 extent: 584 @ 140); yourself.
+	processDiagram addElement: firstShape; addElement: secondShape.
+	localPool := fixture seventh.
+	localPool bounds: (40 @ 40 extent: 620 @ 400).
+
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	processDiagramContext := CPDiagramMementoContext
+		diagram: processDiagram
+		inMemento: memento
+		using: diagramDescription.
+
+	tooSmallAssessment := (CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (40 @ 40 extent: 620 @ 350)
+		processMemento: memento
+		collaborationContext: collaborationContext
+		processDiagramContext: processDiagramContext) apply.
+	self assert: tooSmallAssessment isApplicable equals: false.
+
+	assessment := (CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (40 @ 40 extent: 620 @ 400)
+		processMemento: memento
+		collaborationContext: collaborationContext
+		processDiagramContext: processDiagramContext) apply.
+	self assert: assessment isApplicable.
+	firstBounds := processDiagramContext boundsOf: firstShape.
+	secondBounds := processDiagramContext boundsOf: secondShape.
+	self assert: firstBounds height >= 220.
+	self assert: secondBounds height >= CPAtelierLaneLayout minimumLaneHeight.
+	self assert: firstBounds height + secondBounds height equals: 400.
+	self assert: firstBounds bottom equals: secondBounds top.
+	^ assessment
+]

@@ -13,3 +13,9 @@ Class {
 CPAtelierLaneLayout class >> minimumLaneHeight [
 	^ 140
 ]
+
+{ #category : 'geometry' }
+CPAtelierLaneLayout class >> contentClearance [
+	"Minimum clear space retained above and below the vertical envelope of FlowNodes when a horizontal Lane is compressed by Atelier layout."
+	^ 20
+]
