@@ -517,7 +517,9 @@ CPProcessPresentation >> newParticipantDetailElementFor: aParticipant semanticDe
 		shape: participantShape
 		horizontal: stagedIsHorizontal
 		diagramEditing: diagramEditing
-		changedDo: [ self refreshCollaborationDiagramPreservingCamera ].
+		changedDo: [
+			self refreshCollaborationDiagramPreservingCamera.
+			self selectModelElement: aParticipant ].
 	selectionViewModel := CFMaViewModel forObject: selection.
 	selectionViewModel
 		ignoreImplicitActions;
