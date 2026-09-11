@@ -3360,11 +3360,11 @@ CPProcessAtelierExamples >> participantOrientationRotatesGeometryWithoutRotating
 	self assert: (collaborationContext diagramContext boundsOf: participantShape) equals: (158 @ -78 extent: 300 @ 536).
 	self assert: (diagramContext boundsOf: fixture sixth) equals: (160 @ 0 extent: 140 @ 500).
 	self assert: (diagramContext boundsOf: fixture eighth) equals: (0 @ 0 extent: 160 @ 500).
-	self assert: (diagramContext boundsOf: fixture tenth) equals: (208 @ 100 extent: 42 @ 42).
-	self assert: (diagramContext boundsOf: fixture twelfth) equals: (20 @ 370 extent: 100 @ 60).
-	self assert: (diagramContext boundsOf: fixture tenth) extent equals: (42 @ 42).
-	self assert: (diagramContext boundsOf: fixture twelfth) extent equals: (100 @ 60).
-	self assert: (diagramContext waypointsOf: fixture thirteenth) equals: { 229 @ 142. 70 @ 350 } asOrderedCollection.
+	self assert: (diagramContext boundsOf: (fixture at: 10)) equals: (208 @ 100 extent: 42 @ 42).
+	self assert: (diagramContext boundsOf: (fixture at: 12)) equals: (20 @ 370 extent: 100 @ 60).
+	self assert: (diagramContext boundsOf: (fixture at: 10)) extent equals: (42 @ 42).
+	self assert: (diagramContext boundsOf: (fixture at: 12)) extent equals: (100 @ 60).
+	self assert: (diagramContext waypointsOf: (fixture at: 13)) equals: { 229 @ 142. 70 @ 350 } asOrderedCollection.
 	^ assessment
 ]
 
@@ -3385,9 +3385,9 @@ CPProcessAtelierExamples >> participantOrientationRoundTripRestoresExactGeometry
 	originalParticipant := collaborationContext diagramContext boundsOf: participantShape.
 	originalFirstLane := diagramContext boundsOf: fixture sixth.
 	originalSecondLane := diagramContext boundsOf: fixture eighth.
-	originalStart := diagramContext boundsOf: fixture tenth.
-	originalTask := diagramContext boundsOf: fixture twelfth.
-	originalWaypoints := diagramContext waypointsOf: fixture thirteenth.
+	originalStart := diagramContext boundsOf: (fixture at: 10).
+	originalTask := diagramContext boundsOf: (fixture at: 12).
+	originalWaypoints := diagramContext waypointsOf: (fixture at: 13).
 
 	verticalAssessment := (editing makeParticipantVertical: participantShape) apply.
 	self assert: verticalAssessment isApplicable.
@@ -3397,8 +3397,8 @@ CPProcessAtelierExamples >> participantOrientationRoundTripRestoresExactGeometry
 	self assert: (collaborationContext diagramContext boundsOf: participantShape) equals: originalParticipant.
 	self assert: (diagramContext boundsOf: fixture sixth) equals: originalFirstLane.
 	self assert: (diagramContext boundsOf: fixture eighth) equals: originalSecondLane.
-	self assert: (diagramContext boundsOf: fixture tenth) equals: originalStart.
-	self assert: (diagramContext boundsOf: fixture twelfth) equals: originalTask.
-	self assert: (diagramContext waypointsOf: fixture thirteenth) equals: originalWaypoints.
+	self assert: (diagramContext boundsOf: (fixture at: 10)) equals: originalStart.
+	self assert: (diagramContext boundsOf: (fixture at: 12)) equals: originalTask.
+	self assert: (diagramContext waypointsOf: (fixture at: 13)) equals: originalWaypoints.
 	^ horizontalAssessment
 ]
