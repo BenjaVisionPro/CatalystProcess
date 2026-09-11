@@ -2402,6 +2402,7 @@ CPProcessVisualElementExamples >> poolPaletteSecondLaneGrowthRefreshesVisiblePar
 	stagedBounds := collaborationVisual stagedBoundsOf: participantShape.
 	self assert: stagedBounds height equals: 370.
 	participantElement := collaborationVisual participantElementsByParticipant at: participant.
+	collaborationVisual forceLayout.
 	self assert: participantElement extent equals: stagedBounds extent.
 	^ collaborationVisual
 ]
