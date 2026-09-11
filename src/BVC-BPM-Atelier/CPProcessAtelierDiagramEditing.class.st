@@ -561,6 +561,17 @@ CPProcessAtelierDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape to
 ]
 
 
+{ #category : 'geometry preview' }
+CPProcessAtelierDiagramEditing >> waypointsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	| operation assessment |
+	operation := self resizeShape: aShape toBounds: proposedBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation assess.
+	assessment isApplicable ifFalse: [ ^ nil ].
+	^ assessment proposedWaypointsByEdge
+]
+
+
 { #category : 'geometry constraints' }
 CPProcessAtelierDiagramEditing >> minimumHeightForResizeShape: aShape [
 	| collaboration participant operation |

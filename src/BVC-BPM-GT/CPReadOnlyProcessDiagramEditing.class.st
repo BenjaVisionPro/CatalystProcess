@@ -136,6 +136,12 @@ CPReadOnlyProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape t
 ]
 
 
+{ #category : 'geometry preview' }
+CPReadOnlyProcessDiagramEditing >> waypointsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	^ nil
+]
+
+
 { #category : 'geometry constraints' }
 CPReadOnlyProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ nil

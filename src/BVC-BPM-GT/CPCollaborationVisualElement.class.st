@@ -298,7 +298,7 @@ CPCollaborationVisualElement >> installResizeOnParticipantElement: anElement sha
 
 { #category : 'private - resizing' }
 CPCollaborationVisualElement >> previewLaneGeometryForParticipantShape: aShape bounds: proposedBounds [
-	| participant laneBounds flowNodeBounds |
+	| participant laneBounds flowNodeBounds waypointsByEdge |
 	participant := self stagedModelElementOf: aShape.
 	(self stagedProcessRefOfParticipant: participant) == processMemento model ifFalse: [ ^ self ].
 	laneBounds := diagramEditing
@@ -309,9 +309,14 @@ CPCollaborationVisualElement >> previewLaneGeometryForParticipantShape: aShape b
 		flowNodeBoundsPreviewForResizeShape: aShape
 		toBounds: proposedBounds.
 	flowNodeBounds ifNil: [ flowNodeBounds := IdentityDictionary new ].
+	waypointsByEdge := diagramEditing
+		waypointsPreviewForResizeShape: aShape
+		toBounds: proposedBounds.
+	waypointsByEdge ifNil: [ waypointsByEdge := IdentityDictionary new ].
 	processVisual
 		previewLaneBoundsByShape: laneBounds
 		flowNodeBoundsByShape: flowNodeBounds
+		waypointsByEdge: waypointsByEdge
 ]
 
 { #category : 'private - sizing' }

@@ -3297,14 +3297,13 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesExternalFlowNodeLabel [
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 	<gtExample>
-	| fixture session visual edge edgeLabel originalLabelPosition participant participantShape editing assessment laneBounds flowNodeBounds target targetShape proposedTargetBounds |
+	| fixture session visual edge edgeLabel participant participantShape editing assessment laneBounds flowNodeBounds waypointsByEdge waypoints renderedPoints path segmentIndex segmentPosition offset placement target targetShape proposedTargetBounds |
 	fixture := self documentRootedNestedLaneDragFixture.
 	session := fixture first.
 	visual := fixture second.
 	edge := fixture ninth.
 	edgeLabel := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
 	self assert: edgeLabel notNil.
-	originalLabelPosition := edgeLabel position.
 	target := session processMemento model flowElements
 		detect: [ :each | each isActivity ].
 	targetShape := (session diagramContext shapesForModelElement: target) anyOne.
@@ -3320,13 +3319,34 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 	self assert: assessment isApplicable.
 	laneBounds := assessment proposedLaneBoundsByShape.
 	flowNodeBounds := assessment proposedFlowNodeBoundsByShape.
+	waypointsByEdge := assessment proposedWaypointsByEdge.
 	proposedTargetBounds := flowNodeBounds at: targetShape.
 
 	visual
 		previewLaneBoundsByShape: laneBounds
-		flowNodeBoundsByShape: flowNodeBounds.
+		flowNodeBoundsByShape: flowNodeBounds
+		waypointsByEdge: waypointsByEdge.
 
-	self assert: edgeLabel position ~= originalLabelPosition.
+	waypoints := waypointsByEdge
+		at: edge
+		ifAbsent: [ visual stagedWaypointsOf: edge ].
+	renderedPoints := visual
+		renderedPathPointsFor: edge
+		waypoints: waypoints
+		flowNodeBoundsByShape: flowNodeBounds.
+	path := CPProcessEdgeLabelPath points: renderedPoints.
+	segmentIndex := (visual stagedLabelSegmentIndexOf: edge)
+		ifNil: [ path defaultSegmentIndex ].
+	segmentPosition := (visual stagedLabelSegmentPositionOf: edge) ifNil: [ 0.5 ].
+	offset := (visual stagedLabelOffsetOf: edge) ifNil: [ -14.0 ].
+	placement := path
+		placementAtSegmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset.
+
+	self
+		assert: edgeLabel position
+		equals: (placement first x - 90) @ (placement first y - 22).
 	self
 		assert: (visual diagramBoundsForElement:
 			(visual shapeElementsByModelElement at: target))

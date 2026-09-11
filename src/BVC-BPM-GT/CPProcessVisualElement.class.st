@@ -1169,6 +1169,50 @@ CPProcessVisualElement >> labelPlacementFor: anEdge segmentIndex: aSegmentIndex 
 
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints flowNodeBoundsByShape: proposedFlowNodeBounds [
+	| sequenceFlow source target sourceShape targetShape sourceBounds targetBounds sourcePoint targetPoint points |
+	sequenceFlow := anEdge modelElement.
+	source := self stagedSourceOf: sequenceFlow.
+	target := self stagedTargetOf: sequenceFlow.
+	sourceShape := self shapeForModelElement: source.
+	targetShape := self shapeForModelElement: target.
+	sourceBounds := proposedFlowNodeBounds
+		at: sourceShape
+		ifAbsent: [ self stagedBoundsOf: sourceShape ].
+	targetBounds := proposedFlowNodeBounds
+		at: targetShape
+		ifAbsent: [ self stagedBoundsOf: targetShape ].
+	(sourceBounds isNil or: [ targetBounds isNil ]) ifTrue: [ ^ someWaypoints ].
+
+	someWaypoints size = 2 ifTrue: [
+		sourcePoint := self
+			dockingPointFor: source
+			bounds: sourceBounds
+			toward: targetBounds center.
+		targetPoint := self
+			dockingPointFor: target
+			bounds: targetBounds
+			toward: sourceBounds center.
+		^ { sourcePoint. targetPoint } ].
+
+	sourcePoint := self
+		dockingPointFor: source
+		bounds: sourceBounds
+		toward: (someWaypoints at: 2).
+	targetPoint := self
+		dockingPointFor: target
+		bounds: targetBounds
+		toward: (someWaypoints at: someWaypoints size - 1).
+	points := OrderedCollection new.
+	points add: sourcePoint.
+	2 to: someWaypoints size - 1 do: [ :index |
+		points add: (someWaypoints at: index) ].
+	points add: targetPoint.
+	^ points
+]
+
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints usingLiveBounds: useLiveBounds [
 	| sequenceFlow source target sourceBounds targetBounds sourcePoint targetPoint points |
 	sequenceFlow := anEdge modelElement.
@@ -5166,6 +5210,26 @@ CPProcessVisualElement >> updateIncidentEdgeGeometryFor: aModelElement [
 
 { #category : 'private - edges' }
 
+{ #category : 'private - edges' }
+CPProcessVisualElement >> updateEdgeVisual: anEdgeVisual withRenderedPoints: points [
+	| lines hitLines |
+	lines := anEdgeVisual lineElements.
+	hitLines := anEdgeVisual hitElements.
+	(points size = (lines size + 1)
+		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
+	1 to: lines size do: [ :index |
+		| fromAnchor toAnchor |
+		fromAnchor := BlAbsolutePositionAnchor position: (points at: index).
+		toAnchor := BlAbsolutePositionAnchor position: (points at: index + 1).
+		(lines at: index)
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor.
+		(hitLines at: index)
+			fromAnchor: fromAnchor;
+			toAnchor: toAnchor ]
+]
+
+
 CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual moving: aModelElement toBounds: proposedBounds [
 	| points lines hitLines |
 	points := self
@@ -5222,6 +5286,14 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape [
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNodeBoundsByShape: proposedFlowNodeBounds [
+	^ self
+		previewLaneBoundsByShape: proposedBoundsByShape
+		flowNodeBoundsByShape: proposedFlowNodeBounds
+		waypointsByEdge: IdentityDictionary new
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNodeBoundsByShape: proposedFlowNodeBounds waypointsByEdge: proposedWaypointsByEdge [
 	| laneContext |
 	proposedBoundsByShape ifEmpty: [ ^ self ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
@@ -5246,10 +5318,17 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 						width: 180) ] ] ] ].
 	self forceLayout.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
-		| renderedPoints |
+		| waypoints renderedPoints |
+		waypoints := proposedWaypointsByEdge
+			at: anEdge
+			ifAbsent: [ self stagedWaypointsOf: anEdge ].
 		renderedPoints := self
-			updateLiveGeometryForEdge: anEdge
-			visual: anEdgeVisual.
+			renderedPathPointsFor: anEdge
+			waypoints: waypoints
+			flowNodeBoundsByShape: proposedFlowNodeBounds.
+		self
+			updateEdgeVisual: anEdgeVisual
+			withRenderedPoints: renderedPoints.
 		(anEdgeVisual hasLabelHost and: [ renderedPoints notEmpty ]) ifTrue: [
 			self
 				positionEdgeLabelFor: anEdge
