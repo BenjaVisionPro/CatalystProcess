@@ -3109,10 +3109,23 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 					createParticipant: candidate
 					bounds: proposedBounds ]
 			ifNotNil: [
-				proposedBounds := self poolBodyBoundsForFirstLane.
-				operation := diagramEditing
-					createLane: (CPLane new label: 'Lane'; yourself)
-					bounds: proposedBounds ].
+				| laneContext laneSets topLevelLanes |
+				laneContext := CPProcessLaneContext inRootMemento: memento.
+				laneSets := laneContext stagedLaneSets.
+				laneSets ifEmpty
+					ifTrue: [
+						proposedBounds := self poolBodyBoundsForFirstLane.
+						operation := diagramEditing
+							createLane: (CPLane new label: 'Lane'; yourself)
+							bounds: proposedBounds ]
+					ifFalse: [
+						laneSets size = 1 ifFalse: [ ^ false ].
+						topLevelLanes := laneContext stagedLanesInLaneSet: laneSets first.
+						topLevelLanes ifEmpty: [ ^ false ].
+						operation := diagramEditing
+							insertLane: (CPLane new label: 'Lane'; yourself)
+							relativeTo: topLevelLanes last
+							after: true ] ].
 		operation ifNil: [ ^ false ].
 		assessment := operation assess.
 		^ assessment isApplicable ].
@@ -3169,7 +3182,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 					atRootDiagramPoint: aRootPoint ]
 			ifNotNil: [
 				^ self
-					createLaneFromPoolPalette ] ].
+					createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint ] ].
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 	candidate isBoundaryEvent ifTrue: [ ^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
@@ -3197,12 +3210,34 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	^ assessment
 ]
 { #category : 'private - creation' }
-CPProcessVisualElement >> createLaneFromPoolPalette [
-	| lane bounds operation assessment |
+CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint [
+	| lane laneContext laneSets topLevelLanes localPoint targetLane targetShape targetBounds insertAfter bounds operation assessment |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	lane := CPLane new label: 'Lane'; yourself.
-	bounds := self poolBodyBoundsForFirstLane.
-	operation := diagramEditing createLane: lane bounds: bounds.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	laneSets := laneContext stagedLaneSets.
+	laneSets ifEmpty: [
+		bounds := self poolBodyBoundsForFirstLane.
+		operation := diagramEditing createLane: lane bounds: bounds ]
+	ifNotEmpty: [
+		laneSets size = 1 ifFalse: [ ^ nil ].
+		topLevelLanes := laneContext stagedLanesInLaneSet: laneSets first.
+		topLevelLanes ifEmpty: [ ^ nil ].
+		localPoint := self localPointForRootDiagramPoint: aRootPoint.
+		targetLane := topLevelLanes
+			detect: [ :aLane |
+				| shapes |
+				shapes := diagramContext shapesForModelElement: aLane.
+				shapes size = 1 and: [
+					(diagramContext boundsOf: shapes anyOne) containsPoint: localPoint ] ]
+			ifNone: [ topLevelLanes last ].
+		targetShape := (diagramContext shapesForModelElement: targetLane) anyOne.
+		targetBounds := diagramContext boundsOf: targetShape.
+		insertAfter := localPoint y >= targetBounds center y.
+		operation := diagramEditing
+			insertLane: lane
+			relativeTo: targetLane
+			after: insertAfter ].
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [

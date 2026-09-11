@@ -196,7 +196,7 @@ CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
 	| laneContext laneSets diagramContext |
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSets := laneContext stagedLaneSets.
-	laneSets ifEmpty: [ ^ nil ].
+	laneSets ifEmpty: [ ^ CPAtelierLaneLayout minimumLaneHeight ].
 	diagramContext := self stagedProcessDiagramContext.
 	diagramContext ifNil: [ ^ nil ].
 	^ laneSets

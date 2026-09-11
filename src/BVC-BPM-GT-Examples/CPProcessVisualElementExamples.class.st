@@ -3716,3 +3716,21 @@ CPProcessVisualElementExamples >> resizingPoolMinimumTracksLaneContents [
 	self assert: firstBounds bottom equals: secondBounds top.
 	^ assessment
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> emptyHostedPoolUsesOneLaneMinimumHeight [
+	<gtExample>
+	| fixture process memento collaborationContext participant participantShape editing |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture at: 2.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	editing := self diagramEditingForMemento: memento.
+	self
+		assert: (editing minimumHeightForResizeShape: participantShape)
+		equals: CPAtelierLaneLayout minimumLaneHeight.
+	^ participantShape
+]
