@@ -1469,6 +1469,12 @@ CPProcessVisualElement >> positionLiveEdgeLabelFor: anEdge [
 
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> externalLabelOriginForBounds: bounds width: labelWidth [
+	^ (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4)
+]
+
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
 	| labelHost interactionSurface label labelWidth |
 	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
@@ -1482,7 +1488,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c vertical fitContent.
 			c ignoreByLayout ];
 		preventMouseEvents;
-		relocate: (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4);
+		relocate: (self externalLabelOriginForBounds: bounds width: labelWidth);
 		yourself.
 	interactionSurface := BlElement new
 		layout: BlFrameLayout new;
@@ -5212,7 +5218,11 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 				at: aShape
 				ifAbsent: [ self stagedBoundsOf: aShape ].
 			bounds ifNotNil: [
-				self relocateFlowNodeElement: anElement toDiagramPoint: bounds origin ] ] ].
+				self relocateFlowNodeElement: anElement toDiagramPoint: bounds origin.
+				anElement externalLabelHost ifNotNil: [ :aLabel |
+					aLabel relocate: (self
+						externalLabelOriginForBounds: bounds
+						width: 180) ] ] ] ].
 	self forceLayout.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		self updateLiveGeometryForEdge: anEdge visual: anEdgeVisual ]

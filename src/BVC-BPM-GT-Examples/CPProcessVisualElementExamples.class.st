@@ -3254,6 +3254,47 @@ CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMeme
 
 
 { #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> laneResizePreviewMovesExternalFlowNodeLabel [
+	<gtExample>
+	| fixture session visual node nodeShape nodeElement label laneContext laneBounds flowNodeBounds proposedNodeBounds |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	node := fixture fourth.
+	nodeShape := fixture fifth.
+	nodeElement := visual shapeElementsByModelElement at: node.
+	label := nodeElement externalLabelHost.
+	self assert: label notNil.
+
+	laneContext := CPProcessLaneContext inRootMemento: session processMemento.
+	laneBounds := IdentityDictionary new.
+	laneContext stagedLanes do: [ :aLane |
+		| laneShape |
+		laneShape := (session diagramContext shapesForModelElement: aLane) anyOne.
+		laneBounds
+			at: laneShape
+			put: (session diagramContext boundsOf: laneShape) ].
+
+	proposedNodeBounds := (session diagramContext boundsOf: nodeShape)
+		translateBy: 0 @ 50.
+	flowNodeBounds := IdentityDictionary new
+		at: nodeShape put: proposedNodeBounds;
+		yourself.
+
+	visual
+		previewLaneBoundsByShape: laneBounds
+		flowNodeBoundsByShape: flowNodeBounds.
+
+	self
+		assert: label position
+		equals: (visual
+			externalLabelOriginForBounds: proposedNodeBounds
+			width: 180).
+	^ visual
+]
+
+
+{ #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> resizingPoolMovesFlowNodesWithTheirLanes [
 	<gtExample>
 	| fixture session target targetShape edge participant participantShape originalTargetBounds originalWaypoints assessment topLane topShape originalTopBounds resizedTopBounds expectedDelta resizedTargetBounds resizedWaypoints |
