@@ -61,6 +61,15 @@ CPAtelierResizeParticipantShape >> assess [
 		yourself
 ]
 
+{ #category : 'private - applying' }
+CPAtelierResizeParticipantShape >> endpointDeltaFrom: currentBounds to: proposedBounds [
+	"Required by CPAtelierParticipantShapeBoundsOperation>>applyAssessment:.
+	A resize keeps Message Flow endpoints attached to the Participant by
+	translating them with the Participant center."
+	^ proposedBounds center - currentBounds center
+]
+
+
 { #category : 'applying' }
 CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
 	| diagramContext |
