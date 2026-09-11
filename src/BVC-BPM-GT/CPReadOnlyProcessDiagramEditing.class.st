@@ -62,6 +62,12 @@ CPReadOnlyProcessDiagramEditing >> replaceShape: aShape with: aReplacementNode b
 
 
 { #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds [
+	^ nil
+]
+
+
+{ #category : 'operation factories' }
 CPReadOnlyProcessDiagramEditing >> appendFlowNode: aFlowNode fromShape: aSourceShape bounds: proposedBounds targetLane: aLane [
 	^ nil
 ]
@@ -125,19 +131,10 @@ CPReadOnlyProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds:
 	^ nil
 ]
 
-{ #category : 'geometry preview' }
-CPReadOnlyProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
-	^ nil
-]
-
-{ #category : 'geometry preview' }
-CPReadOnlyProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
-	^ nil
-]
 
 
 { #category : 'geometry preview' }
-CPReadOnlyProcessDiagramEditing >> waypointsPreviewForResizeShape: aShape toBounds: proposedBounds [
+CPReadOnlyProcessDiagramEditing >> resizePreviewForShape: aShape toBounds: proposedBounds [
 	^ nil
 ]
 

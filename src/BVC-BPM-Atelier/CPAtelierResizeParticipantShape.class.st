@@ -245,11 +245,6 @@ CPAtelierResizeParticipantShape >> bodyBoundsForLaneBounds: laneBounds [
 		extent: ((laneBounds width - headerWidth) @ laneBounds height)
 ]
 
-{ #category : 'private - applying' }
-CPAtelierResizeParticipantShape >> endpointDeltaFrom: currentBounds to: proposedBounds [
-	^ proposedBounds center - currentBounds center
-]
-
 
 { #category : 'private - assessing' }
 CPAtelierResizeParticipantShape >> addProposedFlowNodeBoundsForLaneBounds: proposedLaneBounds into: proposedFlowNodeBounds [

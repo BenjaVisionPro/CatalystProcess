@@ -2349,6 +2349,20 @@ CPProcessVisualElementExamples >> lanesRenderAsNativeBlocPartition [
 ]
 
 { #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> horizontalPoolLaneEditingRegression [
+	<gtExample>
+	self emptyHostedPoolUsesOneLaneMinimumHeight.
+	self firstLaneAdoptsExistingProcessFlowNodes.
+	self poolPaletteDropOrdersLaneByDropEdge.
+	self resizingPoolPreservesNestedLaneHeaderInset.
+	self resizingPoolMovesFlowNodesWithTheirLanes.
+	self laneResizePreviewMovesExternalFlowNodeLabel.
+	self laneResizePreviewMovesConnectionLabel.
+	^ self documentRootedNestedLaneDragWithoutIntermediateLayoutPreservesDiagramProjection
+]
+
+
+{ #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRendersStagedLane [
 	<gtExample>
 	| fixture process memento processVisual collaborationVisual paletteItem source dragItem pool assessment lane |

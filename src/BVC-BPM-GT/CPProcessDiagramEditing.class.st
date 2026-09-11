@@ -1,6 +1,8 @@
 "I define the Process diagram editing-operation factory contract used by the GT presentation layer.
 
-The presentation and its Process/Collaboration visual surfaces share one instance of me. My editing boundary is expressed in BPMN DI identities wherever an existing depiction identifies the edited object or target. A nested Process target is identified by its hosting CPShape; nil identifies the root Process surface. Concrete editing integrations resolve current staged semantics and choose ordinary movement, containment transfer, Participant movement, or edge-family-specific reconnect semantics without exposing those distinctions to GT. Reconnect carries presentation-authored waypoints because an edge may live in a different DI coordinate plane from its semantic endpoints."
+The presentation and its Process/Collaboration visual surfaces share one instance of me. My editing boundary is expressed in BPMN DI identities wherever an existing depiction identifies the edited object or target. A nested Process target is identified by its hosting CPShape; nil identifies the root Process surface. Concrete editing integrations resolve current staged semantics and choose ordinary movement, containment transfer, Participant movement, or edge-family-specific reconnect semantics without exposing those distinctions to GT. Reconnect carries presentation-authored waypoints because an edge may live in a different DI coordinate plane from its semantic endpoints.
+
+A resize preview is one coherent value derived from one assessment of proposed Participant bounds. It carries the Lane, FlowNode and edge geometry GT needs for live projection without committing DI."
 Class {
 	#name : 'CPProcessDiagramEditing',
 	#superclass : 'Object',
@@ -144,19 +146,10 @@ CPProcessDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: aRectan
 	^ self subclassResponsibility
 ]
 
-{ #category : 'geometry preview' }
-CPProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
-	^ self subclassResponsibility
-]
-
-{ #category : 'geometry preview' }
-CPProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
-	^ self subclassResponsibility
-]
 
 
 { #category : 'geometry preview' }
-CPProcessDiagramEditing >> waypointsPreviewForResizeShape: aShape toBounds: proposedBounds [
+CPProcessDiagramEditing >> resizePreviewForShape: aShape toBounds: proposedBounds [
 	^ self subclassResponsibility
 ]
 

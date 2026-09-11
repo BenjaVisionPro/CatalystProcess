@@ -540,35 +540,19 @@ CPProcessAtelierDiagramEditing >> moveFlowNode: aFlowNode shape: aShape bounds: 
 		diagramContext: diagramContext
 ]
 
+
+
 { #category : 'geometry preview' }
-CPProcessAtelierDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+CPProcessAtelierDiagramEditing >> resizePreviewForShape: aShape toBounds: proposedBounds [
 	| operation assessment |
 	operation := self resizeShape: aShape toBounds: proposedBounds.
 	operation ifNil: [ ^ nil ].
 	assessment := operation assess.
 	assessment isApplicable ifFalse: [ ^ nil ].
-	^ assessment proposedLaneBoundsByShape
-]
-
-{ #category : 'geometry preview' }
-CPProcessAtelierDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
-	| operation assessment |
-	operation := self resizeShape: aShape toBounds: proposedBounds.
-	operation ifNil: [ ^ nil ].
-	assessment := operation assess.
-	assessment isApplicable ifFalse: [ ^ nil ].
-	^ assessment proposedFlowNodeBoundsByShape
-]
-
-
-{ #category : 'geometry preview' }
-CPProcessAtelierDiagramEditing >> waypointsPreviewForResizeShape: aShape toBounds: proposedBounds [
-	| operation assessment |
-	operation := self resizeShape: aShape toBounds: proposedBounds.
-	operation ifNil: [ ^ nil ].
-	assessment := operation assess.
-	assessment isApplicable ifFalse: [ ^ nil ].
-	^ assessment proposedWaypointsByEdge
+	^ CPProcessResizePreview
+		laneBoundsByShape: assessment proposedLaneBoundsByShape
+		flowNodeBoundsByShape: assessment proposedFlowNodeBoundsByShape
+		waypointsByEdge: assessment proposedWaypointsByEdge
 ]
 
 
