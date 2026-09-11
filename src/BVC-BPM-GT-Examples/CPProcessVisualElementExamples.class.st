@@ -3493,19 +3493,18 @@ CPProcessVisualElementExamples >> paletteCreatedFlowNodeIsAssignedToDropLane [
 	self assert: assessment isApplicable.
 	self assert: (visual stagedLaneContainingFlowNode: candidate) == targetLane.
 	self assert:
-		((CPProcessLaneContext inRootMemento: fixture first processMemento)
-			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate.
+		(((CPProcessLaneContext inRootMemento: fixture first processMemento)
+			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate).
 	^ visual
 ]
 
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> contextualAppendFlowNodeIsAssignedToDropLane [
 	<gtExample>
-	| fixture visual edge source sourceShape candidate targetLane operation assessment |
+	| fixture visual source sourceShape candidate targetLane operation assessment |
 	fixture := self documentRootedNestedLaneDragFixture.
 	visual := fixture second.
-	edge := fixture ninth.
-	source := visual stagedTargetOf: edge.
+	source := fixture fourth.
 	sourceShape := visual shapeForModelElement: source.
 	targetLane := fixture seventh.
 	candidate := CPUserTask new label: 'Contextual task'; yourself.
@@ -3522,7 +3521,7 @@ CPProcessVisualElementExamples >> contextualAppendFlowNodeIsAssignedToDropLane [
 	self assert: assessment isApplicable.
 	self assert: (visual stagedLaneContainingFlowNode: candidate) == targetLane.
 	self assert:
-		((CPProcessLaneContext inRootMemento: fixture first processMemento)
-			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate.
+		(((CPProcessLaneContext inRootMemento: fixture first processMemento)
+			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate).
 	^ visual
 ]
