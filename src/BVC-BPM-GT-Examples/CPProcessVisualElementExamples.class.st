@@ -2446,7 +2446,10 @@ CPProcessVisualElementExamples >> poolPaletteDropOrdersLaneByDropEdge [
 	secondShape := CPShape new modelElement: second; bounds: (0 @ 200 extent: 500 @ 200); yourself.
 	diagram addElement: firstShape; addElement: secondShape.
 	memento := CFMaMemento model: process.
-	visual := CPProcessVisualElement new memento: memento; yourself.
+	visual := CPProcessVisualElement new
+		diagramEditing: (self diagramEditingForMemento: memento);
+		memento: memento;
+		yourself.
 	beforeAssessment := visual createLaneFromPoolPaletteAtRootDiagramPoint: 250 @ 210.
 	self assert: beforeAssessment isApplicable.
 	laneContext := CPProcessLaneContext inRootMemento: memento.
