@@ -1,6 +1,6 @@
-"I render one BPMN Lane as a native Bloc structural row inside CPLaneSetVisualElement.
+"I render one BPMN Lane as a native Bloc structural region inside CPLaneSetVisualElement.
 
-I own the Lane header and body surfaces. My outer geometry is an exact projection of the staged CPShape bounds supplied by CPProcessVisualElement. The CPShape remains the durable BPMN-DI representation."
+I own the Lane header and body surfaces. My outer geometry is an exact projection of the staged CPShape bounds supplied by CPProcessVisualElement. The header is presentation chrome inside that rectangle; it does not alter BPMN-DI coordinates. The CPShape remains the durable BPMN-DI representation."
 Class {
 	#name : 'CPLaneShapeElement',
 	#superclass : 'BlElement',

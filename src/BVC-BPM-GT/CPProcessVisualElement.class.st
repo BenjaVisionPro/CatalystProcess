@@ -2,7 +2,9 @@
 
 For the root I render CPProcess. For an expanded Sub-Process, its CPProcessShapeElement hosts another instance of me configured for that CPSubProcess. The nested instance uses the same root memento, editing collaborator, authoritative DI selection and diagram state; it is a Bloc child of the Sub-Process node, not another Atelier.
 
-Each instance renders only the flow elements directly owned by its configured flow container. Natural Bloc containment therefore supplies nested movement and clipping. Each process surface owns its own local BPMN-DI coordinate space. Nested DI therefore remains unchanged when its hosting Sub-Process node moves."
+Each instance renders only the flow elements directly owned by its configured flow container. Natural Bloc containment therefore supplies nested movement and clipping. Each process surface owns its own local BPMN-DI coordinate space. Nested DI therefore remains unchanged when its hosting Sub-Process node moves.
+
+BPMN-DI is authoritative for Process-plane geometry. LaneSet and Lane Bloc structure projects that DI exactly; it does not redistribute Lane sizes. FlowNodes may be physically hosted by Lane bodies, but their positions remain Process-DI coordinates projected through the recorded diagram origin of that host. When a root Process is Collaboration-hosted and has a top-level LaneSet, that LaneSet DI boundary is normalized to the Participant body origin; an unlaned hosted Process retains the ordinary hosted diagram inset."
 Class {
 	#name : 'CPProcessVisualElement',
 	#superclass : 'BlElement',
@@ -231,6 +233,9 @@ CPProcessVisualElement >> cameraSlack [
 { #category : 'geometry' }
 CPProcessVisualElement >> diagramContentOffset [
 	| laneSetBounds |
+	"A top-level LaneSet is the Process boundary presented by a Pool body.
+	Normalize its staged DI origin to the Participant process host origin.
+	Processes without Lanes retain the ordinary hosted breathing room."
 	collaborationHosted ifTrue: [
 		laneSetBounds := self topLevelLaneSetDiagramBounds.
 		laneSetBounds ifNotNil: [ ^ 0 @ 0 - laneSetBounds origin ] ].
@@ -571,16 +576,11 @@ CPProcessVisualElement >> topLevelLaneSetDiagramBounds [
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> newTopLevelLaneSetVisualFromShapes: laneShapes [
-	| laneContext topLevelLaneSets laneSetBounds |
+	| laneContext topLevelLaneSets |
 	flowContainer == memento model ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
 	topLevelLaneSets := laneContext stagedLaneSets.
 	topLevelLaneSets ifEmpty: [ ^ nil ].
-	laneSetBounds := self
-		diagramBoundsForLaneSet: topLevelLaneSets first
-		laneShapes: laneShapes
-		laneContext: laneContext.
-	laneSetBounds ifNil: [ ^ nil ].
 	^ self
 		newLaneSetVisualFor: topLevelLaneSets first
 		laneShapes: laneShapes
