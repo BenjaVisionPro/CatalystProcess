@@ -3574,3 +3574,90 @@ CPProcessVisualElementExamples >> contextualAppendFlowNodeIsAssignedToDropLane [
 			stagedFlowNodeRefsOf: targetLane) identityIncludes: candidate).
 	^ visual
 ]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> resizingPoolRejectsBelowMinimumLaneHeight [
+	<gtExample>
+	| fixture process memento collaborationContext participant participantShape processDiagram laneSet firstLane secondLane firstShape secondShape diagramDescription assessment processDiagramContext |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	processDiagram := process diagram.
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'First'; yourself.
+	secondLane := CPLane new label: 'Second'; yourself.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+	firstShape := CPShape new modelElement: firstLane; bounds: (56 @ 40 extent: 584 @ 140); yourself.
+	secondShape := CPShape new modelElement: secondLane; bounds: (56 @ 180 extent: 584 @ 140); yourself.
+	processDiagram addElement: firstShape; addElement: secondShape.
+	memento := CFMaMemento model: process.
+	diagramDescription := self descriptionFor: #diagram in: memento.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	participant := collaborationContext participantForProcess: process.
+	participantShape := (collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+	assessment := (CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (40 @ 40 extent: 700 @ 240)
+		processMemento: memento) apply.
+	self assert: assessment isApplicable equals: false.
+
+	processDiagramContext := CPDiagramMementoContext
+		diagram: processDiagram
+		inMemento: memento
+		using: diagramDescription.
+	self assert: (processDiagramContext boundsOf: firstShape) equals: (56 @ 40 extent: 584 @ 140).
+	self assert: (processDiagramContext boundsOf: secondShape) equals: (56 @ 180 extent: 584 @ 140).
+	^ assessment
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> resizingPoolRespectsRecursiveMinimumLaneHeights [
+	<gtExample>
+	| fixture session visual collaborationVisual laneContext firstChildLane secondChildLane topLane childLaneSet parentLane participant participantShape operation assessment parentShape firstChildShape secondChildShape topShape parentBounds firstChildBounds secondChildBounds topBounds |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	collaborationVisual := fixture third.
+	firstChildLane := fixture sixth.
+	secondChildLane := fixture seventh.
+	topLane := fixture eighth.
+	laneContext := CPProcessLaneContext inRootMemento: session processMemento.
+	childLaneSet := laneContext laneSetContainingLane: firstChildLane.
+	parentLane := laneContext stagedLanes
+		detect: [ :each | (laneContext stagedChildLaneSetOf: each) == childLaneSet ].
+	participant := session collaborationContext participantForProcess: session processMemento model.
+	participantShape := (session collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+
+	operation := CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (80 @ 60 extent: 700 @ 420)
+		processMemento: session processMemento
+		collaborationContext: session collaborationContext
+		processDiagramContext: session diagramContext.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+
+	parentShape := (session diagramContext shapesForModelElement: parentLane) anyOne.
+	firstChildShape := (session diagramContext shapesForModelElement: firstChildLane) anyOne.
+	secondChildShape := (session diagramContext shapesForModelElement: secondChildLane) anyOne.
+	topShape := (session diagramContext shapesForModelElement: topLane) anyOne.
+	parentBounds := session diagramContext boundsOf: parentShape.
+	firstChildBounds := session diagramContext boundsOf: firstChildShape.
+	secondChildBounds := session diagramContext boundsOf: secondChildShape.
+	topBounds := session diagramContext boundsOf: topShape.
+
+	self assert: parentBounds height equals: 280.
+	self assert: topBounds height equals: 140.
+	self assert: firstChildBounds height equals: 140.
+	self assert: secondChildBounds height equals: 140.
+	self assert: firstChildBounds top equals: parentBounds top.
+	self assert: secondChildBounds bottom equals: parentBounds bottom.
+	self assert: firstChildBounds bottom equals: secondChildBounds top.
+	self assert: parentBounds bottom equals: topBounds top.
+
+	collaborationVisual refresh.
+	collaborationVisual forceLayout.
+	self assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: firstChildLane)) equals: firstChildBounds.
+	self assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: secondChildLane)) equals: secondChildBounds.
+	^ collaborationVisual
+]

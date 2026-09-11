@@ -210,7 +210,7 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 
 { #category : 'private - geometry' }
 CPAtelierInsertLane >> minimumLaneHeight [
-	^ 140
+	^ CPAtelierLaneLayout minimumLaneHeight
 ]
 
 { #category : 'private' }
