@@ -3670,7 +3670,7 @@ CPProcessVisualElementExamples >> resizingPoolMinimumTracksLaneContents [
 	fixture := self collaborationVisualFixture.
 	process := fixture first.
 	processDiagram := process diagram.
-	task := fixture thirteenth.
+	task := fixture at: 13.
 	taskShape := processDiagram elements
 		detect: [ :each | each isShape and: [ each modelElement == task ] ].
 	taskShape bounds: (180 @ 40 extent: 132 @ 180).
