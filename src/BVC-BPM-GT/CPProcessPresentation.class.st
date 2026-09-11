@@ -597,6 +597,7 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 				on: anElement
 				from: 0 @ 0
 				to: (connectionCorrection ifNil: [ 0 @ 0 ]) + contentHandoffCorrection) adoptAtDestination) ].
+	].
 
 	motion := CFMotion
 		coordinator: space motionCoordinator
