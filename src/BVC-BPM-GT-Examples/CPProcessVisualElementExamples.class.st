@@ -3172,6 +3172,55 @@ CPProcessVisualElementExamples >> definitionsRootedVisualUsesSelectedDiagramMeme
 
 
 
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> resizingPoolPreservesNestedLaneHeaderInset [
+	<gtExample>
+	| fixture session visual collaborationVisual laneContext firstChildLane childLaneSet parentLane participant participantShape operation assessment parentShape firstChildShape secondChildShape parentBounds firstChildBounds secondChildBounds headerWidth |
+	fixture := self documentRootedNestedLaneDragFixture.
+	session := fixture first.
+	visual := fixture second.
+	collaborationVisual := fixture third.
+	firstChildLane := fixture sixth.
+	laneContext := CPProcessLaneContext inRootMemento: session processMemento.
+	childLaneSet := laneContext laneSetContainingLane: firstChildLane.
+	parentLane := laneContext stagedLanes
+		detect: [ :each | (laneContext stagedChildLaneSetOf: each) == childLaneSet ].
+	participant := session collaborationContext participantForProcess: session processMemento model.
+	participantShape := (session collaborationContext diagramContext shapesForModelElement: participant) anyOne.
+
+	operation := CPAtelierResizeParticipantShape
+		shape: participantShape
+		bounds: (80 @ 60 extent: 820 @ 500)
+		processMemento: session processMemento
+		collaborationContext: session collaborationContext
+		processDiagramContext: session diagramContext.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+
+	parentShape := (session diagramContext shapesForModelElement: parentLane) anyOne.
+	firstChildShape := (session diagramContext shapesForModelElement: firstChildLane) anyOne.
+	secondChildShape := (session diagramContext shapesForModelElement: fixture seventh) anyOne.
+	parentBounds := session diagramContext boundsOf: parentShape.
+	firstChildBounds := session diagramContext boundsOf: firstChildShape.
+	secondChildBounds := session diagramContext boundsOf: secondChildShape.
+	headerWidth := CPLaneShapeElement laneHeaderWidth.
+
+	self assert: firstChildBounds left equals: parentBounds left + headerWidth.
+	self assert: secondChildBounds left equals: parentBounds left + headerWidth.
+	self assert: firstChildBounds right equals: parentBounds right.
+	self assert: secondChildBounds right equals: parentBounds right.
+	self assert: firstChildBounds top equals: parentBounds top.
+	self assert: secondChildBounds bottom equals: parentBounds bottom.
+	self assert: firstChildBounds bottom equals: secondChildBounds top.
+
+	collaborationVisual refresh.
+	collaborationVisual forceLayout.
+	self assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: firstChildLane)) equals: firstChildBounds.
+	self assert: (visual diagramBoundsForElement: (visual laneShapeElementFor: fixture seventh)) equals: secondChildBounds.
+	^ collaborationVisual
+]
+
+
 { #category : 'private - fixture' }
 CPProcessVisualElementExamples >> documentRootedNestedLaneDragFixture [
 	| process node target flow diagram shape targetShape edge outerLaneSet parentLane childLaneSet firstChildLane secondChildLane topLane

@@ -1,6 +1,6 @@
 "I resize one Participant Pool in the staged Collaboration diagram.
 
-When the Participant hosts the edited Process, I also reflow every staged top-level LaneSet so its ordered Lanes continue to partition the complete Pool body. Nested LaneSets are reflowed inside their parent Lane."
+When the Participant hosts the edited Process, I also reflow every staged top-level LaneSet so its ordered Lanes continue to partition the complete Pool body. Nested LaneSets are reflowed inside their parent Lane body, preserving the parent Lane header."
 Class {
 	#name : 'CPAtelierResizeParticipantShape',
 	#superclass : 'CPAtelierParticipantShapeBoundsOperation',
@@ -117,7 +117,7 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinExtent: anExten
 		childLaneSet ifNotNil: [
 			self
 				reflowLaneSet: childLaneSet
-				withinBounds: laneBounds
+				withinBounds: (self bodyBoundsForLaneBounds: laneBounds)
 				using: laneContext
 				diagramContext: diagramContext
 				into: proposedBounds ].
@@ -158,12 +158,21 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 		childLaneSet ifNotNil: [
 			self
 				reflowLaneSet: childLaneSet
-				withinBounds: laneBounds
+				withinBounds: (self bodyBoundsForLaneBounds: laneBounds)
 				using: laneContext
 				diagramContext: diagramContext
 				into: proposedBounds ].
 		cursorY := cursorY + laneHeight.
 		remainingHeight := remainingHeight - laneHeight ]
+]
+
+
+{ #category : 'private - geometry' }
+CPAtelierResizeParticipantShape >> bodyBoundsForLaneBounds: laneBounds [
+	| headerWidth |
+	headerWidth := CPLaneShapeElement laneHeaderWidth.
+	^ (laneBounds origin + (headerWidth @ 0))
+		extent: ((laneBounds width - headerWidth) @ laneBounds height)
 ]
 
 { #category : 'private - applying' }
