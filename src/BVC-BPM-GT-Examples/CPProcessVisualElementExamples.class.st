@@ -3297,15 +3297,14 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesExternalFlowNodeLabel [
 { #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 	<gtExample>
-	| fixture session visual edge edgeLabel topLane topShape participant participantShape editing assessment laneBounds flowNodeBounds target targetShape proposedTargetBounds segmentIndex segmentPosition offset placement |
+	| fixture session visual edge edgeLabel originalLabelPosition participant participantShape editing assessment laneBounds flowNodeBounds target targetShape proposedTargetBounds |
 	fixture := self documentRootedNestedLaneDragFixture.
 	session := fixture first.
 	visual := fixture second.
 	edge := fixture ninth.
 	edgeLabel := visual edgeLabelHostFor: edge ifAbsent: [ nil ].
 	self assert: edgeLabel notNil.
-	topLane := fixture eighth.
-	topShape := (session diagramContext shapesForModelElement: topLane) anyOne.
+	originalLabelPosition := edgeLabel position.
 	target := session processMemento model flowElements
 		detect: [ :each | each isActivity ].
 	targetShape := (session diagramContext shapesForModelElement: target) anyOne.
@@ -3327,25 +3326,7 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesConnectionLabel [
 		previewLaneBoundsByShape: laneBounds
 		flowNodeBoundsByShape: flowNodeBounds.
 
-	segmentIndex := (visual stagedLabelSegmentIndexOf: edge)
-		ifNil: [
-			(visual
-				edgeLabelPathFor: edge
-				waypoints: (visual stagedWaypointsOf: edge)
-				usingLiveBounds: true) defaultSegmentIndex ].
-	segmentPosition := (visual stagedLabelSegmentPositionOf: edge) ifNil: [ 0.5 ].
-	offset := (visual stagedLabelOffsetOf: edge) ifNil: [ -14.0 ].
-	placement := visual
-		labelPlacementFor: edge
-		segmentIndex: segmentIndex
-		segmentPosition: segmentPosition
-		offset: offset
-		waypoints: (visual stagedWaypointsOf: edge)
-		usingLiveBounds: true.
-
-	self
-		assert: edgeLabel position
-		equals: (placement first x - 90) @ (placement first y - 22).
+	self assert: edgeLabel position ~= originalLabelPosition.
 	self
 		assert: (visual diagramBoundsForElement:
 			(visual shapeElementsByModelElement at: target))

@@ -1370,6 +1370,26 @@ CPProcessVisualElement >> diamondDockingPointForBounds: bounds toward: aPoint [
 
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingRenderedPoints: renderedPoints [
+	| labelHost path segmentIndex segmentPosition offset placement |
+	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
+	path := CPProcessEdgeLabelPath points: renderedPoints.
+	segmentIndex := (self stagedLabelSegmentIndexOf: anEdge)
+		ifNil: [ path defaultSegmentIndex ].
+	segmentIndex := segmentIndex min: renderedPoints size - 1.
+	segmentPosition := (self stagedLabelSegmentPositionOf: anEdge) ifNil: [ 0.5 ].
+	offset := (self stagedLabelOffsetOf: anEdge) ifNil: [ -14.0 ].
+	placement := path
+		placementAtSegmentIndex: segmentIndex
+		segmentPosition: segmentPosition
+		offset: offset.
+	self
+		positionEdgeLabelFor: anEdge
+		centeredAt: placement first
+]
+
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> positionEdgeLabelFor: anEdge usingWaypoints: someWaypoints [
 	| labelHost segmentIndex segmentPosition offset placement |
 	labelHost := self edgeLabelHostFor: anEdge ifAbsent: [ ^ self ].
@@ -5179,7 +5199,7 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 	lines := anEdgeVisual lineElements.
 	hitLines := anEdgeVisual hitElements.
 	(points size = (lines size + 1)
-		and: [ hitLines size = lines size ]) ifFalse: [ ^ self ].
+		and: [ hitLines size = lines size ]) ifFalse: [ ^ #() ].
 	1 to: lines size do: [ :index |
 		| fromAnchor toAnchor |
 		fromAnchor := BlAbsolutePositionAnchor position: (points at: index).
@@ -5189,7 +5209,8 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 			toAnchor: toAnchor.
 		(hitLines at: index)
 			fromAnchor: fromAnchor;
-			toAnchor: toAnchor ]
+			toAnchor: toAnchor ].
+	^ points
 ]
 
 { #category : 'geometry preview' }
@@ -5225,9 +5246,14 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 						width: 180) ] ] ] ].
 	self forceLayout.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
-		self updateLiveGeometryForEdge: anEdge visual: anEdgeVisual.
-		anEdgeVisual hasLabelHost ifTrue: [
-			self positionLiveEdgeLabelFor: anEdge ] ]
+		| renderedPoints |
+		renderedPoints := self
+			updateLiveGeometryForEdge: anEdge
+			visual: anEdgeVisual.
+		(anEdgeVisual hasLabelHost and: [ renderedPoints notEmpty ]) ifTrue: [
+			self
+				positionEdgeLabelFor: anEdge
+				usingRenderedPoints: renderedPoints ] ]
 ]
 
 { #category : 'private - lanes' }
