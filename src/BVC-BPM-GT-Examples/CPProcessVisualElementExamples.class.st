@@ -4038,3 +4038,37 @@ CPProcessVisualElementExamples >> participantOrientationDescriptionUsesGroupedIc
 	self assert: configuration representation class equals: CFMaGroupedButtonsConfiguration.
 	^ selection
 ]
+
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> orientationLabelPointTransformMatchesAtelierQuarterTurn [
+	<gtExample>
+	| visual extent point |
+	visual := CPProcessVisualElement new.
+	extent := 500 @ 300.
+	point := 120 @ 80.
+
+	self
+		assert: (visual orientationRotatePoint: point within: extent horizontal: false)
+		equals: 220 @ 120.
+	self
+		assert: (visual orientationRotatePoint: point within: extent horizontal: true)
+		equals: 80 @ 380.
+	^ visual
+]
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> orientationLabelCorrectionUsesInverseQuarterTurn [
+	<gtExample>
+	| visual correction |
+	visual := CPProcessVisualElement new.
+	correction := 40 @ 25.
+
+	self
+		assert: (visual orientationInverseRotateVector: correction horizontal: false)
+		equals: 25 @ -40.
+	self
+		assert: (visual orientationInverseRotateVector: correction horizontal: true)
+		equals: -25 @ 40.
+	^ visual
+]

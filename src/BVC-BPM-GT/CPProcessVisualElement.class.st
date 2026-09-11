@@ -5472,19 +5472,21 @@ CPProcessVisualElement >> orientationLabelTranslationsForAssessment: anAssessmen
 
 { #category : 'private - orientation' }
 CPProcessVisualElement >> orientationRotatePoint: aPoint within: currentExtent horizontal: isHorizontal [
-	"Use the same quarter-turn coordinate transform as the Atelier orientation
-	operation. isHorizontal is the requested destination orientation."
+	"Use exactly the same quarter-turn as
+	CPAtelierSetParticipantOrientation>>rotateProcessPoint:within:.
+	isHorizontal is the requested destination orientation."
 	^ isHorizontal
-		ifTrue: [ (currentExtent y - aPoint y) @ aPoint x ]
-		ifFalse: [ aPoint y @ (currentExtent x - aPoint x) ]
+		ifTrue: [ aPoint y @ (currentExtent x - aPoint x) ]
+		ifFalse: [ (currentExtent y - aPoint y) @ aPoint x ]
 ]
 
 { #category : 'private - orientation' }
 CPProcessVisualElement >> orientationInverseRotateVector: aVector horizontal: isHorizontal [
-	"Convert a destination-coordinate correction into the current Pool coordinate
-	system so the parent quarter-turn carries the Motion translation to the desired
-	destination vector."
+	"Convert a correction expressed in destination Process coordinates back into
+	the current Process coordinate system. The Participant's parent quarter-turn
+	then carries this local Motion translation into the requested destination
+	correction. This is the inverse of orientationRotatePoint:within:horizontal:."
 	^ isHorizontal
-		ifTrue: [ aVector y @ aVector x negated ]
-		ifFalse: [ aVector y negated @ aVector x ]
+		ifTrue: [ aVector y negated @ aVector x ]
+		ifFalse: [ aVector y @ aVector x negated ]
 ]
