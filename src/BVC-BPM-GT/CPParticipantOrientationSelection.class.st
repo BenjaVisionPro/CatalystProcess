@@ -38,10 +38,13 @@ CPParticipantOrientationSelection >> isHorizontal: aBoolean [
 		ifTrue: [ diagramEditing makeParticipantHorizontal: participantShape ]
 		ifFalse: [ diagramEditing makeParticipantVertical: participantShape ].
 	operation ifNil: [ ^ self ].
-	assessment := operation apply.
+	assessment := operation assess.
 	assessment isApplicable ifFalse: [ self error: assessment rejectionMessage ].
 	isHorizontal := aBoolean.
-	changedBlock ifNotNil: [ changedBlock cull: aBoolean ]
+	changedBlock ifNotNil: [
+		changedBlock
+			cull: aBoolean
+			cull: [ operation apply ] ]
 ]
 
 { #category : 'descriptions' }

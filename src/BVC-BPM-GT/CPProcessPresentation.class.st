@@ -517,12 +517,11 @@ CPProcessPresentation >> newParticipantDetailElementFor: aParticipant semanticDe
 		shape: participantShape
 		horizontal: stagedIsHorizontal
 		diagramEditing: diagramEditing
-		changedDo: [ :isHorizontal |
-			self refreshCollaborationDiagramPreservingCamera.
+		changedDo: [ :isHorizontal :commitBlock |
 			self
 				animateParticipantOrientationFor: aParticipant
-				horizontal: isHorizontal.
-			self selectModelElement: aParticipant ].
+				horizontal: isHorizontal
+				commit: commitBlock ].
 	selectionViewModel := CFMaViewModel forObject: selection.
 	selectionViewModel
 		ignoreImplicitActions;
@@ -549,39 +548,59 @@ CPProcessPresentation >> isParticipantModelElement: aModelElement [
 
 
 { #category : 'private - collaboration' }
-CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal [
-	| participantElement processVisual uprightElements rootSourceRotation uprightSourceRotation tracks space |
-	collaborationDiagramElement ifNil: [ ^ self ].
+CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal commit: commitBlock [
+	| participantElement processVisual uprightElements rootTargetRotation uprightTargetRotation tracks space motion |
+	collaborationDiagramElement ifNil: [
+		^ self
+			commitParticipantOrientationFor: aParticipant
+			using: commitBlock ].
 	participantElement := collaborationDiagramElement participantElementsByParticipant
 		at: aParticipant
-		ifAbsent: [ ^ self ].
+		ifAbsent: [
+			^ self
+				commitParticipantOrientationFor: aParticipant
+				using: commitBlock ].
 	space := participantElement space.
-	space ifNil: [ ^ self ].
+	space ifNil: [
+		^ self
+			commitParticipantOrientationFor: aParticipant
+			using: commitBlock ].
 
-	"The authoritative DI has already completed its rigid quarter-turn. Present
-	the destination Pool through the exact inverse quarter-turn, then let Motion
-	release that transform back to identity. The resulting visible trajectory is
-	a rotation, not interpolation between independently chosen positions."
-	rootSourceRotation := isHorizontal ifTrue: [ 90 ] ifFalse: [ -90 ].
-	uprightSourceRotation := rootSourceRotation negated.
-	tracks := OrderedCollection with: (CFMotionRotationTrack
+	"Motion transforms the existing Pool first. The DI operation is deliberately
+	deferred until the quarter-turn reaches its endpoint, where the transformed
+	old presentation and the new authoritative DI presentation are identical."
+	rootTargetRotation := isHorizontal ifTrue: [ -90 ] ifFalse: [ 90 ].
+	uprightTargetRotation := rootTargetRotation negated.
+	tracks := OrderedCollection with: ((CFMotionRotationTrack
 		on: participantElement
-		from: rootSourceRotation
-		to: 0).
+		from: 0
+		to: rootTargetRotation) adoptAtDestination).
 
 	processVisual := participantElement processVisual.
 	processVisual ifNotNil: [
 		uprightElements := processVisual orientationUprightElements.
 		uprightElements do: [ :anElement |
-			tracks add: (CFMotionRotationTrack
+			tracks add: ((CFMotionRotationTrack
 				on: anElement
-				from: uprightSourceRotation
-				to: 0) ] ].
+				from: 0
+				to: uprightTargetRotation) adoptAtDestination) ] ].
 
-	(CFMotion
+	motion := CFMotion
 		coordinator: space motionCoordinator
-		tracks: tracks)
+		tracks: tracks.
+	motion
 		duration: 320 milliSeconds;
 		easing: (BlDecelerateInterpolator factor: 1.4);
+		onTerminalDo: [ :completedMotion |
+			self
+				commitParticipantOrientationFor: aParticipant
+				using: commitBlock ];
 		start
+]
+
+{ #category : 'private - collaboration' }
+CPProcessPresentation >> commitParticipantOrientationFor: aParticipant using: commitBlock [
+	commitBlock value.
+	self refreshCollaborationDiagramPreservingCamera.
+	self selectModelElement: aParticipant
 ]
