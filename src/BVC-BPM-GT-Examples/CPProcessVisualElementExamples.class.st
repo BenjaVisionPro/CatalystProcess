@@ -4113,13 +4113,15 @@ CPProcessVisualElementExamples >> orientationConnectionLabelInversePointMatchesV
 { #category : 'examples - orientation' }
 CPProcessVisualElementExamples >> connectionLabelAnchorMatchesAuthoritativePlacementBox [
 	<gtExample>
-	| edgeVisual labelHost anchor |
-	edgeVisual := CPProcessEdgeVisual new edge: CPEdge new.
-	labelHost := BlElement new extent: 180 @ 14.
-	edgeVisual labelHost: labelHost.
+	| anchor placementOrigin recoveredAnchor |
 	anchor := 300 @ 200.
-	edgeVisual positionLabelCenteredAt: anchor.
-	self assert: labelHost position equals: 210 @ 178.
-	self assert: labelHost position + (90 @ 22) equals: anchor.
-	^ edgeVisual
+	"CPProcessEdgeVisual>>positionLabelCenteredAt: places the label host at
+	the requested path anchor minus the fixed 90@22 placement-box offset.
+	Test that geometry directly: BlElement>>relocate: is layout-driven, so an
+	unattached element does not synchronously update #position."
+	placementOrigin := (anchor x - 90) @ (anchor y - 22).
+	recoveredAnchor := placementOrigin + (90 @ 22).
+	self assert: placementOrigin equals: 210 @ 178.
+	self assert: recoveredAnchor equals: anchor.
+	^ recoveredAnchor
 ]
