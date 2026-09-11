@@ -114,106 +114,22 @@ CPAtelierResizeParticipantShape >> proposedLaneBoundsForParticipantBounds: propo
 
 { #category : 'private - assessing' }
 CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinExtent: anExtent using: laneContext diagramContext: diagramContext into: proposedBounds [
-	| lanes laneShapes currentBoundsByLane minimumHeightByLane minX minY totalHeight requiredHeight extraHeight cursorY remainingHeight remainingMinimum |
-	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
-	lanes ifEmpty: [ ^ self ].
-	laneShapes := IdentityDictionary new.
-	currentBoundsByLane := IdentityDictionary new.
-	minimumHeightByLane := IdentityDictionary new.
-	lanes do: [ :aLane |
-		| shapes laneShape laneBounds |
-		shapes := diagramContext shapesForModelElement: aLane.
-		shapes size = 1 ifFalse: [ ^ self ].
-		laneShape := shapes anyOne.
-		laneBounds := diagramContext boundsOf: laneShape.
-		laneShapes at: aLane put: laneShape.
-		currentBoundsByLane at: aLane put: laneBounds.
-		minimumHeightByLane at: aLane put: (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ].
-	minX := (currentBoundsByLane values collect: [ :each | each left ]) min.
-	minY := (currentBoundsByLane values collect: [ :each | each top ]) min.
-	totalHeight := (currentBoundsByLane values collect: [ :each | each height ]) sum.
-	totalHeight > 0 ifFalse: [ ^ self ].
-	requiredHeight := minimumHeightByLane values sum.
-	anExtent y >= requiredHeight ifFalse: [ ^ self ].
-	extraHeight := anExtent y - requiredHeight.
-	cursorY := minY.
-	remainingHeight := anExtent y.
-	remainingMinimum := requiredHeight.
-	lanes withIndexDo: [ :aLane :index |
-		| currentBounds minimumHeight remainingMinimumAfter laneHeight laneBounds childLaneSet proportionalExtra |
-		currentBounds := currentBoundsByLane at: aLane.
-		minimumHeight := minimumHeightByLane at: aLane.
-		remainingMinimumAfter := remainingMinimum - minimumHeight.
-		laneHeight := index = lanes size
-			ifTrue: [ remainingHeight ]
-			ifFalse: [
-				proportionalExtra := (extraHeight * currentBounds height / totalHeight) rounded.
-				(minimumHeight + proportionalExtra)
-					min: (remainingHeight - remainingMinimumAfter) ].
-		laneBounds := minX @ cursorY extent: anExtent x @ laneHeight.
-		proposedBounds at: (laneShapes at: aLane) put: laneBounds.
-		childLaneSet := laneContext stagedChildLaneSetOf: aLane.
-		childLaneSet ifNotNil: [
-			self
-				reflowLaneSet: childLaneSet
-				withinBounds: (self bodyBoundsForLaneBounds: laneBounds)
-				using: laneContext
-				diagramContext: diagramContext
-				into: proposedBounds ].
-		cursorY := cursorY + laneHeight.
-		remainingHeight := remainingHeight - laneHeight.
-		remainingMinimum := remainingMinimumAfter ]
+	^ CPAtelierLaneLayout
+		reflowLaneSet: aLaneSet
+		withinExtent: anExtent
+		using: laneContext
+		diagramContext: diagramContext
+		into: proposedBounds
 ]
 
 { #category : 'private - assessing' }
 CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentBounds using: laneContext diagramContext: diagramContext into: proposedBounds [
-	| lanes laneShapes currentBoundsByLane minimumHeightByLane totalHeight requiredHeight extraHeight cursorY remainingHeight remainingMinimum |
-	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
-	lanes ifEmpty: [ ^ self ].
-	laneShapes := IdentityDictionary new.
-	currentBoundsByLane := IdentityDictionary new.
-	minimumHeightByLane := IdentityDictionary new.
-	lanes do: [ :aLane |
-		| shapes laneShape laneBounds |
-		shapes := diagramContext shapesForModelElement: aLane.
-		shapes size = 1 ifFalse: [ ^ self ].
-		laneShape := shapes anyOne.
-		laneBounds := diagramContext boundsOf: laneShape.
-		laneShapes at: aLane put: laneShape.
-		currentBoundsByLane at: aLane put: laneBounds.
-		minimumHeightByLane at: aLane put: (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ].
-	totalHeight := (currentBoundsByLane values collect: [ :each | each height ]) sum.
-	totalHeight > 0 ifFalse: [ ^ self ].
-	requiredHeight := minimumHeightByLane values sum.
-	parentBounds height >= requiredHeight ifFalse: [ ^ self ].
-	extraHeight := parentBounds height - requiredHeight.
-	cursorY := parentBounds top.
-	remainingHeight := parentBounds height.
-	remainingMinimum := requiredHeight.
-	lanes withIndexDo: [ :aLane :index |
-		| currentBounds minimumHeight remainingMinimumAfter laneHeight laneBounds childLaneSet proportionalExtra |
-		currentBounds := currentBoundsByLane at: aLane.
-		minimumHeight := minimumHeightByLane at: aLane.
-		remainingMinimumAfter := remainingMinimum - minimumHeight.
-		laneHeight := index = lanes size
-			ifTrue: [ remainingHeight ]
-			ifFalse: [
-				proportionalExtra := (extraHeight * currentBounds height / totalHeight) rounded.
-				(minimumHeight + proportionalExtra)
-					min: (remainingHeight - remainingMinimumAfter) ].
-		laneBounds := parentBounds left @ cursorY extent: parentBounds width @ laneHeight.
-		proposedBounds at: (laneShapes at: aLane) put: laneBounds.
-		childLaneSet := laneContext stagedChildLaneSetOf: aLane.
-		childLaneSet ifNotNil: [
-			self
-				reflowLaneSet: childLaneSet
-				withinBounds: (self bodyBoundsForLaneBounds: laneBounds)
-				using: laneContext
-				diagramContext: diagramContext
-				into: proposedBounds ].
-		cursorY := cursorY + laneHeight.
-		remainingHeight := remainingHeight - laneHeight.
-		remainingMinimum := remainingMinimumAfter ]
+	^ CPAtelierLaneLayout
+		reflowLaneSet: aLaneSet
+		withinBounds: parentBounds
+		using: laneContext
+		diagramContext: diagramContext
+		into: proposedBounds
 ]
 
 { #category : 'private - geometry' }
@@ -244,14 +160,6 @@ CPAtelierResizeParticipantShape >> minimumHeightForLane: aLane using: laneContex
 		minimumHeightForLane: aLane
 		using: laneContext
 		diagramContext: diagramContext
-]
-
-{ #category : 'private - geometry' }
-CPAtelierResizeParticipantShape >> bodyBoundsForLaneBounds: laneBounds [
-	| headerWidth |
-	headerWidth := CPLaneShapeElement laneHeaderWidth.
-	^ (laneBounds origin + (headerWidth @ 0))
-		extent: ((laneBounds width - headerWidth) @ laneBounds height)
 ]
 
 
