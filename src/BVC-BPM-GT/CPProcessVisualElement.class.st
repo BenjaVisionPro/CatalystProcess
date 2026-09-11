@@ -5188,6 +5188,13 @@ CPProcessVisualElement >> updateLiveGeometryForEdge: anEdge visual: anEdgeVisual
 
 { #category : 'geometry preview' }
 CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape [
+	^ self
+		previewLaneBoundsByShape: proposedBoundsByShape
+		flowNodeBoundsByShape: IdentityDictionary new
+]
+
+{ #category : 'geometry preview' }
+CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNodeBoundsByShape: proposedFlowNodeBoundsByShape [
 	| laneContext |
 	proposedBoundsByShape ifEmpty: [ ^ self ].
 	laneContext := CPProcessLaneContext inRootMemento: memento.
@@ -5201,7 +5208,9 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape [
 		aFlowNode isBoundaryEvent ifFalse: [
 			| aShape bounds |
 			aShape := self shapeForModelElement: aFlowNode.
-			bounds := self stagedBoundsOf: aShape.
+			bounds := proposedFlowNodeBoundsByShape
+				at: aShape
+				ifAbsent: [ self stagedBoundsOf: aShape ].
 			bounds ifNotNil: [ self relocateFlowNodeElement: anElement toDiagramPoint: bounds origin ] ] ].
 	self forceLayout
 ]

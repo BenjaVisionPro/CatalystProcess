@@ -130,6 +130,11 @@ CPReadOnlyProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBou
 	^ nil
 ]
 
+{ #category : 'geometry preview' }
+CPReadOnlyProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	^ nil
+]
+
 { #category : 'geometry constraints' }
 CPReadOnlyProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ nil

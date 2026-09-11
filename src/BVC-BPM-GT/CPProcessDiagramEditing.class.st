@@ -149,6 +149,11 @@ CPProcessDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBounds: pro
 	^ self subclassResponsibility
 ]
 
+{ #category : 'geometry preview' }
+CPProcessDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	^ self subclassResponsibility
+]
+
 { #category : 'geometry constraints' }
 CPProcessDiagramEditing >> minimumHeightForResizeShape: aShape [
 	^ self subclassResponsibility

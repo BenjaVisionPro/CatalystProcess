@@ -550,6 +550,16 @@ CPProcessAtelierDiagramEditing >> laneBoundsPreviewForResizeShape: aShape toBoun
 	^ assessment proposedLaneBoundsByShape
 ]
 
+{ #category : 'geometry preview' }
+CPProcessAtelierDiagramEditing >> flowNodeBoundsPreviewForResizeShape: aShape toBounds: proposedBounds [
+	| operation assessment |
+	operation := self resizeShape: aShape toBounds: proposedBounds.
+	operation ifNil: [ ^ nil ].
+	assessment := operation assess.
+	assessment isApplicable ifFalse: [ ^ nil ].
+	^ assessment proposedFlowNodeBoundsByShape
+]
+
 { #category : 'geometry constraints' }
 CPProcessAtelierDiagramEditing >> minimumHeightForResizeShape: aShape [
 	| collaboration participant operation |

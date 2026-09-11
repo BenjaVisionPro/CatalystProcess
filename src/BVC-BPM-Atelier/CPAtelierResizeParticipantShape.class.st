@@ -26,7 +26,7 @@ CPAtelierResizeParticipantShape class >> shape: aShape bounds: aRectangle proces
 
 { #category : 'assessing' }
 CPAtelierResizeParticipantShape >> assess [
-	| baseAssessment proposedLaneBounds minimumHeight |
+	| baseAssessment proposedLaneBounds minimumHeight flowNodeMovePlan |
 	baseAssessment := super assess.
 	baseAssessment isApplicable ifFalse: [ ^ baseAssessment ].
 	minimumHeight := self minimumParticipantHeightForStagedLanes.
@@ -37,11 +37,19 @@ CPAtelierResizeParticipantShape >> assess [
 	proposedLaneBounds := self
 		proposedLaneBoundsForParticipantBounds: baseAssessment proposedBounds.
 	proposedLaneBounds ifNil: [ proposedLaneBounds := IdentityDictionary new ].
+	flowNodeMovePlan := self flowNodeMovePlanForProposedLaneBounds: proposedLaneBounds.
+	flowNodeMovePlan isString ifTrue: [
+		^ self
+			rejectedWithCurrentBounds: baseAssessment currentBounds
+			because: flowNodeMovePlan ].
 	^ CPAtelierResizeParticipantAssessment new
 		shape: baseAssessment shape;
 		currentBounds: baseAssessment currentBounds;
 		proposedBounds: baseAssessment proposedBounds;
 		proposedLaneBoundsByShape: proposedLaneBounds;
+		proposedFlowNodeBoundsByShape: flowNodeMovePlan third;
+		flowNodeMoveOperations: flowNodeMovePlan first;
+		flowNodeMoveAssessments: flowNodeMovePlan second;
 		yourself
 ]
 
@@ -49,7 +57,6 @@ CPAtelierResizeParticipantShape >> assess [
 CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
 	| diagramContext |
 	super applyAssessment: anAssessment.
-	anAssessment proposedLaneBoundsByShape ifEmpty: [ ^ self ].
 	diagramContext := self stagedProcessDiagramContext.
 	diagramContext ifNil: [ ^ self ].
 	anAssessment proposedLaneBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
@@ -57,7 +64,11 @@ CPAtelierResizeParticipantShape >> applyAssessment: anAssessment [
 		shapeMemento := diagramContext mementoFor: aShape.
 		boundsDescription := shapeMemento magritteDescription
 			detect: [ :each | each handlesSelector: #bounds ].
-		shapeMemento write: proposedBounds using: boundsDescription ]
+		shapeMemento write: proposedBounds using: boundsDescription ].
+	anAssessment flowNodeMoveOperations
+		with: anAssessment flowNodeMoveAssessments
+		do: [ :anOperation :aMoveAssessment |
+			anOperation applyAssessment: aMoveAssessment ]
 ]
 
 { #category : 'private - assessing' }
@@ -189,6 +200,51 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 		cursorY := cursorY + laneHeight.
 		remainingHeight := remainingHeight - laneHeight.
 		remainingMinimum := remainingMinimumAfter ]
+]
+
+{ #category : 'private - assessing' }
+CPAtelierResizeParticipantShape >> flowNodeMovePlanForProposedLaneBounds: proposedLaneBoundsByShape [
+	| laneContext diagramContext boundsByDelta proposedFlowNodeBounds operations assessments |
+	laneContext := CPProcessLaneContext inRootMemento: processMemento.
+	diagramContext := self stagedProcessDiagramContext.
+	diagramContext ifNil: [ ^ { #(). #(). IdentityDictionary new } ].
+	boundsByDelta := Dictionary new.
+	proposedFlowNodeBounds := IdentityDictionary new.
+	laneContext stagedLanes do: [ :aLane |
+		| laneShapes laneShape currentLaneBounds nextLaneBounds delta boundsForDelta |
+		laneShapes := diagramContext shapesForModelElement: aLane.
+		laneShapes size = 1 ifTrue: [
+			laneShape := laneShapes anyOne.
+			currentLaneBounds := diagramContext boundsOf: laneShape.
+			nextLaneBounds := proposedLaneBoundsByShape at: laneShape ifAbsent: [ currentLaneBounds ].
+			delta := nextLaneBounds origin - currentLaneBounds origin.
+			delta isZero ifFalse: [
+				boundsForDelta := boundsByDelta at: delta ifAbsentPut: [ IdentityDictionary new ].
+				(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
+					(diagramContext shapesForModelElement: aFlowNode) do: [ :aShape |
+						| currentBounds translatedBounds |
+						currentBounds := diagramContext boundsOf: aShape.
+						translatedBounds := currentBounds translateBy: delta.
+						(proposedFlowNodeBounds includesKey: aShape) ifTrue: [
+							(proposedFlowNodeBounds at: aShape) = translatedBounds ifFalse: [
+								^ 'A FlowNode cannot follow two Lanes with different resize translations.' ] ].
+						proposedFlowNodeBounds at: aShape put: translatedBounds.
+						boundsForDelta at: aShape put: translatedBounds ] ] ] ] ].
+	operations := OrderedCollection new.
+	assessments := OrderedCollection new.
+	boundsByDelta valuesDo: [ :boundsByShape |
+		| operation assessment |
+		operation := CPAtelierMoveShapes
+			boundsByShape: boundsByShape
+			processMemento: processMemento
+			diagramContext: diagramContext.
+		assessment := operation assess.
+		assessment isApplicable ifFalse: [ ^ assessment rejectionMessage ].
+		operations add: operation.
+		assessments add: assessment.
+		assessment proposedBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
+			proposedFlowNodeBounds at: aShape put: proposedBounds ] ].
+	^ { operations. assessments. proposedFlowNodeBounds }
 ]
 
 { #category : 'private - geometry' }
