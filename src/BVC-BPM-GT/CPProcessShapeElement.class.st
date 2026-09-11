@@ -1,6 +1,6 @@
 "I render and locally interact with one CPShape.
 
-The CPShape and its semantic flow node remain model objects. I own their Bloc depiction and shape-local affordances: geometry, labels, decoration, selection appearance, resize, contextual drag options, replacement/type UI, and local pointer mechanics. CPProcessVisualElement coordinates relationships between diagram objects and delegates semantic edits to Atelier operations."
+The CPShape and its semantic flow node remain model objects. I am the positioned/orbital Bloc identity for the shape. My uprightHost owns the screen-upright node body and node-local affordances, while rotating attachments such as Boundary Event shape elements remain direct children of me. CPProcessVisualElement coordinates relationships between diagram objects and delegates semantic edits to Atelier operations."
 Class {
 	#name : 'CPProcessShapeElement',
 	#superclass : 'BlElement',
@@ -27,7 +27,8 @@ Class {
 		'boundaryOuterRing',
 		'boundaryInnerRing',
 		'boundaryEventDefinitionMarker',
-		'typePopup'
+		'typePopup',
+		'uprightHost'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -72,6 +73,12 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	self userData at: #processModelElement put: aFlowNode.
 	self
 		extent: aRectangle extent;
+		geometry: BlRectangleGeometry new;
+		background: Color transparent;
+		border: BlBorder empty;
+		layout: BlFrameLayout new;
+		clipChildren: false.
+	uprightHost := BlElement new
 		geometry: (self geometryFor: aFlowNode bounds: aRectangle);
 		background: (aFlowNode isBoundaryEvent
 			ifTrue: [ Color transparent ]
@@ -80,8 +87,13 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 			ifTrue: [ BlBorder empty ]
 			ifFalse: [ self borderForColor: aBorderColor width: self normalBorderWidth ]);
 		layout: BlFrameLayout new;
-		clipChildren: false.
-	aFlowNode isBoundaryEvent ifTrue: [ self effect: (BlBlurBelowEffect radius: 10) ].
+		clipChildren: false;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical matchParent ];
+		yourself.
+	aFlowNode isBoundaryEvent ifTrue: [ uprightHost effect: (BlBlurBelowEffect radius: 10) ].
+	self addChild: uprightHost.
 	self addActivityLabelForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
 	self addBoundaryEventRingsForBounds: aRectangle.
@@ -137,7 +149,7 @@ CPProcessShapeElement >> addActivityLabelForBounds: aRectangle [
 					c frame vertical alignCenter.
 					modelElement isSubProcess ifTrue: [
 						c margin: (BlInsets bottom: 4) ] ] ].
-	self addChild: labelElement
+	self addUprightChild: labelElement
 ]
 
 { #category : 'private - decoration' }
@@ -176,7 +188,7 @@ CPProcessShapeElement >> addCallActivityDecorationForBounds: aRectangle [
 	marker
 		addChild: horizontalBar;
 		addChild: verticalBar.
-	self addChild: marker
+	self addUprightChild: marker
 ]
 
 { #category : 'private - decoration' }
@@ -195,7 +207,7 @@ CPProcessShapeElement >> addIntermediateEventDecorationForBounds: aRectangle [
 			c frame vertical alignCenter ];
 		preventMeAndChildrenMouseEvents;
 		yourself.
-	self addChild: innerRing
+	self addUprightChild: innerRing
 ]
 
 { #category : 'private - cursor' }
@@ -296,7 +308,7 @@ CPProcessShapeElement >> boundaryInterrupting: aBoolean [
 					borderForColor: normalBorderColor
 					width: self boundaryBorderWidth) ] ]
 		ifFalse: [
-			self border: (self borderForColor: normalBorderColor width: self normalBorderWidth) ]
+			uprightHost border: (self borderForColor: normalBorderColor width: self normalBorderWidth) ]
 ]
 
 { #category : 'private - decoration' }
@@ -322,7 +334,7 @@ CPProcessShapeElement >> addBoundaryEventRingsForBounds: aRectangle [
 			c frame vertical alignCenter ];
 		preventMeAndChildrenMouseEvents;
 		yourself.
-	self
+	uprightHost
 		addChild: boundaryOuterRing;
 		addChild: boundaryInnerRing
 ]
@@ -341,7 +353,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
 		preventMeAndChildrenMouseEvents.
-	self addChild: marker
+	self addUprightChild: marker
 ]
 
 { #category : 'boundary events' }
@@ -358,7 +370,7 @@ CPProcessShapeElement >> boundaryEventDefinitionClass: aDefinitionClass [
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
 		preventMeAndChildrenMouseEvents.
-	self addChild: boundaryEventDefinitionMarker
+	self addUprightChild: boundaryEventDefinitionMarker
 ]
 
 { #category : 'private - appearance' }
@@ -396,7 +408,7 @@ CPProcessShapeElement >> selected: isSelected selectionColor: aSelectionColor no
 		boundaryInnerRing ifNotNil: [
 			boundaryInnerRing border: (self borderForColor: color width: width) ].
 		^ self ].
-	self border: (self
+	uprightHost border: (self
 		borderForColor: color
 		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
 ]
@@ -448,6 +460,7 @@ CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent staged
 				self bottomRightBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent ]
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock }.
+	resizeHandles do: [ :aHandle | self addUprightChild: aHandle ].
 	^ resizeHandles
 ]
 
@@ -543,9 +556,9 @@ CPProcessShapeElement >> resizeHandles [
 { #category : 'resizing' }
 CPProcessShapeElement >> bringResizeHandlesToFront [
 	self resizeHandles do: [ :aHandle |
-		aHandle parent == self ifTrue: [
+		aHandle parent == uprightHost ifTrue: [
 			aHandle removeFromParent.
-			self addChild: aHandle ] ]
+			uprightHost addChild: aHandle ] ]
 ]
 
 
@@ -627,7 +640,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		addEventHandler: (BlEventHandler
 			on: BlDragLeaveEvent
 			do: [ :anEvent | self contextualDragOptionsPillHovered: false ]).
-	self addChild: contextualDragOptions.
+	self addUprightChild: contextualDragOptions.
 	^ connectionPort
 ]
 
@@ -807,7 +820,7 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 		yourself.
 	aConfigureBlock value: visibleHost.
 	self installDefaultCursorOn: visibleHost.
-	self addChild: visibleHost.
+	self addUprightChild: visibleHost.
 
 	typePopup := aPopup.
 	aPopup
@@ -827,7 +840,7 @@ CPProcessShapeElement >> installTypePopup: aPopup visibleIcon: aVisibleIcon icon
 			selectedClass == modelElement class ifFalse: [
 				self enqueueTask: (BlTaskAction new action: [
 					aReplacementBlock value: selectedClass ]) ] ].
-	self addChild: aPopup
+	self addUprightChild: aPopup
 ]
 
 
@@ -902,6 +915,22 @@ CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
 	aParent addChild: externalLabelHost
 ]
 
+{ #category : 'accessing - orientation' }
+CPProcessShapeElement >> uprightHost [
+	^ uprightHost
+]
+
+{ #category : 'private - containment' }
+CPProcessShapeElement >> addUprightChild: anElement [
+	uprightHost addChild: anElement
+]
+
+{ #category : 'external label' }
+CPProcessShapeElement >> hostExternalLabel: anElement [
+	externalLabelHost := anElement.
+	self addUprightChild: anElement
+]
+
 { #category : 'containment' }
 CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalPosition: aPoint [
 	aBoundaryElement constraintsDo: [ :c | c ignoreByLayout ].
@@ -925,7 +954,7 @@ CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
 			c margin: (BlInsets bottom: 4) ];
 		allowMeAndChildrenMouseEvents;
 		yourself.
-	self addChild: subProcessExpansionMarker
+	self addUprightChild: subProcessExpansionMarker
 ]
 
 { #category : 'interaction - subprocess' }
@@ -966,7 +995,7 @@ CPProcessShapeElement >> hostNestedProcessVisual: aProcessVisual [
 			c frame horizontal alignLeft.
 			c frame vertical alignTop ].
 	nestedProcessViewport addChild: nestedProcessVisual.
-	self addChildFirst: nestedProcessViewport.
+	uprightHost addChildFirst: nestedProcessViewport.
 	self addSubProcessBorderInteractionElements
 ]
 
@@ -1012,7 +1041,7 @@ CPProcessShapeElement >> ensureBorderInteractionElements [
 			c frame vertical alignTop ];
 		yourself.
 	subProcessBorderInteractionElements := { top. bottom. left. right }.
-	subProcessBorderInteractionElements do: [ :each | self addChild: each ]
+	subProcessBorderInteractionElements do: [ :each | self addUprightChild: each ]
 ]
 
 { #category : 'private - subprocess' }

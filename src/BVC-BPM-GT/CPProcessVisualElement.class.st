@@ -327,6 +327,12 @@ CPProcessVisualElement >> rootDiagramPointForLocalPoint: aPoint [
 		((parentProcessVisual stagedBoundsOf: hostShape) origin + aPoint)
 ]
 
+{ #category : 'private - geometry' }
+CPProcessVisualElement >> rootDiagramPointForElement: anElement [
+	^ rootVisual diagramPointForGlobalPoint: (anElement localPointToGlobal: 0 @ 0)
+]
+
+
 { #category : 'private - containment' }
 CPProcessVisualElement >> localPointForRootDiagramPoint: aPoint [
 	| hostOrigin |
@@ -1543,6 +1549,11 @@ CPProcessVisualElement >> externalLabelOriginForBounds: bounds width: labelWidth
 	^ (bounds center x - (labelWidth / 2)) @ (bounds bottom + 4)
 ]
 
+{ #category : 'private - labels' }
+CPProcessVisualElement >> externalLabelLocalOriginForExtent: anExtent width: labelWidth [
+	^ ((anExtent x - labelWidth) / 2) @ (anExtent y + 4)
+]
+
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
@@ -1558,7 +1569,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c vertical fitContent.
 			c ignoreByLayout ];
 		preventMouseEvents;
-		relocate: (self externalLabelOriginForBounds: bounds width: labelWidth);
+		relocate: (self externalLabelLocalOriginForExtent: bounds extent width: labelWidth);
 		yourself.
 	interactionSurface := BlElement new
 		layout: BlFrameLayout new;
@@ -1577,8 +1588,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 		c frame vertical alignCenter ].
 	interactionSurface addChild: label.
 	labelHost addChild: interactionSurface.
-	aShapeElement externalLabelHost: labelHost.
-	self addDiagramChild: labelHost.
+	aShapeElement hostExternalLabel: labelHost.
 	self installLabelEditingOn: interactionSurface label: label.
 	self installSelectionOn: interactionSurface for: aFlowNode.
 	aFlowNode isBoundaryEvent
@@ -1804,7 +1814,10 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 				anElement removeFromParent.
 				host addChild: anElement ] ] ].
 	shapeElementsByModelElement valuesDo: [ :aShapeElement |
-		aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ].
+		| label |
+		label := aShapeElement externalLabelHost.
+		(label notNil and: [ label parent ~~ aShapeElement uprightHost ]) ifTrue: [
+			aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ] ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
 		anEdgeVisual bringLabelToFrontIn: self diagramPresentationParent ]
 ]
@@ -2058,10 +2071,9 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 
 { #category : 'private - resizing' }
 CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement [
-	| handles |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
-	handles := aShapeElement
+	aShapeElement
 		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds | self resizeShape: aShape toBounds: proposedBounds ]
@@ -2071,8 +2083,7 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 				proposedBounds: proposedBounds.
 			self updateIncidentEdgeGeometryFor: aModelElement.
 			self updateIncidentEdgeLabelsFor: aModelElement.
-			self updateIncidentReconnectHandlesFor: aModelElement ].
-	handles do: [ :aHandle | aShapeElement addChild: aHandle ]
+			self updateIncidentReconnectHandlesFor: aModelElement ]
 ]
 
 { #category : 'private - resizing' }
@@ -2367,15 +2378,11 @@ CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedMode
 		| modelElement |
 		modelElement := self stagedModelElementOf: aShape.
 		(diagramSelection includes: aShape) ifTrue: [
-			| label |
-			label := anElement externalLabelHost.
 			entries add: {
 				aShape.
 				modelElement.
 				anElement.
-				self stagedBoundsOf: aShape.
-				label.
-				(label ifNotNil: [ label position ])
+				self stagedBoundsOf: aShape
 			} ] ].
 	^ entries reject: [ :entry |
 		| modelElement attachedActivity |
@@ -2468,7 +2475,7 @@ CPProcessVisualElement >> removeGroupMovePreviews: previews [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: aShapeElement for: aShape [
-	| dragStartLabelPosition draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
+	| draggedModelElement groupEntries groupMode groupPreviews internalBentEdges movedModelElements dragPresentations |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	groupMode := false.
 	groupEntries := #().
@@ -2480,7 +2487,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 		installPositioningFrom: anInteractionElement
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
-			| elementsToPresent singleLabelPosition |
+			| elementsToPresent |
 			self clearInsertionTarget.
 			draggedModelElement := self stagedModelElementOf: aShape.
 			groupEntries := self selectedShapeEntriesForGroupDragIncluding: draggedModelElement.
@@ -2491,29 +2498,25 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					groupEntries do: [ :entry | movedModelElements add: entry second ] ]
 				ifFalse: [
 					movedModelElements add: draggedModelElement ].
-			singleLabelPosition := aShapeElement externalLabelHost
-				ifNotNil: [ :aLabel | aLabel position ].
 			elementsToPresent := groupMode
 				ifTrue: [ groupEntries collect: [ :entry | entry third ] ]
 				ifFalse: [ { aShapeElement } ].
 			dragPresentations := IdentityDictionary new.
 			elementsToPresent do: [ :anElement |
-				| entry modelElement shape bounds localLabelPosition rootShapePosition rootLabelPosition proxy proxyLabel presentation |
+				| entry modelElement shape bounds rootShapePosition rootLabelPosition proxy proxyLabel presentation |
 				groupMode
 					ifTrue: [
 						entry := groupEntries detect: [ :each | each third == anElement ].
 						shape := entry first.
 						modelElement := entry second.
-						bounds := entry fourth.
-						localLabelPosition := entry sixth ]
+						bounds := entry fourth ]
 					ifFalse: [
 						shape := aShape.
 						modelElement := draggedModelElement.
-						bounds := originalBounds.
-						localLabelPosition := singleLabelPosition ].
+						bounds := originalBounds ].
 				rootShapePosition := self rootDiagramPointForLocalPoint: bounds origin.
-				rootLabelPosition := localLabelPosition ifNotNil: [
-					self rootDiagramPointForLocalPoint: localLabelPosition ].
+				rootLabelPosition := anElement externalLabelHost ifNotNil: [ :aLabel |
+					self rootDiagramPointForElement: aLabel ].
 				proxy := self newDragProxyFor: modelElement shape: shape bounds: bounds.
 				proxyLabel := self newDragProxyLabelFor: modelElement.
 				presentation := (CPProcessDragPresentation
@@ -2524,7 +2527,6 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 						shapeAt: rootShapePosition
 						labelAt: rootLabelPosition.
 				dragPresentations at: anElement put: presentation ].
-			dragStartLabelPosition := singleLabelPosition.
 			groupMode ifTrue: [
 				internalBentEdges := self internalBentEdgesForMovedModelElements: movedModelElements.
 				internalBentEdges do: [ :anEdge |
@@ -2538,14 +2540,12 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 			groupMode
 				ifTrue: [
 					groupEntries do: [ :entry |
-						| element bounds label |
+						| element bounds |
 						element := entry third.
 						bounds := entry fourth.
-						label := entry fifth.
 						self
 							relocateFlowNodeElement: element
-							toDiagramPoint: bounds origin + delta.
-						label ifNotNil: [ label relocate: entry sixth + delta ] ].
+							toDiagramPoint: bounds origin + delta ].
 					self removeGroupMovePreviews: groupPreviews.
 					groupPreviews := IdentityDictionary new.
 					internalBentEdges do: [ :anEdge |
@@ -2566,9 +2566,6 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self bringBendpointHandlesToFront ]
 				ifFalse: [
 					proposedDragBounds := (self stagedBoundsOf: aShape) translateBy: delta.
-					dragStartLabelPosition ifNotNil: [
-						aShapeElement externalLabelHost
-							relocate: dragStartLabelPosition + delta ].
 					self
 						updateIncidentEdgeGeometryFor: draggedModelElement
 						proposedBounds: proposedDragBounds.
@@ -5310,11 +5307,7 @@ CPProcessVisualElement >> previewLaneBoundsByShape: proposedBoundsByShape flowNo
 				at: aShape
 				ifAbsent: [ self stagedBoundsOf: aShape ].
 			bounds ifNotNil: [
-				self relocateFlowNodeElement: anElement toDiagramPoint: bounds origin.
-				anElement externalLabelHost ifNotNil: [ :aLabel |
-					aLabel relocate: (self
-						externalLabelOriginForBounds: bounds
-						width: 180) ] ] ] ].
+				self relocateFlowNodeElement: anElement toDiagramPoint: bounds origin ] ] ].
 
 	self forceLayout.
 
@@ -5392,15 +5385,17 @@ CPProcessVisualElement >> stagedIsHorizontalOf: aShape [
 
 { #category : 'accessing - orientation' }
 CPProcessVisualElement >> orientationUprightElements [
-	"Answer the visual objects that move with a Pool quarter-turn but must remain
-	upright on screen. Lane and Pool structure is deliberately excluded: those
-	objects visually rotate. A collapsed/expanded FlowNode is counter-rotated as
-	one visual object, so nested content remains upright with its host node."
+	"Answer the presentation layers that inherit the Pool quarter-turn but must
+	remain upright on screen. FlowNode orbital elements themselves are excluded:
+	their centres and attachment geometry rotate with the Pool while their
+	upright hosts counter-rotate. Root-level transient labels and edge labels are
+	still independent presentation objects."
 	| elements |
 	elements := OrderedCollection new.
 	shapeElementsByShape valuesDo: [ :aShapeElement |
-		elements add: aShapeElement.
-		aShapeElement externalLabelHost ifNotNil: [ :aLabel | elements add: aLabel ] ].
+		elements add: aShapeElement uprightHost.
+		aShapeElement externalLabelHost ifNotNil: [ :aLabel |
+			aLabel parent == aShapeElement uprightHost ifFalse: [ elements add: aLabel ] ] ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
 		anEdgeVisual labelHost ifNotNil: [ :aLabel | elements add: aLabel ] ].
 	^ elements
@@ -5517,9 +5512,10 @@ CPProcessVisualElement >> orientationExternalLabelOffsets [
 	offsets := IdentityDictionary new.
 	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
 		aShapeElement externalLabelHost ifNotNil: [ :aLabel |
-			(self stagedBoundsOf: aShape) ifNotNil: [ :bounds |
-				offsets
-					at: aLabel
-					put: (aLabel position + (aLabel extent / 2.0)) - bounds center ] ] ].
+			aLabel parent == aShapeElement uprightHost ifFalse: [
+				(self stagedBoundsOf: aShape) ifNotNil: [ :bounds |
+					offsets
+						at: aLabel
+						put: (aLabel position + (aLabel extent / 2.0)) - bounds center ] ] ] ].
 	^ offsets
 ]

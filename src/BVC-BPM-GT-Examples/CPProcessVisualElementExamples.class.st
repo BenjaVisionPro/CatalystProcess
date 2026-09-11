@@ -868,7 +868,7 @@ CPProcessVisualElementExamples >> nestedProcessVisualIsHostedAsRealBlocChild [
 	viewport := shapeElement nestedProcessViewport.
 
 	self assert: nestedVisual parent == viewport.
-	self assert: viewport parent == shapeElement.
+	self assert: viewport parent == shapeElement uprightHost.
 	self assert: nestedVisual flowContainer == subProcess.
 	^ nestedVisual
 ]
@@ -1036,8 +1036,8 @@ CPProcessVisualElementExamples >> expandedSubProcessKeepsParentBorderInteraction
 
 	self assert: borders size equals: 4.
 	borders do: [ :each |
-		self assert: each parent == shapeElement ].
-	self assert: shapeElement nestedProcessViewport parent == shapeElement.
+		self assert: each parent == shapeElement uprightHost ].
+	self assert: shapeElement nestedProcessViewport parent == shapeElement uprightHost.
 	self assert: shapeElement resizeHandles size equals: 4.
 	^ shapeElement
 ]
@@ -1130,7 +1130,7 @@ CPProcessVisualElementExamples >> resizeHandlesArePresentFromCreation [
 
 	self assert: handles size equals: 4.
 	handles do: [ :each |
-		self assert: each parent == shapeElement.
+		self assert: each parent == shapeElement uprightHost.
 		self assert: each visibility equals: BlVisibility visible ].
 	^ shapeElement
 ]
@@ -1190,7 +1190,7 @@ CPProcessVisualElementExamples >> expandedSubProcessBorderElementsAreConcreteDra
 
 	self assert: borders size equals: 4.
 	borders do: [ :each |
-		self assert: each parent == shapeElement.
+		self assert: each parent == shapeElement uprightHost.
 		self assert: each geometry class == BlRectangleGeometry ].
 	^ shapeElement
 ]
@@ -3299,10 +3299,11 @@ CPProcessVisualElementExamples >> laneResizePreviewMovesExternalFlowNodeLabel [
 		previewLaneBoundsByShape: laneBounds
 		flowNodeBoundsByShape: flowNodeBounds.
 
+	self assert: label parent == nodeElement uprightHost.
 	self
 		assert: label position
 		equals: (visual
-			externalLabelOriginForBounds: proposedNodeBounds
+			externalLabelLocalOriginForExtent: proposedNodeBounds extent
 			width: 180).
 	^ visual
 ]
@@ -4039,6 +4040,54 @@ CPProcessVisualElementExamples >> participantOrientationDescriptionUsesGroupedIc
 	^ selection
 ]
 
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> flowNodeUsesOrbitalRootWithUprightVisualHost [
+	<gtExample>
+	| shape node element |
+	shape := CPShape new.
+	node := CPUserTask new label: 'Review'; yourself.
+	element := CPProcessShapeElement new
+		shape: shape
+		modelElement: node
+		bounds: (100 @ 100 extent: 140 @ 80)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+
+	self assert: element uprightHost parent == element.
+	^ element
+]
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> boundaryEventOrbitalRootRemainsChildOfActivityWhileVisualHostIsUpright [
+	<gtExample>
+	| activityShape boundaryShape activity boundary activityElement boundaryElement |
+	activityShape := CPShape new.
+	boundaryShape := CPShape new.
+	activity := CPUserTask new label: 'Review'; yourself.
+	boundary := CPBoundaryEvent new.
+	activityElement := CPProcessShapeElement new
+		shape: activityShape
+		modelElement: activity
+		bounds: (100 @ 100 extent: 140 @ 80)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	boundaryElement := CPProcessShapeElement new
+		shape: boundaryShape
+		modelElement: boundary
+		bounds: (84 @ 124 extent: 32 @ 32)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	activityElement hostBoundaryEventElement: boundaryElement atLocalPosition: -16 @ 24.
+
+	self assert: boundaryElement parent == activityElement.
+	self assert: boundaryElement uprightHost parent == boundaryElement.
+	self assert: boundaryElement position equals: -16 @ 24.
+	^ boundaryElement
+]
 
 { #category : 'examples - lanes - orientation' }
 CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceClockwise [
