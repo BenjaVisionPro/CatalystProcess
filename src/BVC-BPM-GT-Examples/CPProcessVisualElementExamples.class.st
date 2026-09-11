@@ -405,7 +405,8 @@ CPProcessVisualElementExamples >> callActivityUsesActivityGeometryWithCallBounda
 	self assert: element normalBorderWidth equals: 3.
 	self assert: element selectedBorderWidth equals: 4.5.
 	self assert: element children size equals: 1.
-	self assert: element children first children size equals: 2.
+	self assert: element uprightHost children size equals: 1.
+	self assert: element uprightHost children first children size equals: 2.
 	^ element
 ]
 
@@ -434,6 +435,7 @@ CPProcessVisualElementExamples >> collapsedSubProcessUsesActivityGeometryWithCol
 	self assert: element normalBorderWidth equals: 1.5.
 	self assert: element selectedBorderWidth equals: 3.
 	self assert: element children size equals: 1.
+	self assert: element uprightHost children size equals: 1.
 	^ element
 ]
 
@@ -718,7 +720,7 @@ CPProcessVisualElementExamples >> expandedSubProcessKeepsToggleAndPositionsLabel
 		expanded: true.
 
 	self assert: element subProcessExpansionMarker notNil.
-	self assert: (element children includes: label).
+	self assert: (element uprightHost children includes: label).
 	^ element
 ]
 
@@ -3595,7 +3597,10 @@ CPProcessVisualElementExamples >> documentRootedNestedLaneDragsPreserveDiagramPr
 
 		self assert: (visual diagramBoundsForElement: element) equals: (expected translateBy: delta).
 		label := element externalLabelHost.
+		self assert: label parent == element uprightHost.
 		self assert: label position equals:
+			(visual externalLabelLocalOriginForExtent: (expected translateBy: delta) extent width: 180).
+		self assert: (visual rootDiagramPointForElement: label) equals:
 			((expected translateBy: delta) center x - 90) @ ((expected translateBy: delta) bottom + 4).
 		livePoints := visual
 			renderedPathPointsFor: edge
@@ -3748,7 +3753,11 @@ CPProcessVisualElementExamples >> documentRootedRepeatedLaneDragsPreserveProject
 		label := element externalLabelHost.
 		self assert: (session diagramContext boundsOf: shape) equals: expected.
 		self assert: (visual diagramBoundsForElement: element) equals: expected.
-		self assert: label position equals: (expected center x - 90) @ (expected bottom + 4) ].
+		self assert: label parent == element uprightHost.
+		self assert: label position equals:
+			(visual externalLabelLocalOriginForExtent: expected extent width: 180).
+		self assert: (visual rootDiagramPointForElement: label) equals:
+			(expected center x - 90) @ (expected bottom + 4) ].
 	self assert: (visual stagedLaneContainingFlowNode: node) == fixture sixth.
 	self assert: shape bounds equals: original.
 	session rootMemento reset.
