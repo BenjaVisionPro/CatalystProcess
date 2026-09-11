@@ -3154,7 +3154,6 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	assessment := operation assess.
 	^ assessment isApplicable
 ]
-
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
 	| dragItem globalPoint rootPoint targetVisual |
@@ -3210,7 +3209,6 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
-
 { #category : 'private - creation' }
 CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint [
 	| lane laneContext laneSets topLevelLanes localPoint targetLane targetShape targetBounds insertAfter bounds operation assessment |
