@@ -3112,7 +3112,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 				| laneContext laneSets topLevelLanes |
 				laneContext := CPProcessLaneContext inRootMemento: memento.
 				laneSets := laneContext stagedLaneSets.
-				laneSets ifEmpty
+				laneSets isEmpty
 					ifTrue: [
 						proposedBounds := self poolBodyBoundsForFirstLane.
 						operation := diagramEditing
