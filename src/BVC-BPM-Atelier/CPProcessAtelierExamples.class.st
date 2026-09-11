@@ -3282,7 +3282,123 @@ CPProcessAtelierExamples >> switchingVerticalPoolToHorizontalReflowsWholeLaneSet
 
 	firstBounds := diagramContext boundsOf: fixture sixth.
 	secondBounds := diagramContext boundsOf: fixture eighth.
-	self assert: firstBounds equals: (0 @ 0 extent: 364 @ 168).
-	self assert: secondBounds equals: (0 @ 168 extent: 364 @ 168).
+	self assert: (collaborationContext diagramContext boundsOf: participantShape) equals: (32 @ -32 extent: 336 @ 400).
+	self assert: firstBounds equals: (0 @ 200 extent: 300 @ 200).
+	self assert: secondBounds equals: (0 @ 0 extent: 300 @ 200).
 	^ assessment
+]
+
+{ #category : 'private - fixture' }
+CPProcessAtelierExamples >> participantOrientationRotationFixture [
+	| process processDiagram start task flow laneSet firstLane secondLane startShape taskShape edge firstLaneShape secondLaneShape collaboration participant collaborationDiagram participantShape memento |
+	process := CPProcess new label: 'Orientation rotation'; yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	task := CPUserTask new label: 'Review'; yourself.
+	flow := CPSequenceFlow new sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow.
+
+	laneSet := CPLaneSet new.
+	firstLane := CPLane new label: 'First'; addFlowNodeRef: start; yourself.
+	secondLane := CPLane new label: 'Second'; addFlowNodeRef: task; yourself.
+	laneSet addLane: firstLane; addLane: secondLane.
+	process addLaneSet: laneSet.
+
+	processDiagram := CPDiagram new.
+	process diagram: processDiagram.
+	firstLaneShape := CPShape new modelElement: firstLane; bounds: (0 @ 0 extent: 500 @ 140); yourself.
+	secondLaneShape := CPShape new modelElement: secondLane; bounds: (0 @ 140 extent: 500 @ 160); yourself.
+	startShape := CPShape new modelElement: start; bounds: (100 @ 50 extent: 42 @ 42); yourself.
+	taskShape := CPShape new modelElement: task; bounds: (350 @ 200 extent: 100 @ 60); yourself.
+	edge := CPEdge new
+		modelElement: flow;
+		addWaypoint: 142 @ 71;
+		addWaypoint: 350 @ 230;
+		yourself.
+	processDiagram
+		addElement: firstLaneShape;
+		addElement: secondLaneShape;
+		addElement: startShape;
+		addElement: taskShape;
+		addElement: edge.
+
+	collaboration := CPCollaboration new label: 'Orientation collaboration'; yourself.
+	participant := CPParticipant new label: 'Pool'; processRef: process; yourself.
+	collaboration addParticipant: participant.
+	collaborationDiagram := CPDiagram new.
+	collaboration diagram: collaborationDiagram.
+	participantShape := CPShape new
+		modelElement: participant;
+		bounds: (40 @ 40 extent: 536 @ 300);
+		isHorizontal: true;
+		yourself.
+	collaborationDiagram addElement: participantShape.
+	process definitionalCollaborationRef: collaboration.
+	memento := CFMaMemento model: process.
+	^ {
+		process. memento. participant. participantShape.
+		firstLane. firstLaneShape. secondLane. secondLaneShape.
+		start. startShape. task. taskShape. edge }
+]
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessAtelierExamples >> participantOrientationRotatesGeometryWithoutRotatingFlowNodes [
+	<gtExample>
+	| fixture memento participantShape collaborationContext diagramContext editing assessment |
+	fixture := self participantOrientationRotationFixture.
+	memento := fixture second.
+	participantShape := fixture fourth.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	diagramContext := self diagramContextForMemento: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramContext: diagramContext
+		collaborationContext: collaborationContext
+		documentContext: nil.
+
+	assessment := (editing makeParticipantVertical: participantShape) apply.
+	self assert: assessment isApplicable.
+	self assert: (collaborationContext diagramContext boundsOf: participantShape) equals: (158 @ -78 extent: 300 @ 536).
+	self assert: (diagramContext boundsOf: fixture sixth) equals: (160 @ 0 extent: 140 @ 500).
+	self assert: (diagramContext boundsOf: fixture eighth) equals: (0 @ 0 extent: 160 @ 500).
+	self assert: (diagramContext boundsOf: fixture tenth) equals: (208 @ 100 extent: 42 @ 42).
+	self assert: (diagramContext boundsOf: fixture twelfth) equals: (20 @ 370 extent: 100 @ 60).
+	self assert: (diagramContext boundsOf: fixture tenth) extent equals: (42 @ 42).
+	self assert: (diagramContext boundsOf: fixture twelfth) extent equals: (100 @ 60).
+	self assert: (diagramContext waypointsOf: fixture thirteenth) equals: { 229 @ 142. 70 @ 350 } asOrderedCollection.
+	^ assessment
+]
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessAtelierExamples >> participantOrientationRoundTripRestoresExactGeometry [
+	<gtExample>
+	| fixture memento participantShape collaborationContext diagramContext editing originalParticipant originalFirstLane originalSecondLane originalStart originalTask originalWaypoints verticalAssessment horizontalAssessment |
+	fixture := self participantOrientationRotationFixture.
+	memento := fixture second.
+	participantShape := fixture fourth.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	diagramContext := self diagramContextForMemento: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramContext: diagramContext
+		collaborationContext: collaborationContext
+		documentContext: nil.
+	originalParticipant := collaborationContext diagramContext boundsOf: participantShape.
+	originalFirstLane := diagramContext boundsOf: fixture sixth.
+	originalSecondLane := diagramContext boundsOf: fixture eighth.
+	originalStart := diagramContext boundsOf: fixture tenth.
+	originalTask := diagramContext boundsOf: fixture twelfth.
+	originalWaypoints := diagramContext waypointsOf: fixture thirteenth.
+
+	verticalAssessment := (editing makeParticipantVertical: participantShape) apply.
+	self assert: verticalAssessment isApplicable.
+	horizontalAssessment := (editing makeParticipantHorizontal: participantShape) apply.
+	self assert: horizontalAssessment isApplicable.
+
+	self assert: (collaborationContext diagramContext boundsOf: participantShape) equals: originalParticipant.
+	self assert: (diagramContext boundsOf: fixture sixth) equals: originalFirstLane.
+	self assert: (diagramContext boundsOf: fixture eighth) equals: originalSecondLane.
+	self assert: (diagramContext boundsOf: fixture tenth) equals: originalStart.
+	self assert: (diagramContext boundsOf: fixture twelfth) equals: originalTask.
+	self assert: (diagramContext waypointsOf: fixture thirteenth) equals: originalWaypoints.
+	^ horizontalAssessment
 ]

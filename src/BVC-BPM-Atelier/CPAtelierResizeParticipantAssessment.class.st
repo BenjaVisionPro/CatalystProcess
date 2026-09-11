@@ -5,7 +5,8 @@ Class {
 	#instVars : [
 		'proposedLaneBoundsByShape',
 		'proposedFlowNodeBoundsByShape',
-		'proposedWaypointsByEdge'
+		'proposedWaypointsByEdge',
+		'proposedCollaborationWaypointsByEdge'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -41,4 +42,15 @@ CPAtelierResizeParticipantAssessment >> proposedWaypointsByEdge [
 { #category : 'accessing' }
 CPAtelierResizeParticipantAssessment >> proposedWaypointsByEdge: aDictionary [
 	proposedWaypointsByEdge := aDictionary
+]
+
+
+{ #category : 'accessing' }
+CPAtelierResizeParticipantAssessment >> proposedCollaborationWaypointsByEdge [
+	^ proposedCollaborationWaypointsByEdge
+]
+
+{ #category : 'accessing' }
+CPAtelierResizeParticipantAssessment >> proposedCollaborationWaypointsByEdge: aDictionary [
+	proposedCollaborationWaypointsByEdge := aDictionary
 ]

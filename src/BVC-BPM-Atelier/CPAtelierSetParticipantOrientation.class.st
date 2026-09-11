@@ -1,6 +1,6 @@
-"I change the BPMN-DI orientation of one Participant Pool.
+"I rotate one Participant Pool between BPMN-DI horizontal and vertical orientation.
 
-The Participant and every Lane shape in its hosted Process change orientation together. When the Participant hosts the edited Process I also calculate the complete Lane reflow, FlowNode translations and Sequence Flow waypoint changes before writing anything. The semantic Participant/Lane model is unchanged."
+Orientation conversion is a rigid quarter-turn of the Pool coordinate system, not a Lane reflow. The Participant keeps its centre and swaps width/height. Lane rectangles rotate with the Pool. FlowNode centres and Sequence Flow waypoints follow the same quarter-turn, while FlowNode extents remain unchanged so their presentation stays upright. The semantic Participant, Lane hierarchy and FlowNodes are unchanged."
 Class {
 	#name : 'CPAtelierSetParticipantOrientation',
 	#superclass : 'CPAtelierResizeParticipantShape',
@@ -36,7 +36,7 @@ CPAtelierSetParticipantOrientation class >> verticalShape: aShape processMemento
 
 { #category : 'assessing' }
 CPAtelierSetParticipantOrientation >> assess [
-	| context shapeMemento orientationDescription currentOrientation participant currentBounds laneContext diagramContext minimum proposedLaneBounds proposedFlowNodeBounds proposedWaypoints validationError |
+	| context shapeMemento orientationDescription currentOrientation participant currentBounds proposedBounds laneContext diagramContext currentBodyExtent proposedLaneBounds proposedFlowNodeBounds proposedWaypoints proposedCollaborationWaypoints validationError laneShapes |
 	shape ifNil: [ ^ self rejectedBecause: 'A Participant diagram shape is required.' ].
 	context := self stagedCollaborationContext.
 	context ifNil: [ ^ self rejectedBecause: 'The Process has no staged definitional Collaboration diagram.' ].
@@ -55,89 +55,177 @@ CPAtelierSetParticipantOrientation >> assess [
 		^ self rejectedBecause: 'The Pool already has the requested orientation.' ].
 	currentBounds := context diagramContext boundsOf: shape.
 	currentBounds ifNil: [ ^ self rejectedBecause: 'The Participant shape has no staged bounds.' ].
+	proposedBounds := self rotatedParticipantBoundsFrom: currentBounds.
 
 	proposedLaneBounds := IdentityDictionary new.
 	proposedFlowNodeBounds := IdentityDictionary new.
 	proposedWaypoints := IdentityDictionary new.
+	proposedCollaborationWaypoints := self
+		proposedCollaborationWaypointsIn: context
+		participant: participant
+		around: currentBounds center.
 
 	(context processRefOf: participant) == processMemento model ifTrue: [
 		laneContext := CPProcessLaneContext inRootMemento: processMemento.
 		diagramContext := self stagedProcessDiagramContext.
 		diagramContext ifNil: [ ^ self rejectedBecause: 'The hosted Process has no staged diagram context.' ].
+		currentBodyExtent := self currentProcessBodyExtentForParticipantBounds: currentBounds.
+		laneShapes := IdentitySet new.
 
-		laneContext stagedLaneSets ifNotEmpty: [
-			minimum := isHorizontal
-				ifTrue: [ laneContext stagedLaneSets inject: 0 into: [ :value :aLaneSet |
-					value max: (CPAtelierLaneLayout minimumHeightForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext) ] ]
-				ifFalse: [ laneContext stagedLaneSets inject: 0 into: [ :value :aLaneSet |
-					value max: (CPAtelierLaneLayout minimumWidthForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext) ] ].
-			(isHorizontal
-				ifTrue: [ currentBounds height < minimum ]
-				ifFalse: [ currentBounds width < minimum ]) ifTrue: [
-				^ self rejectedBecause: 'The Pool is too small to preserve the computed minimum size of its Lanes in the requested orientation.' ].
+		laneContext stagedLanes do: [ :aLane |
+			| shapes laneShape laneBounds rotatedBounds |
+			shapes := diagramContext shapesForModelElement: aLane.
+			shapes size = 1 ifFalse: [
+				^ self rejectedBecause: 'Every rotated Lane must have exactly one diagram shape.' ].
+			laneShape := shapes anyOne.
+			laneShapes add: laneShape.
+			laneBounds := diagramContext boundsOf: laneShape.
+			laneBounds ifNil: [ ^ self rejectedBecause: 'Every rotated Lane must have staged diagram bounds.' ].
+			rotatedBounds := self
+				rotateStructuralBounds: laneBounds
+				within: currentBodyExtent.
+			proposedLaneBounds at: laneShape put: rotatedBounds ].
 
-			laneContext stagedLaneSets do: [ :aLaneSet |
-				CPAtelierLaneLayout
-					reflowLaneSet: aLaneSet
-					withinExtent: (self processBodyExtentForParticipantBounds: currentBounds)
-					using: laneContext
-					diagramContext: diagramContext
-					horizontal: isHorizontal
-					into: proposedLaneBounds ].
-
-			validationError := self
-				addProposedFlowNodeBoundsForLaneBounds: proposedLaneBounds
-				into: proposedFlowNodeBounds.
-			validationError ifNotNil: [ ^ self rejectedBecause: validationError ].
-			proposedWaypoints := self proposedWaypointsForFlowNodeBounds: proposedFlowNodeBounds ] ].
+		diagramContext elements do: [ :anElement |
+			anElement isShape ifTrue: [
+				(laneShapes identityIncludes: anElement) ifFalse: [
+					| currentNodeBounds proposedNodeBounds |
+					currentNodeBounds := diagramContext boundsOf: anElement.
+					currentNodeBounds ifNil: [
+						^ self rejectedBecause: 'Every rotated FlowNode must have staged diagram bounds.' ].
+					proposedNodeBounds := self
+						rotateUprightBounds: currentNodeBounds
+						within: currentBodyExtent.
+					validationError := self
+						validationErrorForBounds: proposedNodeBounds
+						of: anElement
+						in: diagramContext.
+					validationError ifNotNil: [ ^ self rejectedBecause: validationError ].
+					proposedFlowNodeBounds at: anElement put: proposedNodeBounds ] ].
+			anElement isEdge ifTrue: [
+				proposedWaypoints
+					at: anElement
+					put: ((diagramContext waypointsOf: anElement)
+						collect: [ :aPoint | self rotateProcessPoint: aPoint within: currentBodyExtent ]) asOrderedCollection ] ] ].
 
 	^ CPAtelierResizeParticipantAssessment new
 		shape: shape;
 		currentBounds: currentBounds;
-		proposedBounds: currentBounds;
+		proposedBounds: proposedBounds;
 		proposedLaneBoundsByShape: proposedLaneBounds;
 		proposedFlowNodeBoundsByShape: proposedFlowNodeBounds;
 		proposedWaypointsByEdge: proposedWaypoints;
+		proposedCollaborationWaypointsByEdge: proposedCollaborationWaypoints;
 		yourself
 ]
 
 { #category : 'applying' }
 CPAtelierSetParticipantOrientation >> applyAssessment: anAssessment [
-	| context shapeMemento orientationDescription laneContext diagramContext |
+	| context shapeMemento orientationDescription laneContext diagramContext collaborationWaypoints |
+	super applyAssessment: anAssessment.
+
 	context := self stagedCollaborationContext.
 	shapeMemento := context diagramContext mementoFor: shape.
 	orientationDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #isHorizontal ].
 	shapeMemento write: isHorizontal using: orientationDescription.
 
-	(context processRefOf: (context diagramContext modelElementOf: shape)) == processMemento model ifFalse: [ ^ self ].
-	diagramContext := self stagedProcessDiagramContext.
-	laneContext := CPProcessLaneContext inRootMemento: processMemento.
-	laneContext stagedLanes do: [ :aLane |
-		| shapes laneShape laneShapeMemento laneOrientationDescription |
-		shapes := diagramContext shapesForModelElement: aLane.
-		shapes size = 1 ifTrue: [
-			laneShape := shapes anyOne.
-			laneShapeMemento := diagramContext mementoFor: laneShape.
-			laneOrientationDescription := laneShapeMemento magritteDescription
-				detect: [ :each | each handlesSelector: #isHorizontal ].
-			laneShapeMemento write: isHorizontal using: laneOrientationDescription ] ].
+	(context processRefOf: (context diagramContext modelElementOf: shape)) == processMemento model ifTrue: [
+		diagramContext := self stagedProcessDiagramContext.
+		laneContext := CPProcessLaneContext inRootMemento: processMemento.
+		laneContext stagedLanes do: [ :aLane |
+			| shapes laneShape laneShapeMemento laneOrientationDescription |
+			shapes := diagramContext shapesForModelElement: aLane.
+			shapes size = 1 ifTrue: [
+				laneShape := shapes anyOne.
+				laneShapeMemento := diagramContext mementoFor: laneShape.
+				laneOrientationDescription := laneShapeMemento magritteDescription
+					detect: [ :each | each handlesSelector: #isHorizontal ].
+				laneShapeMemento write: isHorizontal using: laneOrientationDescription ] ] ].
 
-	anAssessment proposedLaneBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
-		diagramContext writeBounds: proposedBounds of: aShape ].
-	anAssessment proposedFlowNodeBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
-		diagramContext writeBounds: proposedBounds of: aShape ].
-	anAssessment proposedWaypointsByEdge keysAndValuesDo: [ :anEdge :proposedWaypoints |
-		diagramContext writeWaypoints: proposedWaypoints of: anEdge ]
+	collaborationWaypoints := anAssessment proposedCollaborationWaypointsByEdge.
+	collaborationWaypoints ifNotNil: [
+		collaborationWaypoints keysAndValuesDo: [ :anEdge :waypoints |
+			context diagramContext writeWaypoints: waypoints of: anEdge ] ]
 ]
 
 { #category : 'private - geometry' }
-CPAtelierSetParticipantOrientation >> processBodyExtentForParticipantBounds: participantBounds [
+CPAtelierSetParticipantOrientation >> currentProcessBodyExtentForParticipantBounds: participantBounds [
 	| offset |
 	offset := isHorizontal
-		ifTrue: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ]
-		ifFalse: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ].
+		ifTrue: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
+		ifFalse: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ].
 	^ participantBounds extent - offset
+]
+
+{ #category : 'private - geometry' }
+CPAtelierSetParticipantOrientation >> rotateProcessPoint: aPoint within: currentBodyExtent [
+	"Horizontal -> vertical is a clockwise quarter-turn, which carries the left Pool header to the top. The reverse transition is the exact inverse."
+	^ isHorizontal
+		ifTrue: [ aPoint y @ (currentBodyExtent x - aPoint x) ]
+		ifFalse: [ (currentBodyExtent y - aPoint y) @ aPoint x ]
+]
+
+{ #category : 'private - geometry' }
+CPAtelierSetParticipantOrientation >> rotateStructuralBounds: aRectangle within: currentBodyExtent [
+	"Pool/Lane structure really rotates, so width and height exchange."
+	^ isHorizontal
+		ifTrue: [
+			aRectangle top @ (currentBodyExtent x - aRectangle right)
+				extent: aRectangle height @ aRectangle width ]
+		ifFalse: [
+			(currentBodyExtent y - aRectangle bottom) @ aRectangle left
+				extent: aRectangle height @ aRectangle width ]
+]
+
+{ #category : 'private - geometry' }
+CPAtelierSetParticipantOrientation >> rotateUprightBounds: aRectangle within: currentBodyExtent [
+	"A BPMN node follows the Pool rotation by its centre but remains upright, so its own extent does not rotate."
+	| proposedCenter |
+	proposedCenter := self rotateProcessPoint: aRectangle center within: currentBodyExtent.
+	^ (proposedCenter - (aRectangle extent / 2)) extent: aRectangle extent
+]
+
+{ #category : 'private - geometry' }
+CPAtelierSetParticipantOrientation >> rotatedParticipantBoundsFrom: aRectangle [
+	| proposedExtent |
+	proposedExtent := aRectangle height @ aRectangle width.
+	^ (aRectangle center - (proposedExtent / 2)) extent: proposedExtent
+]
+
+{ #category : 'private - geometry' }
+CPAtelierSetParticipantOrientation >> rotateCollaborationPoint: aPoint around: aCenter [
+	| relative rotated |
+	relative := aPoint - aCenter.
+	rotated := isHorizontal
+		ifTrue: [ relative y @ relative x negated ]
+		ifFalse: [ relative y negated @ relative x ].
+	^ aCenter + rotated
+]
+
+{ #category : 'private - assessing' }
+CPAtelierSetParticipantOrientation >> proposedCollaborationWaypointsIn: context participant: participant around: participantCenter [
+	| proposed |
+	proposed := IdentityDictionary new.
+	context elements do: [ :anElement |
+		anElement isEdge ifTrue: [
+			| messageFlow source target waypoints rotated changed |
+			messageFlow := context diagramContext modelElementOf: anElement.
+			(messageFlow notNil and: [ context messageFlows identityIncludes: messageFlow ]) ifTrue: [
+				source := self stagedSourceOf: messageFlow in: context.
+				target := self stagedTargetOf: messageFlow in: context.
+				waypoints := context diagramContext waypointsOf: anElement.
+				waypoints ifNotEmpty: [
+					rotated := waypoints asOrderedCollection copy.
+					changed := false.
+					(self endpoint: source isRepresentedBy: participant in: context) ifTrue: [
+						rotated at: 1 put: (self rotateCollaborationPoint: rotated first around: participantCenter).
+						changed := true ].
+					(self endpoint: target isRepresentedBy: participant in: context) ifTrue: [
+						rotated at: rotated size put: (self rotateCollaborationPoint: rotated last around: participantCenter).
+						changed := true ].
+					changed ifTrue: [ proposed at: anElement put: rotated ] ] ] ] ].
+	^ proposed
 ]
 
 { #category : 'private' }
