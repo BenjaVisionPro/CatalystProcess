@@ -2383,6 +2383,30 @@ CPProcessVisualElementExamples >> poolPaletteDropOnHostedProcessCreatesAndRender
 	^ processVisual
 ]
 { #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> poolPaletteSecondLaneGrowthRefreshesVisibleParticipant [
+	<gtExample>
+	| fixture processVisual collaborationVisual participant participantShape firstAssessment secondAssessment stagedBounds participantElement |
+	fixture := self collaborationVisualFixture.
+	processVisual := fixture at: 9.
+	collaborationVisual := fixture at: 10.
+	participant := fixture at: 4.
+	participantShape := fixture at: 7.
+
+	firstAssessment := processVisual
+		createLaneFromPoolPaletteAtRootDiagramPoint: 300 @ 140.
+	self assert: firstAssessment isApplicable.
+	secondAssessment := processVisual
+		createLaneFromPoolPaletteAtRootDiagramPoint: 300 @ 200.
+	self assert: secondAssessment isApplicable.
+
+	stagedBounds := collaborationVisual stagedBoundsOf: participantShape.
+	self assert: stagedBounds height equals: 370.
+	participantElement := collaborationVisual participantElementsByParticipant at: participant.
+	self assert: participantElement extent equals: stagedBounds extent.
+	^ collaborationVisual
+]
+
+{ #category : 'examples - lanes' }
 CPProcessVisualElementExamples >> createLaneSetWithLaneAddsDistinctTopLevelLaneSet [
 	<gtExample>
 	| process diagram firstLaneSet firstLane memento diagramDescription editing secondLane operation assessment laneContext |

@@ -3047,7 +3047,7 @@ CPProcessVisualElement >> createLaneSetFromPoolPalette [
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
-		self refreshEditor.
+		self refreshAfterLaneStructureChange.
 		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
@@ -3241,7 +3241,7 @@ CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoin
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
-		self refreshEditor.
+		self refreshAfterLaneStructureChange.
 		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
@@ -4923,7 +4923,7 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent intoChildOfLane: aPare
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
-		self refreshEditor.
+		self refreshAfterLaneStructureChange.
 		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
@@ -4981,7 +4981,7 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane 
 	operation ifNil: [ ^ nil ].
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
-		self refreshEditor.
+		self refreshAfterLaneStructureChange.
 		(rootVisual diagramElementForModelElementInTree: lane) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		rootVisual updateSelectionAppearanceRecursively.
@@ -4992,6 +4992,13 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane 
 
 
 
+
+{ #category : 'private - updating' }
+CPProcessVisualElement >> refreshAfterLaneStructureChange [
+	collaborationVisual
+		ifNil: [ self refreshEditor ]
+		ifNotNil: [ collaborationVisual refresh ]
+]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> activeEditableLabel [
