@@ -2456,7 +2456,7 @@ CPProcessVisualElementExamples >> poolPaletteDropOrdersLaneByDropEdge [
 	lanes := laneContext stagedLanesInLaneSet: laneSet.
 	self assert: lanes second == beforeAssessment lane.
 	self assert: lanes third == second.
-	afterAssessment := visual createLaneFromPoolPaletteAtRootDiagramPoint: 250 @ 390.
+	afterAssessment := visual createLaneFromPoolPaletteAtRootDiagramPoint: 250 @ 530.
 	self assert: afterAssessment isApplicable.
 	lanes := laneContext stagedLanesInLaneSet: laneSet.
 	self assert: lanes last == afterAssessment lane.

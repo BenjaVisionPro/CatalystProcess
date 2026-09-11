@@ -3079,7 +3079,7 @@ CPProcessVisualElement >> poolBodyBoundsForFirstLane [
 		ifTrue: [
 			(self defaultParticipantExtent x
 				- CPParticipantShapeElement processContentOriginOffset x)
-				@ CPAtelierLaneLayout minimumLaneHeight ]
+				@ self defaultLaneExtent y ]
 		ifFalse: [
 			diagramBounds extent + ((inset x * 2) @ (inset y * 2)) ].
 	laneExtent := (requiredProcessExtent x + headerWidth) @ requiredProcessExtent y.
@@ -3154,6 +3154,7 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	assessment := operation assess.
 	^ assessment isApplicable
 ]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> dropPaletteEvent: anEvent [
 	| dragItem globalPoint rootPoint targetVisual |
@@ -3209,6 +3210,7 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 		selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
+
 { #category : 'private - creation' }
 CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoint [
 	| lane laneContext laneSets topLevelLanes localPoint targetLane targetShape targetBounds insertAfter bounds operation assessment |
@@ -3319,7 +3321,7 @@ CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagr
 { #category : 'private - creation' }
 CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
 	| inset horizontalMargin extent origin minimumHeight |
-	minimumHeight := CPAtelierLaneLayout minimumLaneHeight.
+	minimumHeight := self defaultLaneExtent y.
 	planeGeometry diagramExtent = (0 @ 0) ifTrue: [
 		extent := self defaultParticipantExtent x @ minimumHeight.
 		origin := (aRootPoint - (extent / 2)) max: 0 @ 0.
