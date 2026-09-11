@@ -28,7 +28,7 @@ CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMem
 
 { #category : 'assessing' }
 CPAtelierCreateLane >> assess [
-	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment |
+	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment flowElementsDescription stagedFlowElements proposedFlowNodeRefs flowNodeRefsDescription |
 	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
 	laneSetsDescription := processMemento magritteDescription
@@ -80,6 +80,18 @@ CPAtelierCreateLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
+	proposedFlowNodeRefs := nil.
+	createsLaneSet ifTrue: [
+		flowElementsDescription := processMemento magritteDescription
+			detect: [ :each | each handlesSelector: #flowElements ].
+		stagedFlowElements := processMemento readUsing: flowElementsDescription.
+		proposedFlowNodeRefs := stagedFlowElements reject: [ :each | each isSequenceFlow ].
+		flowNodeRefsDescription := lane magritteDescription
+			detect: [ :each | each handlesSelector: #flowNodeRefs ].
+		[ flowNodeRefsDescription validate: proposedFlowNodeRefs ]
+			on: MAValidationError
+			do: [ :anException | ^ self rejectedBecause: anException printString ] ].
+
 	participantResizeOperation := createsLaneSet
 		ifTrue: [ self participantResizeOperationForFirstLane ]
 		ifFalse: [ nil ].
@@ -99,7 +111,8 @@ CPAtelierCreateLane >> assess [
 		proposedDiagramElements: proposedElements.
 	assessment
 		participantResizeOperation: participantResizeOperation;
-		participantResizeAssessment: participantResizeAssessment.
+		participantResizeAssessment: participantResizeAssessment;
+		proposedFlowNodeRefs: proposedFlowNodeRefs.
 	^ assessment
 ]
 
@@ -116,6 +129,14 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 	lanesDescription := laneSetMemento magritteDescription
 		detect: [ :each | each handlesSelector: #lanes ].
 	laneSetMemento write: anAssessment proposedLanes using: lanesDescription.
+	anAssessment proposedFlowNodeRefs ifNotNil: [ :flowNodeRefs |
+		| laneMemento flowNodeRefsDescription |
+		laneMemento := laneSetMemento
+			childMementoFor: anAssessment lane
+			inRelation: lanesDescription.
+		flowNodeRefsDescription := laneMemento magritteDescription
+			detect: [ :each | each handlesSelector: #flowNodeRefs ].
+		laneMemento write: flowNodeRefs using: flowNodeRefsDescription ].
 
 	diagramContext := self stagedDiagramContext.
 	diagramContext writeElements: anAssessment proposedDiagramElements.

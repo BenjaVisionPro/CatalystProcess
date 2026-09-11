@@ -37,8 +37,6 @@ CPAtelierInsertLane >> assess [
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSet := laneContext laneSetContainingLane: targetLane.
 	laneSet ifNil: [ ^ self rejectedBecause: 'The target Lane is not in the staged Process Lane hierarchy.' ].
-	(laneContext stagedChildLaneSetOf: targetLane) ifNotNil: [
-		^ self rejectedBecause: 'Insertion into a Lane with a nested LaneSet is not yet supported.' ].
 	laneSetMemento := laneContext mementoForLaneSet: laneSet.
 	lanesDescription := laneSetMemento magritteDescription
 		detect: [ :each | each handlesSelector: #lanes ].
@@ -62,7 +60,8 @@ CPAtelierInsertLane >> assess [
 		minimumHeightForLane: targetLane
 		using: laneContext
 		diagramContext: diagramContext.
-	canSplit := targetBounds height >= (targetMinimumHeight + minimumLaneHeight).
+	canSplit := (laneContext stagedChildLaneSetOf: targetLane) isNil
+		and: [ targetBounds height >= (targetMinimumHeight + minimumLaneHeight) ].
 	proposedLaneBoundsByShape := IdentityDictionary new.
 	shiftedLanes := OrderedCollection new.
 	shiftAmount := 0.
@@ -102,15 +101,13 @@ CPAtelierInsertLane >> assess [
 						shiftedLanes add: (lanes at: index) ] ].
 			shiftAmount := newLaneHeight.
 			shiftedLanes do: [ :aLane |
-				| shapes laneShape currentBounds |
-				shapes := diagramContext shapesForModelElement: aLane.
-				shapes size = 1 ifFalse: [
-					^ self rejectedBecause: 'Every shifted Lane must have exactly one diagram shape.' ].
-				laneShape := shapes anyOne.
-				currentBounds := diagramContext boundsOf: laneShape.
-				proposedLaneBoundsByShape
-					at: laneShape
-					put: (currentBounds translateBy: 0 @ shiftAmount) ] ].
+				(self
+					addShiftedLaneSubtree: aLane
+					by: shiftAmount
+					using: laneContext
+					diagramContext: diagramContext
+					into: proposedLaneBoundsByShape) ifFalse: [
+						^ self rejectedBecause: 'Every shifted Lane must have exactly one diagram shape.' ] ] ].
 
 	shape := CPShape new modelElement: lane; bounds: newBounds; yourself.
 	proposedLanes := lanes asOrderedCollection copy.
@@ -127,11 +124,12 @@ CPAtelierInsertLane >> assess [
 
 	flowNodeBoundsByShape := IdentityDictionary new.
 	shiftedLanes do: [ :aLane |
-		(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
-			(diagramContext shapesForModelElement: aFlowNode) do: [ :aFlowNodeShape |
-				flowNodeBoundsByShape
-					at: aFlowNodeShape
-					put: ((diagramContext boundsOf: aFlowNodeShape) translateBy: 0 @ shiftAmount) ] ] ].
+		self
+			addShiftedFlowNodesForLaneSubtree: aLane
+			by: shiftAmount
+			using: laneContext
+			diagramContext: diagramContext
+			into: flowNodeBoundsByShape ].
 	flowNodeBoundsByShape
 		ifEmpty: [
 			moveOperation := nil.
@@ -226,6 +224,47 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 { #category : 'private - geometry' }
 CPAtelierInsertLane >> minimumLaneHeight [
 	^ CPAtelierLaneLayout minimumLaneHeight
+]
+
+{ #category : 'private - assessing' }
+CPAtelierInsertLane >> addShiftedLaneSubtree: aLane by: aHeight using: laneContext diagramContext: aDiagramContext into: proposedBounds [
+	| shapes laneShape currentBounds childLaneSet |
+	shapes := aDiagramContext shapesForModelElement: aLane.
+	shapes size = 1 ifFalse: [ ^ false ].
+	laneShape := shapes anyOne.
+	currentBounds := aDiagramContext boundsOf: laneShape.
+	proposedBounds
+		at: laneShape
+		put: (currentBounds translateBy: 0 @ aHeight).
+	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
+	childLaneSet ifNotNil: [
+		(laneContext stagedLanesInLaneSet: childLaneSet) do: [ :aChildLane |
+			(self
+				addShiftedLaneSubtree: aChildLane
+				by: aHeight
+				using: laneContext
+				diagramContext: aDiagramContext
+				into: proposedBounds) ifFalse: [ ^ false ] ] ].
+	^ true
+]
+
+{ #category : 'private - assessing' }
+CPAtelierInsertLane >> addShiftedFlowNodesForLaneSubtree: aLane by: aHeight using: laneContext diagramContext: aDiagramContext into: proposedBounds [
+	| childLaneSet |
+	(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
+		(aDiagramContext shapesForModelElement: aFlowNode) do: [ :aFlowNodeShape |
+			proposedBounds
+				at: aFlowNodeShape
+				put: ((aDiagramContext boundsOf: aFlowNodeShape) translateBy: 0 @ aHeight) ] ].
+	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
+	childLaneSet ifNotNil: [
+		(laneContext stagedLanesInLaneSet: childLaneSet) do: [ :aChildLane |
+			self
+				addShiftedFlowNodesForLaneSubtree: aChildLane
+				by: aHeight
+				using: laneContext
+				diagramContext: aDiagramContext
+				into: proposedBounds ] ]
 ]
 
 { #category : 'private' }

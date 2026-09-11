@@ -3079,7 +3079,7 @@ CPProcessVisualElement >> poolBodyBoundsForFirstLane [
 		ifTrue: [
 			(self defaultParticipantExtent x
 				- CPParticipantShapeElement processContentOriginOffset x)
-				@ self defaultParticipantExtent y ]
+				@ CPAtelierLaneLayout minimumLaneHeight ]
 		ifFalse: [
 			diagramBounds extent + ((inset x * 2) @ (inset y * 2)) ].
 	laneExtent := (requiredProcessExtent x + headerWidth) @ requiredProcessExtent y.
@@ -3224,16 +3224,12 @@ CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoin
 		topLevelLanes := laneContext stagedLanesInLaneSet: laneSets first.
 		topLevelLanes ifEmpty: [ ^ nil ].
 		localPoint := self localPointForRootDiagramPoint: aRootPoint.
-		targetLane := topLevelLanes
-			detect: [ :aLane |
-				| shapes |
-				shapes := diagramContext shapesForModelElement: aLane.
-				shapes size = 1 and: [
-					(diagramContext boundsOf: shapes anyOne) containsPoint: localPoint ] ]
-			ifNone: [ topLevelLanes last ].
+		targetLane := self stagedLaneAtDiagramPoint: localPoint.
+		targetLane ifNil: [ ^ nil ].
 		targetShape := (diagramContext shapesForModelElement: targetLane) anyOne.
 		targetBounds := diagramContext boundsOf: targetShape.
-		insertAfter := localPoint y >= targetBounds center y.
+		insertAfter := (targetBounds bottom - localPoint y)
+			< (localPoint y - targetBounds top).
 		operation := diagramEditing
 			insertLane: lane
 			relativeTo: targetLane
@@ -3322,13 +3318,16 @@ CPProcessVisualElement >> createParticipantPaletteItem: aParticipant atRootDiagr
 ]
 { #category : 'private - creation' }
 CPProcessVisualElement >> firstParticipantBoundsCenteredAt: aRootPoint [
-	| inset horizontalMargin extent origin |
+	| inset horizontalMargin extent origin minimumHeight |
+	minimumHeight := CPAtelierLaneLayout minimumLaneHeight.
 	planeGeometry diagramExtent = (0 @ 0) ifTrue: [
-		origin := (aRootPoint - (self defaultParticipantExtent / 2)) max: 0 @ 0.
-		^ origin extent: self defaultParticipantExtent ].
+		extent := self defaultParticipantExtent x @ minimumHeight.
+		origin := (aRootPoint - (extent / 2)) max: 0 @ 0.
+		^ origin extent: extent ].
 	inset := self hostedDiagramInset.
 	horizontalMargin := CPParticipantShapeElement processContentOriginOffset x + (inset x * 2).
 	extent := planeGeometry diagramExtent + (horizontalMargin @ (inset y * 2)).
+	extent := extent x @ (extent y max: minimumHeight).
 
 	"The Collaboration plane is a different BPMNPlane from the Process plane.
 	The first Pool therefore derives its size from the Process graph, but never

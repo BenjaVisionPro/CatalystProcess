@@ -11,7 +11,8 @@ Class {
 		'proposedLanes',
 		'proposedDiagramElements',
 		'participantResizeOperation',
-		'participantResizeAssessment'
+		'participantResizeAssessment',
+		'proposedFlowNodeRefs'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -84,4 +85,15 @@ CPAtelierCreateLaneAssessment >> participantResizeAssessment [
 { #category : 'accessing' }
 CPAtelierCreateLaneAssessment >> participantResizeAssessment: anAssessment [
 	participantResizeAssessment := anAssessment
+]
+
+
+{ #category : 'accessing' }
+CPAtelierCreateLaneAssessment >> proposedFlowNodeRefs [
+	^ proposedFlowNodeRefs
+]
+
+{ #category : 'accessing' }
+CPAtelierCreateLaneAssessment >> proposedFlowNodeRefs: aCollection [
+	proposedFlowNodeRefs := aCollection
 ]

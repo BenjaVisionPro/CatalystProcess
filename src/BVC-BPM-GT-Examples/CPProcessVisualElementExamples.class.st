@@ -1823,10 +1823,13 @@ CPProcessVisualElementExamples >> firstPoolWrapsExistingProcessDiagramWithoutCha
 	visual := self visualElementForFixture: fixture.
 	expected := visual firstParticipantBoundsCenteredAt: 500 @ 300.
 
-	self assert: expected extent equals:
-		visual diagramExtent
-			+ ((CPParticipantShapeElement processContentOriginOffset x + (visual hostedDiagramInset x * 2))
-				@ (visual hostedDiagramInset y * 2)).
+	self assert: expected extent x equals:
+		visual diagramExtent x
+			+ CPParticipantShapeElement processContentOriginOffset x
+			+ (visual hostedDiagramInset x * 2).
+	self assert: expected extent y equals:
+		((visual diagramExtent y + (visual hostedDiagramInset y * 2))
+			max: CPAtelierLaneLayout minimumLaneHeight).
 	self assert: expected origin equals: 0 @ 0.
 	self assert: visual diagramBounds origin ~= expected origin.
 	^ expected
@@ -2405,6 +2408,56 @@ CPProcessVisualElementExamples >> poolPaletteSecondLaneGrowthRefreshesVisiblePar
 	collaborationVisual forceLayout.
 	self assert: participantElement extent equals: stagedBounds extent.
 	^ collaborationVisual
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> firstLaneAdoptsExistingProcessFlowNodes [
+	<gtExample>
+	| fixture process memento processVisual assessment lane laneContext expectedNodes |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture at: 2.
+	processVisual := fixture at: 9.
+	assessment := processVisual
+		createLaneFromPoolPaletteAtRootDiagramPoint: 300 @ 140.
+	self assert: assessment isApplicable.
+	lane := assessment lane.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	expectedNodes := process flowElements reject: [ :each | each isSequenceFlow ].
+	self assert: (laneContext stagedFlowNodeRefsOf: lane) size equals: expectedNodes size.
+	expectedNodes do: [ :each |
+		self assert: ((laneContext stagedFlowNodeRefsOf: lane) identityIncludes: each) ].
+	^ assessment
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> poolPaletteDropOrdersLaneByDropEdge [
+	<gtExample>
+	| process diagram laneSet first second firstShape secondShape memento visual beforeAssessment afterAssessment laneContext lanes |
+	process := CPProcess new label: 'Ordered lanes'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	first := CPLane new label: 'First'; yourself.
+	second := CPLane new label: 'Second'; yourself.
+	laneSet addLane: first; addLane: second.
+	process addLaneSet: laneSet.
+	firstShape := CPShape new modelElement: first; bounds: (0 @ 0 extent: 500 @ 200); yourself.
+	secondShape := CPShape new modelElement: second; bounds: (0 @ 200 extent: 500 @ 200); yourself.
+	diagram addElement: firstShape; addElement: secondShape.
+	memento := CFMaMemento model: process.
+	visual := CPProcessVisualElement new memento: memento; yourself.
+	beforeAssessment := visual createLaneFromPoolPaletteAtRootDiagramPoint: 250 @ 210.
+	self assert: beforeAssessment isApplicable.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	lanes := laneContext stagedLanesInLaneSet: laneSet.
+	self assert: lanes second == beforeAssessment lane.
+	self assert: lanes third == second.
+	afterAssessment := visual createLaneFromPoolPaletteAtRootDiagramPoint: 250 @ 390.
+	self assert: afterAssessment isApplicable.
+	lanes := laneContext stagedLanesInLaneSet: laneSet.
+	self assert: lanes last == afterAssessment lane.
+	^ visual
 ]
 
 { #category : 'examples - lanes' }
