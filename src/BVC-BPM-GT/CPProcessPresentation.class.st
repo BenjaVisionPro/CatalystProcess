@@ -550,7 +550,7 @@ CPProcessPresentation >> isParticipantModelElement: aModelElement [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal assessment: assessment commit: commitBlock [
-	| participantElement processVisual uprightElements labelTranslations rootTargetRotation uprightTargetRotation tracks space motion |
+	| participantElement processVisual uprightElements externalLabelOffsets rootTargetRotation uprightTargetRotation tracks space motion |
 	collaborationDiagramElement ifNil: [
 		^ self
 			commitParticipantOrientationFor: aParticipant
@@ -580,19 +580,17 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 	processVisual := participantElement processVisual.
 	processVisual ifNotNil: [
 		uprightElements := processVisual orientationUprightElements.
-		labelTranslations := processVisual
-			orientationLabelTranslationsForAssessment: assessment
-			horizontal: isHorizontal.
+		externalLabelOffsets := processVisual orientationExternalLabelOffsets.
 		uprightElements do: [ :anElement |
 			tracks add: ((CFMotionRotationTrack
 				on: anElement
 				from: 0
 				to: uprightTargetRotation) adoptAtDestination).
-			(labelTranslations at: anElement ifAbsent: [ nil ]) ifNotNil: [ :aTranslation |
-				tracks add: ((CFMotionTranslationTrack
+			(externalLabelOffsets at: anElement ifAbsent: [ nil ]) ifNotNil: [ :anOffset |
+				tracks add: (CPProcessOrientationExternalLabelMotionBehaviour
 					on: anElement
-					from: 0 @ 0
-					to: aTranslation) adoptAtDestination) ] ] ].
+					offset: anOffset
+					parentRotation: rootTargetRotation) ] ] ].
 
 	motion := CFMotion
 		coordinator: space motionCoordinator

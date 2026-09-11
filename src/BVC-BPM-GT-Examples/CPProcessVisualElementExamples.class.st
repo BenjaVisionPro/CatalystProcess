@@ -4041,51 +4041,33 @@ CPProcessVisualElementExamples >> participantOrientationDescriptionUsesGroupedIc
 
 
 { #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationLabelPointTransformMatchesAtelierQuarterTurn [
+CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceClockwise [
 	<gtExample>
-	| visual extent point |
-	visual := CPProcessVisualElement new.
-	extent := 500 @ 300.
-	point := 120 @ 80.
+	| behaviour offset finalLocalOffset |
+	offset := 0 @ 34.
+	behaviour := CPProcessOrientationExternalLabelMotionBehaviour
+		on: BlElement new
+		offset: offset
+		parentRotation: 90.
+	finalLocalOffset := offset + (behaviour translationAtProgress: 1.0).
 
-	self
-		assert: (visual orientationRotatePoint: point within: extent horizontal: false)
-		equals: 220 @ 120.
-	self
-		assert: (visual orientationRotatePoint: point within: extent horizontal: true)
-		equals: 80 @ 380.
-	^ visual
+	self assert: (finalLocalOffset x closeTo: 34.0).
+	self assert: (finalLocalOffset y closeTo: 0.0).
+	^ behaviour
 ]
 
 { #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationLabelOffsetRemainsInScreenSpace [
+CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceCounterClockwise [
 	<gtExample>
-	| visual currentOffset desiredOffset rotatedOffset correction |
-	visual := CPProcessVisualElement new.
-	currentOffset := 0 @ 34.
-	desiredOffset := 0 @ 34.
+	| behaviour offset finalLocalOffset |
+	offset := 0 @ 34.
+	behaviour := CPProcessOrientationExternalLabelMotionBehaviour
+		on: BlElement new
+		offset: offset
+		parentRotation: -90.
+	finalLocalOffset := offset + (behaviour translationAtProgress: 1.0).
 
-	rotatedOffset := visual orientationRotateVector: currentOffset horizontal: false.
-	correction := desiredOffset - rotatedOffset.
-	self assert: rotatedOffset equals: -34 @ 0.
-	self
-		assert: ((visual orientationRotateVector: currentOffset horizontal: false) + correction)
-		equals: desiredOffset.
-	^ visual
-]
-
-{ #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationLabelCorrectionUsesInverseQuarterTurn [
-	<gtExample>
-	| visual correction |
-	visual := CPProcessVisualElement new.
-	correction := 40 @ 25.
-
-	self
-		assert: (visual orientationInverseRotateVector: correction horizontal: false)
-		equals: 25 @ -40.
-	self
-		assert: (visual orientationInverseRotateVector: correction horizontal: true)
-		equals: -25 @ 40.
-	^ visual
+	self assert: (finalLocalOffset x closeTo: -34.0).
+	self assert: (finalLocalOffset y closeTo: 0.0).
+	^ behaviour
 ]
