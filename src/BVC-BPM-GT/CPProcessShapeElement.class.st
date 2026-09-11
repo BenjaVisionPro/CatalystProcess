@@ -460,7 +460,6 @@ CPProcessShapeElement >> installResizeHandleMinimumExtent: aMinimumExtent staged
 				self bottomRightBoundsFrom: originalBounds delta: delta minimumExtent: aMinimumExtent ]
 			resize: aResizeBlock
 			geometryChanged: aGeometryChangedBlock }.
-	resizeHandles do: [ :aHandle | self addUprightChild: aHandle ].
 	^ resizeHandles
 ]
 
@@ -556,9 +555,11 @@ CPProcessShapeElement >> resizeHandles [
 { #category : 'resizing' }
 CPProcessShapeElement >> bringResizeHandlesToFront [
 	self resizeHandles do: [ :aHandle |
-		aHandle parent == uprightHost ifTrue: [
+		| parent |
+		parent := aHandle parent.
+		parent ifNotNil: [
 			aHandle removeFromParent.
-			uprightHost addChild: aHandle ] ]
+			parent addChild: aHandle ] ]
 ]
 
 

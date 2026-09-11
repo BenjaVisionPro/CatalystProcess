@@ -2071,9 +2071,10 @@ CPProcessVisualElement >> resizeShape: aShape toBounds: aRectangle [
 
 { #category : 'private - resizing' }
 CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelElement shapeElement: aShapeElement [
+	| handles |
 	diagramEditing allowsEditing ifFalse: [ ^ self ].
 	aModelElement isActivity ifFalse: [ ^ self ].
-	aShapeElement
+	handles := aShapeElement
 		installResizeHandleMinimumExtent: (self extentForModelElement: aModelElement)
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		resize: [ :proposedBounds | self resizeShape: aShape toBounds: proposedBounds ]
@@ -2083,7 +2084,8 @@ CPProcessVisualElement >> installResizeHandleFor: aShape modelElement: aModelEle
 				proposedBounds: proposedBounds.
 			self updateIncidentEdgeGeometryFor: aModelElement.
 			self updateIncidentEdgeLabelsFor: aModelElement.
-			self updateIncidentReconnectHandlesFor: aModelElement ]
+			self updateIncidentReconnectHandlesFor: aModelElement ].
+	handles do: [ :aHandle | aShapeElement addUprightChild: aHandle ]
 ]
 
 { #category : 'private - resizing' }
