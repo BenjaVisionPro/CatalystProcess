@@ -5502,7 +5502,3 @@ CPProcessVisualElement >> orientationPoint: aPoint within: currentBodyExtent hor
 		within: currentBodyExtent
 		toHorizontal: isHorizontal
 ]
-
-
-
-

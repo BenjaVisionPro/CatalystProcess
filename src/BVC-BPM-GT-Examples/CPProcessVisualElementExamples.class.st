@@ -4098,12 +4098,6 @@ CPProcessVisualElementExamples >> boundaryEventOrbitalRootRemainsChildOfActivity
 	^ boundaryElement
 ]
 
-
-
-
-
-
-
 { #category : 'examples - lanes - orientation' }
 CPProcessVisualElementExamples >> boundaryEventOrbitalLabelMovesWithAttachmentButRemainsIndependentOfUprightBody [
 	<gtExample>
