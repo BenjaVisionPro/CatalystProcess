@@ -5175,13 +5175,6 @@ CPProcessVisualElement >> positionReconnectHandle: aHandle fromPreviewLine: aPre
 ]
 
 
-{ #category : 'private - lanes' }
-CPProcessVisualElement >> laneElementOwningBodyHost: aHost [
-	laneElementsByLane valuesDo: [ :aLaneElement |
-		aLaneElement bodyHost == aHost ifTrue: [ ^ aLaneElement ] ].
-	^ nil
-]
-
 
 { #category : 'private - containment' }
 CPProcessVisualElement >> diagramBoundsForElement: aNodeElement [
