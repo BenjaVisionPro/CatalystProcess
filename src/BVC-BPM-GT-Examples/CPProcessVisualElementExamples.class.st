@@ -4098,43 +4098,33 @@ CPProcessVisualElementExamples >> boundaryEventOrbitalRootRemainsChildOfActivity
 	^ boundaryElement
 ]
 
-{ #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceClockwise [
-	<gtExample>
-	| behaviour offset correction rotatedOffset |
-	offset := 0 @ 34.
-	behaviour := CPProcessOrientationExternalLabelMotionBehaviour
-		on: BlElement new
-		offset: offset
-		parentRotation: 90.
-	rotatedOffset := behaviour rotatedOffsetAtProgress: 1.0.
-	correction := behaviour translationAtProgress: 1.0.
 
-	self assert: ((rotatedOffset + correction) x closeTo: offset x).
-	self assert: ((rotatedOffset + correction) y closeTo: offset y).
-	^ behaviour
-]
+
+
+
+
 
 { #category : 'examples - lanes - orientation' }
-CPProcessVisualElementExamples >> orientationExternalLabelOffsetStaysInScreenSpaceCounterClockwise [
+CPProcessVisualElementExamples >> boundaryEventOrbitalLabelMovesWithAttachmentButRemainsIndependentOfUprightBody [
 	<gtExample>
-	| behaviour offset correction rotatedOffset |
-	offset := 0 @ 34.
-	behaviour := CPProcessOrientationExternalLabelMotionBehaviour
-		on: BlElement new
-		offset: offset
-		parentRotation: -90.
-	rotatedOffset := behaviour rotatedOffsetAtProgress: 1.0.
-	correction := behaviour translationAtProgress: 1.0.
+	| boundaryShape boundary boundaryElement label |
+	boundaryShape := CPShape new.
+	boundary := CPBoundaryEvent new.
+	boundaryElement := CPProcessShapeElement new
+		shape: boundaryShape
+		modelElement: boundary
+		bounds: (100 @ 100 extent: 32 @ 32)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	label := BlElement new extent: 180 @ 44.
+	boundaryElement hostOrbitalExternalLabel: label.
 
-	self assert: ((rotatedOffset + correction) x closeTo: offset x).
-	self assert: ((rotatedOffset + correction) y closeTo: offset y).
-	^ behaviour
+	self assert: label parent == boundaryElement.
+	self assert: label parent ~~ boundaryElement uprightHost.
+	self assert: boundaryElement externalLabelHost == label.
+	^ boundaryElement
 ]
-
-
-
-
 
 { #category : 'examples - orientation' }
 CPProcessVisualElementExamples >> connectionLabelAnchorMatchesAuthoritativePlacementBox [

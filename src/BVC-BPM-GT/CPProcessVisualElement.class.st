@@ -1613,7 +1613,7 @@ CPProcessVisualElement >> addBoundaryEventHoverLabelFor: aBoundaryEvent bounds: 
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: (self
-			boundaryEventHoverLabelOriginForEventBounds: eventBounds
+			boundaryEventHoverLabelLocalOriginForEventBounds: eventBounds
 			activityBounds: activityBounds
 			labelExtent: labelExtent);
 		yourself.
@@ -1629,8 +1629,7 @@ CPProcessVisualElement >> addBoundaryEventHoverLabelFor: aBoundaryEvent bounds: 
 	labelHost
 		addChild: label;
 		preventMeAndChildrenMouseEvents.
-	aShapeElement externalLabelHost: labelHost.
-	self addDiagramChild: labelHost.
+	aShapeElement hostOrbitalExternalLabel: labelHost.
 	aShapeElement
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
@@ -1657,6 +1656,14 @@ CPProcessVisualElement >> boundaryEventHoverLabelOriginForEventBounds: eventBoun
 	minimumDistance = distanceLeft ifTrue: [
 		^ (activityBounds left - gap - labelExtent x) @ (center y - (labelExtent y / 2)) ].
 	^ (activityBounds right + gap) @ (center y - (labelExtent y / 2))
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> boundaryEventHoverLabelLocalOriginForEventBounds: eventBounds activityBounds: activityBounds labelExtent: labelExtent [
+	^ (self
+		boundaryEventHoverLabelOriginForEventBounds: eventBounds
+		activityBounds: activityBounds
+		labelExtent: labelExtent) - eventBounds origin
 ]
 
 { #category : 'private - labels' }
@@ -1813,11 +1820,6 @@ CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
 			anElement parent == host ifTrue: [
 				anElement removeFromParent.
 				host addChild: anElement ] ] ].
-	shapeElementsByModelElement valuesDo: [ :aShapeElement |
-		| label |
-		label := aShapeElement externalLabelHost.
-		(label notNil and: [ label parent ~~ aShapeElement uprightHost ]) ifTrue: [
-			aShapeElement bringExternalLabelToFrontIn: self diagramPresentationParent ] ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
 		anEdgeVisual bringLabelToFrontIn: self diagramPresentationParent ]
 ]
@@ -2109,7 +2111,7 @@ CPProcessVisualElement >> updateAttachedBoundaryEventGeometryForActivity: anActi
 					toActivityBounds: proposedActivityBounds.
 				boundaryElement externalLabelHost ifNotNil: [ :aLabel |
 					aLabel relocate: (self
-						boundaryEventHoverLabelOriginForEventBounds: proposedBoundaryBounds
+						boundaryEventHoverLabelLocalOriginForEventBounds: proposedBoundaryBounds
 						activityBounds: proposedActivityBounds
 						labelExtent: aLabel extent) ].
 				boundaryElement relocate: proposedBoundaryBounds origin - proposedActivityBounds origin.
@@ -2340,7 +2342,7 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 			aShapeElement relocate: snappedBounds origin - (self stagedBoundsOf: attachedActivityShape) origin.
 			dragStartLabelPosition ifNotNil: [
 				aShapeElement externalLabelHost relocate: (self
-					boundaryEventHoverLabelOriginForEventBounds: snappedBounds
+					boundaryEventHoverLabelLocalOriginForEventBounds: snappedBounds
 					activityBounds: targetActivityBounds
 					labelExtent: aShapeElement externalLabelHost extent) ].
 			self updateIncidentEdgeLabelsFor: boundaryEvent.
@@ -5390,8 +5392,9 @@ CPProcessVisualElement >> orientationUprightElements [
 	"Answer the presentation layers that inherit the Pool quarter-turn but must
 	remain upright on screen. FlowNode orbital elements themselves are excluded:
 	their centres and attachment geometry rotate with the Pool while their
-	upright hosts counter-rotate. Root-level transient labels and edge labels are
-	still independent presentation objects."
+	upright hosts counter-rotate. Boundary Event orbital labels rotate with their
+	attachment position but counter-rotate as visuals. Edge labels remain
+	independent path-relative presentation objects."
 	| elements |
 	elements := OrderedCollection new.
 	shapeElementsByShape valuesDo: [ :aShapeElement |
@@ -5503,21 +5506,3 @@ CPProcessVisualElement >> orientationPoint: aPoint within: currentBodyExtent hor
 
 
 
-{ #category : 'accessing - orientation' }
-CPProcessVisualElement >> orientationExternalLabelOffsets [
-	"Answer each external FlowNode label's current centre offset from its
-	upright owner. During a Pool quarter-turn that offset is held in screen
-	coordinates by CPProcessOrientationExternalLabelMotionBehaviour. Connection
-	labels are handled separately from their authoritative rotated edge path,
-	because upright endpoint docking can slightly change their final placement."
-	| offsets |
-	offsets := IdentityDictionary new.
-	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
-		aShapeElement externalLabelHost ifNotNil: [ :aLabel |
-			aLabel parent == aShapeElement uprightHost ifFalse: [
-				(self stagedBoundsOf: aShape) ifNotNil: [ :bounds |
-					offsets
-						at: aLabel
-						put: (aLabel position + (aLabel extent / 2.0)) - bounds center ] ] ] ].
-	^ offsets
-]

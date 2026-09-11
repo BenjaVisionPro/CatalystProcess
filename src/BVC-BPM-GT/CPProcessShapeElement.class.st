@@ -904,18 +904,6 @@ CPProcessShapeElement >> externalLabelHost [
 	^ externalLabelHost
 ]
 
-{ #category : 'external label' }
-CPProcessShapeElement >> externalLabelHost: anElement [
-	externalLabelHost := anElement
-]
-
-{ #category : 'external label' }
-CPProcessShapeElement >> bringExternalLabelToFrontIn: aParent [
-	externalLabelHost ifNil: [ ^ self ].
-	externalLabelHost removeFromParent.
-	aParent addChild: externalLabelHost
-]
-
 { #category : 'accessing - orientation' }
 CPProcessShapeElement >> uprightHost [
 	^ uprightHost
@@ -930,6 +918,12 @@ CPProcessShapeElement >> addUprightChild: anElement [
 CPProcessShapeElement >> hostExternalLabel: anElement [
 	externalLabelHost := anElement.
 	self addUprightChild: anElement
+]
+
+{ #category : 'external label' }
+CPProcessShapeElement >> hostOrbitalExternalLabel: anElement [
+	externalLabelHost := anElement.
+	self addChild: anElement
 ]
 
 { #category : 'containment' }
