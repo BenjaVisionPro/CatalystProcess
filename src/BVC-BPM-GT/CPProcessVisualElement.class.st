@@ -5443,7 +5443,11 @@ CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: an
 					placementAtSegmentIndex: segmentIndex
 					segmentPosition: segmentPosition
 					offset: offset) first.
-				sourceCenter := aLabel position + (aLabel extent / 2.0).
+				"CPProcessEdgeVisual>>positionLabelCenteredAt: defines the
+				connection-label anchor as 90@22 from the host origin. The host
+				is vertically fit-content, so its live extent is not the 180@44
+				placement box and must not be used to recover that anchor."
+				sourceCenter := aLabel position + (90 @ 22).
 				rigidFinalCenter := self
 					orientationPoint: sourceCenter
 					within: currentBodyExtent

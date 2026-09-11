@@ -4109,3 +4109,17 @@ CPProcessVisualElementExamples >> orientationConnectionLabelInversePointMatchesV
 	self assert: recoveredPoint equals: sourcePoint.
 	^ visual
 ]
+
+{ #category : 'examples - orientation' }
+CPProcessVisualElementExamples >> connectionLabelAnchorMatchesAuthoritativePlacementBox [
+	<gtExample>
+	| edgeVisual labelHost anchor |
+	edgeVisual := CPProcessEdgeVisual new edge: CPEdge new.
+	labelHost := BlElement new extent: 180 @ 14.
+	edgeVisual labelHost: labelHost.
+	anchor := 300 @ 200.
+	edgeVisual positionLabelCenteredAt: anchor.
+	self assert: labelHost position equals: 210 @ 178.
+	self assert: labelHost position + (90 @ 22) equals: anchor.
+	^ edgeVisual
+]
