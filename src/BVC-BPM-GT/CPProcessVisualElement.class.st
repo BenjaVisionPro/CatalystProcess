@@ -5464,6 +5464,31 @@ CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: an
 
 
 { #category : 'private - orientation' }
+CPProcessVisualElement >> orientationContentHandoffCorrectionForAssessment: anAssessment horizontal: isHorizontal [
+	"BPMN-DI point rotation uses the geometric far edge at the full body
+	extent. The live Bloc quarter-turn carries pixel-aligned presentation
+	origins through the last drawable coordinate, one less on each axis.
+	Pool/Lane structural rectangles do not use this path and already hand off
+	exactly. Answer only the residual needed by non-structural Process content
+	so the Motion endpoint coincides with the authoritative DI endpoint."
+	| geometricExtent presentationExtent geometricEndpoint presentationEndpoint |
+	geometricExtent := self
+		orientationCurrentBodyExtentForAssessment: anAssessment
+		horizontal: isHorizontal.
+	presentationExtent := geometricExtent - (1 @ 1).
+	geometricEndpoint := self
+		orientationPoint: 0 @ 0
+		within: geometricExtent
+		horizontal: isHorizontal.
+	presentationEndpoint := self
+		orientationPoint: 0 @ 0
+		within: presentationExtent
+		horizontal: isHorizontal.
+	^ geometricEndpoint - presentationEndpoint
+]
+
+
+{ #category : 'private - orientation' }
 CPProcessVisualElement >> orientationCurrentBodyExtentForAssessment: anAssessment horizontal: isHorizontal [
 	| offset |
 	offset := isHorizontal

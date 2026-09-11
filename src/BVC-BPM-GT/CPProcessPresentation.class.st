@@ -550,7 +550,7 @@ CPProcessPresentation >> isParticipantModelElement: aModelElement [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal assessment: assessment commit: commitBlock [
-	| participantElement processVisual uprightElements externalLabelOffsets connectionLabelCorrections rootTargetRotation uprightTargetRotation tracks space motion |
+	| participantElement processVisual uprightElements externalLabelOffsets connectionLabelCorrections contentHandoffCorrection rootTargetRotation uprightTargetRotation tracks space motion |
 	collaborationDiagramElement ifNil: [
 		^ self
 			commitParticipantOrientationFor: aParticipant
@@ -583,20 +583,35 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 		connectionLabelCorrections := processVisual
 			orientationConnectionLabelCorrectionsForAssessment: assessment
 			horizontal: isHorizontal.
+		contentHandoffCorrection := processVisual
+			orientationContentHandoffCorrectionForAssessment: assessment
+			horizontal: isHorizontal.
 		uprightElements do: [ :anElement |
+			| externalOffset connectionCorrection |
 			tracks add: ((CFMotionRotationTrack
 				on: anElement
 				from: 0
 				to: uprightTargetRotation) adoptAtDestination).
-			(externalLabelOffsets at: anElement ifAbsent: [ nil ]) ifNotNil: [ :anOffset |
-				tracks add: (CPProcessOrientationExternalLabelMotionBehaviour
-					on: anElement
-					offset: anOffset
-					parentRotation: rootTargetRotation) ].
-			(connectionLabelCorrections at: anElement ifAbsent: [ nil ]) ifNotNil: [ :aCorrection |
-				tracks add: (CPProcessOrientationConnectionLabelMotionBehaviour
-					on: anElement
-					finalCorrection: aCorrection) ] ] ].
+			externalOffset := externalLabelOffsets at: anElement ifAbsent: [ nil ].
+			connectionCorrection := connectionLabelCorrections at: anElement ifAbsent: [ nil ].
+			externalOffset
+				ifNotNil: [
+					tracks add: (CPProcessOrientationExternalLabelMotionBehaviour
+						on: anElement
+						offset: externalOffset
+						parentRotation: rootTargetRotation
+						handoffCorrection: contentHandoffCorrection) ]
+				ifNil: [
+					connectionCorrection
+						ifNotNil: [
+							tracks add: (CPProcessOrientationConnectionLabelMotionBehaviour
+								on: anElement
+								finalCorrection: connectionCorrection + contentHandoffCorrection) ]
+						ifNil: [
+							tracks add: ((CFMotionTranslationTrack
+								on: anElement
+								from: 0 @ 0
+								to: contentHandoffCorrection) adoptAtDestination) ] ] ] ].
 
 	motion := CFMotion
 		coordinator: space motionCoordinator

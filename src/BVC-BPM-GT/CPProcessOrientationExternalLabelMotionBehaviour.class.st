@@ -13,6 +13,7 @@ Class {
 		'label',
 		'offset',
 		'parentRotation',
+		'handoffCorrection',
 		'presentation'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -22,10 +23,20 @@ Class {
 
 { #category : 'instance creation' }
 CPProcessOrientationExternalLabelMotionBehaviour class >> on: aLabel offset: anOffset parentRotation: aRotation [
+	^ self
+		on: aLabel
+		offset: anOffset
+		parentRotation: aRotation
+		handoffCorrection: 0 @ 0
+]
+
+{ #category : 'instance creation' }
+CPProcessOrientationExternalLabelMotionBehaviour class >> on: aLabel offset: anOffset parentRotation: aRotation handoffCorrection: aCorrection [
 	^ self new
 		label: aLabel;
 		offset: anOffset;
 		parentRotation: aRotation;
+		handoffCorrection: aCorrection;
 		yourself
 ]
 
@@ -56,6 +67,12 @@ CPProcessOrientationExternalLabelMotionBehaviour >> captureOriginIn: aCoordinato
 	presentation := CFMotionTransformPresentation
 		on: label
 		using: (aCoordinator transformChannelFor: label)
+]
+
+
+{ #category : 'accessing' }
+CPProcessOrientationExternalLabelMotionBehaviour >> handoffCorrection: aPoint [
+	handoffCorrection := aPoint
 ]
 
 { #category : 'testing' }
@@ -119,6 +136,7 @@ CPProcessOrientationExternalLabelMotionBehaviour >> reversed [
 		on: label
 		offset: offset
 		parentRotation: parentRotation negated
+		handoffCorrection: handoffCorrection negated
 ]
 
 { #category : 'private - geometry' }
@@ -129,5 +147,7 @@ CPProcessOrientationExternalLabelMotionBehaviour >> translationAtProgress: aProg
 	to be expressed as the desired screen-space owner offset minus the offset
 	already produced by the Pool rotation. Using the inverse-rotated local
 	offset here makes a below-label travel to the opposite side before handoff."
-	^ offset - (self rotatedOffsetAtProgress: aProgress)
+	^ offset
+		- (self rotatedOffsetAtProgress: aProgress)
+		+ (handoffCorrection * aProgress)
 ]
