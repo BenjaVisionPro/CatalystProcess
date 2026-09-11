@@ -161,3 +161,13 @@ CPReadOnlyProcessDiagramEditing >> insertLane: aLane relativeTo: aTargetLane aft
 	^ nil
 ]
 
+
+{ #category : 'participant orientation' }
+CPReadOnlyProcessDiagramEditing >> makeParticipantHorizontal: aShape [
+	^ nil
+]
+
+{ #category : 'participant orientation' }
+CPReadOnlyProcessDiagramEditing >> makeParticipantVertical: aShape [
+	^ nil
+]

@@ -646,7 +646,8 @@ CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes l
 			lane: aLane
 			shape: laneShape
 			borderColor: self shapeBorderColor
-			label: label.
+			label: label
+			horizontal: (self stagedIsHorizontalOf: laneShape).
 		presentationHostDiagramOrigins
 			at: element bodyHost
 			put: bounds origin + element bodyOriginOffset.
@@ -5374,4 +5375,16 @@ CPProcessVisualElement >> previewLaneSet: aLaneSet boundsByShape: proposedBounds
 				boundsByShape: proposedBoundsByShape
 				laneContext: laneContext
 				hostDiagramOrigin: bounds origin + element bodyOriginOffset ] ]
+]
+
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedIsHorizontalOf: aShape [
+	| shapeMemento description |
+	shapeMemento := diagramContext mementoFor: aShape.
+	shapeMemento ifNil: [ ^ aShape isHorizontal ].
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ aShape isHorizontal ].
+	^ shapeMemento readUsing: description
 ]

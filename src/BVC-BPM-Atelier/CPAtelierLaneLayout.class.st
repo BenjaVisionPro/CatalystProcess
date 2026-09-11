@@ -115,15 +115,40 @@ CPAtelierLaneLayout class >> minimumContentWidthForLane: aLane using: laneContex
 
 { #category : 'geometry - reflow' }
 CPAtelierLaneLayout class >> bodyBoundsForLaneBounds: laneBounds shape: laneShape [
+	^ self
+		bodyBoundsForLaneBounds: laneBounds
+		horizontal: laneShape isHorizontal
+]
+
+{ #category : 'geometry - reflow' }
+CPAtelierLaneLayout class >> bodyBoundsForLaneBounds: laneBounds horizontal: isHorizontal [
 	| offset |
-	offset := (CPPoolLaneOrientation forShape: laneShape) laneBodyOriginOffset.
+	offset := isHorizontal
+		ifTrue: [ CPHorizontalPoolLaneOrientation new laneBodyOriginOffset ]
+		ifFalse: [ CPVerticalPoolLaneOrientation new laneBodyOriginOffset ].
 	^ (laneBounds origin + offset)
 		extent: (laneBounds extent - offset)
 ]
 
 { #category : 'geometry - reflow' }
 CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinExtent: anExtent using: laneContext diagramContext: diagramContext into: proposedBounds [
-	| lanes currentBoundsByLane minX minY firstShape |
+	| lanes shapes |
+	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
+	lanes ifEmpty: [ ^ self ].
+	shapes := diagramContext shapesForModelElement: lanes first.
+	shapes size = 1 ifFalse: [ ^ self ].
+	^ self
+		reflowLaneSet: aLaneSet
+		withinExtent: anExtent
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: shapes anyOne isHorizontal
+		into: proposedBounds
+]
+
+{ #category : 'geometry - reflow' }
+CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinExtent: anExtent using: laneContext diagramContext: diagramContext horizontal: isHorizontal into: proposedBounds [
+	| lanes currentBoundsByLane minX minY |
 	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
 	lanes ifEmpty: [ ^ self ].
 	currentBoundsByLane := self
@@ -132,42 +157,43 @@ CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinExtent: anExtent usin
 	currentBoundsByLane ifNil: [ ^ self ].
 	minX := (currentBoundsByLane values collect: [ :each | each left ]) min.
 	minY := (currentBoundsByLane values collect: [ :each | each top ]) min.
-	firstShape := (diagramContext shapesForModelElement: lanes first) anyOne.
-	firstShape isHorizontal
-		ifTrue: [
-			self
-				reflowHorizontalLaneSet: aLaneSet
-				withinBounds: (minX @ minY extent: anExtent)
-				using: laneContext
-				diagramContext: diagramContext
-				into: proposedBounds ]
-		ifFalse: [
-			self
-				reflowVerticalLaneSet: aLaneSet
-				withinBounds: (minX @ minY extent: anExtent)
-				using: laneContext
-				diagramContext: diagramContext
-				into: proposedBounds ]
+	^ self
+		reflowLaneSet: aLaneSet
+		withinBounds: (minX @ minY extent: anExtent)
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: isHorizontal
+		into: proposedBounds
 ]
 
 { #category : 'geometry - reflow' }
 CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinBounds: parentBounds using: laneContext diagramContext: diagramContext into: proposedBounds [
-	| lanes shapes firstShape |
+	| lanes shapes |
 	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
 	lanes ifEmpty: [ ^ self ].
 	shapes := diagramContext shapesForModelElement: lanes first.
 	shapes size = 1 ifFalse: [ ^ self ].
-	firstShape := shapes anyOne.
-	firstShape isHorizontal
+	^ self
+		reflowLaneSet: aLaneSet
+		withinBounds: parentBounds
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: shapes anyOne isHorizontal
+		into: proposedBounds
+]
+
+{ #category : 'geometry - reflow' }
+CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinBounds: parentBounds using: laneContext diagramContext: diagramContext horizontal: isHorizontal into: proposedBounds [
+	isHorizontal
 		ifTrue: [
-			self
+			^ self
 				reflowHorizontalLaneSet: aLaneSet
 				withinBounds: parentBounds
 				using: laneContext
 				diagramContext: diagramContext
 				into: proposedBounds ]
 		ifFalse: [
-			self
+			^ self
 				reflowVerticalLaneSet: aLaneSet
 				withinBounds: parentBounds
 				using: laneContext
@@ -231,9 +257,10 @@ CPAtelierLaneLayout class >> reflowHorizontalLaneSet: aLaneSet withinBounds: par
 				reflowLaneSet: childLaneSet
 				withinBounds: (self
 					bodyBoundsForLaneBounds: laneBounds
-					shape: laneShape)
+					horizontal: true)
 				using: laneContext
 				diagramContext: diagramContext
+				horizontal: true
 				into: proposedBounds ].
 
 		cursorY := cursorY + laneHeight.
@@ -297,9 +324,10 @@ CPAtelierLaneLayout class >> reflowVerticalLaneSet: aLaneSet withinBounds: paren
 				reflowLaneSet: childLaneSet
 				withinBounds: (self
 					bodyBoundsForLaneBounds: laneBounds
-					shape: laneShape)
+					horizontal: false)
 				using: laneContext
 				diagramContext: diagramContext
+				horizontal: false
 				into: proposedBounds ].
 
 		cursorX := cursorX + laneWidth.

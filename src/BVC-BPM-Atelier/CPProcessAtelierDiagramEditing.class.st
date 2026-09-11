@@ -591,3 +591,21 @@ CPProcessAtelierDiagramEditing >> minimumWidthForResizeShape: aShape [
 ]
 
 
+
+{ #category : 'participant orientation' }
+CPProcessAtelierDiagramEditing >> makeParticipantHorizontal: aShape [
+	^ CPAtelierSetParticipantOrientation
+		horizontalShape: aShape
+		processMemento: processMemento
+		collaborationContext: self stagedCollaborationContext
+		processDiagramContext: diagramContext
+]
+
+{ #category : 'participant orientation' }
+CPProcessAtelierDiagramEditing >> makeParticipantVertical: aShape [
+	^ CPAtelierSetParticipantOrientation
+		verticalShape: aShape
+		processMemento: processMemento
+		collaborationContext: self stagedCollaborationContext
+		processDiagramContext: diagramContext
+]

@@ -165,3 +165,13 @@ CPProcessDiagramEditing >> minimumWidthForResizeShape: aShape [
 ]
 
 
+
+{ #category : 'participant orientation' }
+CPProcessDiagramEditing >> makeParticipantHorizontal: aShape [
+	^ self subclassResponsibility
+]
+
+{ #category : 'participant orientation' }
+CPProcessDiagramEditing >> makeParticipantVertical: aShape [
+	^ self subclassResponsibility
+]

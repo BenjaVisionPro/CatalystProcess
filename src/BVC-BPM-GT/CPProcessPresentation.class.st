@@ -388,12 +388,16 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
-	| viewModel |
+	| viewModel detailElement |
 	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
 	viewModel
 		ignoreImplicitActions;
 		elementBuilderDo: [ CFMaDetailPresentation new ].
-	^ viewModel asElement
+	detailElement := viewModel asElement.
+	(self isParticipantModelElement: aModelElement) ifFalse: [ ^ detailElement ].
+	^ self
+		newParticipantDetailElementFor: aModelElement
+		semanticDetail: detailElement
 ]
 
 { #category : 'private - theme' }
@@ -492,4 +496,48 @@ CPProcessPresentation >> selectedModelElement [
 { #category : 'accessing - testing' }
 CPProcessPresentation >> workspaceElement [
 	^ workspaceElement
+]
+
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> newParticipantDetailElementFor: aParticipant semanticDetail: semanticDetailElement [
+	| collaborationContext shapes participantShape shapeMemento orientationDescription stagedIsHorizontal selection selectionViewModel orientationElement container |
+	collaborationContext := self collaborationContext.
+	collaborationContext ifNil: [ ^ semanticDetailElement ].
+	shapes := collaborationContext diagramContext shapesForModelElement: aParticipant.
+	shapes size = 1 ifFalse: [ ^ semanticDetailElement ].
+	participantShape := shapes anyOne.
+	shapeMemento := collaborationContext diagramContext mementoFor: participantShape.
+	shapeMemento ifNil: [ ^ semanticDetailElement ].
+	orientationDescription := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ semanticDetailElement ].
+	stagedIsHorizontal := shapeMemento readUsing: orientationDescription.
+	selection := CPParticipantOrientationSelection
+		shape: participantShape
+		horizontal: stagedIsHorizontal
+		diagramEditing: diagramEditing
+		changedDo: [ self refreshCollaborationDiagramPreservingCamera ].
+	selectionViewModel := CFMaViewModel forObject: selection.
+	selectionViewModel
+		ignoreImplicitActions;
+		elementBuilderDo: [ CFMaDetailPresentation new ].
+	orientationElement := selectionViewModel asElement.
+	container := BrVerticalPane new
+		hMatchParent;
+		vFitContent;
+		cellSpacing: 8;
+		addChild: semanticDetailElement;
+		addChild: orientationElement;
+		yourself.
+	^ container
+]
+
+
+{ #category : 'private - selection' }
+CPProcessPresentation >> isParticipantModelElement: aModelElement [
+	| context |
+	context := self collaborationContext.
+	context ifNil: [ ^ false ].
+	^ context participants identityIncludes: aModelElement
 ]

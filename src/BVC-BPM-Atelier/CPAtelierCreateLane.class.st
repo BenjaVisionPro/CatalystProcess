@@ -213,12 +213,19 @@ CPAtelierCreateLane >> collaborationContext: aContext [ collaborationContext := 
 
 { #category : 'private - geometry' }
 CPAtelierCreateLane >> laneIsHorizontal [
-	| context participant shapes |
+	| context participant shapes participantShape participantShapeMemento orientationDescription |
 	context := self stagedCollaborationContext.
 	context ifNil: [ ^ true ].
 	participant := context participantForProcess: processMemento model.
 	participant ifNil: [ ^ true ].
 	shapes := context diagramContext shapesForModelElement: participant.
 	shapes size = 1 ifFalse: [ ^ true ].
-	^ shapes anyOne isHorizontal
+	participantShape := shapes anyOne.
+	participantShapeMemento := context diagramContext mementoFor: participantShape.
+	participantShapeMemento ifNil: [ ^ participantShape isHorizontal ].
+	orientationDescription := participantShapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ participantShape isHorizontal ].
+	^ participantShapeMemento readUsing: orientationDescription
 ]
+

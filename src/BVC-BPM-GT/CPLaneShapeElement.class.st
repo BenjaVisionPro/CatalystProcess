@@ -19,10 +19,22 @@ Class {
 
 { #category : 'initialization' }
 CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label: anEditableLabel [
+	^ self
+		lane: aLane
+		shape: aShape
+		borderColor: aBorderColor
+		label: anEditableLabel
+		horizontal: aShape isHorizontal
+]
+
+{ #category : 'initialization' }
+CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label: anEditableLabel horizontal: isHorizontal [
 	lane := aLane.
 	diagramShape := aShape.
 	labelElement := anEditableLabel.
-	orientation := CPPoolLaneOrientation forShape: aShape.
+	orientation := isHorizontal
+		ifTrue: [ CPHorizontalPoolLaneOrientation new ]
+		ifFalse: [ CPVerticalPoolLaneOrientation new ].
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aLane.
 	self

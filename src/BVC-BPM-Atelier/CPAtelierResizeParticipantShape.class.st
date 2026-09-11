@@ -105,17 +105,17 @@ CPAtelierResizeParticipantShape >> proposedLaneBoundsForParticipantBounds: propo
 	diagramContext := self stagedProcessDiagramContext.
 	diagramContext ifNil: [ ^ nil ].
 	bodyExtent := proposedParticipantBounds extent
-		- ((CPPoolLaneOrientation forShape: shape)
-			participantContentOriginOffset).
+		- (self participantContentOriginOffset).
 	bodyExtent x > 0 ifFalse: [ ^ nil ].
 	bodyExtent y > 0 ifFalse: [ ^ nil ].
 	proposedBounds := IdentityDictionary new.
 	laneContext stagedLaneSets do: [ :aLaneSet |
-		self
+		CPAtelierLaneLayout
 			reflowLaneSet: aLaneSet
 			withinExtent: bodyExtent
 			using: laneContext
 			diagramContext: diagramContext
+			horizontal: self participantIsHorizontal
 			into: proposedBounds ].
 	^ proposedBounds
 ]
@@ -143,7 +143,7 @@ CPAtelierResizeParticipantShape >> reflowLaneSet: aLaneSet withinBounds: parentB
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
 	| laneContext laneSets diagramContext |
-	shape isHorizontal ifFalse: [ ^ nil ].
+	self participantIsHorizontal ifFalse: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSets := laneContext stagedLaneSets.
 	laneSets ifEmpty: [ ^ CPAtelierLaneLayout minimumLaneHeight ].
@@ -161,7 +161,7 @@ CPAtelierResizeParticipantShape >> minimumParticipantHeightForStagedLanes [
 { #category : 'private - geometry' }
 CPAtelierResizeParticipantShape >> minimumParticipantWidthForStagedLanes [
 	| laneContext laneSets diagramContext |
-	shape isHorizontal ifTrue: [ ^ nil ].
+	self participantIsHorizontal ifTrue: [ ^ nil ].
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
 	laneSets := laneContext stagedLaneSets.
 	laneSets ifEmpty: [ ^ CPAtelierLaneLayout minimumLaneWidth ].
@@ -376,4 +376,25 @@ CPAtelierResizeParticipantShape >> applyLaneReflowForParticipantBounds: particip
 		boundsDescription := shapeMemento magritteDescription
 			detect: [ :each | each handlesSelector: #bounds ].
 		shapeMemento write: proposedBounds using: boundsDescription ]
+]
+
+
+{ #category : 'private - staged state' }
+CPAtelierResizeParticipantShape >> participantIsHorizontal [
+	| context shapeMemento description |
+	context := self stagedCollaborationContext.
+	context ifNil: [ ^ shape isHorizontal ].
+	shapeMemento := context diagramContext mementoFor: shape.
+	shapeMemento ifNil: [ ^ shape isHorizontal ].
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ shape isHorizontal ].
+	^ shapeMemento readUsing: description
+]
+
+{ #category : 'private - geometry' }
+CPAtelierResizeParticipantShape >> participantContentOriginOffset [
+	^ self participantIsHorizontal
+		ifTrue: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ]
+		ifFalse: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ]
 ]

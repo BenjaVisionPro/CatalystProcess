@@ -153,7 +153,8 @@ CPCollaborationVisualElement >> addParticipantShape: aShape [
 		bounds: bounds
 		background: self poolBackgroundColor
 		borderColor: self poolBorderColor
-		label: label.
+		label: label
+		horizontal: (self stagedIsHorizontalOf: aShape).
 	element
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: bounds origin.
@@ -1462,8 +1463,9 @@ CPCollaborationVisualElement >> hostedProcessBodyExtent [
 	participantShape := self participantShapeFor: participant.
 	participantShape ifNil: [ ^ nil ].
 	bounds := self stagedBoundsOf: participantShape.
-	offset := (CPPoolLaneOrientation forShape: participantShape)
-		participantContentOriginOffset.
+	offset := (self stagedIsHorizontalOf: participantShape)
+		ifTrue: [ CPHorizontalPoolLaneOrientation new participantContentOriginOffset ]
+		ifFalse: [ CPVerticalPoolLaneOrientation new participantContentOriginOffset ].
 	^ bounds extent - offset
 ]
 
@@ -1478,4 +1480,27 @@ CPCollaborationVisualElement >> liveCollaborationBoundsForFlowNode: aFlowNode in
 	bottomRight := self diagramPresentationParent
 		globalPointToLocal: (element localPointToGlobal: element extent).
 	^ topLeft corner: bottomRight
+]
+
+
+{ #category : 'private - staged state' }
+CPCollaborationVisualElement >> stagedIsHorizontalOf: aShape [
+	| shapeMemento description |
+	shapeMemento := diagramContext mementoFor: aShape.
+	shapeMemento ifNil: [ ^ aShape isHorizontal ].
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ aShape isHorizontal ].
+	^ shapeMemento readUsing: description
+]
+
+
+{ #category : 'geometry' }
+CPCollaborationVisualElement >> hostedProcessIsHorizontal [
+	| participant participantShape |
+	participant := self stagedParticipantForProcess: processMemento model.
+	participant ifNil: [ ^ true ].
+	participantShape := self participantShapeFor: participant.
+	participantShape ifNil: [ ^ true ].
+	^ self stagedIsHorizontalOf: participantShape
 ]

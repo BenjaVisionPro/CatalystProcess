@@ -114,7 +114,7 @@ CPAtelierInsertLane >> assess [
 	shape := CPShape new
 		modelElement: lane;
 		bounds: newBounds;
-		isHorizontal: targetShape isHorizontal;
+		isHorizontal: (self stagedIsHorizontalOf: targetShape in: diagramContext);
 		yourself.
 	proposedLanes := lanes asOrderedCollection copy.
 	proposedLanes add: lane beforeIndex: insertionIndex.
@@ -307,3 +307,15 @@ CPAtelierInsertLane >> stagedCollaborationContext [
 
 { #category : 'accessing' }
 CPAtelierInsertLane >> collaborationContext: aContext [ collaborationContext := aContext ]
+
+
+{ #category : 'private - staged state' }
+CPAtelierInsertLane >> stagedIsHorizontalOf: aShape in: aDiagramContext [
+	| shapeMemento description |
+	shapeMemento := aDiagramContext mementoFor: aShape.
+	shapeMemento ifNil: [ ^ aShape isHorizontal ].
+	description := shapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ aShape isHorizontal ].
+	^ shapeMemento readUsing: description
+]

@@ -3250,3 +3250,39 @@ CPProcessAtelierExamples >> removeLanePreservesReferencedFlowNodes [
 	self assert: (stagedElements identityIncludes: taskShape).
 	^ assessment
 ]
+
+{ #category : 'examples - lanes - vertical' }
+CPProcessAtelierExamples >> switchingVerticalPoolToHorizontalReflowsWholeLaneSet [
+	<gtExample>
+	| fixture memento participantShape collaborationContext diagramContext editing operation assessment participantShapeMemento orientationDescription firstLaneShapeMemento secondLaneShapeMemento firstBounds secondBounds |
+	fixture := self verticalLaneResizeFixture.
+	memento := fixture second.
+	participantShape := fixture fourth.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	diagramContext := self diagramContextForMemento: memento.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramContext: diagramContext
+		collaborationContext: collaborationContext
+		documentContext: nil.
+
+	operation := editing makeParticipantHorizontal: participantShape.
+	assessment := operation apply.
+	self assert: assessment isApplicable.
+
+	participantShapeMemento := collaborationContext diagramContext mementoFor: participantShape.
+	orientationDescription := participantShapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ].
+	self assert: (participantShapeMemento readUsing: orientationDescription).
+
+	firstLaneShapeMemento := diagramContext mementoFor: fixture sixth.
+	secondLaneShapeMemento := diagramContext mementoFor: fixture eighth.
+	self assert: (firstLaneShapeMemento readUsing: (firstLaneShapeMemento magritteDescription detect: [ :each | each handlesSelector: #isHorizontal ])).
+	self assert: (secondLaneShapeMemento readUsing: (secondLaneShapeMemento magritteDescription detect: [ :each | each handlesSelector: #isHorizontal ])).
+
+	firstBounds := diagramContext boundsOf: fixture sixth.
+	secondBounds := diagramContext boundsOf: fixture eighth.
+	self assert: firstBounds equals: (0 @ 0 extent: 364 @ 168).
+	self assert: secondBounds equals: (0 @ 168 extent: 364 @ 168).
+	^ assessment
+]

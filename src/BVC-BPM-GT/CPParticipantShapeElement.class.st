@@ -18,11 +18,25 @@ Class {
 
 { #category : 'initialization' }
 CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRectangle background: aBackground borderColor: aBorderColor label: anEditableLabel [
+	^ self
+		participant: aParticipant
+		shape: aShape
+		bounds: aRectangle
+		background: aBackground
+		borderColor: aBorderColor
+		label: anEditableLabel
+		horizontal: aShape isHorizontal
+]
+
+{ #category : 'initialization' }
+CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRectangle background: aBackground borderColor: aBorderColor label: anEditableLabel horizontal: isHorizontal [
 	participant := aParticipant.
 	diagramShape := aShape.
 	modelElement := aParticipant.
 	labelElement := anEditableLabel.
-	orientation := CPPoolLaneOrientation forShape: aShape.
+	orientation := isHorizontal
+		ifTrue: [ CPHorizontalPoolLaneOrientation new ]
+		ifFalse: [ CPVerticalPoolLaneOrientation new ].
 	normalBorderColor := aBorderColor.
 	resizeHandles := #().
 	self

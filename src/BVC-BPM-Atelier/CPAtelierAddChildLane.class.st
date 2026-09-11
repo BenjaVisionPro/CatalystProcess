@@ -143,10 +143,17 @@ CPAtelierAddChildLane >> diagramContext: aDiagramContext [
 
 { #category : 'private - geometry' }
 CPAtelierAddChildLane >> parentLaneIsHorizontal [
-	| context shapes |
+	| context shapes parentShape parentShapeMemento orientationDescription |
 	context := self stagedDiagramContext.
 	context ifNil: [ ^ true ].
 	shapes := context shapesForModelElement: parentLane.
 	shapes size = 1 ifFalse: [ ^ true ].
-	^ shapes anyOne isHorizontal
+	parentShape := shapes anyOne.
+	parentShapeMemento := context mementoFor: parentShape.
+	parentShapeMemento ifNil: [ ^ parentShape isHorizontal ].
+	orientationDescription := parentShapeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ]
+		ifNone: [ ^ parentShape isHorizontal ].
+	^ parentShapeMemento readUsing: orientationDescription
 ]
+

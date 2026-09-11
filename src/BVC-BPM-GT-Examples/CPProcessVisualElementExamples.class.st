@@ -4020,3 +4020,21 @@ CPProcessVisualElementExamples >> verticalLaneUsesTopHeaderBand [
 	self assert: element labelBand extent equals: 240 @ 30.
 	^ element
 ]
+
+{ #category : 'examples - lanes - vertical' }
+CPProcessVisualElementExamples >> participantOrientationDescriptionUsesGroupedIconButtons [
+	<gtExample>
+	| shape selection description configuration |
+	shape := CPShape new modelElement: (CPParticipant new label: 'Pool'; yourself); yourself.
+	selection := CPParticipantOrientationSelection
+		shape: shape
+		horizontal: true
+		diagramEditing: CPReadOnlyProcessDiagramEditing new
+		changedDo: [ ].
+	description := selection isHorizontalDescription.
+	configuration := CFMaDetailPresentation new fieldConfigurationFor: description.
+
+	self assert: description options equals: { false. true }.
+	self assert: configuration representation class equals: CFMaGroupedButtonsConfiguration.
+	^ selection
+]
