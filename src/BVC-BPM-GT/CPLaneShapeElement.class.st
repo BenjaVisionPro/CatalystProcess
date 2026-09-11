@@ -130,7 +130,12 @@ CPLaneShapeElement >> selectedBorderWidth [
 
 { #category : 'appearance' }
 CPLaneShapeElement >> selected: isSelected selectionColor: aSelectionColor normalColor: aNormalColor [
+	| borderColor |
+	borderColor := isSelected
+		ifTrue: [ aSelectionColor ]
+		ifFalse: [ aNormalColor ].
 	self border: (BlBorder
-		paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
-		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
+		paint: borderColor
+		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ])).
+	labelBand border: (BlBorder paint: borderColor width: 1)
 ]
