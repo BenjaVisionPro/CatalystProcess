@@ -111,7 +111,11 @@ CPAtelierInsertLane >> assess [
 					into: proposedLaneBoundsByShape) ifFalse: [
 						^ self rejectedBecause: 'Every shifted Lane must have exactly one diagram shape.' ] ] ].
 
-	shape := CPShape new modelElement: lane; bounds: newBounds; yourself.
+	shape := CPShape new
+		modelElement: lane;
+		bounds: newBounds;
+		isHorizontal: targetShape isHorizontal;
+		yourself.
 	proposedLanes := lanes asOrderedCollection copy.
 	proposedLanes add: lane beforeIndex: insertionIndex.
 	[ lanesDescription validate: proposedLanes ]

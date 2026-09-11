@@ -8,7 +8,8 @@ Class {
 		'participant',
 		'labelBand',
 		'processHost',
-		'processVisual'
+		'processVisual',
+		'orientation'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -21,6 +22,7 @@ CPParticipantShapeElement >> participant: aParticipant shape: aShape bounds: aRe
 	diagramShape := aShape.
 	modelElement := aParticipant.
 	labelElement := anEditableLabel.
+	orientation := CPPoolLaneOrientation forShape: aShape.
 	normalBorderColor := aBorderColor.
 	resizeHandles := #().
 	self
@@ -42,19 +44,10 @@ CPParticipantShapeElement >> addLabelBandBorderColor: aBorderColor [
 		background: Color transparent;
 		border: (BlBorder paint: aBorderColor width: 1);
 		layout: BlFrameLayout new;
-		constraintsDo: [ :c |
-			c horizontal exact: self processContentOriginOffset x.
-			c vertical matchParent.
-			c frame horizontal alignLeft.
-			c frame vertical alignTop ];
 		yourself.
-	labelElement
-		hFitContent;
-		vFitContent;
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ];
-		transformDo: [ :aTransform | aTransform rotateBy: -90 ].
+	orientation
+		configureParticipantLabelBand: labelBand
+		label: labelElement.
 	labelBand addChild: labelElement.
 	self addChild: labelBand
 ]
@@ -65,13 +58,8 @@ CPParticipantShapeElement >> addProcessHost [
 		background: Color transparent;
 		layout: BlFrameLayout new;
 		clipChildren: true;
-		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical matchParent.
-			c frame horizontal alignRight.
-			c frame vertical alignTop.
-			c margin: (BlInsets top: 0 right: 0 bottom: 0 left: self processContentOriginOffset x) ];
 		yourself.
+	orientation configureParticipantProcessHost: processHost.
 	self addChildFirst: processHost
 ]
 
@@ -82,7 +70,7 @@ CPParticipantShapeElement class >> processContentOriginOffset [
 
 { #category : 'geometry' }
 CPParticipantShapeElement >> processContentOriginOffset [
-	^ self class processContentOriginOffset
+	^ orientation participantContentOriginOffset
 ]
 
 { #category : 'hosting' }
@@ -143,4 +131,10 @@ CPParticipantShapeElement >> selected: isSelected selectionColor: aSelectionColo
 	self border: (BlBorder
 		paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
 		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ]))
+]
+
+
+{ #category : 'accessing - testing' }
+CPParticipantShapeElement >> orientation [
+	^ orientation
 ]

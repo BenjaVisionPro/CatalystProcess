@@ -9,7 +9,8 @@ Class {
 		'diagramShape',
 		'labelBand',
 		'bodyHost',
-		'labelElement'
+		'labelElement',
+		'orientation'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -21,6 +22,7 @@ CPLaneShapeElement >> lane: aLane shape: aShape borderColor: aBorderColor label:
 	lane := aLane.
 	diagramShape := aShape.
 	labelElement := anEditableLabel.
+	orientation := CPPoolLaneOrientation forShape: aShape.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aLane.
 	self
@@ -40,17 +42,8 @@ CPLaneShapeElement >> addBodyHost [
 		background: Color transparent;
 		layout: BlFrameLayout new;
 		clipChildren: true;
-		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical matchParent.
-			c frame horizontal alignRight.
-			c frame vertical alignTop.
-			c margin: (BlInsets
-				top: 0
-				right: 0
-				bottom: 0
-				left: self laneHeaderWidth) ];
 		yourself.
+	orientation configureLaneBodyHost: bodyHost.
 	self addChild: bodyHost
 ]
 
@@ -61,26 +54,17 @@ CPLaneShapeElement >> addLaneHeaderBorderColor: aBorderColor [
 		background: Color transparent;
 		border: (BlBorder paint: aBorderColor width: 1);
 		layout: BlFrameLayout new;
-		constraintsDo: [ :c |
-			c horizontal exact: self laneHeaderWidth.
-			c vertical matchParent.
-			c frame horizontal alignLeft.
-			c frame vertical alignTop ];
 		yourself.
-	labelElement
-		hFitContent;
-		vFitContent;
-		constraintsDo: [ :c |
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ];
-		transformDo: [ :aTransform | aTransform rotateBy: -90 ].
+	orientation
+		configureLaneLabelBand: labelBand
+		label: labelElement.
 	labelBand addChild: labelElement.
 	self addChild: labelBand
 ]
 
 { #category : 'geometry' }
 CPLaneShapeElement >> bodyOriginOffset [
-	^ self laneHeaderWidth @ 0
+	^ orientation laneBodyOriginOffset
 ]
 
 { #category : 'geometry' }
@@ -138,4 +122,10 @@ CPLaneShapeElement >> selected: isSelected selectionColor: aSelectionColor norma
 		paint: borderColor
 		width: (isSelected ifTrue: [ self selectedBorderWidth ] ifFalse: [ self normalBorderWidth ])).
 	labelBand border: (BlBorder paint: borderColor width: 1)
+]
+
+
+{ #category : 'accessing - testing' }
+CPLaneShapeElement >> orientation [
+	^ orientation
 ]

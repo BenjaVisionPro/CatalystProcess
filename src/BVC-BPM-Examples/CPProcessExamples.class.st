@@ -549,3 +549,15 @@ CPProcessExamples >> labelsAreOwnedByTheirDepictions [
 	self assert: label labelStyle == style.
 	^ shape
 ]
+
+
+{ #category : 'examples - diagram' }
+CPProcessExamples >> shapeOrientationDefaultsHorizontalAndSupportsVertical [
+	<gtExample>
+	| shape |
+	shape := CPShape new.
+	self assert: shape isHorizontal.
+	shape isHorizontal: false.
+	self assert: shape isHorizontal not.
+	^ shape
+]

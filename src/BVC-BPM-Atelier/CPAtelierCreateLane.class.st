@@ -50,7 +50,11 @@ CPAtelierCreateLane >> assess [
 	lanes ifNil: [ ^ self rejectedBecause: 'The LaneSet has no staged Lane collection.' ].
 	(lanes identityIncludes: lane) ifTrue: [ ^ self rejectedBecause: 'The Lane is already present in the LaneSet.' ].
 
-	shape := CPShape new modelElement: lane; bounds: bounds; yourself.
+	shape := CPShape new
+		modelElement: lane;
+		bounds: bounds;
+		isHorizontal: self laneIsHorizontal;
+		yourself.
 	boundsDescription := shape magritteDescription detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ]
 		on: MAValidationError
@@ -205,3 +209,16 @@ CPAtelierCreateLane >> stagedCollaborationContext [
 
 { #category : 'accessing' }
 CPAtelierCreateLane >> collaborationContext: aContext [ collaborationContext := aContext ]
+
+
+{ #category : 'private - geometry' }
+CPAtelierCreateLane >> laneIsHorizontal [
+	| context participant shapes |
+	context := self stagedCollaborationContext.
+	context ifNil: [ ^ true ].
+	participant := context participantForProcess: processMemento model.
+	participant ifNil: [ ^ true ].
+	shapes := context diagramContext shapesForModelElement: participant.
+	shapes size = 1 ifFalse: [ ^ true ].
+	^ shapes anyOne isHorizontal
+]

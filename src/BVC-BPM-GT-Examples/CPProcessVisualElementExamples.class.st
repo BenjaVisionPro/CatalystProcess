@@ -3970,3 +3970,53 @@ CPProcessVisualElementExamples >> emptyHostedPoolUsesOneLaneMinimumHeight [
 		equals: CPAtelierLaneLayout minimumLaneHeight.
 	^ participantShape
 ]
+
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> verticalParticipantUsesTopHeaderBand [
+	<gtExample>
+	| participant shape label element |
+	participant := CPParticipant new label: 'Vertical pool'; yourself.
+	shape := CPShape new
+		modelElement: participant;
+		bounds: (40 @ 40 extent: 500 @ 320);
+		isHorizontal: false;
+		yourself.
+	label := BrLabel new text: 'Vertical pool'.
+	element := CPParticipantShapeElement new
+		participant: participant
+		shape: shape
+		bounds: shape bounds
+		background: Color transparent
+		borderColor: Color black
+		label: label.
+	element forceLayout.
+
+	self assert: element processContentOriginOffset equals: 0 @ 36.
+	self assert: element labelBand extent equals: 500 @ 36.
+	^ element
+]
+
+{ #category : 'examples - lanes' }
+CPProcessVisualElementExamples >> verticalLaneUsesTopHeaderBand [
+	<gtExample>
+	| lane shape label element |
+	lane := CPLane new label: 'Vertical lane'; yourself.
+	shape := CPShape new
+		modelElement: lane;
+		bounds: (0 @ 0 extent: 240 @ 360);
+		isHorizontal: false;
+		yourself.
+	label := BrLabel new text: 'Vertical lane'.
+	element := CPLaneShapeElement new
+		lane: lane
+		shape: shape
+		borderColor: Color black
+		label: label.
+	element extent: shape bounds extent.
+	element forceLayout.
+
+	self assert: element bodyOriginOffset equals: 0 @ 30.
+	self assert: element labelBand extent equals: 240 @ 30.
+	^ element
+]

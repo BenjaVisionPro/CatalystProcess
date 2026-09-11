@@ -60,7 +60,11 @@ CPAtelierAddChildLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	shape := CPShape new modelElement: lane; bounds: bounds; yourself.
+	shape := CPShape new
+		modelElement: lane;
+		bounds: bounds;
+		isHorizontal: self parentLaneIsHorizontal;
+		yourself.
 	boundsDescription := shape magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ]
@@ -134,4 +138,15 @@ CPAtelierAddChildLane >> stagedDiagramContext [
 { #category : 'accessing' }
 CPAtelierAddChildLane >> diagramContext: aDiagramContext [
 	diagramContext := aDiagramContext
+]
+
+
+{ #category : 'private - geometry' }
+CPAtelierAddChildLane >> parentLaneIsHorizontal [
+	| context shapes |
+	context := self stagedDiagramContext.
+	context ifNil: [ ^ true ].
+	shapes := context shapesForModelElement: parentLane.
+	shapes size = 1 ifFalse: [ ^ true ].
+	^ shapes anyOne isHorizontal
 ]

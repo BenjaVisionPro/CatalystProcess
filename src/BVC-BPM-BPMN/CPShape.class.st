@@ -5,7 +5,8 @@ Class {
 		'modelElement',
 		'bounds',
 		'label',
-		'isExpanded'
+		'isExpanded',
+		'isHorizontal'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -26,7 +27,8 @@ CPShape >> modelElement: anObject [
 { #category : 'initialization' }
 CPShape >> initialize [
 	super initialize.
-	isExpanded := false
+	isExpanded := false.
+	isHorizontal := true
 ]
 
 { #category : 'accessing' }
@@ -113,6 +115,28 @@ CPShape >> isExpandedDescription [
 		accessor: #isExpanded;
 		label: 'Expanded';
 		priority: 120;
+		group: 'Diagram';
+		yourself
+]
+
+
+{ #category : 'accessing' }
+CPShape >> isHorizontal [
+	^ isHorizontal ifNil: [ true ]
+]
+
+{ #category : 'accessing' }
+CPShape >> isHorizontal: aBoolean [
+	isHorizontal := aBoolean
+]
+
+{ #category : 'descriptions' }
+CPShape >> isHorizontalDescription [
+	<magritteDescription>
+	^ MABooleanDescription new
+		accessor: #isHorizontal;
+		label: 'Horizontal';
+		priority: 125;
 		group: 'Diagram';
 		yourself
 ]
