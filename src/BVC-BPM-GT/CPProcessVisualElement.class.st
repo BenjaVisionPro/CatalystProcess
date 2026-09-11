@@ -5388,3 +5388,20 @@ CPProcessVisualElement >> stagedIsHorizontalOf: aShape [
 		ifNone: [ ^ aShape isHorizontal ].
 	^ shapeMemento readUsing: description
 ]
+
+
+{ #category : 'accessing - orientation' }
+CPProcessVisualElement >> orientationUprightElements [
+	"Answer the visual objects that move with a Pool quarter-turn but must remain
+	upright on screen. Lane and Pool structure is deliberately excluded: those
+	objects visually rotate. A collapsed/expanded FlowNode is counter-rotated as
+	one visual object, so nested content remains upright with its host node."
+	| elements |
+	elements := OrderedCollection new.
+	shapeElementsByShape valuesDo: [ :aShapeElement |
+		elements add: aShapeElement.
+		aShapeElement externalLabelHost ifNotNil: [ :aLabel | elements add: aLabel ] ].
+	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
+		anEdgeVisual labelHost ifNotNil: [ :aLabel | elements add: aLabel ] ].
+	^ elements
+]

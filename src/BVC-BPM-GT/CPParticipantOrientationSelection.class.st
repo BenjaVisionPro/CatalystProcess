@@ -41,7 +41,7 @@ CPParticipantOrientationSelection >> isHorizontal: aBoolean [
 	assessment := operation apply.
 	assessment isApplicable ifFalse: [ self error: assessment rejectionMessage ].
 	isHorizontal := aBoolean.
-	changedBlock ifNotNil: [ changedBlock value ]
+	changedBlock ifNotNil: [ changedBlock cull: aBoolean ]
 ]
 
 { #category : 'descriptions' }
