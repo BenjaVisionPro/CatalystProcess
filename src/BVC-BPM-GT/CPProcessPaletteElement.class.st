@@ -15,10 +15,10 @@ Class {
 { #category : 'private - building' }
 CPProcessPaletteElement >> configureAppearance [
 	self
-		hExact: 132;
+		hExact: 152;
 		vFitContent;
-		padding: (BlInsets all: 6);
-		cellSpacing: 5;
+		padding: (BlInsets all: 8);
+		cellSpacing: 8;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
 		border: (BlBorder paint: Color black width: 1);
 		addAptitude: CFGlassSurfaceAptitude new
@@ -42,7 +42,7 @@ CPProcessPaletteElement >> newItemsElement [
 	^ BrVerticalPane new
 		hMatchParent;
 		vFitContent;
-		cellSpacing: 5;
+		cellSpacing: 8;
 		yourself
 ]
 
@@ -71,12 +71,12 @@ CPProcessPaletteElement >> refresh [
 	rows := paletteRows ifNil: [ { palette items } ].
 	rows do: [ :aRow |
 		| rowElement rowWidth leftPadding |
-		rowWidth := (aRow size * 36) + (((aRow size - 1) max: 0) * 4).
-		leftPadding := ((120 - rowWidth) max: 0) / 2.
+		rowWidth := (aRow size * 32) + (((aRow size - 1) max: 0) * 16).
+		leftPadding := ((136 - rowWidth) max: 0) / 2.
 		rowElement := BrHorizontalPane new
 			hMatchParent;
-			vExact: 32;
-			cellSpacing: 4;
+			vExact: 28;
+			cellSpacing: 16;
 			padding: (BlInsets top: 0 right: 0 bottom: 0 left: leftPadding);
 			yourself.
 		aRow do: [ :anItem |
@@ -112,7 +112,7 @@ CPProcessPaletteElement >> addHoverHelpElement [
 CPProcessPaletteElement >> newItemElementFor: anItem [
 	| cell iconElement |
 	cell := BlElement new
-		extent: 36 @ 32;
+		extent: 32 @ 28;
 		layout: BlFrameLayout new;
 		background: Color transparent;
 		yourself.

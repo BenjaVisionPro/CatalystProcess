@@ -25,7 +25,7 @@ CPProcessPaletteIcons class >> event [
 { #category : 'private - icons' }
 CPProcessPaletteIcons class >> eventElementWithBorderColor: aColor borderWidth: aWidth [
 	^ BlElement new
-		extent: 24 @ 24;
+		extent: 20 @ 20;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
 		border: (BlBorder paint: aColor width: aWidth);
@@ -35,7 +35,7 @@ CPProcessPaletteIcons class >> eventElementWithBorderColor: aColor borderWidth: 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> activity [
 	^ [ BlElement new
-		extent: 30 @ 22;
+		extent: 26 @ 18;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 2);
@@ -45,12 +45,12 @@ CPProcessPaletteIcons class >> activity [
 { #category : 'icons' }
 CPProcessPaletteIcons class >> gateway [
 	^ [ BlElement new
-		extent: 24 @ 24;
+		extent: 20 @ 20;
 		geometry: (BlPolygonGeometry vertices: {
-			12 @ 0.
-			24 @ 12.
-			12 @ 24.
-			0 @ 12 });
+			10 @ 0.
+			20 @ 10.
+			10 @ 20.
+			0 @ 10 });
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 2);
 		yourself ] asStencil
@@ -61,7 +61,7 @@ CPProcessPaletteIcons class >> subProcess [
 	^ [
 		| element firstDot secondDot |
 		element := BlElement new
-			extent: 30 @ 22;
+			extent: 26 @ 18;
 			layout: BlFrameLayout new;
 			geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 			background: Color transparent;
@@ -92,7 +92,7 @@ CPProcessPaletteIcons class >> subProcess [
 { #category : 'icons' }
 CPProcessPaletteIcons class >> callActivity [
 	^ [ BlElement new
-		extent: 30 @ 22;
+		extent: 26 @ 18;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 4);
@@ -104,19 +104,19 @@ CPProcessPaletteIcons class >> poolLane [
 	^ [
 		| element divider |
 		element := BlElement new
-			extent: 34 @ 22;
+			extent: 30 @ 18;
 		layout: BlFrameLayout new;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 2);
 		yourself.
 		divider := BlElement new
-			extent: 2 @ 20;
+			extent: 2 @ 16;
 			background: Color black;
 			constraintsDo: [ :c |
 				c frame horizontal alignLeft.
 				c frame vertical alignCenter.
-				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 8) ];
+				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 7) ];
 			yourself.
 		element addChild: divider.
 		element ] asStencil
