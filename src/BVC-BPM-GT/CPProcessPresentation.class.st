@@ -396,18 +396,17 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
-	| viewModel detailPresentation detailElement |
+	| viewModel detailPresentation |
 	detailPresentation := CFMaDetailPresentation new beOverlay.
+	(self isParticipantModelElement: aModelElement) ifTrue: [
+		self
+			configureParticipantOrientationFor: aModelElement
+			on: detailPresentation ].
 	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
 	viewModel
 		ignoreImplicitActions;
 		elementBuilderDo: [ detailPresentation ].
-	detailElement := viewModel asElement.
-	(self isParticipantModelElement: aModelElement) ifTrue: [
-		self
-			addParticipantOrientationFor: aModelElement
-			to: detailPresentation ].
-	^ detailElement
+	^ viewModel asElement
 ]
 
 { #category : 'private - theme' }
@@ -517,7 +516,7 @@ CPProcessPresentation >> workspaceElement [
 
 
 { #category : 'private - selection' }
-CPProcessPresentation >> addParticipantOrientationFor: aParticipant to: aDetailPresentation [
+CPProcessPresentation >> configureParticipantOrientationFor: aParticipant on: aDetailPresentation [
 	| collaborationContext shapes participantShape shapeMemento shapeOrientationDescription stagedIsHorizontal selection selectionMemento orientationDescription |
 	collaborationContext := self collaborationContext.
 	collaborationContext ifNil: [ ^ self ].
@@ -537,15 +536,16 @@ CPProcessPresentation >> addParticipantOrientationFor: aParticipant to: aDetailP
 		changedDo: [ :isHorizontal :commitBlock :assessment |
 			self
 				animateParticipantOrientationFor: aParticipant
-				horizontal: isHorizontal
-				assessment: assessment
-				commit: commitBlock ].
+					horizontal: isHorizontal
+					assessment: assessment
+					commit: commitBlock ].
 	selectionMemento := CFMaMemento model: selection.
 	orientationDescription := selectionMemento magritteDescription
 		detect: [ :each | each handlesSelector: #isHorizontal ].
-	aDetailPresentation
-		addGroupedButtonsSingleOptionUsing: orientationDescription
-		memento: selectionMemento
+	aDetailPresentation afterPrimaryContentDo: [ :aPresentation |
+		aPresentation
+			addGroupedButtonsSingleOptionUsing: orientationDescription
+			memento: selectionMemento ]
 ]
 
 { #category : 'private - selection' }
