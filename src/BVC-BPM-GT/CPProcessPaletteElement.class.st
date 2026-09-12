@@ -92,7 +92,7 @@ CPProcessPaletteElement >> refresh [
 	palette ifNil: [ ^ self ].
 	rows := paletteRows ifNil: [ { palette items } ].
 	maximumColumns := rows inject: 0 into: [ :maximum :aRow | maximum max: aRow size ].
-	contentWidth := (maximumColumns * 24) + (((maximumColumns - 1) max: 0) * 4).
+	contentWidth := (maximumColumns * 24) + (((maximumColumns - 1) max: 0) * 3).
 	self
 		hExact: contentWidth + 10;
 		vExact: (rows size * 26) + 12 + 10.
@@ -107,7 +107,7 @@ CPProcessPaletteElement >> refresh [
 		rowElement := BrHorizontalPane new
 			hFitContent;
 			vExact: 22;
-			cellSpacing: 4;
+			cellSpacing: 3;
 			constraintsDo: [ :c |
 				c frame horizontal alignCenter.
 				c frame vertical alignCenter ];
