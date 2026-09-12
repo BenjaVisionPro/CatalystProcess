@@ -83,14 +83,10 @@ CPProcessPresentation >> prepareHostElement [
 
 	detailScrollElement := BrScrollPane new
 		background: Color transparent;
-		effect: (BlBlurBelowEffect radius: 10);
 		allowMeAndChildrenMouseEvents;
 		aptitude: BrScrollPaneAptitude
 			+ BrGlamorousWithVerticalScrollbarAptitude
-			+ (BrLazyStyleCommonAptitude new
-				default: [ :aStyle |
-					aStyle background: self hostElement theme interaction subtleBackgroundTint ];
-				yourself);
+			+ CFGlassSurfaceAptitude new;
 		hExact: 380;
 		vFitContentLimited;
 		constraintsDo: [ :c |
@@ -404,7 +400,7 @@ CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
 	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
 	viewModel
 		ignoreImplicitActions;
-		elementBuilderDo: [ CFMaDetailPresentation new ].
+		elementBuilderDo: [ CFMaDetailPresentation new beOverlay ].
 	detailElement := viewModel asElement.
 	(self isParticipantModelElement: aModelElement) ifFalse: [ ^ detailElement ].
 	^ self
