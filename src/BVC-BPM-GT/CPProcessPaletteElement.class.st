@@ -27,8 +27,9 @@ CPProcessPaletteElement >> configureAppearance [
 { #category : 'private - building' }
 CPProcessPaletteElement >> newHeaderElement [
 	^ BlElement new
-		hMatchParent;
-		vExact: 16;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical exact: 16 ];
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
 		background: Color black;
 		yourself
@@ -87,8 +88,9 @@ CPProcessPaletteElement >> refresh [
 CPProcessPaletteElement >> addHoverHelpElement [
 	| helpHost |
 	helpHost := BlElement new
-		hMatchParent;
-		vExact: 28;
+		constraintsDo: [ :c |
+			c horizontal matchParent.
+			c vertical exact: 28 ];
 		layout: BlFrameLayout new;
 		yourself.
 	hoverHelpElement := BrLabel new
