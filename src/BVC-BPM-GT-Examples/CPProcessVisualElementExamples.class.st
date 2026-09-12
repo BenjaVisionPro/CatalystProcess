@@ -2180,8 +2180,9 @@ CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttache
 	taskElement := visual shapeElementsByModelElement at: task.
 	boundaryElement := visual shapeElementsByModelElement at: boundary.
 
-	self assert: boundaryElement parent == taskElement.
-	self assert: boundaryElement position equals: -16 @ 24.
+	self assert: boundaryElement parent parent == taskElement.
+	self assert: boundaryElement parent position equals: 0 @ 40.
+	self assert: boundaryElement position equals: -16 @ -16.
 	self assert: ((visual stagedBoundsOf: (visual diagramShapeForModelElement: boundary)) center) equals: 100 @ 140.
 	^ boundaryElement
 ]
@@ -4090,11 +4091,15 @@ CPProcessVisualElementExamples >> boundaryEventOrbitalRootRemainsChildOfActivity
 		background: Color white
 		borderColor: Color black
 		label: nil.
-	activityElement hostBoundaryEventElement: boundaryElement atLocalPosition: -16 @ 24.
+	activityElement
+		hostBoundaryEventElement: boundaryElement
+		atLocalCenter: 0 @ 40
+		extent: 32 @ 32.
 
-	self assert: boundaryElement parent == activityElement.
+	self assert: boundaryElement parent parent == activityElement.
+	self assert: boundaryElement parent position equals: 0 @ 40.
 	self assert: boundaryElement uprightHost parent == boundaryElement.
-	self assert: boundaryElement position equals: -16 @ 24.
+	self assert: boundaryElement position equals: -16 @ -16.
 	^ boundaryElement
 ]
 

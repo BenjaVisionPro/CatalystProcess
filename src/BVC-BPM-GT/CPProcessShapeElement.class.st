@@ -940,10 +940,21 @@ CPProcessShapeElement >> hostOrbitalExternalLabel: anElement [
 ]
 
 { #category : 'containment' }
-CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalPosition: aPoint [
+CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalCenter: aPoint extent: anExtent [
+	| orbitalAnchor |
+	orbitalAnchor := BlElement new
+		layout: BlFrameLayout new;
+		clipChildren: false;
+		constraintsDo: [ :c |
+			c ignoreByLayout.
+			c horizontal exact: 1.
+			c vertical exact: 1 ];
+		yourself.
 	aBoundaryElement constraintsDo: [ :c | c ignoreByLayout ].
-	self addChild: aBoundaryElement.
-	aBoundaryElement relocate: aPoint.
+	self addChild: orbitalAnchor.
+	orbitalAnchor relocate: aPoint.
+	orbitalAnchor addChild: aBoundaryElement.
+	aBoundaryElement relocate: (0 @ 0) - (anExtent / 2).
 	self forceLayout
 ]
 

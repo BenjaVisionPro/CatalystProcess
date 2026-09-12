@@ -747,11 +747,14 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 	shapeElementsByModelElement at: modelElement put: element.
 	modelElement isBoundaryEvent
 		ifTrue: [
+			| activityBounds |
 			anActivityElement ifNil: [
 				self error: 'Boundary Event visuals must be constructed by their attached Activity host.' ].
+			activityBounds := self stagedBoundsOf: anActivityElement diagramShape.
 			anActivityElement
 				hostBoundaryEventElement: element
-				atLocalPosition: bounds origin - (self stagedBoundsOf: anActivityElement diagramShape) origin ]
+				atLocalCenter: bounds center - activityBounds origin
+				extent: bounds extent ]
 		ifFalse: [
 			self
 				placeFlowNodeElement: element
@@ -1018,7 +1021,8 @@ CPProcessVisualElement >> hostAttachedBoundaryEventDragProxiesIn: anActivityProx
 					bounds: boundaryBounds.
 				anActivityProxy
 					hostBoundaryEventElement: boundaryProxy
-					atLocalPosition: boundaryBounds origin - activityBounds origin ] ] ]
+					atLocalCenter: boundaryBounds center - activityBounds origin
+					extent: boundaryBounds extent ] ] ]
 ]
 
 { #category : 'private - dragging' }
