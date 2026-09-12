@@ -75,19 +75,20 @@ CPProcessPaletteElement >> refresh [
 	palette ifNil: [ ^ self ].
 	rows := paletteRows ifNil: [ { palette items } ].
 	maximumColumns := rows inject: 0 into: [ :maximum :aRow | maximum max: aRow size ].
-	contentWidth := (maximumColumns * 20) + (((maximumColumns - 1) max: 0) * 8).
+	contentWidth := (maximumColumns * 24) + (((maximumColumns - 1) max: 0) * 6).
 	self
 		hExact: contentWidth + 16;
 		vExact: (rows size * 28) + 12 + 16.
 	rows do: [ :aRow |
-		| rowElement rowWidth sidePadding |
-		rowWidth := (aRow size * 20) + (((aRow size - 1) max: 0) * 8).
-		sidePadding := ((contentWidth - rowWidth) max: 0) / 2.
+		| rowElement rowWidth |
+		rowWidth := (aRow size * 24) + (((aRow size - 1) max: 0) * 6).
 		rowElement := BrHorizontalPane new
-			hMatchParent;
+			hExact: rowWidth;
 			vExact: 28;
-			cellSpacing: 8;
-			padding: (BlInsets top: 4 right: sidePadding bottom: 4 left: sidePadding);
+			cellSpacing: 6;
+			padding: (BlInsets top: 3 right: 0 bottom: 3 left: 0);
+			constraintsDo: [ :c |
+				c linear horizontal alignCenter ];
 			yourself.
 		aRow do: [ :anItem |
 			rowElement addChild: (self newItemElementFor: anItem) ].
@@ -123,7 +124,7 @@ CPProcessPaletteElement >> addHoverHelpElement [
 CPProcessPaletteElement >> newItemElementFor: anItem [
 	| cell iconElement |
 	cell := BlElement new
-		extent: 20 @ 20;
+		extent: 24 @ 22;
 		layout: BlFrameLayout new;
 		background: Color transparent;
 		yourself.
@@ -147,4 +148,3 @@ CPProcessPaletteElement >> newItemElementFor: anItem [
 					hoverHelpElement ifNotNil: [ hoverHelpElement text: '' ] ] ]).
 	^ self configureItemElement: cell for: anItem
 ]
-

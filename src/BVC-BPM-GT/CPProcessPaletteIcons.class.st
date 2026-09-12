@@ -21,7 +21,7 @@ CPProcessPaletteIcons class >> darkStopColor [
 CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector color: aColor [
 	^ [
 		(FontAwesomeIcons icon: aSelector)
-			height: 16;
+			height: 18;
 			color: aColor;
 			yourself ] asStencil
 ]
@@ -35,7 +35,7 @@ CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector [
 CPProcessPaletteIcons class >> processIcon: aSelector [
 	^ [
 		(CPBpmnIcons icon: aSelector)
-			height: 16;
+			height: 18;
 			color: Color black;
 			yourself ] asStencil
 ]
@@ -80,14 +80,14 @@ CPProcessPaletteIcons class >> poolLane [
 	^ [
 		| element divider |
 		element := BlElement new
-			extent: 20 @ 14;
+			extent: 22 @ 16;
 			layout: BlFrameLayout new;
 			geometry: (BlRoundedRectangleGeometry cornerRadius: 3);
 			background: Color transparent;
 			border: (BlBorder paint: Color black width: 1.5);
 			yourself.
 		divider := BlElement new
-			extent: 1.5 @ 12;
+			extent: 1.5 @ 14;
 			background: Color black;
 			constraintsDo: [ :c |
 				c frame horizontal alignLeft.
