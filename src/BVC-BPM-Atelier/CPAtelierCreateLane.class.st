@@ -150,7 +150,7 @@ CPAtelierCreateLane >> applyAssessment: anAssessment [
 
 { #category : 'private - assessing' }
 CPAtelierCreateLane >> participantResizeOperationForFirstLane [
-	| collaborationContext participant participantShapes participantShape participantBounds headerWidth proposedLeft requiredWidth requiredHeight proposedRight proposedBottom proposedBounds |
+	| collaborationContext participant participantShapes participantShape participantBounds isHorizontal laneBodyOffset laneHeaderLength participantHeaderOffset participantPartitionStart participantPartitionLength participantCrossStart participantCrossLength proposedCrossStart requiredPartitionLength requiredCrossLength proposedPartitionLength proposedCrossLength proposedBounds |
 	collaborationContext := self stagedCollaborationContext.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext participantForProcess: processMemento model.
@@ -159,25 +159,50 @@ CPAtelierCreateLane >> participantResizeOperationForFirstLane [
 	participantShapes size = 1 ifFalse: [ ^ nil ].
 	participantShape := participantShapes anyOne.
 	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
-	headerWidth := self laneHeaderWidth.
-	proposedLeft := participantBounds left - headerWidth.
-	requiredWidth := CPParticipantShapeElement processContentOriginOffset x + bounds width.
-	requiredHeight := bounds height.
-	proposedRight := participantBounds right max: proposedLeft + requiredWidth.
-	proposedBottom := participantBounds bottom max: participantBounds top + requiredHeight.
-	proposedBounds := proposedLeft @ participantBounds top
-		corner: proposedRight @ proposedBottom.
+	isHorizontal := self laneIsHorizontal.
+	laneBodyOffset := CPPoolLaneGeometry laneBodyOriginOffsetForHorizontal: isHorizontal.
+	laneHeaderLength := CPPoolLaneGeometry
+		crossLengthOf: (0 @ 0 extent: laneBodyOffset)
+		horizontal: isHorizontal.
+	participantHeaderOffset := CPPoolLaneGeometry
+		participantContentOriginOffsetForHorizontal: isHorizontal.
+	participantPartitionStart := CPPoolLaneGeometry
+		partitionStartOf: participantBounds
+		horizontal: isHorizontal.
+	participantPartitionLength := CPPoolLaneGeometry
+		partitionLengthOf: participantBounds
+		horizontal: isHorizontal.
+	participantCrossStart := CPPoolLaneGeometry
+		crossStartOf: participantBounds
+		horizontal: isHorizontal.
+	participantCrossLength := CPPoolLaneGeometry
+		crossLengthOf: participantBounds
+		horizontal: isHorizontal.
+	proposedCrossStart := participantCrossStart - laneHeaderLength.
+	requiredPartitionLength := CPPoolLaneGeometry
+		partitionLengthOf: bounds
+		horizontal: isHorizontal.
+	requiredCrossLength := (CPPoolLaneGeometry
+		crossLengthOf: (0 @ 0 extent: participantHeaderOffset)
+		horizontal: isHorizontal)
+		+ (CPPoolLaneGeometry
+			crossLengthOf: bounds
+			horizontal: isHorizontal).
+	proposedPartitionLength := participantPartitionLength max: requiredPartitionLength.
+	proposedCrossLength := (participantCrossStart + participantCrossLength - proposedCrossStart)
+		max: requiredCrossLength.
+	proposedBounds := CPPoolLaneGeometry
+		boundsWithPartitionStart: participantPartitionStart
+		partitionLength: proposedPartitionLength
+		crossStart: proposedCrossStart
+		crossLength: proposedCrossLength
+		horizontal: isHorizontal.
 	^ CPAtelierResizeParticipantShape
 		shape: participantShape
 		bounds: proposedBounds
 		processMemento: processMemento
 		collaborationContext: collaborationContext
 		processDiagramContext: diagramContext
-]
-
-{ #category : 'private - geometry' }
-CPAtelierCreateLane >> laneHeaderWidth [
-	^ CPLaneShapeElement laneHeaderWidth
 ]
 
 { #category : 'private' }

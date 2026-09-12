@@ -53,7 +53,7 @@ CPAtelierCreateLaneSetWithLane >> assess [
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
-	shape := CPShape new modelElement: lane; bounds: bounds; yourself.
+	shape := CPShape new modelElement: lane; bounds: bounds; isHorizontal: self laneIsHorizontal; yourself.
 	boundsDescription := shape magritteDescription
 		detect: [ :each | each handlesSelector: #bounds ].
 	[ boundsDescription validate: bounds ]

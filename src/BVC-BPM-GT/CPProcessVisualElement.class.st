@@ -3149,27 +3149,44 @@ CPProcessVisualElement >> laneHeaderWidth [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> poolBodyBoundsForFirstLane [
-	| diagramBounds inset currentPoolExtent requiredProcessExtent laneExtent origin headerWidth |
+	| diagramBounds inset currentPoolExtent requiredProcessExtent laneExtent origin isHorizontal laneBodyOffset participantContentOffset defaultProcessExtent |
 	diagramBounds := planeGeometry diagramBounds.
 	inset := self hostedDiagramInset.
-	headerWidth := self laneHeaderWidth.
+	isHorizontal := collaborationVisual
+		ifNil: [ true ]
+		ifNotNil: [ collaborationVisual hostedProcessIsHorizontal ].
+	laneBodyOffset := CPPoolLaneGeometry
+		laneBodyOriginOffsetForHorizontal: isHorizontal.
+	participantContentOffset := CPPoolLaneGeometry
+		participantContentOriginOffsetForHorizontal: isHorizontal.
 	currentPoolExtent := collaborationVisual
 		ifNil: [ nil ]
 		ifNotNil: [ collaborationVisual hostedProcessBodyExtent ].
+	defaultProcessExtent := self defaultParticipantExtent - participantContentOffset.
 	requiredProcessExtent := planeGeometry diagramExtent = (0 @ 0)
 		ifTrue: [
-			(self defaultParticipantExtent x
-				- CPParticipantShapeElement processContentOriginOffset x)
-				@ self defaultLaneExtent y ]
+			currentPoolExtent
+				ifNil: [
+					CPPoolLaneGeometry
+						boundsWithPartitionStart: 0
+						partitionLength: (CPPoolLaneGeometry
+							partitionLengthOf: (0 @ 0 extent: self defaultLaneExtent)
+							horizontal: isHorizontal)
+						crossStart: 0
+						crossLength: (CPPoolLaneGeometry
+							crossLengthOf: (0 @ 0 extent: defaultProcessExtent)
+							horizontal: isHorizontal)
+						horizontal: isHorizontal
+				] ifNotNil: [ currentPoolExtent ] ]
 		ifFalse: [
 			diagramBounds extent + ((inset x * 2) @ (inset y * 2)) ].
-	laneExtent := (requiredProcessExtent x + headerWidth) @ requiredProcessExtent y.
+	laneExtent := requiredProcessExtent + laneBodyOffset.
 	currentPoolExtent ifNotNil: [
-		laneExtent := (laneExtent x max: currentPoolExtent x + headerWidth)
-			@ (laneExtent y max: currentPoolExtent y) ].
+		laneExtent := (laneExtent x max: currentPoolExtent x + laneBodyOffset x)
+			@ (laneExtent y max: currentPoolExtent y + laneBodyOffset y) ].
 	origin := planeGeometry diagramExtent = (0 @ 0)
 		ifTrue: [ 0 @ 0 ]
-		ifFalse: [ diagramBounds origin - inset - (headerWidth @ 0) ].
+		ifFalse: [ diagramBounds origin - inset - laneBodyOffset ].
 	^ origin extent: laneExtent
 ]
 
@@ -3309,8 +3326,10 @@ CPProcessVisualElement >> createLaneFromPoolPaletteAtRootDiagramPoint: aRootPoin
 		targetLane ifNil: [ ^ nil ].
 		targetShape := (diagramContext shapesForModelElement: targetLane) anyOne.
 		targetBounds := diagramContext boundsOf: targetShape.
-		insertAfter := (targetBounds bottom - localPoint y)
-			< (localPoint y - targetBounds top).
+		insertAfter := (CPPoolLaneOrientation
+			forHorizontal: (self stagedIsHorizontalOf: targetShape))
+				insertAfterForPoint: localPoint
+				inBounds: targetBounds.
 		operation := diagramEditing
 			insertLane: lane
 			relativeTo: targetLane
@@ -5014,14 +5033,18 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent intoChildOfLane: aPare
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> boundsForFirstChildLaneOf: aParentLane [
-	| parentShape parentBounds |
+	| parentShape parentBounds isHorizontal bodyOffset |
 	parentShape := self diagramShapeForLane: aParentLane.
 	parentShape ifNil: [ ^ nil ].
 	parentBounds := self stagedBoundsOf: parentShape.
 	parentBounds ifNil: [ ^ nil ].
-	parentBounds width > self laneHeaderWidth ifFalse: [ ^ nil ].
-	^ (parentBounds origin + (self laneHeaderWidth @ 0))
-		extent: (parentBounds extent - (self laneHeaderWidth @ 0))
+	isHorizontal := self stagedIsHorizontalOf: parentShape.
+	bodyOffset := CPPoolLaneGeometry laneBodyOriginOffsetForHorizontal: isHorizontal.
+	(CPPoolLaneGeometry crossLengthOf: parentBounds horizontal: isHorizontal)
+		> (CPPoolLaneGeometry crossLengthOf: (0 @ 0 extent: bodyOffset) horizontal: isHorizontal)
+		ifFalse: [ ^ nil ].
+	^ (parentBounds origin + bodyOffset)
+		extent: (parentBounds extent - bodyOffset)
 ]
 
 { #category : 'private - lanes' }
@@ -5052,7 +5075,9 @@ CPProcessVisualElement >> dropPoolStructuralItem: anEvent relativeToLane: aLane 
 	| laneElement insertAfter lane operation assessment |
 	anEvent items size = 1 ifFalse: [ ^ self ].
 	laneElement := laneElementsByLane at: aLane.
-	insertAfter := anEvent position y > (laneElement height / 2).
+	insertAfter := laneElement orientation
+		insertAfterForPoint: anEvent position
+		inBounds: (0 @ 0 extent: laneElement extent).
 	lane := CPLane new label: 'Lane'; yourself.
 	operation := diagramEditing
 		insertLane: lane
