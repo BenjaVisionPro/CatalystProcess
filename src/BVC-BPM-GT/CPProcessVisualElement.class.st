@@ -1625,11 +1625,12 @@ CPProcessVisualElement >> addBoundaryEventHoverLabelFor: aBoundaryEvent bounds: 
 	label
 		hFitContentLimited;
 		vFitContent;
-		constraintsDo: [ :c |
-			c maxWidth: labelExtent x.
-			c frame horizontal alignCenter.
-			c frame vertical alignCenter ];
+		constraintsDo: [ :c | c maxWidth: labelExtent x ];
 		preventMeAndChildrenMouseEvents.
+	self
+		alignBoundaryEventHoverLabel: label
+		eventBounds: eventBounds
+		activityBounds: activityBounds.
 	labelHost
 		addChild: label;
 		preventMeAndChildrenMouseEvents.
@@ -1644,6 +1645,30 @@ CPProcessVisualElement >> addBoundaryEventHoverLabelFor: aBoundaryEvent bounds: 
 ]
 
 { #category : 'private - labels' }
+CPProcessVisualElement >> alignBoundaryEventHoverLabel: aLabel eventBounds: eventBounds activityBounds: activityBounds [
+	| center distanceTop distanceBottom distanceLeft distanceRight minimumDistance |
+	center := eventBounds center.
+	distanceTop := (center y - activityBounds top) abs.
+	distanceBottom := (center y - activityBounds bottom) abs.
+	distanceLeft := (center x - activityBounds left) abs.
+	distanceRight := (center x - activityBounds right) abs.
+	minimumDistance := { distanceTop. distanceBottom. distanceLeft. distanceRight } min.
+	aLabel constraintsDo: [ :c |
+		minimumDistance = distanceTop ifTrue: [
+			c frame horizontal alignCenter.
+			c frame vertical alignBottom ].
+		minimumDistance = distanceBottom ifTrue: [
+			c frame horizontal alignCenter.
+			c frame vertical alignTop ].
+		minimumDistance = distanceLeft ifTrue: [
+			c frame horizontal alignRight.
+			c frame vertical alignCenter ].
+		minimumDistance = distanceRight ifTrue: [
+			c frame horizontal alignLeft.
+			c frame vertical alignCenter ] ]
+]
+
+{ #category : 'private - labels' }
 CPProcessVisualElement >> boundaryEventHoverLabelOriginForEventBounds: eventBounds activityBounds: activityBounds labelExtent: labelExtent [
 	| center gap distanceTop distanceBottom distanceLeft distanceRight minimumDistance |
 	center := eventBounds center.
@@ -1654,12 +1679,12 @@ CPProcessVisualElement >> boundaryEventHoverLabelOriginForEventBounds: eventBoun
 	distanceRight := (center x - activityBounds right) abs.
 	minimumDistance := { distanceTop. distanceBottom. distanceLeft. distanceRight } min.
 	minimumDistance = distanceTop ifTrue: [
-		^ (center x - (labelExtent x / 2)) @ (activityBounds top - gap - labelExtent y) ].
+		^ (center x - (labelExtent x / 2)) @ (eventBounds top - gap - labelExtent y) ].
 	minimumDistance = distanceBottom ifTrue: [
-		^ (center x - (labelExtent x / 2)) @ (activityBounds bottom + gap) ].
+		^ (center x - (labelExtent x / 2)) @ (eventBounds bottom + gap) ].
 	minimumDistance = distanceLeft ifTrue: [
-		^ (activityBounds left - gap - labelExtent x) @ (center y - (labelExtent y / 2)) ].
-	^ (activityBounds right + gap) @ (center y - (labelExtent y / 2))
+		^ (eventBounds left - gap - labelExtent x) @ (center y - (labelExtent y / 2)) ].
+	^ (eventBounds right + gap) @ (center y - (labelExtent y / 2))
 ]
 
 { #category : 'private - labels' }
@@ -2117,7 +2142,11 @@ CPProcessVisualElement >> updateAttachedBoundaryEventGeometryForActivity: anActi
 					aLabel relocate: (self
 						boundaryEventHoverLabelLocalOriginForEventBounds: proposedBoundaryBounds
 						activityBounds: proposedActivityBounds
-						labelExtent: aLabel extent) ].
+						labelExtent: aLabel extent).
+					self
+						alignBoundaryEventHoverLabel: aLabel children first
+						eventBounds: proposedBoundaryBounds
+						activityBounds: proposedActivityBounds ].
 				boundaryElement relocate: proposedBoundaryBounds origin - proposedActivityBounds origin.
 				self updateIncidentEdgeLabelsFor: aBoundaryEvent.
 				self updateIncidentReconnectHandlesFor: aBoundaryEvent ] ] ]
@@ -2337,7 +2366,11 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 				aShapeElement externalLabelHost relocate: (self
 					boundaryEventHoverLabelLocalOriginForEventBounds: snappedBounds
 					activityBounds: targetActivityBounds
-					labelExtent: aShapeElement externalLabelHost extent) ].
+					labelExtent: aShapeElement externalLabelHost extent).
+				self
+					alignBoundaryEventHoverLabel: aShapeElement externalLabelHost children first
+					eventBounds: snappedBounds
+					activityBounds: targetActivityBounds ].
 			self updateIncidentEdgeLabelsFor: boundaryEvent.
 			self updateIncidentReconnectHandlesFor: boundaryEvent ]
 		dragEnded: [ :anEvent :proposedBounds :delta |

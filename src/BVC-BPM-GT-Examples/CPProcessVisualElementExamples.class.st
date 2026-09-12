@@ -2140,8 +2140,10 @@ CPProcessVisualElementExamples >> boundaryEventHoverLabelStaysOutsideAttachedAct
 		activityBounds: activityBounds
 		labelExtent: labelExtent.
 
-	self assert: topOrigin y + labelExtent y < activityBounds top.
-	self assert: rightOrigin x > activityBounds right.
+	self assert: topOrigin equals: 80 @ 34.
+	self assert: rightOrigin equals: 262 @ 118.
+	self assert: topOrigin y + labelExtent y + 6 equals: 84.
+	self assert: rightOrigin x - 6 equals: 256.
 	^ { topOrigin. rightOrigin }
 ]
 
