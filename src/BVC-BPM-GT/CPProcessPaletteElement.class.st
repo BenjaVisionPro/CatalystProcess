@@ -48,11 +48,24 @@ CPProcessPaletteElement >> newItemsElement [
 { #category : 'private - interaction' }
 CPProcessPaletteElement >> installBackgroundMoveInteraction [
 	self when: BlMouseDownEvent do: [ :anEvent |
-		(anEvent target == self and: [ anEvent primaryButtonPressed ]) ifTrue: [
+		(anEvent primaryButtonPressed
+			and: [ (self paletteItemOwnsEventTarget: anEvent target) not ]) ifTrue: [
 			draggingPalette := true.
 			dragStartPointer := anEvent position.
 			dragStartPosition := self position.
 			anEvent consumed: true ] ]
+]
+
+{ #category : 'private - interaction' }
+CPProcessPaletteElement >> paletteItemOwnsEventTarget: anElement [
+	| current |
+	current := anElement.
+	[ current notNil and: [ current ~~ self ] ] whileTrue: [
+		(current userData
+			at: #atelierPaletteSource
+			ifAbsent: [ false ]) ifTrue: [ ^ true ].
+		current := current parent ].
+	^ false
 ]
 
 { #category : 'configuration' }
