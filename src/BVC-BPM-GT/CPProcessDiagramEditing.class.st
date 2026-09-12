@@ -166,6 +166,11 @@ CPProcessDiagramEditing >> minimumWidthForResizeShape: aShape [
 
 
 
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> reorderLane: aLane relativeTo: aTargetLane after: aBoolean [
+	^ self subclassResponsibility
+]
+
 { #category : 'participant orientation' }
 CPProcessDiagramEditing >> makeParticipantHorizontal: aShape [
 	^ self subclassResponsibility

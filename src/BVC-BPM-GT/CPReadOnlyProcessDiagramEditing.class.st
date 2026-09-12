@@ -162,6 +162,11 @@ CPReadOnlyProcessDiagramEditing >> insertLane: aLane relativeTo: aTargetLane aft
 ]
 
 
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> reorderLane: aLane relativeTo: aTargetLane after: aBoolean [
+	^ nil
+]
+
 { #category : 'participant orientation' }
 CPReadOnlyProcessDiagramEditing >> makeParticipantHorizontal: aShape [
 	^ nil

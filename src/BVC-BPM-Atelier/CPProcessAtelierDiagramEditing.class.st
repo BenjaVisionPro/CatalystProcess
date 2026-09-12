@@ -592,6 +592,16 @@ CPProcessAtelierDiagramEditing >> minimumWidthForResizeShape: aShape [
 
 
 
+{ #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> reorderLane: aLane relativeTo: aTargetLane after: aBoolean [
+	^ CPAtelierReorderLane
+		lane: aLane
+		relativeTo: aTargetLane
+		after: aBoolean
+		processMemento: processMemento
+		diagramContext: diagramContext
+]
+
 { #category : 'participant orientation' }
 CPProcessAtelierDiagramEditing >> makeParticipantHorizontal: aShape [
 	^ CPAtelierSetParticipantOrientation

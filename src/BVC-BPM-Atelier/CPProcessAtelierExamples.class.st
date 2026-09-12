@@ -2478,6 +2478,50 @@ CPProcessAtelierExamples >> horizontalPoolLaneMutationRegression [
 
 
 { #category : 'examples - lanes' }
+CPProcessAtelierExamples >> reorderLaneStagesOrderAndGeometry [
+	<gtExample>
+	| process diagram laneSet first second third firstShape secondShape thirdShape
+	  memento context operation assessment laneSetMemento lanesDescription stagedLanes |
+	process := CPProcess new label: 'Lane reorder'; yourself.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	laneSet := CPLaneSet new.
+	first := CPLane new label: 'First'; yourself.
+	second := CPLane new label: 'Second'; yourself.
+	third := CPLane new label: 'Third'; yourself.
+	laneSet addLane: first; addLane: second; addLane: third.
+	process addLaneSet: laneSet.
+	firstShape := CPShape new modelElement: first; bounds: (0 @ 0 extent: 500 @ 140); isHorizontal: true; yourself.
+	secondShape := CPShape new modelElement: second; bounds: (0 @ 140 extent: 500 @ 180); isHorizontal: true; yourself.
+	thirdShape := CPShape new modelElement: third; bounds: (0 @ 320 extent: 500 @ 160); isHorizontal: true; yourself.
+	diagram addElement: firstShape; addElement: secondShape; addElement: thirdShape.
+
+	memento := CFMaMemento model: process.
+	context := self diagramContextForMemento: memento.
+	operation := CPAtelierReorderLane
+		lane: first
+		relativeTo: third
+		after: true
+		processMemento: memento
+		diagramContext: context.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	laneSetMemento := (CPProcessLaneContext inRootMemento: memento) mementoForLaneSet: laneSet.
+	lanesDescription := self descriptionFor: #lanes in: laneSetMemento.
+	stagedLanes := laneSetMemento readUsing: lanesDescription.
+	self assert: stagedLanes size equals: 3.
+	self assert: stagedLanes first == second.
+	self assert: (stagedLanes at: 2) == third.
+	self assert: stagedLanes third == first.
+	self assert: (context boundsOf: secondShape) equals: (0 @ 0 extent: 500 @ 180).
+	self assert: (context boundsOf: thirdShape) equals: (0 @ 180 extent: 500 @ 160).
+	self assert: (context boundsOf: firstShape) equals: (0 @ 340 extent: 500 @ 140).
+	self assert: laneSet lanes first == first.
+	^ assessment
+]
+
+{ #category : 'examples - lanes' }
 CPProcessAtelierExamples >> createLaneStagesLaneSetLaneAndShapeAtomically [
 	<gtExample>
 	| process diagram memento diagramDescription lane operation assessment laneSetsDescription stagedLaneSets laneSetMemento lanesDescription stagedLanes diagramMemento elementsDescription stagedElements laneShape |

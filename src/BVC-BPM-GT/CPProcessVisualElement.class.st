@@ -549,6 +549,63 @@ CPProcessVisualElement >> lanesForCurrentProcess [
 	^ (CPProcessLaneContext inRootMemento: memento) stagedLanes
 ]
 { #category : 'private - lanes' }
+CPProcessVisualElement >> installLaneReorderingOnLaneElement: aLaneElement lane: aLane [
+	diagramEditing allowsEditing ifFalse: [ ^ self ].
+	aLaneElement labelBand
+		addEventHandler: (BlEventHandler
+			on: BlDragStartEvent
+			do: [ :anEvent |
+				self selectOnlyDiagramElement: aLaneElement diagramShape.
+				self requestFocus.
+				anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEvent
+			do: [ :anEvent | anEvent consumed: true ]);
+		addEventHandler: (BlEventHandler
+			on: BlDragEndEvent
+			do: [ :anEvent |
+				self reorderLane: aLane droppedAtGlobalPoint: anEvent position.
+				anEvent consumed: true ])
+]
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> reorderLane: aLane droppedAtGlobalPoint: aGlobalPoint [
+	| laneContext laneSet diagramPoint targetLane targetShape targetBounds insertAfter operation assessment |
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	laneSet := laneContext laneSetContainingLane: aLane.
+	laneSet ifNil: [ ^ nil ].
+	diagramPoint := self diagramPointForGlobalPoint: aGlobalPoint.
+	targetLane := (laneContext stagedLanesInLaneSet: laneSet)
+		detect: [ :each |
+			| shapes |
+			shapes := diagramContext shapesForModelElement: each.
+			shapes size = 1
+				and: [ (diagramContext boundsOf: shapes anyOne) containsPoint: diagramPoint ] ]
+		ifNone: [ ^ nil ].
+	targetLane == aLane ifTrue: [ ^ nil ].
+	targetShape := (diagramContext shapesForModelElement: targetLane) anyOne.
+	targetBounds := diagramContext boundsOf: targetShape.
+	insertAfter := (CPPoolLaneOrientation
+		forHorizontal: (self stagedIsHorizontalOf: targetShape))
+			insertAfterForPoint: diagramPoint
+			inBounds: targetBounds.
+	operation := diagramEditing
+		reorderLane: aLane
+		relativeTo: targetLane
+		after: insertAfter.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refreshAfterLaneStructureChange.
+		(rootVisual diagramElementForModelElementInTree: aLane) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		rootVisual updateSelectionAppearanceRecursively.
+		selectionChangedBlock ifNotNil: [ :aBlock |
+			aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]
+
+{ #category : 'private - lanes' }
 CPProcessVisualElement >> installSelectionOnLaneElement: anElement [
 	self
 		installSelectionOnLaneSurface: anElement labelBand
@@ -673,6 +730,7 @@ CPProcessVisualElement >> newLaneSetVisualFor: aLaneSet laneShapes: laneShapes l
 		self
 			installLabelEditingOn: element labelBand label: label;
 			installSelectionOnLaneElement: element;
+			installLaneReorderingOnLaneElement: element lane: aLane;
 			installPoolStructuralDropsOnLaneElement: element lane: aLane.
 
 		childLaneSet := laneContext stagedChildLaneSetOf: aLane.
