@@ -202,15 +202,15 @@ CPProcessEdgeVisual >> orientationEndpointTracksToSource: aSourcePoint target: a
 	(lineElements isEmpty or: [ hitElements isEmpty ]) ifTrue: [ ^ #() ].
 	tracks := OrderedCollection new.
 	{ lineElements first. hitElements first } do: [ :aLine |
-		tracks add: ((CFMotionPropertyTrack
+		tracks add: (CFMotionPropertyTrack
 			on: aLine
 			property: CPProcessEdgeFromPointMotionProperty uniqueInstance
-			target: aSourcePoint) adoptAtDestination) ].
+			target: aSourcePoint) ].
 	{ lineElements last. hitElements last } do: [ :aLine |
-		tracks add: ((CFMotionPropertyTrack
+		tracks add: (CFMotionPropertyTrack
 			on: aLine
 			property: CPProcessEdgeToPointMotionProperty uniqueInstance
-			target: aTargetPoint) adoptAtDestination) ].
+			target: aTargetPoint) ].
 	^ tracks
 ]
 
