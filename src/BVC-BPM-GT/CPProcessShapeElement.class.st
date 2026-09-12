@@ -91,10 +91,18 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 		layout: BlFrameLayout new;
 		clipChildren: false;
 		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical matchParent ];
+			aFlowNode isBoundaryEvent
+				ifTrue: [
+					c frame horizontal alignCenter.
+					c frame vertical alignCenter ]
+				ifFalse: [
+					c horizontal matchParent.
+					c vertical matchParent ] ];
 		yourself.
-	aFlowNode isBoundaryEvent ifTrue: [ uprightHost effect: (BlBlurBelowEffect radius: 10) ].
+	aFlowNode isBoundaryEvent ifTrue: [
+		uprightHost
+			extent: 28 @ 28;
+			effect: (BlBlurBelowEffect radius: 10) ].
 	self addChild: uprightHost.
 	self addActivityLabelForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
