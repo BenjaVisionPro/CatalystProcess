@@ -1070,7 +1070,12 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		modelElement: aFlowNode
 		bounds: bounds
 		background: self shapeBackgroundColor
-		borderColor: self shapeBorderColor
+		borderColor: (aFlowNode isStartEvent
+			ifTrue: [ CPProcessPaletteIcons darkStartColor ]
+			ifFalse: [
+				aFlowNode isEndEvent
+					ifTrue: [ CPProcessPaletteIcons darkStopColor ]
+					ifFalse: [ self shapeBorderColor ] ])
 		label: label
 		expanded: (self stagedExpandedOf: aShape).
 	aFlowNode isBoundaryEvent ifTrue: [
@@ -2047,6 +2052,13 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 ]
 
 
+{ #category : 'private - appearance' }
+CPProcessVisualElement >> normalBorderColorFor: aModelElement [
+	aModelElement isStartEvent ifTrue: [ ^ CPProcessPaletteIcons darkStartColor ].
+	aModelElement isEndEvent ifTrue: [ ^ CPProcessPaletteIcons darkStopColor ].
+	^ self shapeBorderColor
+]
+
 { #category : 'private - selection' }
 CPProcessVisualElement >> updateSelectionAppearance [
 	laneElementsByShape keysAndValuesDo: [ :aShape :anElement |
@@ -2058,7 +2070,7 @@ CPProcessVisualElement >> updateSelectionAppearance [
 		anElement
 			selected: (diagramSelection includes: aShape)
 			selectionColor: self selectionColor
-			normalColor: self shapeBorderColor;
+			normalColor: (self normalBorderColorFor: anElement modelElement);
 			typePopupActive: aShape == diagramSelection soleDiagramElement ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual
@@ -2087,7 +2099,7 @@ CPProcessVisualElement >> updateTransientInteractionAppearance [
 		anElement
 			selected: isEmphasized
 			selectionColor: self selectionColor
-			normalColor: self shapeBorderColor ].
+			normalColor: (self normalBorderColorFor: aModelElement) ].
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		anEdgeVisual
 			selected: (diagramSelection includes: anEdge)
