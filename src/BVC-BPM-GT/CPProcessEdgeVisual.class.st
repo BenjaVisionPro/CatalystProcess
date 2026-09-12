@@ -184,6 +184,15 @@ CPProcessEdgeVisual >> labelHost: anElement [
 	labelHost := anElement
 ]
 
+{ #category : 'accessing - orientation' }
+CPProcessEdgeVisual >> orientationUprightElements [
+	"Answer path-relative visual layers that inherit the Pool quarter-turn but
+	must remain upright on screen."
+	^ labelHost
+		ifNil: [ #() ]
+		ifNotNil: [ { labelHost } ]
+]
+
 { #category : 'label' }
 CPProcessEdgeVisual >> hasLabelHost [
 	^ labelHost notNil

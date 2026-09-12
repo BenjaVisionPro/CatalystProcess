@@ -909,6 +909,19 @@ CPProcessShapeElement >> uprightHost [
 	^ uprightHost
 ]
 
+{ #category : 'accessing - orientation' }
+CPProcessShapeElement >> orientationUprightElements [
+	"Answer the visual layers owned by this shape that inherit an orbital
+	quarter-turn but must remain upright on screen. The body host is always
+	upright. A direct external label is an orbital adornment, such as the
+	Boundary Event hover label, and therefore counter-rotates independently."
+	| elements |
+	elements := OrderedCollection with: uprightHost.
+	externalLabelHost ifNotNil: [ :aLabel |
+		aLabel parent == self ifTrue: [ elements add: aLabel ] ].
+	^ elements
+]
+
 { #category : 'private - containment' }
 CPProcessShapeElement >> addUprightChild: anElement [
 	uprightHost addChild: anElement

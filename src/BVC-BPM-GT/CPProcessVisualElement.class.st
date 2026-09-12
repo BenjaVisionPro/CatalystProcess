@@ -5389,20 +5389,14 @@ CPProcessVisualElement >> stagedIsHorizontalOf: aShape [
 
 { #category : 'accessing - orientation' }
 CPProcessVisualElement >> orientationUprightElements [
-	"Answer the presentation layers that inherit the Pool quarter-turn but must
-	remain upright on screen. FlowNode orbital elements themselves are excluded:
-	their centres and attachment geometry rotate with the Pool while their
-	upright hosts counter-rotate. Boundary Event orbital labels rotate with their
-	attachment position but counter-rotate as visuals. Edge labels remain
-	independent path-relative presentation objects."
+	"Aggregate the upright Motion targets exposed by the presentations that own
+	them. Pool orientation does not inspect shape or edge internals."
 	| elements |
 	elements := OrderedCollection new.
 	shapeElementsByShape valuesDo: [ :aShapeElement |
-		elements add: aShapeElement uprightHost.
-		aShapeElement externalLabelHost ifNotNil: [ :aLabel |
-			aLabel parent == aShapeElement uprightHost ifFalse: [ elements add: aLabel ] ] ].
+		elements addAll: aShapeElement orientationUprightElements ].
 	edgeVisualsByEdge valuesDo: [ :anEdgeVisual |
-		anEdgeVisual labelHost ifNotNil: [ :aLabel | elements add: aLabel ] ].
+		elements addAll: anEdgeVisual orientationUprightElements ].
 	^ elements
 ]
 

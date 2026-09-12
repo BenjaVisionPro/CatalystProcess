@@ -4120,6 +4120,52 @@ CPProcessVisualElementExamples >> boundaryEventOrbitalLabelMovesWithAttachmentBu
 	^ boundaryElement
 ]
 
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> shapeOwnsItsOrientationUprightTargets [
+	<gtExample>
+	| boundaryShape boundary boundaryElement label targets |
+	boundaryShape := CPShape new.
+	boundary := CPBoundaryEvent new.
+	boundaryElement := CPProcessShapeElement new
+		shape: boundaryShape
+		modelElement: boundary
+		bounds: (100 @ 100 extent: 32 @ 32)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	label := BlElement new extent: 180 @ 44.
+	boundaryElement hostOrbitalExternalLabel: label.
+	targets := boundaryElement orientationUprightElements.
+
+	self assert: targets size equals: 2.
+	self assert: (targets includes: boundaryElement uprightHost).
+	self assert: (targets includes: label).
+	^ targets
+]
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessVisualElementExamples >> ordinaryNodeExternalLabelIsAlreadyCarriedByUprightHost [
+	<gtExample>
+	| shape node element label targets |
+	shape := CPShape new.
+	node := CPStartEvent new label: 'Start'; yourself.
+	element := CPProcessShapeElement new
+		shape: shape
+		modelElement: node
+		bounds: (100 @ 100 extent: 36 @ 36)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	label := BlElement new extent: 180 @ 44.
+	element hostExternalLabel: label.
+	targets := element orientationUprightElements.
+
+	self assert: targets size equals: 1.
+	self assert: targets first == element uprightHost.
+	self assert: label parent == element uprightHost.
+	^ targets
+]
+
 { #category : 'examples - orientation' }
 CPProcessVisualElementExamples >> connectionLabelAnchorMatchesAuthoritativePlacementBox [
 	<gtExample>
