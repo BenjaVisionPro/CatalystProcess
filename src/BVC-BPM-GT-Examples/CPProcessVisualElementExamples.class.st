@@ -4207,44 +4207,6 @@ CPProcessVisualElementExamples >> connectionLabelMotionUsesLiveVisualCenterNotPl
 
 
 
-{ #category : 'examples - orientation' }
-CPProcessVisualElementExamples >> orientationProcessContentHandoffCorrectionToHorizontal [
-	<gtExample>
-	| visual geometricExtent presentationExtent geometricEndpoint presentationEndpoint |
-	visual := CPProcessVisualElement new.
-	geometricExtent := 300 @ 500.
-	presentationExtent := geometricExtent - (1 @ 1).
-	geometricEndpoint := visual
-		orientationPoint: 0 @ 0
-		within: geometricExtent
-		horizontal: true.
-	presentationEndpoint := visual
-		orientationPoint: 0 @ 0
-		within: presentationExtent
-		horizontal: true.
-	self assert: geometricEndpoint - presentationEndpoint equals: 0 @ 1.
-	^ geometricEndpoint - presentationEndpoint
-]
-
-{ #category : 'examples - orientation' }
-CPProcessVisualElementExamples >> orientationProcessContentHandoffCorrectionToVertical [
-	<gtExample>
-	| visual geometricExtent presentationExtent geometricEndpoint presentationEndpoint |
-	visual := CPProcessVisualElement new.
-	geometricExtent := 500 @ 300.
-	presentationExtent := geometricExtent - (1 @ 1).
-	geometricEndpoint := visual
-		orientationPoint: 0 @ 0
-		within: geometricExtent
-		horizontal: false.
-	presentationEndpoint := visual
-		orientationPoint: 0 @ 0
-		within: presentationExtent
-		horizontal: false.
-	self assert: geometricEndpoint - presentationEndpoint equals: 1 @ 0.
-	^ geometricEndpoint - presentationEndpoint
-]
-
 
 { #category : 'examples - orientation' }
 CPProcessVisualElementExamples >> edgeVisualOwnsOrientationEndpointMotionTracks [

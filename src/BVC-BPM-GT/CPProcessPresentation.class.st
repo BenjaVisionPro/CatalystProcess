@@ -550,7 +550,7 @@ CPProcessPresentation >> isParticipantModelElement: aModelElement [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal assessment: assessment commit: commitBlock [
-	| participantElement processVisual uprightElements connectionEndpointTracks connectionLabelCorrections boundaryAttachmentCorrections contentHandoffCorrection rootTargetRotation uprightTargetRotation tracks space motion |
+	| participantElement processVisual uprightElements connectionEndpointTracks connectionLabelCorrections boundaryAttachmentCorrections rootTargetRotation uprightTargetRotation tracks space motion |
 	collaborationDiagramElement ifNil: [
 		^ self
 			commitParticipantOrientationFor: aParticipant
@@ -590,9 +590,6 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 		boundaryAttachmentCorrections := processVisual
 			orientationBoundaryAttachmentCorrectionsForAssessment: assessment
 			horizontal: isHorizontal.
-		contentHandoffCorrection := processVisual
-			orientationContentHandoffCorrectionForAssessment: assessment
-			horizontal: isHorizontal.
 		uprightElements do: [ :anElement |
 			| connectionCorrection |
 			tracks add: ((CFMotionRotationTrack
@@ -600,10 +597,11 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 				from: 0
 				to: uprightTargetRotation) adoptAtDestination).
 			connectionCorrection := connectionLabelCorrections at: anElement ifAbsent: [ nil ].
-			tracks add: ((CFMotionTranslationTrack
-				on: anElement
-				from: 0 @ 0
-				to: (connectionCorrection ifNil: [ 0 @ 0 ]) + contentHandoffCorrection) adoptAtDestination) ].
+			connectionCorrection ifNotNil: [
+				tracks add: ((CFMotionTranslationTrack
+					on: anElement
+					from: 0 @ 0
+					to: connectionCorrection) adoptAtDestination) ] ].
 		boundaryAttachmentCorrections keysAndValuesDo: [ :anAttachmentHost :aCorrection |
 			tracks add: ((CFMotionTranslationTrack
 				on: anAttachmentHost

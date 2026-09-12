@@ -5547,29 +5547,6 @@ CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: an
 ]
 
 
-{ #category : 'private - orientation' }
-CPProcessVisualElement >> orientationContentHandoffCorrectionForAssessment: anAssessment horizontal: isHorizontal [
-	"Bridge the verified one-pixel difference between the live Process-content
-	Motion endpoint and the authoritative BPMN-DI quarter-turn. Pool/Lane
-	structure already hands off exactly and does not use this correction. Keep
-	this presentation-only adjustment in GT; persisted DI continues to use the
-	exact geometric extent."
-	| geometricExtent presentationExtent geometricEndpoint presentationEndpoint |
-	geometricExtent := self
-		orientationCurrentBodyExtentForAssessment: anAssessment
-		horizontal: isHorizontal.
-	presentationExtent := geometricExtent - (1 @ 1).
-	geometricEndpoint := self
-		orientationPoint: 0 @ 0
-		within: geometricExtent
-		horizontal: isHorizontal.
-	presentationEndpoint := self
-		orientationPoint: 0 @ 0
-		within: presentationExtent
-		horizontal: isHorizontal.
-	^ geometricEndpoint - presentationEndpoint
-]
-
 
 { #category : 'private - orientation' }
 CPProcessVisualElement >> orientationCurrentBodyExtentForAssessment: anAssessment horizontal: isHorizontal [
