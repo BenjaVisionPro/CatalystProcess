@@ -22,6 +22,56 @@ CPPoolLaneGeometry class >> laneBodyOriginOffsetForHorizontal: isHorizontal [
 		ifFalse: [ 0 @ 30 ]
 ]
 
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> partitionLengthOf: aRectangle horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ aRectangle height ]
+		ifFalse: [ aRectangle width ]
+]
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> crossLengthOf: aRectangle horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ aRectangle width ]
+		ifFalse: [ aRectangle height ]
+]
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> partitionStartOf: aRectangle horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ aRectangle top ]
+		ifFalse: [ aRectangle left ]
+]
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> partitionEndOf: aRectangle horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ aRectangle bottom ]
+		ifFalse: [ aRectangle right ]
+]
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> crossStartOf: aRectangle horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ aRectangle left ]
+		ifFalse: [ aRectangle top ]
+]
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> boundsWithPartitionStart: partitionStart partitionLength: partitionLength crossStart: crossStart crossLength: crossLength horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ crossStart @ partitionStart extent: crossLength @ partitionLength ]
+		ifFalse: [ partitionStart @ crossStart extent: partitionLength @ crossLength ]
+]
+
+{ #category : 'geometry - axis' }
+CPPoolLaneGeometry class >> translationAlongPartitionBy: aNumber horizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ 0 @ aNumber ]
+		ifFalse: [ aNumber @ 0 ]
+]
+
 { #category : 'geometry - rotation' }
 CPPoolLaneGeometry class >> rotateProcessPoint: aPoint within: currentBodyExtent toHorizontal: isHorizontal [
 	"Horizontal -> vertical is clockwise so the left Pool header becomes the top header. The reverse transition is the exact inverse."

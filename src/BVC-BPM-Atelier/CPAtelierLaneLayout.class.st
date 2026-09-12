@@ -2,7 +2,7 @@
 
 These are editing and auto-layout rules, not renderer rules. BPMN DI remains authoritative for projection.
 
-I calculate the recursive LaneSet partition used by Participant resize for both BPMN orientations. Horizontal LaneSets partition top-to-bottom; vertical LaneSets partition left-to-right. I return proposed DI bounds; I do not write them."
+I calculate one recursive LaneSet partition algorithm for both BPMN orientations. Horizontal LaneSets use the y axis as their partition axis; vertical LaneSets use x. CPPoolLaneGeometry owns that axis mapping. I return proposed DI bounds; I do not write them."
 Class {
 	#name : 'CPAtelierLaneLayout',
 	#superclass : 'Object',
@@ -22,81 +22,108 @@ CPAtelierLaneLayout class >> minimumLaneWidth [
 ]
 
 { #category : 'geometry' }
+CPAtelierLaneLayout class >> minimumLaneLengthForHorizontal: isHorizontal [
+	^ isHorizontal
+		ifTrue: [ self minimumLaneHeight ]
+		ifFalse: [ self minimumLaneWidth ]
+]
+
+{ #category : 'geometry' }
 CPAtelierLaneLayout class >> contentClearance [
-	"Minimum clear space retained between the lowest contained FlowNode and the Lane boundary when a horizontal Lane is compressed by Atelier layout."
+	"Minimum clear space retained between the furthest contained FlowNode and the Lane boundary along the LaneSet partition axis."
 	^ 20
 ]
 
 { #category : 'geometry' }
 CPAtelierLaneLayout class >> minimumHeightForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext [
+	^ self
+		minimumLengthForLaneSet: aLaneSet
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: true
+]
+
+{ #category : 'geometry' }
+CPAtelierLaneLayout class >> minimumWidthForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext [
+	^ self
+		minimumLengthForLaneSet: aLaneSet
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: false
+]
+
+{ #category : 'geometry' }
+CPAtelierLaneLayout class >> minimumLengthForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext horizontal: isHorizontal [
 	^ (laneContext stagedLanesInLaneSet: aLaneSet)
 		inject: 0
-		into: [ :height :aLane |
-			height + (self minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext) ]
+		into: [ :length :aLane |
+			length + (self
+				minimumLengthForLane: aLane
+				using: laneContext
+				diagramContext: diagramContext
+				horizontal: isHorizontal) ]
 ]
 
 { #category : 'geometry' }
 CPAtelierLaneLayout class >> minimumHeightForLane: aLane using: laneContext diagramContext: diagramContext [
-	| childLaneSet childMinimum contentMinimum |
-	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
-	childMinimum := childLaneSet
-		ifNil: [ 0 ]
-		ifNotNil: [ self minimumHeightForLaneSet: childLaneSet using: laneContext diagramContext: diagramContext ].
-	contentMinimum := self minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext.
-	^ self minimumLaneHeight max: (childMinimum max: contentMinimum)
-]
-
-{ #category : 'geometry' }
-CPAtelierLaneLayout class >> minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext [
-	| laneShapes laneBounds contentBounds |
-	laneShapes := diagramContext shapesForModelElement: aLane.
-	laneShapes size = 1 ifFalse: [ ^ 0 ].
-	laneBounds := diagramContext boundsOf: laneShapes anyOne.
-	contentBounds := OrderedCollection new.
-	(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
-		| shapes |
-		shapes := diagramContext shapesForModelElement: aFlowNode.
-		shapes size = 1 ifTrue: [
-			contentBounds add: (diagramContext boundsOf: shapes anyOne) ] ].
-	contentBounds ifEmpty: [ ^ 0 ].
-	^ (contentBounds collect: [ :each | each bottom ]) max
-		- laneBounds top
-		+ self contentClearance
-]
-
-
-{ #category : 'geometry' }
-CPAtelierLaneLayout class >> minimumWidthForLaneSet: aLaneSet using: laneContext diagramContext: diagramContext [
-	^ (laneContext stagedLanesInLaneSet: aLaneSet)
-		inject: 0
-		into: [ :width :aLane |
-			width + (self
-				minimumWidthForLane: aLane
-				using: laneContext
-				diagramContext: diagramContext) ]
+	^ self
+		minimumLengthForLane: aLane
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: true
 ]
 
 { #category : 'geometry' }
 CPAtelierLaneLayout class >> minimumWidthForLane: aLane using: laneContext diagramContext: diagramContext [
+	^ self
+		minimumLengthForLane: aLane
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: false
+]
+
+{ #category : 'geometry' }
+CPAtelierLaneLayout class >> minimumLengthForLane: aLane using: laneContext diagramContext: diagramContext horizontal: isHorizontal [
 	| childLaneSet childMinimum contentMinimum |
 	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
 	childMinimum := childLaneSet
 		ifNil: [ 0 ]
 		ifNotNil: [
 			self
-				minimumWidthForLaneSet: childLaneSet
+				minimumLengthForLaneSet: childLaneSet
 				using: laneContext
-				diagramContext: diagramContext ].
+				diagramContext: diagramContext
+				horizontal: isHorizontal ].
 	contentMinimum := self
-		minimumContentWidthForLane: aLane
+		minimumContentLengthForLane: aLane
 		using: laneContext
-		diagramContext: diagramContext.
-	^ self minimumLaneWidth max: (childMinimum max: contentMinimum)
+		diagramContext: diagramContext
+		horizontal: isHorizontal.
+	^ (self minimumLaneLengthForHorizontal: isHorizontal)
+		max: (childMinimum max: contentMinimum)
+]
+
+{ #category : 'geometry' }
+CPAtelierLaneLayout class >> minimumContentHeightForLane: aLane using: laneContext diagramContext: diagramContext [
+	^ self
+		minimumContentLengthForLane: aLane
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: true
 ]
 
 { #category : 'geometry' }
 CPAtelierLaneLayout class >> minimumContentWidthForLane: aLane using: laneContext diagramContext: diagramContext [
-	| laneShapes laneBounds contentBounds |
+	^ self
+		minimumContentLengthForLane: aLane
+		using: laneContext
+		diagramContext: diagramContext
+		horizontal: false
+]
+
+{ #category : 'geometry' }
+CPAtelierLaneLayout class >> minimumContentLengthForLane: aLane using: laneContext diagramContext: diagramContext horizontal: isHorizontal [
+	| laneShapes laneBounds contentBounds furthestContentEnd |
 	laneShapes := diagramContext shapesForModelElement: aLane.
 	laneShapes size = 1 ifFalse: [ ^ 0 ].
 	laneBounds := diagramContext boundsOf: laneShapes anyOne.
@@ -107,11 +134,12 @@ CPAtelierLaneLayout class >> minimumContentWidthForLane: aLane using: laneContex
 		shapes size = 1 ifTrue: [
 			contentBounds add: (diagramContext boundsOf: shapes anyOne) ] ].
 	contentBounds ifEmpty: [ ^ 0 ].
-	^ (contentBounds collect: [ :each | each right ]) max
-		- laneBounds left
+	furthestContentEnd := (contentBounds collect: [ :each |
+		CPPoolLaneGeometry partitionEndOf: each horizontal: isHorizontal ]) max.
+	^ furthestContentEnd
+		- (CPPoolLaneGeometry partitionStartOf: laneBounds horizontal: isHorizontal)
 		+ self contentClearance
 ]
-
 
 { #category : 'geometry - reflow' }
 CPAtelierLaneLayout class >> bodyBoundsForLaneBounds: laneBounds shape: laneShape [
@@ -182,32 +210,13 @@ CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinBounds: parentBounds 
 
 { #category : 'geometry - reflow' }
 CPAtelierLaneLayout class >> reflowLaneSet: aLaneSet withinBounds: parentBounds using: laneContext diagramContext: diagramContext horizontal: isHorizontal into: proposedBounds [
-	isHorizontal
-		ifTrue: [
-			^ self
-				reflowHorizontalLaneSet: aLaneSet
-				withinBounds: parentBounds
-				using: laneContext
-				diagramContext: diagramContext
-				into: proposedBounds ]
-		ifFalse: [
-			^ self
-				reflowVerticalLaneSet: aLaneSet
-				withinBounds: parentBounds
-				using: laneContext
-				diagramContext: diagramContext
-				into: proposedBounds ]
-]
-
-{ #category : 'geometry - reflow' }
-CPAtelierLaneLayout class >> reflowHorizontalLaneSet: aLaneSet withinBounds: parentBounds using: laneContext diagramContext: diagramContext into: proposedBounds [
-	| lanes laneShapes currentBoundsByLane minimumHeightByLane totalHeight requiredHeight extraHeight cursorY remainingHeight remainingMinimum |
+	| lanes laneShapes currentBoundsByLane minimumLengthByLane totalLength requiredLength extraLength cursor remainingLength remainingMinimum parentPartitionStart parentCrossStart parentCrossLength |
 	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
 	lanes ifEmpty: [ ^ self ].
 
 	laneShapes := IdentityDictionary new.
 	currentBoundsByLane := IdentityDictionary new.
-	minimumHeightByLane := IdentityDictionary new.
+	minimumLengthByLane := IdentityDictionary new.
 	lanes do: [ :aLane |
 		| shapes laneShape laneBounds |
 		shapes := diagramContext shapesForModelElement: aLane.
@@ -216,36 +225,55 @@ CPAtelierLaneLayout class >> reflowHorizontalLaneSet: aLaneSet withinBounds: par
 		laneBounds := diagramContext boundsOf: laneShape.
 		laneShapes at: aLane put: laneShape.
 		currentBoundsByLane at: aLane put: laneBounds.
-		minimumHeightByLane
+		minimumLengthByLane
 			at: aLane
 			put: (self
-				minimumHeightForLane: aLane
+				minimumLengthForLane: aLane
 				using: laneContext
-				diagramContext: diagramContext) ].
+				diagramContext: diagramContext
+				horizontal: isHorizontal) ].
 
-	totalHeight := (currentBoundsByLane values collect: [ :each | each height ]) sum.
-	totalHeight > 0 ifFalse: [ ^ self ].
-	requiredHeight := minimumHeightByLane values sum.
-	parentBounds height >= requiredHeight ifFalse: [ ^ self ].
+	totalLength := (currentBoundsByLane values collect: [ :each |
+		CPPoolLaneGeometry partitionLengthOf: each horizontal: isHorizontal ]) sum.
+	totalLength > 0 ifFalse: [ ^ self ].
+	requiredLength := minimumLengthByLane values sum.
+	parentPartitionStart := CPPoolLaneGeometry
+		partitionStartOf: parentBounds
+		horizontal: isHorizontal.
+	parentCrossStart := CPPoolLaneGeometry
+		crossStartOf: parentBounds
+		horizontal: isHorizontal.
+	parentCrossLength := CPPoolLaneGeometry
+		crossLengthOf: parentBounds
+		horizontal: isHorizontal.
+	remainingLength := CPPoolLaneGeometry
+		partitionLengthOf: parentBounds
+		horizontal: isHorizontal.
+	remainingLength >= requiredLength ifFalse: [ ^ self ].
 
-	extraHeight := parentBounds height - requiredHeight.
-	cursorY := parentBounds top.
-	remainingHeight := parentBounds height.
-	remainingMinimum := requiredHeight.
+	extraLength := remainingLength - requiredLength.
+	cursor := parentPartitionStart.
+	remainingMinimum := requiredLength.
 
 	lanes withIndexDo: [ :aLane :index |
-		| currentBounds minimumHeight remainingMinimumAfter laneHeight laneBounds childLaneSet proportionalExtra laneShape |
+		| currentBounds minimumLength remainingMinimumAfter laneLength laneBounds childLaneSet proportionalExtra laneShape |
 		currentBounds := currentBoundsByLane at: aLane.
-		minimumHeight := minimumHeightByLane at: aLane.
-		remainingMinimumAfter := remainingMinimum - minimumHeight.
-		laneHeight := index = lanes size
-			ifTrue: [ remainingHeight ]
+		minimumLength := minimumLengthByLane at: aLane.
+		remainingMinimumAfter := remainingMinimum - minimumLength.
+		laneLength := index = lanes size
+			ifTrue: [ remainingLength ]
 			ifFalse: [
-				proportionalExtra := (extraHeight * currentBounds height / totalHeight) rounded.
-				(minimumHeight + proportionalExtra)
-					min: (remainingHeight - remainingMinimumAfter) ].
-		laneBounds := parentBounds left @ cursorY
-			extent: parentBounds width @ laneHeight.
+				proportionalExtra := (extraLength
+					* (CPPoolLaneGeometry partitionLengthOf: currentBounds horizontal: isHorizontal)
+					/ totalLength) rounded.
+				(minimumLength + proportionalExtra)
+					min: (remainingLength - remainingMinimumAfter) ].
+		laneBounds := CPPoolLaneGeometry
+			boundsWithPartitionStart: cursor
+			partitionLength: laneLength
+			crossStart: parentCrossStart
+			crossLength: parentCrossLength
+			horizontal: isHorizontal.
 		laneShape := laneShapes at: aLane.
 		proposedBounds at: laneShape put: laneBounds.
 
@@ -255,81 +283,14 @@ CPAtelierLaneLayout class >> reflowHorizontalLaneSet: aLaneSet withinBounds: par
 				reflowLaneSet: childLaneSet
 				withinBounds: (self
 					bodyBoundsForLaneBounds: laneBounds
-					horizontal: true)
+					horizontal: isHorizontal)
 				using: laneContext
 				diagramContext: diagramContext
-				horizontal: true
+				horizontal: isHorizontal
 				into: proposedBounds ].
 
-		cursorY := cursorY + laneHeight.
-		remainingHeight := remainingHeight - laneHeight.
-		remainingMinimum := remainingMinimumAfter ]
-]
-
-{ #category : 'geometry - reflow' }
-CPAtelierLaneLayout class >> reflowVerticalLaneSet: aLaneSet withinBounds: parentBounds using: laneContext diagramContext: diagramContext into: proposedBounds [
-	| lanes laneShapes currentBoundsByLane minimumWidthByLane totalWidth requiredWidth extraWidth cursorX remainingWidth remainingMinimum |
-	lanes := laneContext stagedLanesInLaneSet: aLaneSet.
-	lanes ifEmpty: [ ^ self ].
-
-	laneShapes := IdentityDictionary new.
-	currentBoundsByLane := IdentityDictionary new.
-	minimumWidthByLane := IdentityDictionary new.
-	lanes do: [ :aLane |
-		| shapes laneShape laneBounds |
-		shapes := diagramContext shapesForModelElement: aLane.
-		shapes size = 1 ifFalse: [ ^ self ].
-		laneShape := shapes anyOne.
-		laneBounds := diagramContext boundsOf: laneShape.
-		laneShapes at: aLane put: laneShape.
-		currentBoundsByLane at: aLane put: laneBounds.
-		minimumWidthByLane
-			at: aLane
-			put: (self
-				minimumWidthForLane: aLane
-				using: laneContext
-				diagramContext: diagramContext) ].
-
-	totalWidth := (currentBoundsByLane values collect: [ :each | each width ]) sum.
-	totalWidth > 0 ifFalse: [ ^ self ].
-	requiredWidth := minimumWidthByLane values sum.
-	parentBounds width >= requiredWidth ifFalse: [ ^ self ].
-
-	extraWidth := parentBounds width - requiredWidth.
-	cursorX := parentBounds left.
-	remainingWidth := parentBounds width.
-	remainingMinimum := requiredWidth.
-
-	lanes withIndexDo: [ :aLane :index |
-		| currentBounds minimumWidth remainingMinimumAfter laneWidth laneBounds childLaneSet proportionalExtra laneShape |
-		currentBounds := currentBoundsByLane at: aLane.
-		minimumWidth := minimumWidthByLane at: aLane.
-		remainingMinimumAfter := remainingMinimum - minimumWidth.
-		laneWidth := index = lanes size
-			ifTrue: [ remainingWidth ]
-			ifFalse: [
-				proportionalExtra := (extraWidth * currentBounds width / totalWidth) rounded.
-				(minimumWidth + proportionalExtra)
-					min: (remainingWidth - remainingMinimumAfter) ].
-		laneBounds := cursorX @ parentBounds top
-			extent: laneWidth @ parentBounds height.
-		laneShape := laneShapes at: aLane.
-		proposedBounds at: laneShape put: laneBounds.
-
-		childLaneSet := laneContext stagedChildLaneSetOf: aLane.
-		childLaneSet ifNotNil: [
-			self
-				reflowLaneSet: childLaneSet
-				withinBounds: (self
-					bodyBoundsForLaneBounds: laneBounds
-					horizontal: false)
-				using: laneContext
-				diagramContext: diagramContext
-				horizontal: false
-				into: proposedBounds ].
-
-		cursorX := cursorX + laneWidth.
-		remainingWidth := remainingWidth - laneWidth.
+		cursor := cursor + laneLength.
+		remainingLength := remainingLength - laneLength.
 		remainingMinimum := remainingMinimumAfter ]
 ]
 

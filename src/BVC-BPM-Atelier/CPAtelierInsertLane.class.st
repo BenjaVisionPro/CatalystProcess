@@ -1,6 +1,6 @@
 "I insert one fresh Lane before or after an existing Lane in the same staged LaneSet.
 
-I preserve Lane ordering, create the Lane CPShape, shift later Lane DI to make space, move the FlowNodes referenced by shifted Lane subtrees through CPAtelierMoveShapes, and grow the hosting Participant only when the proposed Lane structure no longer fits its current height.
+I preserve Lane ordering, create the Lane CPShape, shift later Lane DI to make space, move the FlowNodes referenced by shifted Lane subtrees through CPAtelierMoveShapes, and grow the hosting Participant along the LaneSet partition axis only when the proposed Lane structure no longer fits.
 
 CPAtelierLaneLayout owns the shared Lane minimum and recursive reflow policy. I orchestrate the semantic/DI mutation around that policy."
 Class {
@@ -31,7 +31,7 @@ CPAtelierInsertLane class >> lane: aLane relativeTo: aTargetLane after: aBoolean
 
 { #category : 'assessing' }
 CPAtelierInsertLane >> assess [
-	| laneContext laneSet laneSetMemento lanesDescription lanes targetIndex insertionIndex diagram diagramContext targetShapes targetShape targetBounds minimumLaneHeight targetMinimumHeight canSplit newLaneHeight newBounds targetProposedBounds shape elements proposedElements proposedLanes proposedLaneBoundsByShape shiftedLanes shiftAmount flowNodeBoundsByShape moveOperation moveAssessment participantResizeOperation participantResizeAssessment |
+	| laneContext laneSet laneSetMemento lanesDescription lanes targetIndex insertionIndex diagram diagramContext targetShapes targetShape targetBounds isHorizontal minimumLaneLength targetMinimumLength targetLength targetPartitionStart targetCrossStart targetCrossLength canSplit newLaneLength newBounds targetProposedBounds shape elements proposedElements proposedLanes proposedLaneBoundsByShape shiftedLanes shiftAmount flowNodeBoundsByShape moveOperation moveAssessment participantResizeOperation participantResizeAssessment |
 	lane ifNil: [ ^ self rejectedBecause: 'A fresh Lane is required.' ].
 	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
 	lane == targetLane ifTrue: [ ^ self rejectedBecause: 'The inserted Lane must differ from the target Lane.' ].
@@ -55,57 +55,88 @@ CPAtelierInsertLane >> assess [
 	targetShapes size = 1 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have exactly one diagram shape.' ].
 	targetShape := targetShapes anyOne.
 	targetBounds := diagramContext boundsOf: targetShape.
-	targetBounds height > 0 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have positive height.' ].
+	isHorizontal := self stagedIsHorizontalOf: targetShape in: diagramContext.
+	targetLength := CPPoolLaneGeometry partitionLengthOf: targetBounds horizontal: isHorizontal.
+	targetLength > 0 ifFalse: [ ^ self rejectedBecause: 'The target Lane must have positive partition length.' ].
+	targetPartitionStart := CPPoolLaneGeometry partitionStartOf: targetBounds horizontal: isHorizontal.
+	targetCrossStart := CPPoolLaneGeometry crossStartOf: targetBounds horizontal: isHorizontal.
+	targetCrossLength := CPPoolLaneGeometry crossLengthOf: targetBounds horizontal: isHorizontal.
 
-	minimumLaneHeight := self minimumLaneHeight.
-	targetMinimumHeight := CPAtelierLaneLayout
-		minimumHeightForLane: targetLane
+	minimumLaneLength := CPAtelierLaneLayout minimumLaneLengthForHorizontal: isHorizontal.
+	targetMinimumLength := CPAtelierLaneLayout
+		minimumLengthForLane: targetLane
 		using: laneContext
-		diagramContext: diagramContext.
+		diagramContext: diagramContext
+		horizontal: isHorizontal.
 	canSplit := (laneContext stagedChildLaneSetOf: targetLane) isNil
-		and: [ targetBounds height >= (targetMinimumHeight + minimumLaneHeight) ].
+		and: [ targetLength >= (targetMinimumLength + minimumLaneLength) ].
 	proposedLaneBoundsByShape := IdentityDictionary new.
 	shiftedLanes := OrderedCollection new.
 	shiftAmount := 0.
 
 	canSplit
 		ifTrue: [
-			newLaneHeight := (targetBounds height / 2)
-				max: minimumLaneHeight.
-			newLaneHeight := newLaneHeight
-				min: (targetBounds height - targetMinimumHeight).
+			newLaneLength := (targetLength / 2)
+				max: minimumLaneLength.
+			newLaneLength := newLaneLength
+				min: (targetLength - targetMinimumLength).
 			insertAfter
 				ifTrue: [
-					targetProposedBounds := targetBounds origin
-						extent: targetBounds width @ newLaneHeight.
-					newBounds := (targetBounds origin + (0 @ newLaneHeight))
-						extent: targetBounds width @ newLaneHeight ]
+					targetProposedBounds := CPPoolLaneGeometry
+						boundsWithPartitionStart: targetPartitionStart
+						partitionLength: newLaneLength
+						crossStart: targetCrossStart
+						crossLength: targetCrossLength
+						horizontal: isHorizontal.
+					newBounds := CPPoolLaneGeometry
+						boundsWithPartitionStart: targetPartitionStart + newLaneLength
+						partitionLength: newLaneLength
+						crossStart: targetCrossStart
+						crossLength: targetCrossLength
+						horizontal: isHorizontal ]
 				ifFalse: [
-					newBounds := targetBounds origin
-						extent: targetBounds width @ newLaneHeight.
-					targetProposedBounds := (targetBounds origin + (0 @ newLaneHeight))
-						extent: targetBounds width @ newLaneHeight.
+					newBounds := CPPoolLaneGeometry
+						boundsWithPartitionStart: targetPartitionStart
+						partitionLength: newLaneLength
+						crossStart: targetCrossStart
+						crossLength: targetCrossLength
+						horizontal: isHorizontal.
+					targetProposedBounds := CPPoolLaneGeometry
+						boundsWithPartitionStart: targetPartitionStart + newLaneLength
+						partitionLength: newLaneLength
+						crossStart: targetCrossStart
+						crossLength: targetCrossLength
+						horizontal: isHorizontal.
 					shiftedLanes add: targetLane.
-					shiftAmount := newLaneHeight ].
+					shiftAmount := newLaneLength ].
 			proposedLaneBoundsByShape at: targetShape put: targetProposedBounds ]
 		ifFalse: [
-			newLaneHeight := minimumLaneHeight.
+			newLaneLength := minimumLaneLength.
 			insertAfter
 				ifTrue: [
-					newBounds := (targetBounds origin + (0 @ targetBounds height))
-						extent: targetBounds width @ newLaneHeight.
+					newBounds := CPPoolLaneGeometry
+						boundsWithPartitionStart: targetPartitionStart + targetLength
+						partitionLength: newLaneLength
+						crossStart: targetCrossStart
+						crossLength: targetCrossLength
+						horizontal: isHorizontal.
 					(targetIndex + 1) to: lanes size do: [ :index |
 						shiftedLanes add: (lanes at: index) ] ]
 				ifFalse: [
-					newBounds := targetBounds origin
-						extent: targetBounds width @ newLaneHeight.
+					newBounds := CPPoolLaneGeometry
+						boundsWithPartitionStart: targetPartitionStart
+						partitionLength: newLaneLength
+						crossStart: targetCrossStart
+						crossLength: targetCrossLength
+						horizontal: isHorizontal.
 					targetIndex to: lanes size do: [ :index |
 						shiftedLanes add: (lanes at: index) ] ].
-			shiftAmount := newLaneHeight.
+			shiftAmount := newLaneLength.
 			shiftedLanes do: [ :aLane |
 				(self
 					addShiftedLaneSubtree: aLane
 					by: shiftAmount
+					horizontal: isHorizontal
 					using: laneContext
 					diagramContext: diagramContext
 					into: proposedLaneBoundsByShape) ifFalse: [
@@ -114,7 +145,7 @@ CPAtelierInsertLane >> assess [
 	shape := CPShape new
 		modelElement: lane;
 		bounds: newBounds;
-		isHorizontal: (self stagedIsHorizontalOf: targetShape in: diagramContext);
+		isHorizontal: isHorizontal;
 		yourself.
 	proposedLanes := lanes asOrderedCollection copy.
 	proposedLanes add: lane beforeIndex: insertionIndex.
@@ -133,6 +164,7 @@ CPAtelierInsertLane >> assess [
 		self
 			addShiftedFlowNodesForLaneSubtree: aLane
 			by: shiftAmount
+			horizontal: isHorizontal
 			using: laneContext
 			diagramContext: diagramContext
 			into: flowNodeBoundsByShape ].
@@ -151,7 +183,10 @@ CPAtelierInsertLane >> assess [
 
 	participantResizeOperation := canSplit
 		ifTrue: [ nil ]
-		ifFalse: [ self participantResizeOperationGrowingBy: newLaneHeight ].
+		ifFalse: [
+			self
+				participantResizeOperationGrowingBy: newLaneLength
+				horizontal: isHorizontal ].
 	participantResizeOperation
 		ifNil: [ participantResizeAssessment := nil ]
 		ifNotNil: [
@@ -208,8 +243,8 @@ CPAtelierInsertLane >> applyAssessment: anAssessment [
 ]
 
 { #category : 'private - assessing' }
-CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
-	| collaborationContext participant participantShapes participantShape participantBounds proposedBounds |
+CPAtelierInsertLane >> participantResizeOperationGrowingBy: aLength horizontal: isHorizontal [
+	| collaborationContext participant participantShapes participantShape participantBounds proposedBounds partitionStart partitionLength crossStart crossLength |
 	collaborationContext := self stagedCollaborationContext.
 	collaborationContext ifNil: [ ^ nil ].
 	participant := collaborationContext participantForProcess: processMemento model.
@@ -218,8 +253,16 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 	participantShapes size = 1 ifFalse: [ ^ nil ].
 	participantShape := participantShapes anyOne.
 	participantBounds := collaborationContext diagramContext boundsOf: participantShape.
-	proposedBounds := participantBounds origin
-		extent: participantBounds width @ (participantBounds height + aHeight).
+	partitionStart := CPPoolLaneGeometry partitionStartOf: participantBounds horizontal: isHorizontal.
+	partitionLength := CPPoolLaneGeometry partitionLengthOf: participantBounds horizontal: isHorizontal.
+	crossStart := CPPoolLaneGeometry crossStartOf: participantBounds horizontal: isHorizontal.
+	crossLength := CPPoolLaneGeometry crossLengthOf: participantBounds horizontal: isHorizontal.
+	proposedBounds := CPPoolLaneGeometry
+		boundsWithPartitionStart: partitionStart
+		partitionLength: partitionLength + aLength
+		crossStart: crossStart
+		crossLength: crossLength
+		horizontal: isHorizontal.
 	^ CPAtelierResizeParticipantFrame
 		shape: participantShape
 		bounds: proposedBounds
@@ -227,27 +270,26 @@ CPAtelierInsertLane >> participantResizeOperationGrowingBy: aHeight [
 		collaborationContext: collaborationContext
 ]
 
-{ #category : 'private - geometry' }
-CPAtelierInsertLane >> minimumLaneHeight [
-	^ CPAtelierLaneLayout minimumLaneHeight
-]
-
 { #category : 'private - assessing' }
-CPAtelierInsertLane >> addShiftedLaneSubtree: aLane by: aHeight using: laneContext diagramContext: aDiagramContext into: proposedBounds [
-	| shapes laneShape currentBounds childLaneSet |
+CPAtelierInsertLane >> addShiftedLaneSubtree: aLane by: aLength horizontal: isHorizontal using: laneContext diagramContext: aDiagramContext into: proposedBounds [
+	| shapes laneShape currentBounds childLaneSet translation |
 	shapes := aDiagramContext shapesForModelElement: aLane.
 	shapes size = 1 ifFalse: [ ^ false ].
 	laneShape := shapes anyOne.
 	currentBounds := aDiagramContext boundsOf: laneShape.
+	translation := CPPoolLaneGeometry
+		translationAlongPartitionBy: aLength
+		horizontal: isHorizontal.
 	proposedBounds
 		at: laneShape
-		put: (currentBounds translateBy: 0 @ aHeight).
+		put: (currentBounds translateBy: translation).
 	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
 	childLaneSet ifNotNil: [
 		(laneContext stagedLanesInLaneSet: childLaneSet) do: [ :aChildLane |
 			(self
 				addShiftedLaneSubtree: aChildLane
-				by: aHeight
+				by: aLength
+				horizontal: isHorizontal
 				using: laneContext
 				diagramContext: aDiagramContext
 				into: proposedBounds) ifFalse: [ ^ false ] ] ].
@@ -255,19 +297,23 @@ CPAtelierInsertLane >> addShiftedLaneSubtree: aLane by: aHeight using: laneConte
 ]
 
 { #category : 'private - assessing' }
-CPAtelierInsertLane >> addShiftedFlowNodesForLaneSubtree: aLane by: aHeight using: laneContext diagramContext: aDiagramContext into: proposedBounds [
-	| childLaneSet |
+CPAtelierInsertLane >> addShiftedFlowNodesForLaneSubtree: aLane by: aLength horizontal: isHorizontal using: laneContext diagramContext: aDiagramContext into: proposedBounds [
+	| childLaneSet translation |
+	translation := CPPoolLaneGeometry
+		translationAlongPartitionBy: aLength
+		horizontal: isHorizontal.
 	(laneContext stagedFlowNodeRefsOf: aLane) do: [ :aFlowNode |
 		(aDiagramContext shapesForModelElement: aFlowNode) do: [ :aFlowNodeShape |
 			proposedBounds
 				at: aFlowNodeShape
-				put: ((aDiagramContext boundsOf: aFlowNodeShape) translateBy: 0 @ aHeight) ] ].
+				put: ((aDiagramContext boundsOf: aFlowNodeShape) translateBy: translation) ] ].
 	childLaneSet := laneContext stagedChildLaneSetOf: aLane.
 	childLaneSet ifNotNil: [
 		(laneContext stagedLanesInLaneSet: childLaneSet) do: [ :aChildLane |
 			self
 				addShiftedFlowNodesForLaneSubtree: aChildLane
-				by: aHeight
+				by: aLength
+				horizontal: isHorizontal
 				using: laneContext
 				diagramContext: aDiagramContext
 				into: proposedBounds ] ]

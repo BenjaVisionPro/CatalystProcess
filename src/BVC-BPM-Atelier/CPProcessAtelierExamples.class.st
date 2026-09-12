@@ -2386,6 +2386,40 @@ CPProcessAtelierExamples >> changingBoundaryEventDefinitionPreservesBoundaryIden
 
 
 { #category : 'examples - lanes - vertical' }
+CPProcessAtelierExamples >> verticalLaneInsertionShiftsAlongWidthAndGrowsPoolWidth [
+	<gtExample>
+	| fixture memento firstLane firstLaneShape secondLaneShape editing inserted operation assessment insertedShape participantResizeAssessment |
+	fixture := self verticalLaneResizeFixture.
+	memento := fixture second.
+	firstLane := fixture fifth.
+	firstLaneShape := fixture sixth.
+	secondLaneShape := fixture eighth.
+
+	editing := self diagramEditingForMemento: memento.
+	inserted := CPLane new label: 'Inserted'; yourself.
+	operation := editing
+		insertLane: inserted
+		relativeTo: firstLane
+		after: false.
+	assessment := operation assess.
+
+	self assert: assessment isApplicable.
+	insertedShape := assessment shape.
+	self assert: insertedShape isHorizontal not.
+	self assert: insertedShape bounds equals: (0 @ 0 extent: 140 @ 300).
+	self assert: (assessment proposedLaneBoundsByShape at: firstLaneShape)
+		equals: (140 @ 0 extent: 200 @ 300).
+	self assert: (assessment proposedLaneBoundsByShape at: secondLaneShape)
+		equals: (340 @ 0 extent: 200 @ 300).
+	participantResizeAssessment := assessment participantResizeAssessment.
+	self assert: participantResizeAssessment notNil.
+	self assert: participantResizeAssessment proposedBounds
+		equals: (0 @ 0 extent: 540 @ 336).
+	^ assessment
+]
+
+
+{ #category : 'examples - lanes - vertical' }
 CPProcessAtelierExamples >> verticalPoolResizeReflowsLanesByWidth [
 	<gtExample>
 	| fixture memento participantShape context diagramContext operation assessment firstBounds secondBounds |
