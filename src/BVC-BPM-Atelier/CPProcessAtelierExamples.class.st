@@ -3476,3 +3476,27 @@ CPProcessAtelierExamples >> participantOrientationKeepsBoundaryEventAttachedToUp
 	self assert: boundaryBounds center x equals: activityBounds left.
 	^ assessment
 ]
+
+{ #category : 'examples - palette' }
+CPProcessAtelierExamples >> processPaletteUsesBpmnGridPresentationAndUnifiedEventTool [
+	<gtExample>
+	| process diagram viewModel labels element |
+	process := CPProcess new label: 'Palette process'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	process diagram: diagram.
+	viewModel := process asAtelier.
+	labels := viewModel palette items collect: #label.
+	element := viewModel asElement.
+
+	self assert: labels equals: #(
+		'Start event'
+		'End event'
+		'Event'
+		'Activity'
+		'Gateway'
+		'Sub-process'
+		'Call activity'
+		'Pool / Lane').
+	self assert: element paletteElement class equals: CPProcessPaletteElement.
+	^ element
+]

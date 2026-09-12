@@ -30,6 +30,7 @@ Class {
 		'diagramEditing',
 		'contextualAppendPaletteItems',
 		'poolPaletteItem',
+		'eventPaletteItem',
 		'diagramElementsRemovedBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
@@ -55,6 +56,7 @@ CPProcessVisualElement >> initialize [
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
 	contextualAppendPaletteItems := #().
 	poolPaletteItem := nil.
+	eventPaletteItem := nil.
 	laneSetVisual := nil.
 	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
@@ -99,6 +101,11 @@ CPProcessVisualElement >> contextualAppendPaletteItems: somePaletteItems [
 { #category : 'configuration' }
 CPProcessVisualElement >> poolPaletteItem: aPaletteItem [
 	poolPaletteItem := aPaletteItem
+]
+
+{ #category : 'configuration' }
+CPProcessVisualElement >> eventPaletteItem: aPaletteItem [
+	eventPaletteItem := aPaletteItem
 ]
 
 { #category : 'accessing' }
@@ -2989,9 +2996,24 @@ CPProcessVisualElement >> constrainedBounds: aRectangle forFlowElement: aFlowEle
 CPProcessVisualElement >> isBoundaryEventPaletteDragItem: aDragItem [
 	| candidate |
 	(self isPoolPaletteDragItem: aDragItem) ifTrue: [ ^ false ].
+	eventPaletteItem ifNotNil: [
+		(self paletteItemForDragItem: aDragItem) == eventPaletteItem ifTrue: [ ^ true ] ].
 	candidate := aDragItem domainObject.
 	candidate isParticipant ifTrue: [ ^ false ].
 	^ candidate isBoundaryEvent
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> boundaryEventCandidateForPaletteDragItem: aDragItem [
+	| candidate |
+	candidate := aDragItem domainObject.
+	candidate isBoundaryEvent ifTrue: [ ^ candidate ].
+	eventPaletteItem ifNil: [ ^ nil ].
+	(self paletteItemForDragItem: aDragItem) == eventPaletteItem ifFalse: [ ^ nil ].
+	^ CPBoundaryEvent new
+		label: candidate label;
+		eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
+		yourself
 ]
 
 { #category : 'private - creation' }
@@ -3001,8 +3023,8 @@ CPProcessVisualElement >> acceptsBoundaryEventPaletteDragItem: aDragItem attache
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
 	(sourceElement userData includesKey: #atelierPaletteSource) ifFalse: [ ^ false ].
-	candidate := aDragItem domainObject.
-	candidate isBoundaryEvent ifFalse: [ ^ false ].
+	candidate := self boundaryEventCandidateForPaletteDragItem: aDragItem.
+	candidate ifNil: [ ^ false ].
 	activityBounds := self stagedBoundsOf: anActivityShape.
 	extent := self extentForModelElement: candidate.
 	proposedBounds := ((self nearestPointOnBoundaryOf: activityBounds to: activityBounds center) - (extent / 2)) extent: extent.
@@ -3298,6 +3320,24 @@ CPProcessVisualElement >> dropPaletteEvent: anEvent [
 ]
 
 { #category : 'private - creation' }
+CPProcessVisualElement >> dropBoundaryEventPaletteEvent: anEvent [
+	| dragItem candidate globalPoint rootPoint targetVisual |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	candidate := self boundaryEventCandidateForPaletteDragItem: dragItem.
+	candidate ifNil: [ ^ self ].
+	globalPoint := anEvent currentTarget
+		localPointToGlobal: anEvent position.
+	rootPoint := rootVisual diagramPointForGlobalPoint: globalPoint.
+	targetVisual := rootVisual
+		processVisualAtRootDiagramPoint: rootPoint
+		excluding: nil.
+	^ targetVisual
+		createBoundaryEventPaletteItem: candidate
+		atRootDiagramPoint: rootPoint
+]
+
+{ #category : 'private - creation' }
 CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRootPoint [
 	| candidate elementExtent bounds operation assessment targetLane |
 	candidate := aDragItem domainObject.
@@ -3515,7 +3555,7 @@ CPProcessVisualElement >> installActivityPaletteDropOn: anActivityElement for: a
 				self boundaryEventPaletteTargetModelElement: nil ].
 			anEvent items size = 1 ifTrue: [
 				(self isBoundaryEventPaletteDragItem: anEvent items first)
-					ifTrue: [ self dropPaletteEvent: anEvent ]
+					ifTrue: [ self dropBoundaryEventPaletteEvent: anEvent ]
 					ifFalse: [
 						self
 							dropPaletteEvent: anEvent
@@ -4895,7 +4935,8 @@ CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 		diagramElementsRemovedDo: diagramElementsRemovedBlock;
 		diagramEditing: diagramEditing;
 		contextualAppendPaletteItems: contextualAppendPaletteItems;
-		poolPaletteItem: poolPaletteItem
+		poolPaletteItem: poolPaletteItem;
+		eventPaletteItem: eventPaletteItem
 ]
 
 { #category : 'private - subprocess' }

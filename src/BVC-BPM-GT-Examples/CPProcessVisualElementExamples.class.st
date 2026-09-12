@@ -4312,3 +4312,61 @@ CPProcessVisualElementExamples >> edgeVisualOwnsOrientationEndpointMotionTracks 
 	self assert: tracks third targetValue equals: 96 @ 74.
 	^ tracks
 ]
+
+{ #category : 'examples - palette' }
+CPProcessVisualElementExamples >> processPaletteUsesSharedHoverHelpWithoutItemTooltips [
+	<gtExample>
+	| palette first second third element firstCell |
+	palette := CFAtelierPalette new.
+	first := palette add: (CFAtelierPaletteItem
+		label: 'Start event'
+		icon: CPProcessPaletteIcons startEvent
+		provider: (CFAtelierFactoryProvider factory: [ CPNoneStartEvent new ])).
+	second := palette add: (CFAtelierPaletteItem
+		label: 'End event'
+		icon: CPProcessPaletteIcons endEvent
+		provider: (CFAtelierFactoryProvider factory: [ CPNoneEndEvent new ])).
+	third := palette add: (CFAtelierPaletteItem
+		label: 'Event'
+		icon: CPProcessPaletteIcons event
+		provider: (CFAtelierFactoryProvider factory: [ CPTimerIntermediateEvent new ])).
+	element := CPProcessPaletteElement new
+		paletteRows: { { first. second. third } };
+		palette: palette;
+		yourself.
+	firstCell := element newItemElementFor: first.
+
+	self assert: element hoverHelpElement notNil.
+	self assert: (firstCell userData at: #atelierPaletteItem) == first.
+	self assert: (firstCell userData at: #atelierPaletteSource).
+	^ element
+]
+
+{ #category : 'examples - palette' }
+CPProcessVisualElementExamples >> eventPaletteItemCanBecomeBoundaryEventCandidate [
+	<gtExample>
+	| fixture visual item source dragItem candidate |
+	fixture := self documentRootedNestedLaneDragFixture.
+	visual := fixture second.
+	item := CFAtelierPaletteItem
+		label: 'Event'
+		icon: CPProcessPaletteIcons event
+		provider: (CFAtelierFactoryProvider factory: [ CPTimerIntermediateEvent new label: 'Event'; yourself ]).
+	visual eventPaletteItem: item.
+	source := BlElement new.
+	source userData
+		at: #atelierPaletteSource put: true;
+		at: #atelierPaletteItem put: item.
+	dragItem := BlDragItem new
+		sourceElement: source;
+		domainObject: item materialize;
+		yourself.
+	candidate := visual boundaryEventCandidateForPaletteDragItem: dragItem.
+
+	self assert: (visual isBoundaryEventPaletteDragItem: dragItem).
+	self assert: candidate isBoundaryEvent.
+	self assert: candidate eventDefinitions size equals: 1.
+	self assert: candidate eventDefinitions first class equals: CPTimerEventDefinition.
+	^ candidate
+]
+

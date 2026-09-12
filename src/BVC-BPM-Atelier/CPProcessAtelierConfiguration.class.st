@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'session',
 		'contextualAppendPaletteItems',
-		'poolPaletteItem'
+		'poolPaletteItem',
+		'eventPaletteItem'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -26,59 +27,59 @@ CPProcessAtelierConfiguration class >> forSession: aSession [
 
 { #category : 'private - configuration' }
 CPProcessAtelierConfiguration >> configureProcessPalette [
-	| processPalette taskItem gatewayItem |
+	| processPalette startItem endItem taskItem gatewayItem subProcessItem callActivityItem paletteRows |
 	processPalette := CFAtelierPalette new.
-	processPalette
-		add: (poolPaletteItem := CFAtelierPaletteItem
-			label: 'Pool'
-			icon: CPParticipant icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPParticipant new label: 'Pool'; yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'Start event'
-			icon: CPNoneStartEvent icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPNoneStartEvent new label: 'Start'; yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'End event'
-			icon: CPNoneEndEvent icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPNoneEndEvent new label: 'End'; yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'Intermediate event'
-			icon: CPTimerIntermediateEvent icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPTimerIntermediateEvent new label: 'Event'; yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'Boundary event'
-			icon: CPBoundaryEvent icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPBoundaryEvent new
-					label: 'Boundary';
-					eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
-					yourself ])).
-	taskItem := processPalette add: (CFAtelierPaletteItem
-		label: 'Task'
-		icon: CPUserTask icon
+	startItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Start event'
+		icon: CPProcessPaletteIcons startEvent
 		provider: (CFAtelierFactoryProvider factory: [
-			CPUserTask new label: 'Task'; yourself ])).
-	processPalette
-		add: (CFAtelierPaletteItem
-			label: 'Call activity'
-			icon: CPCallActivity icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPCallActivity new label: 'Call activity'; yourself ]));
-		add: (CFAtelierPaletteItem
-			label: 'Sub-process'
-			icon: CPSubProcess icon
-			provider: (CFAtelierFactoryProvider factory: [
-				CPNoneSubProcess new label: 'Sub-process'; yourself ])).
+			CPNoneStartEvent new label: 'Start'; yourself ])).
+	endItem := processPalette add: (CFAtelierPaletteItem
+		label: 'End event'
+		icon: CPProcessPaletteIcons endEvent
+		provider: (CFAtelierFactoryProvider factory: [
+			CPNoneEndEvent new label: 'End'; yourself ])).
+	eventPaletteItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Event'
+		icon: CPProcessPaletteIcons event
+		provider: (CFAtelierFactoryProvider factory: [
+			CPTimerIntermediateEvent new label: 'Event'; yourself ])).
+	taskItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Activity'
+		icon: CPProcessPaletteIcons activity
+		provider: (CFAtelierFactoryProvider factory: [
+			CPUserTask new label: 'Activity'; yourself ])).
 	gatewayItem := processPalette add: (CFAtelierPaletteItem
 		label: 'Gateway'
-		icon: CPExclusiveGateway icon
+		icon: CPProcessPaletteIcons gateway
 		provider: (CFAtelierFactoryProvider factory: [
 			CPExclusiveGateway new label: 'Gateway'; yourself ])).
-	self palette: processPalette.
+	subProcessItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Sub-process'
+		icon: CPProcessPaletteIcons subProcess
+		provider: (CFAtelierFactoryProvider factory: [
+			CPNoneSubProcess new label: 'Sub-process'; yourself ])).
+	callActivityItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Call activity'
+		icon: CPProcessPaletteIcons callActivity
+		provider: (CFAtelierFactoryProvider factory: [
+			CPCallActivity new label: 'Call activity'; yourself ])).
+	poolPaletteItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Pool / Lane'
+		icon: CPProcessPaletteIcons poolLane
+		provider: (CFAtelierFactoryProvider factory: [
+			CPParticipant new label: 'Pool'; yourself ])).
+	paletteRows := {
+		{ startItem. endItem. eventPaletteItem }.
+		{ taskItem. gatewayItem }.
+		{ subProcessItem. callActivityItem }.
+		{ poolPaletteItem } }.
+	self
+		palette: processPalette;
+		paletteElementFactory: [
+			CPProcessPaletteElement new
+				paletteRows: paletteRows;
+				yourself ].
 	contextualAppendPaletteItems := { taskItem. gatewayItem }
 ]
 
@@ -91,6 +92,7 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 			documentContext: session documentContext;
 			diagramContext: session diagramContext;
 			poolPaletteItem: poolPaletteItem;
+			eventPaletteItem: eventPaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
 				processMemento: session processMemento
 				diagramContext: session diagramContext
