@@ -9,12 +9,12 @@ Class {
 
 { #category : 'private - icons' }
 CPProcessPaletteIcons class >> darkStartColor [
-	^ Color r: 0.05 g: 0.16 b: 0.07
+	^ Color r: 0.03 g: 0.38 b: 0.08
 ]
 
 { #category : 'private - icons' }
 CPProcessPaletteIcons class >> darkStopColor [
-	^ Color r: 0.19 g: 0.035 b: 0.035
+	^ Color r: 0.48 g: 0.025 b: 0.025
 ]
 
 { #category : 'private - icons' }

@@ -17,7 +17,7 @@ CPProcessPaletteElement >> configureAppearance [
 	self
 		hExact: 92;
 		vExact: 140;
-		padding: (BlInsets all: 8);
+		padding: (BlInsets all: 5);
 		cellSpacing: 0;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
 		border: (BlBorder paint: Color black width: 1);
@@ -77,8 +77,8 @@ CPProcessPaletteElement >> refresh [
 	maximumColumns := rows inject: 0 into: [ :maximum :aRow | maximum max: aRow size ].
 	contentWidth := (maximumColumns * 24) + (((maximumColumns - 1) max: 0) * 4).
 	self
-		hExact: contentWidth + 16;
-		vExact: (rows size * 26) + 12 + 16.
+		hExact: contentWidth + 10;
+		vExact: (rows size * 26) + 12 + 10.
 	rows do: [ :aRow |
 		| rowHost rowElement |
 		rowHost := BlElement new
