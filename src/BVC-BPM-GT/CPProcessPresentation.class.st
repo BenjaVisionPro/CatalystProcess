@@ -87,7 +87,7 @@ CPProcessPresentation >> prepareHostElement [
 		aptitude: BrScrollPaneAptitude
 			+ BrGlamorousWithVerticalScrollbarAptitude
 			+ CFGlassSurfaceAptitude new;
-		hExact: 340;
+		hExact: 300;
 		vFitContentLimited;
 		constraintsDo: [ :c |
 			c frame horizontal alignRight.
