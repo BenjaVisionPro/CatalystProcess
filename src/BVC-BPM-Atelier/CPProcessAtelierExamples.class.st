@@ -3402,3 +3402,43 @@ CPProcessAtelierExamples >> participantOrientationRoundTripRestoresExactGeometry
 	self assert: (diagramContext waypointsOf: (fixture at: 13)) equals: originalWaypoints.
 	^ horizontalAssessment
 ]
+
+{ #category : 'examples - lanes - orientation' }
+CPProcessAtelierExamples >> participantOrientationKeepsBoundaryEventAttachedToUprightActivity [
+	<gtExample>
+	| fixture process memento participantShape task taskShape diagramContext collaborationContext boundary creationAssessment boundaryShape editing assessment activityBounds boundaryBounds |
+	fixture := self participantOrientationRotationFixture.
+	process := fixture first.
+	memento := fixture second.
+	participantShape := fixture fourth.
+	task := fixture at: 11.
+	taskShape := fixture at: 12.
+	diagramContext := self diagramContextForMemento: memento.
+	collaborationContext := CPProcessCollaborationContext inRootMemento: memento.
+	boundary := CPBoundaryEvent new
+		eventDefinitions: { CPTimerEventDefinition new } asOrderedCollection;
+		yourself.
+	creationAssessment := (CPAtelierCreateBoundaryEvent
+		boundaryEvent: boundary
+		attachedTo: task
+		bounds: (384 @ 244 extent: 32 @ 32)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: diagramContext) apply.
+	self assert: creationAssessment isApplicable.
+	boundaryShape := creationAssessment shape.
+
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: memento
+		diagramContext: diagramContext
+		collaborationContext: collaborationContext
+		documentContext: nil.
+	assessment := (editing makeParticipantVertical: participantShape) apply.
+	self assert: assessment isApplicable.
+	activityBounds := diagramContext boundsOf: taskShape.
+	boundaryBounds := diagramContext boundsOf: boundaryShape.
+	self assert: activityBounds equals: (20 @ 370 extent: 100 @ 60).
+	self assert: boundaryBounds center equals: 20 @ 400.
+	self assert: boundaryBounds center x equals: activityBounds left.
+	^ assessment
+]

@@ -28,7 +28,8 @@ Class {
 		'boundaryInnerRing',
 		'boundaryEventDefinitionMarker',
 		'typePopup',
-		'uprightHost'
+		'uprightHost',
+		'attachmentHost'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -69,6 +70,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	boundaryInnerRing := nil.
 	boundaryEventDefinitionMarker := nil.
 	typePopup := nil.
+	attachmentHost := nil.
 	self userData at: #processDiagramElement put: aShape.
 	self userData at: #processModelElement put: aFlowNode.
 	self
@@ -910,6 +912,16 @@ CPProcessShapeElement >> uprightHost [
 ]
 
 { #category : 'accessing - orientation' }
+CPProcessShapeElement >> attachmentHost [
+	^ attachmentHost
+]
+
+{ #category : 'private - containment' }
+CPProcessShapeElement >> attachmentHost: anElement [
+	attachmentHost := anElement
+]
+
+{ #category : 'accessing - orientation' }
 CPProcessShapeElement >> orientationUprightElements [
 	"Answer the visual layers owned by this shape that inherit an orbital
 	quarter-turn but must remain upright on screen. The body host is always
@@ -954,6 +966,7 @@ CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalCente
 	self addChild: orbitalAnchor.
 	orbitalAnchor relocate: aPoint.
 	orbitalAnchor addChild: aBoundaryElement.
+	aBoundaryElement attachmentHost: orbitalAnchor.
 	aBoundaryElement relocate: (0 @ 0) - (anExtent / 2).
 	self forceLayout
 ]

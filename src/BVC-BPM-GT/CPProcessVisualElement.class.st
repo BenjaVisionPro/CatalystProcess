@@ -5406,6 +5406,38 @@ CPProcessVisualElement >> orientationUprightElements [
 
 
 { #category : 'accessing - orientation' }
+CPProcessVisualElement >> orientationBoundaryAttachmentCorrectionsForAssessment: anAssessment horizontal: isHorizontal [
+	"Answer local Motion translations for Boundary Event attachment anchors when
+	the assessed perimeter position differs from the rigidly rotated Boundary
+	centre. The inverse quarter-turn converts the final Process-space delta back
+	into the old Activity-local coordinate frame that is itself being rotated."
+	| corrections proposedFlowNodeBounds currentBodyExtent |
+	corrections := IdentityDictionary new.
+	proposedFlowNodeBounds := anAssessment proposedFlowNodeBoundsByShape.
+	currentBodyExtent := self
+		orientationCurrentBodyExtentForAssessment: anAssessment
+		horizontal: isHorizontal.
+	shapeElementsByShape keysAndValuesDo: [ :aShape :aShapeElement |
+		| modelElement currentBounds proposedBounds rigidBounds processDelta localDelta |
+		modelElement := self stagedModelElementOf: aShape.
+		(modelElement notNil and: [ modelElement isBoundaryEvent ]) ifTrue: [
+			aShapeElement attachmentHost ifNotNil: [ :anAttachmentHost |
+				currentBounds := self stagedBoundsOf: aShape.
+				proposedBounds := proposedFlowNodeBounds at: aShape ifAbsent: [ nil ].
+				(currentBounds notNil and: [ proposedBounds notNil ]) ifTrue: [
+					rigidBounds := CPPoolLaneGeometry
+						rotateUprightBounds: currentBounds
+						within: currentBodyExtent
+						toHorizontal: isHorizontal.
+					processDelta := proposedBounds center - rigidBounds center.
+					localDelta := CPPoolLaneGeometry
+						rotateProcessVector: processDelta
+						toHorizontal: isHorizontal not.
+					corrections at: anAttachmentHost put: localDelta ] ] ] ].
+	^ corrections
+]
+
+{ #category : 'accessing - orientation' }
 CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: anAssessment horizontal: isHorizontal [
 	"Answer the final screen-space correction for each SequenceFlow label after
 	the Pool's rigid quarter-turn. The inherited Pool rotation already carries

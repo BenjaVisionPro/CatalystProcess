@@ -36,7 +36,7 @@ CPAtelierSetParticipantOrientation class >> verticalShape: aShape processMemento
 
 { #category : 'assessing' }
 CPAtelierSetParticipantOrientation >> assess [
-	| context shapeMemento orientationDescription currentOrientation participant currentBounds proposedBounds laneContext diagramContext currentBodyExtent proposedLaneBounds proposedFlowNodeBounds proposedWaypoints proposedCollaborationWaypoints validationError laneShapes |
+	| context shapeMemento orientationDescription currentOrientation participant currentBounds proposedBounds laneContext diagramContext currentBodyExtent proposedLaneBounds proposedFlowNodeBounds proposedWaypoints proposedCollaborationWaypoints validationError laneShapes boundaryShapes boundaryDeltasByModelElement |
 	shape ifNil: [ ^ self rejectedBecause: 'A Participant diagram shape is required.' ].
 	context := self stagedCollaborationContext.
 	context ifNil: [ ^ self rejectedBecause: 'The Process has no staged definitional Collaboration diagram.' ].
@@ -71,6 +71,8 @@ CPAtelierSetParticipantOrientation >> assess [
 		diagramContext ifNil: [ ^ self rejectedBecause: 'The hosted Process has no staged diagram context.' ].
 		currentBodyExtent := self currentProcessBodyExtentForParticipantBounds: currentBounds.
 		laneShapes := IdentitySet new.
+		boundaryShapes := OrderedCollection new.
+		boundaryDeltasByModelElement := IdentityDictionary new.
 
 		laneContext stagedLanes do: [ :aLane |
 			| shapes laneShape laneBounds rotatedBounds |
@@ -89,24 +91,79 @@ CPAtelierSetParticipantOrientation >> assess [
 		diagramContext elements do: [ :anElement |
 			anElement isShape ifTrue: [
 				(laneShapes identityIncludes: anElement) ifFalse: [
-					| currentNodeBounds proposedNodeBounds |
-					currentNodeBounds := diagramContext boundsOf: anElement.
-					currentNodeBounds ifNil: [
-						^ self rejectedBecause: 'Every rotated FlowNode must have staged diagram bounds.' ].
-					proposedNodeBounds := self
-						rotateUprightBounds: currentNodeBounds
-						within: currentBodyExtent.
-					validationError := self
-						validationErrorForBounds: proposedNodeBounds
-						of: anElement
-						in: diagramContext.
-					validationError ifNotNil: [ ^ self rejectedBecause: validationError ].
-					proposedFlowNodeBounds at: anElement put: proposedNodeBounds ] ].
+					| modelElement currentNodeBounds proposedNodeBounds |
+					modelElement := diagramContext modelElementOf: anElement.
+					(modelElement notNil and: [ modelElement isBoundaryEvent ])
+						ifTrue: [ boundaryShapes add: anElement ]
+						ifFalse: [
+							currentNodeBounds := diagramContext boundsOf: anElement.
+							currentNodeBounds ifNil: [
+								^ self rejectedBecause: 'Every rotated FlowNode must have staged diagram bounds.' ].
+							proposedNodeBounds := self
+								rotateUprightBounds: currentNodeBounds
+								within: currentBodyExtent.
+							validationError := self
+								validationErrorForBounds: proposedNodeBounds
+								of: anElement
+								in: diagramContext.
+							validationError ifNotNil: [ ^ self rejectedBecause: validationError ].
+							proposedFlowNodeBounds at: anElement put: proposedNodeBounds ] ] ] ].
+
+		boundaryShapes do: [ :aBoundaryShape |
+			| boundaryEvent flowContext activity activityShapes activityShape currentBoundaryBounds currentActivityBounds proposedActivityBounds rigidBoundaryBounds proposedBoundaryBounds delta |
+			boundaryEvent := diagramContext modelElementOf: aBoundaryShape.
+			flowContext := CPProcessFlowContainerContext
+				containingFlowElement: boundaryEvent
+				inRootMemento: processMemento.
+			flowContext ifNil: [ ^ self rejectedBecause: 'Every rotated Boundary Event must have a staged flow-container context.' ].
+			activity := flowContext stagedAttachedToOf: boundaryEvent.
+			activity ifNil: [ ^ self rejectedBecause: 'Every rotated Boundary Event must have an attached Activity.' ].
+			activityShapes := diagramContext shapesForModelElement: activity.
+			activityShapes size = 1 ifFalse: [
+				^ self rejectedBecause: 'Every Activity with a rotated Boundary Event must have exactly one diagram shape.' ].
+			activityShape := activityShapes anyOne.
+			currentBoundaryBounds := diagramContext boundsOf: aBoundaryShape.
+			currentActivityBounds := diagramContext boundsOf: activityShape.
+			proposedActivityBounds := proposedFlowNodeBounds at: activityShape ifAbsent: [
+				^ self rejectedBecause: 'The attached Activity must have proposed bounds before its Boundary Event is rotated.' ].
+			rigidBoundaryBounds := self
+				rotateUprightBounds: currentBoundaryBounds
+				within: currentBodyExtent.
+			proposedBoundaryBounds := CPPoolLaneGeometry
+				rotateBoundaryEventBounds: currentBoundaryBounds
+				fromActivityBounds: currentActivityBounds
+				toActivityBounds: proposedActivityBounds
+				toHorizontal: isHorizontal.
+			validationError := self
+				validationErrorForBounds: proposedBoundaryBounds
+				of: aBoundaryShape
+				in: diagramContext.
+			validationError ifNotNil: [ ^ self rejectedBecause: validationError ].
+			proposedFlowNodeBounds at: aBoundaryShape put: proposedBoundaryBounds.
+			delta := proposedBoundaryBounds origin - rigidBoundaryBounds origin.
+			boundaryDeltasByModelElement at: boundaryEvent put: delta ].
+
+		diagramContext elements do: [ :anElement |
 			anElement isEdge ifTrue: [
-				proposedWaypoints
-					at: anElement
-					put: ((diagramContext waypointsOf: anElement)
-						collect: [ :aPoint | self rotateProcessPoint: aPoint within: currentBodyExtent ]) asOrderedCollection ] ] ].
+				| modelElement flowContext waypoints source target sourceDelta targetDelta |
+				waypoints := ((diagramContext waypointsOf: anElement)
+					collect: [ :aPoint | self rotateProcessPoint: aPoint within: currentBodyExtent ]) asOrderedCollection.
+				modelElement := diagramContext modelElementOf: anElement.
+				flowContext := modelElement ifNotNil: [
+					CPProcessFlowContainerContext
+						containingFlowElement: modelElement
+						inRootMemento: processMemento ].
+				flowContext ifNotNil: [
+					source := flowContext stagedSourceOf: modelElement.
+					target := flowContext stagedTargetOf: modelElement.
+					sourceDelta := boundaryDeltasByModelElement at: source ifAbsent: [ 0 @ 0 ].
+					targetDelta := boundaryDeltasByModelElement at: target ifAbsent: [ 0 @ 0 ].
+					(sourceDelta isZero or: [ waypoints isEmpty ]) ifFalse: [
+						waypoints at: 1 put: waypoints first + sourceDelta ].
+					(targetDelta isZero or: [ waypoints isEmpty ]) ifFalse: [
+						waypoints at: waypoints size put: waypoints last + targetDelta ] ].
+				proposedWaypoints at: anElement put: waypoints ] ].
+	].
 
 	^ CPAtelierResizeParticipantAssessment new
 		shape: shape;
