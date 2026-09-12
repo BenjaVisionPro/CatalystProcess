@@ -193,6 +193,27 @@ CPProcessEdgeVisual >> orientationUprightElements [
 		ifNotNil: [ { labelHost } ]
 ]
 
+{ #category : 'accessing - orientation' }
+CPProcessEdgeVisual >> orientationEndpointTracksToSource: aSourcePoint target: aTargetPoint [
+	"Answer Foundation Motion tracks that explicitly converge the two rendered
+	path endpoints. Interior absolute waypoint anchors remain rigid under the Pool
+	quarter-turn and need no independent animation."
+	| tracks |
+	(lineElements isEmpty or: [ hitElements isEmpty ]) ifTrue: [ ^ #() ].
+	tracks := OrderedCollection new.
+	{ lineElements first. hitElements first } do: [ :aLine |
+		tracks add: ((CFMotionPropertyTrack
+			on: aLine
+			property: CPProcessEdgeFromPointMotionProperty uniqueInstance
+			target: aSourcePoint) adoptAtDestination) ].
+	{ lineElements last. hitElements last } do: [ :aLine |
+		tracks add: ((CFMotionPropertyTrack
+			on: aLine
+			property: CPProcessEdgeToPointMotionProperty uniqueInstance
+			target: aTargetPoint) adoptAtDestination) ].
+	^ tracks
+]
+
 { #category : 'label' }
 CPProcessEdgeVisual >> hasLabelHost [
 	^ labelHost notNil

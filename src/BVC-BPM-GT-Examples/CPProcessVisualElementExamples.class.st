@@ -4245,3 +4245,30 @@ CPProcessVisualElementExamples >> orientationProcessContentHandoffCorrectionToVe
 	^ geometricEndpoint - presentationEndpoint
 ]
 
+
+{ #category : 'examples - orientation' }
+CPProcessVisualElementExamples >> edgeVisualOwnsOrientationEndpointMotionTracks [
+	<gtExample>
+	| edge visual parent tracks |
+	edge := CPEdge new.
+	parent := BlElement new layout: BlFrameLayout new; yourself.
+	visual := CPProcessEdgeVisual new edge: edge.
+	visual
+		addSegmentFrom: (BlAbsolutePositionAnchor position: 10 @ 20)
+		to: (BlAbsolutePositionAnchor position: 90 @ 70)
+		arrowhead: true
+		color: Color black
+		segmentIndex: 1
+		installInteraction: [ :anElement :anIndex | ]
+		addTo: parent.
+	tracks := visual
+		orientationEndpointTracksToSource: 14 @ 24
+		target: 96 @ 74.
+
+	self assert: tracks size equals: 4.
+	self assert: tracks first property == CPProcessEdgeFromPointMotionProperty uniqueInstance.
+	self assert: tracks first targetValue equals: 14 @ 24.
+	self assert: tracks third property == CPProcessEdgeToPointMotionProperty uniqueInstance.
+	self assert: tracks third targetValue equals: 96 @ 74.
+	^ tracks
+]

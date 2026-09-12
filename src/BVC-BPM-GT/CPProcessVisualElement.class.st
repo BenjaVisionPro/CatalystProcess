@@ -5438,6 +5438,60 @@ CPProcessVisualElement >> orientationBoundaryAttachmentCorrectionsForAssessment:
 ]
 
 { #category : 'accessing - orientation' }
+CPProcessVisualElement >> orientationConnectionEndpointTracksForAssessment: anAssessment horizontal: isHorizontal [
+	"Answer Motion tracks that make live rendered edge endpoints converge on the
+	post-orientation docking points from the authoritative assessment. DI interior
+	waypoints already undergo the same rigid quarter-turn as the Pool and therefore
+	need no separate presentation correction."
+	| tracks proposedFlowNodeBounds proposedWaypoints currentBodyExtent |
+	tracks := OrderedCollection new.
+	proposedFlowNodeBounds := anAssessment proposedFlowNodeBoundsByShape.
+	proposedWaypoints := anAssessment proposedWaypointsByEdge.
+	currentBodyExtent := self
+		orientationCurrentBodyExtentForAssessment: anAssessment
+		horizontal: isHorizontal.
+
+	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
+		| currentWaypoints currentPoints finalWaypoints finalPoints sourceRigidFinal targetRigidFinal sourceProcessDelta targetProcessDelta sourceLocalDelta targetLocalDelta sourceTarget targetTarget |
+		currentWaypoints := self stagedWaypointsOf: anEdge.
+		currentPoints := self
+			renderedPathPointsFor: anEdge
+			waypoints: currentWaypoints
+			flowNodeBoundsByShape: IdentityDictionary new.
+		finalWaypoints := proposedWaypoints
+			at: anEdge
+			ifAbsent: [ currentWaypoints ].
+		finalPoints := self
+			renderedPathPointsFor: anEdge
+			waypoints: finalWaypoints
+			flowNodeBoundsByShape: proposedFlowNodeBounds.
+		(currentPoints size >= 2 and: [ finalPoints size >= 2 ]) ifTrue: [
+			sourceRigidFinal := self
+				orientationPoint: currentPoints first
+				within: currentBodyExtent
+				horizontal: isHorizontal.
+			targetRigidFinal := self
+				orientationPoint: currentPoints last
+				within: currentBodyExtent
+				horizontal: isHorizontal.
+			sourceProcessDelta := finalPoints first - sourceRigidFinal.
+			targetProcessDelta := finalPoints last - targetRigidFinal.
+			sourceLocalDelta := CPPoolLaneGeometry
+				rotateProcessVector: sourceProcessDelta
+				toHorizontal: isHorizontal not.
+			targetLocalDelta := CPPoolLaneGeometry
+				rotateProcessVector: targetProcessDelta
+				toHorizontal: isHorizontal not.
+			sourceTarget := currentPoints first + sourceLocalDelta.
+			targetTarget := currentPoints last + targetLocalDelta.
+			tracks addAll: (anEdgeVisual
+				orientationEndpointTracksToSource: sourceTarget
+				target: targetTarget) ] ].
+	^ tracks
+]
+
+
+{ #category : 'accessing - orientation' }
 CPProcessVisualElement >> orientationConnectionLabelCorrectionsForAssessment: anAssessment horizontal: isHorizontal [
 	"Answer the final screen-space correction for each SequenceFlow label after
 	the Pool's rigid quarter-turn. The inherited Pool rotation already carries

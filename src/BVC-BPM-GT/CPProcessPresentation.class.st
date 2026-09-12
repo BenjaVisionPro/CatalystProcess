@@ -550,7 +550,7 @@ CPProcessPresentation >> isParticipantModelElement: aModelElement [
 
 { #category : 'private - collaboration' }
 CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizontal: isHorizontal assessment: assessment commit: commitBlock [
-	| participantElement processVisual uprightElements connectionLabelCorrections boundaryAttachmentCorrections contentHandoffCorrection rootTargetRotation uprightTargetRotation tracks space motion |
+	| participantElement processVisual uprightElements connectionEndpointTracks connectionLabelCorrections boundaryAttachmentCorrections contentHandoffCorrection rootTargetRotation uprightTargetRotation tracks space motion |
 	collaborationDiagramElement ifNil: [
 		^ self
 			commitParticipantOrientationFor: aParticipant
@@ -580,6 +580,10 @@ CPProcessPresentation >> animateParticipantOrientationFor: aParticipant horizont
 	processVisual := participantElement processVisual.
 	processVisual ifNotNil: [
 		uprightElements := processVisual orientationUprightElements.
+		connectionEndpointTracks := processVisual
+			orientationConnectionEndpointTracksForAssessment: assessment
+			horizontal: isHorizontal.
+		tracks addAll: connectionEndpointTracks.
 		connectionLabelCorrections := processVisual
 			orientationConnectionLabelCorrectionsForAssessment: assessment
 			horizontal: isHorizontal.
