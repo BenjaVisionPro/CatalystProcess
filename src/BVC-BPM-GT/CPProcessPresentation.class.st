@@ -396,16 +396,18 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
-	| viewModel detailElement |
+	| viewModel detailPresentation detailElement |
+	detailPresentation := CFMaDetailPresentation new beOverlay.
 	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
 	viewModel
 		ignoreImplicitActions;
-		elementBuilderDo: [ CFMaDetailPresentation new beOverlay ].
+		elementBuilderDo: [ detailPresentation ].
 	detailElement := viewModel asElement.
-	(self isParticipantModelElement: aModelElement) ifFalse: [ ^ detailElement ].
-	^ self
-		newParticipantDetailElementFor: aModelElement
-		semanticDetail: detailElement
+	(self isParticipantModelElement: aModelElement) ifTrue: [
+		self
+			addParticipantOrientationFor: aModelElement
+			to: detailPresentation ].
+	^ detailElement
 ]
 
 { #category : 'private - theme' }
@@ -515,19 +517,19 @@ CPProcessPresentation >> workspaceElement [
 
 
 { #category : 'private - selection' }
-CPProcessPresentation >> newParticipantDetailElementFor: aParticipant semanticDetail: semanticDetailElement [
-	| collaborationContext shapes participantShape shapeMemento orientationDescription stagedIsHorizontal selection selectionViewModel orientationElement container |
+CPProcessPresentation >> addParticipantOrientationFor: aParticipant to: aDetailPresentation [
+	| collaborationContext shapes participantShape shapeMemento shapeOrientationDescription stagedIsHorizontal selection selectionMemento orientationDescription |
 	collaborationContext := self collaborationContext.
-	collaborationContext ifNil: [ ^ semanticDetailElement ].
+	collaborationContext ifNil: [ ^ self ].
 	shapes := collaborationContext diagramContext shapesForModelElement: aParticipant.
-	shapes size = 1 ifFalse: [ ^ semanticDetailElement ].
+	shapes size = 1 ifFalse: [ ^ self ].
 	participantShape := shapes anyOne.
 	shapeMemento := collaborationContext diagramContext mementoFor: participantShape.
-	shapeMemento ifNil: [ ^ semanticDetailElement ].
-	orientationDescription := shapeMemento magritteDescription
+	shapeMemento ifNil: [ ^ self ].
+	shapeOrientationDescription := shapeMemento magritteDescription
 		detect: [ :each | each handlesSelector: #isHorizontal ]
-		ifNone: [ ^ semanticDetailElement ].
-	stagedIsHorizontal := shapeMemento readUsing: orientationDescription.
+		ifNone: [ ^ self ].
+	stagedIsHorizontal := shapeMemento readUsing: shapeOrientationDescription.
 	selection := CPParticipantOrientationSelection
 		shape: participantShape
 		horizontal: stagedIsHorizontal
@@ -538,21 +540,13 @@ CPProcessPresentation >> newParticipantDetailElementFor: aParticipant semanticDe
 				horizontal: isHorizontal
 				assessment: assessment
 				commit: commitBlock ].
-	selectionViewModel := CFMaViewModel forObject: selection.
-	selectionViewModel
-		ignoreImplicitActions;
-		elementBuilderDo: [ CFMaDetailPresentation new ].
-	orientationElement := selectionViewModel asElement.
-	container := BrVerticalPane new
-		hMatchParent;
-		vFitContent;
-		cellSpacing: 8;
-		addChild: semanticDetailElement;
-		addChild: orientationElement;
-		yourself.
-	^ container
+	selectionMemento := CFMaMemento model: selection.
+	orientationDescription := selectionMemento magritteDescription
+		detect: [ :each | each handlesSelector: #isHorizontal ].
+	aDetailPresentation
+		addGroupedButtonsSingleOptionUsing: orientationDescription
+		memento: selectionMemento
 ]
-
 
 { #category : 'private - selection' }
 CPProcessPresentation >> isParticipantModelElement: aModelElement [
