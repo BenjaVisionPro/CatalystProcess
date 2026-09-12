@@ -83,8 +83,14 @@ CPProcessPresentation >> prepareHostElement [
 
 	detailScrollElement := BrScrollPane new
 		background: Color transparent;
+		effect: (BlBlurBelowEffect radius: 10);
 		allowMeAndChildrenMouseEvents;
-		aptitude: BrScrollPaneAptitude + BrGlamorousWithVerticalScrollbarAptitude;
+		aptitude: BrScrollPaneAptitude
+			+ BrGlamorousWithVerticalScrollbarAptitude
+			+ (BrLazyStyleCommonAptitude new
+				default: [ :aStyle |
+					aStyle background: self hostElement theme interaction subtleBackgroundTint ];
+				yourself);
 		hExact: 380;
 		vFitContentLimited;
 		constraintsDo: [ :c |
