@@ -3488,9 +3488,9 @@ CPProcessAtelierExamples >> processPaletteUsesBpmnGridPresentationAndUnifiedEven
 	labels := viewModel palette items collect: #label.
 	element := viewModel asElement.
 
-	self assert: labels equals: #(
-		'Start event'
-		'End event'
+	self assert: labels asArray equals: #(
+		'Start'
+		'Stop'
 		'Event'
 		'Activity'
 		'Gateway'

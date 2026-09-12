@@ -4319,11 +4319,11 @@ CPProcessVisualElementExamples >> processPaletteUsesSharedHoverHelpWithoutItemTo
 	| palette first second third element firstCell |
 	palette := CFAtelierPalette new.
 	first := palette add: (CFAtelierPaletteItem
-		label: 'Start event'
+		label: 'Start'
 		icon: CPProcessPaletteIcons startEvent
 		provider: (CFAtelierFactoryProvider factory: [ CPNoneStartEvent new ])).
 	second := palette add: (CFAtelierPaletteItem
-		label: 'End event'
+		label: 'Stop'
 		icon: CPProcessPaletteIcons endEvent
 		provider: (CFAtelierFactoryProvider factory: [ CPNoneEndEvent new ])).
 	third := palette add: (CFAtelierPaletteItem

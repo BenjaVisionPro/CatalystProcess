@@ -15,11 +15,11 @@ Class {
 { #category : 'private - building' }
 CPProcessPaletteElement >> configureAppearance [
 	self
-		hExact: 190;
+		hExact: 132;
 		vFitContent;
-		padding: (BlInsets all: 10);
-		cellSpacing: 12;
-		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
+		padding: (BlInsets all: 6);
+		cellSpacing: 5;
+		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
 		border: (BlBorder paint: Color black width: 1);
 		addAptitude: CFGlassSurfaceAptitude new
 ]
@@ -27,11 +27,13 @@ CPProcessPaletteElement >> configureAppearance [
 { #category : 'private - building' }
 CPProcessPaletteElement >> newHeaderElement [
 	^ BlElement new
+		extent: 28 @ 4;
+		geometry: (BlRoundedRectangleGeometry cornerRadius: 2);
+		background: (Color black alpha: 0.45);
 		constraintsDo: [ :c |
-			c horizontal matchParent.
-			c vertical exact: 16 ];
-		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
-		background: Color black;
+			c horizontal fitContent.
+			c vertical fitContent.
+			c linear horizontal alignCenter ];
 		yourself
 ]
 
@@ -40,7 +42,7 @@ CPProcessPaletteElement >> newItemsElement [
 	^ BrVerticalPane new
 		hMatchParent;
 		vFitContent;
-		cellSpacing: 12;
+		cellSpacing: 5;
 		yourself
 ]
 
@@ -69,12 +71,12 @@ CPProcessPaletteElement >> refresh [
 	rows := paletteRows ifNil: [ { palette items } ].
 	rows do: [ :aRow |
 		| rowElement rowWidth leftPadding |
-		rowWidth := (aRow size * 48) + (((aRow size - 1) max: 0) * 10).
-		leftPadding := ((170 - rowWidth) max: 0) / 2.
+		rowWidth := (aRow size * 36) + (((aRow size - 1) max: 0) * 4).
+		leftPadding := ((120 - rowWidth) max: 0) / 2.
 		rowElement := BrHorizontalPane new
 			hMatchParent;
-			vExact: 44;
-			cellSpacing: 10;
+			vExact: 32;
+			cellSpacing: 4;
 			padding: (BlInsets top: 0 right: 0 bottom: 0 left: leftPadding);
 			yourself.
 		aRow do: [ :anItem |
@@ -90,7 +92,7 @@ CPProcessPaletteElement >> addHoverHelpElement [
 	helpHost := BlElement new
 		constraintsDo: [ :c |
 			c horizontal matchParent.
-			c vertical exact: 28 ];
+			c vertical exact: 20 ];
 		layout: BlFrameLayout new;
 		yourself.
 	hoverHelpElement := BrLabel new
@@ -110,7 +112,7 @@ CPProcessPaletteElement >> addHoverHelpElement [
 CPProcessPaletteElement >> newItemElementFor: anItem [
 	| cell iconElement |
 	cell := BlElement new
-		extent: 48 @ 44;
+		extent: 36 @ 32;
 		layout: BlFrameLayout new;
 		background: Color transparent;
 		yourself.

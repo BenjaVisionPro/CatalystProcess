@@ -25,7 +25,7 @@ CPProcessPaletteIcons class >> event [
 { #category : 'private - icons' }
 CPProcessPaletteIcons class >> eventElementWithBorderColor: aColor borderWidth: aWidth [
 	^ BlElement new
-		extent: 28 @ 28;
+		extent: 24 @ 24;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
 		border: (BlBorder paint: aColor width: aWidth);
@@ -35,7 +35,7 @@ CPProcessPaletteIcons class >> eventElementWithBorderColor: aColor borderWidth: 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> activity [
 	^ [ BlElement new
-		extent: 36 @ 26;
+		extent: 30 @ 22;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 2);
@@ -45,12 +45,12 @@ CPProcessPaletteIcons class >> activity [
 { #category : 'icons' }
 CPProcessPaletteIcons class >> gateway [
 	^ [ BlElement new
-		extent: 30 @ 30;
+		extent: 24 @ 24;
 		geometry: (BlPolygonGeometry vertices: {
-			15 @ 0.
-			30 @ 15.
-			15 @ 30.
-			0 @ 15 });
+			12 @ 0.
+			24 @ 12.
+			12 @ 24.
+			0 @ 12 });
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 2);
 		yourself ] asStencil
@@ -61,7 +61,7 @@ CPProcessPaletteIcons class >> subProcess [
 	^ [
 		| element firstDot secondDot |
 		element := BlElement new
-			extent: 36 @ 26;
+			extent: 30 @ 22;
 			layout: BlFrameLayout new;
 			geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 			background: Color transparent;
@@ -74,7 +74,7 @@ CPProcessPaletteIcons class >> subProcess [
 			constraintsDo: [ :c |
 				c frame horizontal alignCenter.
 				c frame vertical alignBottom.
-				c margin: (BlInsets top: 0 right: 7 bottom: 4 left: 0) ];
+				c margin: (BlInsets top: 0 right: 7 bottom: 3 left: 0) ];
 			yourself.
 		secondDot := BlElement new
 			extent: 3 @ 3;
@@ -83,7 +83,7 @@ CPProcessPaletteIcons class >> subProcess [
 			constraintsDo: [ :c |
 				c frame horizontal alignCenter.
 				c frame vertical alignBottom.
-				c margin: (BlInsets top: 0 right: 0 bottom: 4 left: 7) ];
+				c margin: (BlInsets top: 0 right: 0 bottom: 3 left: 7) ];
 			yourself.
 		element addChild: firstDot; addChild: secondDot.
 		element ] asStencil
@@ -92,7 +92,7 @@ CPProcessPaletteIcons class >> subProcess [
 { #category : 'icons' }
 CPProcessPaletteIcons class >> callActivity [
 	^ [ BlElement new
-		extent: 36 @ 26;
+		extent: 30 @ 22;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 4);
@@ -104,19 +104,19 @@ CPProcessPaletteIcons class >> poolLane [
 	^ [
 		| element divider |
 		element := BlElement new
-			extent: 42 @ 26;
+			extent: 34 @ 22;
 		layout: BlFrameLayout new;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
 		background: Color transparent;
 		border: (BlBorder paint: Color black width: 2);
 		yourself.
 		divider := BlElement new
-			extent: 2 @ 24;
+			extent: 2 @ 20;
 			background: Color black;
 			constraintsDo: [ :c |
 				c frame horizontal alignLeft.
 				c frame vertical alignCenter.
-				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 10) ];
+				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 8) ];
 			yourself.
 		element addChild: divider.
 		element ] asStencil

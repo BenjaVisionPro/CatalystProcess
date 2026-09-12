@@ -30,12 +30,12 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 	| processPalette startItem endItem taskItem gatewayItem subProcessItem callActivityItem paletteRows |
 	processPalette := CFAtelierPalette new.
 	startItem := processPalette add: (CFAtelierPaletteItem
-		label: 'Start event'
+		label: 'Start'
 		icon: CPProcessPaletteIcons startEvent
 		provider: (CFAtelierFactoryProvider factory: [
 			CPNoneStartEvent new label: 'Start'; yourself ])).
 	endItem := processPalette add: (CFAtelierPaletteItem
-		label: 'End event'
+		label: 'Stop'
 		icon: CPProcessPaletteIcons endEvent
 		provider: (CFAtelierFactoryProvider factory: [
 			CPNoneEndEvent new label: 'End'; yourself ])).
