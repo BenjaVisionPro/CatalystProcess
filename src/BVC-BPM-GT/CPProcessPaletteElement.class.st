@@ -21,7 +21,11 @@ CPProcessPaletteElement >> configureAppearance [
 		cellSpacing: 0;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
 		border: (BlBorder paint: Color black width: 1);
-		addAptitude: CFGlassSurfaceAptitude new.
+		effect: (BlBlurBelowEffect radius: 10);
+		addAptitude: (BrLazyStyleCommonAptitude new
+			default: [ :aStyle |
+				aStyle background: self theme interaction subtleBackgroundTint ];
+			yourself).
 	self installBackgroundMoveInteraction
 ]
 
