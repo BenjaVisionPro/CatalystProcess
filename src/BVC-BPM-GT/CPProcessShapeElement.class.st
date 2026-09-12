@@ -317,7 +317,7 @@ CPProcessShapeElement >> boundaryInterrupting: aBoolean [
 CPProcessShapeElement >> addBoundaryEventRingsForBounds: aRectangle [
 	modelElement isBoundaryEvent ifFalse: [ ^ self ].
 	boundaryOuterRing := BlElement new
-		extent: 32 @ 32;
+		extent: 30 @ 30;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
 		border: (self borderForColor: self normalBorderColor width: self boundaryBorderWidth);
@@ -327,7 +327,7 @@ CPProcessShapeElement >> addBoundaryEventRingsForBounds: aRectangle [
 		preventMeAndChildrenMouseEvents;
 		yourself.
 	boundaryInnerRing := BlElement new
-		extent: 24 @ 24;
+		extent: 22 @ 22;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
 		border: (self borderForColor: self normalBorderColor width: self boundaryBorderWidth);
@@ -350,7 +350,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 	marker := FontAwesomeIcons defaultStyle icon: definition class eventTypeIcon.
 	boundaryEventDefinitionMarker := marker.
 	marker
-		extent: 16 @ 16;
+		extent: 14 @ 14;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
