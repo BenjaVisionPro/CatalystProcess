@@ -2216,18 +2216,19 @@ CPProcessVisualElementExamples >> boundaryEventDragMovesAttachmentAnchorRatherTh
 		label: nil.
 	root addChild: activityElement.
 	activityElement relocate: 100 @ 100.
-	activityElement
-		hostBoundaryEventElement: boundaryElement
-		atLocalCenter: 0 @ 40
-		extent: 32 @ 32.
 	boundaryElement
 		installPositioningFrom: boundaryElement
-		movingElement: boundaryElement attachmentHost
+		movingElementBlock: [ boundaryElement attachmentHost ]
 		stagedBounds: [ 84 @ 124 extent: 32 @ 32 ]
 		dragStarted: [ :anEvent :originalBounds | ]
 		dragStartPosition: [ boundaryElement attachmentHost position ]
 		dragged: [ :anEvent :aDelta | ]
 		dragEnded: [ :anEvent :proposedBounds :aDelta | ].
+	self assert: boundaryElement attachmentHost isNil.
+	activityElement
+		hostBoundaryEventElement: boundaryElement
+		atLocalCenter: 0 @ 40
+		extent: 32 @ 32.
 	root forceLayout.
 
 	start := boundaryElement localPointToGlobal: 16 @ 16.

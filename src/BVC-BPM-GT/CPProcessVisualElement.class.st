@@ -2310,7 +2310,7 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 	candidateActivityShape := attachedActivityShape.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
-		movingElement: aShapeElement attachmentHost
+		movingElementBlock: [ aShapeElement attachmentHost ]
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
 			dragStartBounds := originalBounds.
