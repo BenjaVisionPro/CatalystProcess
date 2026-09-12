@@ -2148,6 +2148,28 @@ CPProcessVisualElementExamples >> boundaryEventHoverLabelStaysOutsideAttachedAct
 ]
 
 { #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventHoverLabelUsesOneSideAtActivityCorner [
+	<gtExample>
+	| visual activityBounds labelExtent eventBounds outwardNormal origin |
+	visual := CPProcessVisualElement new.
+	activityBounds := 100 @ 100 extent: 140 @ 80.
+	labelExtent := 180 @ 44.
+	eventBounds := 84 @ 164 extent: 32 @ 32.
+	outwardNormal := visual
+		boundaryEventOutwardNormalForEventBounds: eventBounds
+		activityBounds: activityBounds.
+	origin := visual
+		boundaryEventHoverLabelOriginForEventBounds: eventBounds
+		activityBounds: activityBounds
+		labelExtent: labelExtent.
+
+	self assert: outwardNormal equals: -1 @ 0.
+	self assert: origin equals: -102 @ 158.
+	self assert: origin x + labelExtent x + 6 equals: eventBounds left.
+	^ origin
+]
+
+{ #category : 'examples - boundary events' }
 CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttachedActivity [
 	<gtExample>
 	| process task diagram taskShape memento diagramDescription boundary operation assessment visual taskElement boundaryElement |

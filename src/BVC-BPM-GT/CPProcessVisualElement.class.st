@@ -1646,45 +1646,52 @@ CPProcessVisualElement >> addBoundaryEventHoverLabelFor: aBoundaryEvent bounds: 
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> alignBoundaryEventHoverLabel: aLabel eventBounds: eventBounds activityBounds: activityBounds [
-	| center distanceTop distanceBottom distanceLeft distanceRight minimumDistance |
-	center := eventBounds center.
-	distanceTop := (center y - activityBounds top) abs.
-	distanceBottom := (center y - activityBounds bottom) abs.
-	distanceLeft := (center x - activityBounds left) abs.
-	distanceRight := (center x - activityBounds right) abs.
-	minimumDistance := { distanceTop. distanceBottom. distanceLeft. distanceRight } min.
+	| outwardNormal |
+	outwardNormal := self
+		boundaryEventOutwardNormalForEventBounds: eventBounds
+		activityBounds: activityBounds.
 	aLabel constraintsDo: [ :c |
-		minimumDistance = distanceTop ifTrue: [
-			c frame horizontal alignCenter.
-			c frame vertical alignBottom ].
-		minimumDistance = distanceBottom ifTrue: [
-			c frame horizontal alignCenter.
-			c frame vertical alignTop ].
-		minimumDistance = distanceLeft ifTrue: [
+		outwardNormal x < 0 ifTrue: [
 			c frame horizontal alignRight.
 			c frame vertical alignCenter ].
-		minimumDistance = distanceRight ifTrue: [
+		outwardNormal x > 0 ifTrue: [
 			c frame horizontal alignLeft.
-			c frame vertical alignCenter ] ]
+			c frame vertical alignCenter ].
+		outwardNormal y < 0 ifTrue: [
+			c frame horizontal alignCenter.
+			c frame vertical alignBottom ].
+		outwardNormal y > 0 ifTrue: [
+			c frame horizontal alignCenter.
+			c frame vertical alignTop ] ]
 ]
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> boundaryEventHoverLabelOriginForEventBounds: eventBounds activityBounds: activityBounds labelExtent: labelExtent [
-	| center gap distanceTop distanceBottom distanceLeft distanceRight minimumDistance |
+	| center gap outwardNormal |
 	center := eventBounds center.
 	gap := 6.
-	distanceTop := (center y - activityBounds top) abs.
-	distanceBottom := (center y - activityBounds bottom) abs.
-	distanceLeft := (center x - activityBounds left) abs.
-	distanceRight := (center x - activityBounds right) abs.
-	minimumDistance := { distanceTop. distanceBottom. distanceLeft. distanceRight } min.
-	minimumDistance = distanceTop ifTrue: [
-		^ (center x - (labelExtent x / 2)) @ (eventBounds top - gap - labelExtent y) ].
-	minimumDistance = distanceBottom ifTrue: [
-		^ (center x - (labelExtent x / 2)) @ (eventBounds bottom + gap) ].
-	minimumDistance = distanceLeft ifTrue: [
+	outwardNormal := self
+		boundaryEventOutwardNormalForEventBounds: eventBounds
+		activityBounds: activityBounds.
+	outwardNormal x < 0 ifTrue: [
 		^ (eventBounds left - gap - labelExtent x) @ (center y - (labelExtent y / 2)) ].
-	^ (eventBounds right + gap) @ (center y - (labelExtent y / 2))
+	outwardNormal x > 0 ifTrue: [
+		^ (eventBounds right + gap) @ (center y - (labelExtent y / 2)) ].
+	outwardNormal y < 0 ifTrue: [
+		^ (center x - (labelExtent x / 2)) @ (eventBounds top - gap - labelExtent y) ].
+	^ (center x - (labelExtent x / 2)) @ (eventBounds bottom + gap)
+]
+
+{ #category : 'private - labels' }
+CPProcessVisualElement >> boundaryEventOutwardNormalForEventBounds: eventBounds activityBounds: activityBounds [
+	| center candidates |
+	center := eventBounds center.
+	candidates := {
+		{ (center x - activityBounds left) abs. -1 @ 0 }.
+		{ (center x - activityBounds right) abs. 1 @ 0 }.
+		{ (center y - activityBounds top) abs. 0 @ -1 }.
+		{ (center y - activityBounds bottom) abs. 0 @ 1 } }.
+	^ (candidates detectMin: [ :each | each first ]) second
 ]
 
 { #category : 'private - labels' }
