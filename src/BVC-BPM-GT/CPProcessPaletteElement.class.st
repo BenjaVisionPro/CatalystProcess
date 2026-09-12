@@ -47,13 +47,12 @@ CPProcessPaletteElement >> newItemsElement [
 
 { #category : 'private - interaction' }
 CPProcessPaletteElement >> installBackgroundMoveInteraction [
-	self when: BlMouseDownEvent do: [ :anEvent |
-		(anEvent primaryButtonPressed
-			and: [ (self paletteItemOwnsEventTarget: anEvent target) not ]) ifTrue: [
-			draggingPalette := true.
-			dragStartPointer := anEvent position.
-			dragStartPosition := self position.
-			anEvent consumed: true ] ]
+	self installMoveInteractionOn: self
+]
+
+{ #category : 'private - interaction' }
+CPProcessPaletteElement >> shouldBeginMoveForDragStartEvent: anEvent [
+	^ (self paletteItemOwnsEventTarget: anEvent target) not
 ]
 
 { #category : 'private - interaction' }
