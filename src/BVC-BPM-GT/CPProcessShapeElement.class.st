@@ -857,6 +857,18 @@ CPProcessShapeElement >> typePopupActive: aBoolean [
 
 { #category : 'positioning' }
 CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBounds: aStagedBoundsBlock dragStarted: aDragStartBlock dragStartPosition: aDragStartPositionBlock dragged: aDragBlock dragEnded: aDragEndBlock [
+	^ self
+		installPositioningFrom: anInteractionElement
+		movingElement: self
+		stagedBounds: aStagedBoundsBlock
+		dragStarted: aDragStartBlock
+		dragStartPosition: aDragStartPositionBlock
+		dragged: aDragBlock
+		dragEnded: aDragEndBlock
+]
+
+{ #category : 'positioning' }
+CPProcessShapeElement >> installPositioningFrom: anInteractionElement movingElement: aMovingElement stagedBounds: aStagedBoundsBlock dragStarted: aDragStartBlock dragStartPosition: aDragStartPositionBlock dragged: aDragBlock dragEnded: aDragEndBlock [
 	| isDragging dragStartPointerInParent dragStartElementPosition originalBounds |
 	isDragging := false.
 	anInteractionElement
@@ -865,7 +877,7 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 			do: [ :anEvent |
 				originalBounds := aStagedBoundsBlock value.
 				aDragStartBlock value: anEvent value: originalBounds.
-				dragStartPointerInParent := self parent
+				dragStartPointerInParent := aMovingElement parent
 					globalPointToLocal: anEvent position.
 				dragStartElementPosition := aDragStartPositionBlock value.
 				isDragging := true.
@@ -875,12 +887,12 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 			do: [ :anEvent |
 				isDragging ifTrue: [
 					| pointerInParent proposedPosition delta |
-					pointerInParent := self parent
+					pointerInParent := aMovingElement parent
 						globalPointToLocal: anEvent position.
 					proposedPosition := dragStartElementPosition
 						+ pointerInParent
 						- dragStartPointerInParent.
-					self relocate: proposedPosition.
+					aMovingElement relocate: proposedPosition.
 					delta := proposedPosition - dragStartElementPosition.
 					aDragBlock value: anEvent value: delta.
 					anEvent consumed: true ] ]);
@@ -890,7 +902,7 @@ CPProcessShapeElement >> installPositioningFrom: anInteractionElement stagedBoun
 				isDragging ifTrue: [
 					| pointerInParent proposedPosition proposedBounds delta |
 					isDragging := false.
-					pointerInParent := self parent
+					pointerInParent := aMovingElement parent
 						globalPointToLocal: anEvent position.
 					proposedPosition := dragStartElementPosition
 						+ pointerInParent

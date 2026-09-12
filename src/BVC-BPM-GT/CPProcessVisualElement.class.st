@@ -2280,19 +2280,6 @@ CPProcessVisualElement >> installPositioningOn: anElement for: aShape [
 	self installPositioningFrom: anElement moving: anElement for: aShape
 ]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedAttachedActivityOf: aBoundaryEvent [
 	| context |
@@ -2323,6 +2310,7 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 	candidateActivityShape := attachedActivityShape.
 	aShapeElement
 		installPositioningFrom: anInteractionElement
+		movingElement: aShapeElement attachmentHost
 		stagedBounds: [ self stagedBoundsOf: aShape ]
 		dragStarted: [ :anEvent :originalBounds |
 			dragStartBounds := originalBounds.
@@ -2330,7 +2318,7 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 				ifNotNil: [ :aLabel | aLabel position ].
 			candidateActivityShape := attachedActivityShape.
 			self clearInsertionTarget ]
-		dragStartPosition: [ aShapeElement position ]
+		dragStartPosition: [ aShapeElement attachmentHost position ]
 		dragged: [ :anEvent :delta |
 			| candidateBounds targetActivityShape targetActivityBounds |
 			candidateBounds := dragStartBounds translateBy: delta.
@@ -2343,7 +2331,8 @@ CPProcessVisualElement >> installBoundaryEventPositioningFrom: anInteractionElem
 				boundaryEventBounds: dragStartBounds
 				constrainedToActivityBounds: targetActivityBounds
 				nearCenter: candidateBounds center.
-			aShapeElement relocate: snappedBounds origin - (self stagedBoundsOf: attachedActivityShape) origin.
+			aShapeElement attachmentHost relocate:
+				snappedBounds center - (self stagedBoundsOf: attachedActivityShape) origin.
 			dragStartLabelPosition ifNotNil: [
 				aShapeElement externalLabelHost relocate: (self
 					boundaryEventHoverLabelLocalOriginForEventBounds: snappedBounds

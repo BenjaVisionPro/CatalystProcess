@@ -2189,6 +2189,59 @@ CPProcessVisualElementExamples >> freshlyStagedBoundaryEventIsBlocChildOfAttache
 
 
 { #category : 'examples - boundary events' }
+CPProcessVisualElementExamples >> boundaryEventDragMovesAttachmentAnchorRatherThanBoundaryVisual [
+	<gtExample>
+	| root activityShape boundaryShape activity boundary activityElement boundaryElement start delta |
+	root := BlElement new
+		layout: BlFrameLayout new;
+		extent: 500 @ 400;
+		yourself.
+	activityShape := CPShape new.
+	boundaryShape := CPShape new.
+	activity := CPUserTask new label: 'Review'; yourself.
+	boundary := CPBoundaryEvent new.
+	activityElement := CPProcessShapeElement new
+		shape: activityShape
+		modelElement: activity
+		bounds: (100 @ 100 extent: 140 @ 80)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	boundaryElement := CPProcessShapeElement new
+		shape: boundaryShape
+		modelElement: boundary
+		bounds: (84 @ 124 extent: 32 @ 32)
+		background: Color white
+		borderColor: Color black
+		label: nil.
+	root addChild: activityElement.
+	activityElement relocate: 100 @ 100.
+	activityElement
+		hostBoundaryEventElement: boundaryElement
+		atLocalCenter: 0 @ 40
+		extent: 32 @ 32.
+	boundaryElement
+		installPositioningFrom: boundaryElement
+		movingElement: boundaryElement attachmentHost
+		stagedBounds: [ 84 @ 124 extent: 32 @ 32 ]
+		dragStarted: [ :anEvent :originalBounds | ]
+		dragStartPosition: [ boundaryElement attachmentHost position ]
+		dragged: [ :anEvent :aDelta | ]
+		dragEnded: [ :anEvent :proposedBounds :aDelta | ].
+	root forceLayout.
+
+	start := boundaryElement localPointToGlobal: 16 @ 16.
+	delta := 20 @ 10.
+	boundaryElement dispatchEvent: (BlDragStartEvent new position: start; yourself).
+	boundaryElement dispatchEvent: (BlDragEvent new position: start + delta; yourself).
+	root forceLayout.
+
+	self assert: boundaryElement position equals: -16 @ -16.
+	self assert: boundaryElement attachmentHost position equals: 20 @ 50.
+	^ boundaryElement
+]
+
+{ #category : 'examples - boundary events' }
 CPProcessVisualElementExamples >> boundaryEventTypeSelectionUsesRequestedTypes [
 	<gtExample>
 	| selection |
