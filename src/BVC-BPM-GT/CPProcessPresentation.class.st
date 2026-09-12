@@ -78,15 +78,15 @@ CPProcessPresentation >> prepareHostElement [
 		vFitContent;
 		cellSpacing: 0;
 		padding: BlInsets empty;
-		background: surfaceColor;
+		background: Color transparent;
 		yourself.
 
 	detailScrollElement := BrScrollPane new
-		background: surfaceColor;
+		background: Color transparent;
 		allowMeAndChildrenMouseEvents;
 		aptitude: BrScrollPaneAptitude + BrGlamorousWithVerticalScrollbarAptitude;
 		hExact: 380;
-		vMatchParent;
+		vFitContentLimited;
 		constraintsDo: [ :c |
 			c frame horizontal alignRight.
 			c frame vertical alignTop ];
