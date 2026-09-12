@@ -75,24 +75,30 @@ CPProcessPaletteElement >> refresh [
 	palette ifNil: [ ^ self ].
 	rows := paletteRows ifNil: [ { palette items } ].
 	maximumColumns := rows inject: 0 into: [ :maximum :aRow | maximum max: aRow size ].
-	contentWidth := (maximumColumns * 24) + (((maximumColumns - 1) max: 0) * 6).
+	contentWidth := (maximumColumns * 24) + (((maximumColumns - 1) max: 0) * 4).
 	self
 		hExact: contentWidth + 16;
-		vExact: (rows size * 28) + 12 + 16.
+		vExact: (rows size * 26) + 12 + 16.
 	rows do: [ :aRow |
-		| rowElement rowWidth |
-		rowWidth := (aRow size * 24) + (((aRow size - 1) max: 0) * 6).
-		rowElement := BrHorizontalPane new
-			hExact: rowWidth;
-			vExact: 28;
-			cellSpacing: 6;
-			padding: (BlInsets top: 3 right: 0 bottom: 3 left: 0);
+		| rowHost rowElement |
+		rowHost := BlElement new
 			constraintsDo: [ :c |
-				c linear horizontal alignCenter ];
+				c horizontal matchParent.
+				c vertical exact: 26 ];
+			layout: BlFrameLayout new;
+			yourself.
+		rowElement := BrHorizontalPane new
+			hFitContent;
+			vExact: 22;
+			cellSpacing: 4;
+			constraintsDo: [ :c |
+				c frame horizontal alignCenter.
+				c frame vertical alignCenter ];
 			yourself.
 		aRow do: [ :anItem |
 			rowElement addChild: (self newItemElementFor: anItem) ].
-		itemsElement addChild: rowElement ].
+		rowHost addChild: rowElement.
+		itemsElement addChild: rowHost ].
 	self addHoverHelpElement
 ]
 
