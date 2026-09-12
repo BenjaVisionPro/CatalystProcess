@@ -317,7 +317,7 @@ CPProcessShapeElement >> boundaryInterrupting: aBoolean [
 CPProcessShapeElement >> addBoundaryEventRingsForBounds: aRectangle [
 	modelElement isBoundaryEvent ifFalse: [ ^ self ].
 	boundaryOuterRing := BlElement new
-		extent: 30 @ 30;
+		extent: 28 @ 28;
 		geometry: BlCircleGeometry new;
 		background: Color transparent;
 		border: (self borderForColor: self normalBorderColor width: self boundaryBorderWidth);
