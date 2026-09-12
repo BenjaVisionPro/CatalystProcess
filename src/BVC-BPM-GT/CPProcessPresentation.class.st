@@ -87,14 +87,17 @@ CPProcessPresentation >> prepareHostElement [
 		aptitude: BrScrollPaneAptitude + BrGlamorousWithVerticalScrollbarAptitude;
 		hExact: 380;
 		vMatchParent;
+		constraintsDo: [ :c |
+			c frame horizontal alignRight.
+			c frame vertical alignTop ];
 		content: detailHostElement;
 		yourself.
 
-	workspaceElement := BrHorizontalPane new
+	workspaceElement := BrFrame new
 		background: surfaceColor;
 		hMatchParent;
 		vMatchParent;
-		cellSpacing: 0;
+		layout: BlFrameLayout new;
 		addChild: diagramScrollElement;
 		addChild: detailScrollElement;
 		yourself.
