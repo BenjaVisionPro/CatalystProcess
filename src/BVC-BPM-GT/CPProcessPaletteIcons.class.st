@@ -1,4 +1,4 @@
-"I build the Process palette's BPMN-shaped creation icons. I am presentation-only; palette items retain their provider/materialisation semantics and Process drop targets retain placement semantics."
+"I provide the Process palette stencils using the same FontAwesome and FontAwesome-style BPMN icon vocabulary as the rest of Process. Only Pool/Lane is a palette-specific composite."
 Class {
 	#name : 'CPProcessPaletteIcons',
 	#superclass : 'Object',
@@ -7,96 +7,67 @@ Class {
 	#tag : 'Palette'
 }
 
+{ #category : 'private - icons' }
+CPProcessPaletteIcons class >> darkStartColor [
+	^ Color r: 0.06 g: 0.20 b: 0.08
+]
+
+{ #category : 'private - icons' }
+CPProcessPaletteIcons class >> darkStopColor [
+	^ Color r: 0.24 g: 0.04 b: 0.04
+]
+
+{ #category : 'private - icons' }
+CPProcessPaletteIcons class >> processIcon: aSelector color: aColor [
+	^ [
+		(CPBpmnIcons icon: aSelector)
+			height: 18;
+			color: aColor;
+			yourself ] asStencil
+]
+
+{ #category : 'private - icons' }
+CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector [
+	^ [
+		(FontAwesomeIcons icon: aSelector)
+			height: 18;
+			color: Color black;
+			yourself ] asStencil
+]
+
 { #category : 'icons' }
 CPProcessPaletteIcons class >> startEvent [
-	^ [ self eventElementWithBorderColor: Color green borderWidth: 2 ] asStencil
+	^ self processIcon: #startEvent color: self darkStartColor
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> endEvent [
-	^ [ self eventElementWithBorderColor: Color red borderWidth: 2 ] asStencil
+	^ self processIcon: #endEvent color: self darkStopColor
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> event [
-	^ [ self eventElementWithBorderColor: Color black borderWidth: 2 ] asStencil
-]
-
-{ #category : 'private - icons' }
-CPProcessPaletteIcons class >> eventElementWithBorderColor: aColor borderWidth: aWidth [
-	^ BlElement new
-		extent: 20 @ 20;
-		geometry: BlCircleGeometry new;
-		background: Color transparent;
-		border: (BlBorder paint: aColor width: aWidth);
-		yourself
+	^ self processIcon: #intermediateEvent color: Color black
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> activity [
-	^ [ BlElement new
-		extent: 26 @ 18;
-		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
-		background: Color transparent;
-		border: (BlBorder paint: Color black width: 2);
-		yourself ] asStencil
+	^ self fontAwesomeIcon: #rectangle
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> gateway [
-	^ [ BlElement new
-		extent: 20 @ 20;
-		geometry: (BlPolygonGeometry vertices: {
-			10 @ 0.
-			20 @ 10.
-			10 @ 20.
-			0 @ 10 });
-		background: Color transparent;
-		border: (BlBorder paint: Color black width: 2);
-		yourself ] asStencil
+	^ self fontAwesomeIcon: #diamond
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> subProcess [
-	^ [
-		| element firstDot secondDot |
-		element := BlElement new
-			extent: 26 @ 18;
-			layout: BlFrameLayout new;
-			geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
-			background: Color transparent;
-			border: (BlBorder paint: Color black width: 2);
-			yourself.
-		firstDot := BlElement new
-			extent: 3 @ 3;
-			geometry: BlCircleGeometry new;
-			background: Color black;
-			constraintsDo: [ :c |
-				c frame horizontal alignCenter.
-				c frame vertical alignBottom.
-				c margin: (BlInsets top: 0 right: 7 bottom: 3 left: 0) ];
-			yourself.
-		secondDot := BlElement new
-			extent: 3 @ 3;
-			geometry: BlCircleGeometry new;
-			background: Color black;
-			constraintsDo: [ :c |
-				c frame horizontal alignCenter.
-				c frame vertical alignBottom.
-				c margin: (BlInsets top: 0 right: 0 bottom: 3 left: 7) ];
-			yourself.
-		element addChild: firstDot; addChild: secondDot.
-		element ] asStencil
+	^ self processIcon: #subProcess color: Color black
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> callActivity [
-	^ [ BlElement new
-		extent: 26 @ 18;
-		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
-		background: Color transparent;
-		border: (BlBorder paint: Color black width: 4);
-		yourself ] asStencil
+	^ self processIcon: #callActivity color: Color black
 ]
 
 { #category : 'icons' }
@@ -104,19 +75,19 @@ CPProcessPaletteIcons class >> poolLane [
 	^ [
 		| element divider |
 		element := BlElement new
-			extent: 30 @ 18;
-		layout: BlFrameLayout new;
-		geometry: (BlRoundedRectangleGeometry cornerRadius: 6);
-		background: Color transparent;
-		border: (BlBorder paint: Color black width: 2);
-		yourself.
+			extent: 26 @ 16;
+			layout: BlFrameLayout new;
+			geometry: (BlRoundedRectangleGeometry cornerRadius: 4);
+			background: Color transparent;
+			border: (BlBorder paint: Color black width: 1.5);
+			yourself.
 		divider := BlElement new
-			extent: 2 @ 16;
+			extent: 1.5 @ 14;
 			background: Color black;
 			constraintsDo: [ :c |
 				c frame horizontal alignLeft.
 				c frame vertical alignCenter.
-				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 7) ];
+				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 6) ];
 			yourself.
 		element addChild: divider.
 		element ] asStencil
