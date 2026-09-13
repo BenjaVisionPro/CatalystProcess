@@ -6,7 +6,7 @@ Class {
 	#tag : 'Diagram'
 }
 { #category : 'type protocol' }
-CPIntermediateEventTypeSelection >> typeClasses [ ^ CPIntermediateEvent eventTypes ]
+CPIntermediateEventTypeSelection >> typeClasses [ ^ CPEvent intermediateEventTypes ]
 { #category : 'type protocol' }
 CPIntermediateEventTypeSelection >> typeDescriptionLabel [ ^ 'Event type' ]
 { #category : 'type protocol' }

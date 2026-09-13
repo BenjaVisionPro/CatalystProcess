@@ -1,6 +1,6 @@
 Class {
 	#name : 'CPStartEvent',
-	#superclass : 'CPEvent',
+	#superclass : 'CPCatchEvent',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }

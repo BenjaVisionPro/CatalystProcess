@@ -1,6 +1,7 @@
+"I represent the existing Signal Intermediate Catch Event. The receive icon and CatchEvent inheritance make its receiving semantics explicit."
 Class {
 	#name : 'CPSignalIntermediateEvent',
-	#superclass : 'CPIntermediateEvent',
+	#superclass : 'CPIntermediateCatchEvent',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }

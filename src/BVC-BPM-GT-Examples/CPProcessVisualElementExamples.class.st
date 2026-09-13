@@ -2085,7 +2085,7 @@ CPProcessVisualElementExamples >> boundaryEventUsesCompactExtentAroundStandardEv
 	boundary := CPBoundaryEvent new.
 
 	self assert: (visual extentForModelElement: boundary) equals: 32 @ 32.
-	self assert: (visual extentForModelElement: CPIntermediateEvent new) equals: 42 @ 42.
+	self assert: (visual extentForModelElement: CPIntermediateCatchEvent new) equals: 42 @ 42.
 	^ visual
 ]
 

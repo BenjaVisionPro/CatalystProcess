@@ -63,3 +63,75 @@ CPBPMNDataExamples >> dataAssociationConnectsItemAwareElements [
 	self assert: association sourceRefs first structureRef == association targetRef structureRef.
 	^ association
 ]
+
+
+{ #category : 'examples - events' }
+CPBPMNDataExamples >> catchEventOwnsOutputDataContract [
+	<gtExample>
+	| event output association |
+	event := CPMessageStartEvent new.
+	output := CPDataOutput new label: 'Message payload'; yourself.
+	association := CPDataOutputAssociation new
+		sourceRefs: { output };
+		targetRef: (CPProperty new label: 'Received payload'; yourself);
+		yourself.
+	event
+		dataOutputs: { output };
+		outputSet: (CPOutputSet new dataOutputRefs: { output }; yourself);
+		dataOutputAssociations: { association }.
+	self assert: event isCatchEvent.
+	self assert: (event isThrowEvent not).
+	self assert: event dataOutputs first == output.
+	self assert: event dataOutputAssociations first == association.
+	^ event
+]
+
+{ #category : 'examples - events' }
+CPBPMNDataExamples >> throwEventOwnsInputDataContract [
+	<gtExample>
+	| event input association |
+	event := CPMessageEndEvent new.
+	input := CPDataInput new label: 'Message payload'; yourself.
+	association := CPDataInputAssociation new
+		sourceRefs: { (CPProperty new label: 'Payload'; yourself) };
+		targetRef: input;
+		yourself.
+	event
+		dataInputs: { input };
+		inputSet: (CPInputSet new dataInputRefs: { input }; yourself);
+		dataInputAssociations: { association }.
+	self assert: event isThrowEvent.
+	self assert: (event isCatchEvent not).
+	self assert: event dataInputs first == input.
+	self assert: event dataInputAssociations first == association.
+	^ event
+]
+
+{ #category : 'examples - events' }
+CPBPMNDataExamples >> intermediateEventsHaveExplicitCatchOrThrowSemantics [
+	<gtExample>
+	| catch throw |
+	catch := CPMessageCatchIntermediateEvent new.
+	throw := CPMessageThrowIntermediateEvent new.
+	self assert: catch isIntermediateEvent.
+	self assert: catch isCatchEvent.
+	self assert: (catch isThrowEvent not).
+	self assert: throw isIntermediateEvent.
+	self assert: throw isThrowEvent.
+	self assert: (throw isCatchEvent not).
+	self assert: (CPEvent intermediateEventTypes includes: CPSignalThrowIntermediateEvent).
+	self assert: (CPEvent intermediateEventTypes includes: CPLinkThrowIntermediateEvent).
+	^ { catch. throw }
+]
+
+{ #category : 'examples - events' }
+CPBPMNDataExamples >> boundaryEventIsCatchEventWithoutIntermediateSuperclass [
+	<gtExample>
+	| event |
+	event := CPBoundaryEvent new.
+	self assert: event isBoundaryEvent.
+	self assert: event isIntermediateEvent.
+	self assert: event isCatchEvent.
+	self assert: (event isThrowEvent not).
+	^ event
+]

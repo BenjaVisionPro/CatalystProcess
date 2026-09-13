@@ -1,6 +1,6 @@
 Class {
 	#name : 'CPMessageThrowIntermediateEvent',
-	#superclass : 'CPIntermediateEvent',
+	#superclass : 'CPIntermediateThrowEvent',
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }

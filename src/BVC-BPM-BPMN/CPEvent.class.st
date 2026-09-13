@@ -11,6 +11,17 @@ CPEvent >> isEvent [
 	^ true
 ]
 
+{ #category : 'testing' }
+CPEvent >> isCatchEvent [ ^ false ]
+
+{ #category : 'testing' }
+CPEvent >> isThrowEvent [ ^ false ]
+
+{ #category : 'event type' }
+CPEvent class >> intermediateEventTypes [
+	^ { CPTimerIntermediateEvent. CPMessageCatchIntermediateEvent. CPMessageThrowIntermediateEvent. CPSignalIntermediateEvent. CPSignalThrowIntermediateEvent. CPLinkIntermediateEvent. CPLinkThrowIntermediateEvent }
+]
+
 
 { #category : 'message flow' }
 CPEvent >> canBeMessageFlowEndpoint [

@@ -1,6 +1,6 @@
-Extension { #name : 'CPIntermediateEvent' }
+Extension { #name : 'CPIntermediateThrowEvent' }
 { #category : '*BVC-BPM-GT' }
-CPIntermediateEvent >> iconDescription [
+CPIntermediateThrowEvent >> iconDescription [
 	<magritteDescription>
 	^ FontAwesomeIconDescription new
 		accessor: #icon;

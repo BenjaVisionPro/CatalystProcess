@@ -1,11 +1,10 @@
 "I represent a BPMN Boundary Event attached to one Activity. My EventDefinitions identify the caught trigger; cancelActivity distinguishes interrupting from non-interrupting handling."
 Class {
 	#name : 'CPBoundaryEvent',
-	#superclass : 'CPIntermediateEvent',
+	#superclass : 'CPCatchEvent',
 	#instVars : [
 		'attachedToRef',
-		'cancelActivity',
-		'eventDefinitions'
+		'cancelActivity'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -14,8 +13,7 @@ Class {
 { #category : 'initialization' }
 CPBoundaryEvent >> initialize [
 	super initialize.
-	cancelActivity := true.
-	eventDefinitions := OrderedCollection new
+	cancelActivity := true
 ]
 
 { #category : 'accessing' }
@@ -26,11 +24,6 @@ CPBoundaryEvent >> attachedToRef: anActivity [ attachedToRef := anActivity ]
 CPBoundaryEvent >> cancelActivity [ ^ cancelActivity ]
 { #category : 'accessing' }
 CPBoundaryEvent >> cancelActivity: aBoolean [ cancelActivity := aBoolean ]
-{ #category : 'accessing' }
-CPBoundaryEvent >> eventDefinitions [ ^ eventDefinitions ]
-{ #category : 'accessing' }
-CPBoundaryEvent >> eventDefinitions: aCollection [ eventDefinitions := aCollection ]
-
 { #category : 'descriptions' }
 CPBoundaryEvent >> attachedToRefDescription [
 	<magritteDescription>
@@ -56,21 +49,11 @@ CPBoundaryEvent >> cancelActivityDescription [
 		yourself
 ]
 
-{ #category : 'descriptions' }
-CPBoundaryEvent >> eventDefinitionsDescription [
-	<magritteDescription>
-	^ MAToManyRelationDescription new
-		accessor: #eventDefinitions;
-		classes: { CPEventDefinition };
-		reference: CPEventDefinition new eventTypeLabelDescription;
-		label: 'Event definitions';
-		priority: 125;
-		group: 'Event';
-		yourself
-]
-
 { #category : 'testing' }
 CPBoundaryEvent >> isBoundaryEvent [ ^ true ]
+
+{ #category : 'testing' }
+CPBoundaryEvent >> isIntermediateEvent [ ^ true ]
 
 { #category : 'event type' }
 CPBoundaryEvent class >> eventDefinitionTypes [
