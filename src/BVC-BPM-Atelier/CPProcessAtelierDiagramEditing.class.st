@@ -67,6 +67,19 @@ CPProcessAtelierDiagramEditing >> createBoundaryEvent: aBoundaryEvent attachedTo
 ]
 
 { #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> createDataObject: aDataObject bounds: proposedBounds inProcessHostedBy: aHostShape [
+	| targetContainer |
+	targetContainer := self flowContainerHostedBy: aHostShape.
+	targetContainer ifNil: [ ^ nil ].
+	^ CPAtelierCreateDataObject
+		dataObject: aDataObject
+		bounds: proposedBounds
+		flowContainer: targetContainer
+		processMemento: processMemento
+		diagramContext: diagramContext
+]
+
+{ #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
 	^ self
 		createFlowNode: aFlowNode

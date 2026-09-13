@@ -8,7 +8,8 @@ Class {
 		'session',
 		'contextualAppendPaletteItems',
 		'poolPaletteItem',
-		'eventPaletteItem'
+		'eventPaletteItem',
+		'dataPaletteItem'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -64,6 +65,11 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 		icon: CPProcessPaletteIcons callActivity
 		provider: (CFAtelierFactoryProvider factory: [
 			CPCallActivity new label: 'Call activity'; yourself ])).
+	dataPaletteItem := processPalette add: (CFAtelierPaletteItem
+		label: 'Data'
+		icon: CPProcessPaletteIcons data
+		provider: (CFAtelierFactoryProvider factory: [
+			CPDataObject new label: 'Data'; yourself ])).
 	poolPaletteItem := processPalette add: (CFAtelierPaletteItem
 		label: 'Pool / Lane'
 		icon: CPProcessPaletteIcons poolLane
@@ -73,7 +79,7 @@ CPProcessAtelierConfiguration >> configureProcessPalette [
 		{ startItem. endItem. eventPaletteItem }.
 		{ taskItem. gatewayItem }.
 		{ subProcessItem. callActivityItem }.
-		{ poolPaletteItem } }.
+		{ dataPaletteItem. poolPaletteItem } }.
 	self
 		palette: processPalette;
 		paletteElementFactory: [
@@ -101,6 +107,7 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 			diagramContext: session diagramContext;
 			poolPaletteItem: poolPaletteItem;
 			eventPaletteItem: eventPaletteItem;
+			dataPaletteItem: dataPaletteItem;
 			diagramEditing: (CPProcessAtelierDiagramEditing
 				processMemento: session processMemento
 				diagramContext: session diagramContext

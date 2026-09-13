@@ -69,3 +69,65 @@ CPFlowElement >> owningProcess [
 		ifTrue: [ container owningProcess ]
 		ifFalse: [ container ]
 ]
+
+
+{ #category : 'testing' }
+CPFlowElement >> isFlowNode [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isCallActivity [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isEvent [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isActivity [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isEndEvent [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isStartEvent [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isGateway [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isIntermediateEvent [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isBoundaryEvent [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isDataObjectReference [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowElement >> isDataStoreReference [
+	^ false
+]
+
+
+{ #category : 'testing' }
+CPFlowElement >> isDataObject [
+	^ false
+]

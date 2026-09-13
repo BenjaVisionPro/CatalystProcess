@@ -48,3 +48,9 @@ CPDataStoreReference >> dataStateDescription [
 		group: 'Data';
 		yourself
 ]
+
+
+{ #category : 'testing' }
+CPDataStoreReference >> isDataStoreReference [
+	^ true
+]

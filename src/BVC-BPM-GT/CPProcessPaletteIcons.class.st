@@ -97,3 +97,9 @@ CPProcessPaletteIcons class >> poolLane [
 		element addChild: divider.
 		element ] asStencil
 ]
+
+
+{ #category : 'icons' }
+CPProcessPaletteIcons class >> data [
+	^ self fontAwesomeIcon: #database
+]

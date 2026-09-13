@@ -54,3 +54,9 @@ CPDataObject >> isCollectionDescription [
 		group: 'Data';
 		yourself
 ]
+
+
+{ #category : 'testing' }
+CPDataObject >> isDataObject [
+	^ true
+]

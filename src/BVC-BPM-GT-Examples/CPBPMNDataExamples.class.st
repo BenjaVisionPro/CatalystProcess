@@ -135,3 +135,19 @@ CPBPMNDataExamples >> boundaryEventIsCatchEventWithoutIntermediateSuperclass [
 	self assert: (event isThrowEvent not).
 	^ event
 ]
+
+
+{ #category : 'examples - data' }
+CPBPMNDataExamples >> dataReferenceAndAssociationAreValidDiagramSubjects [
+	<gtExample>
+	| dataObject reference shape association edge |
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	reference := CPDataObjectReference new dataObjectRef: dataObject; yourself.
+	shape := CPShape new modelElement: reference; bounds: (100 @ 100 extent: 44 @ 54); yourself.
+	association := CPDataInputAssociation new.
+	edge := CPEdge new modelElement: association; yourself.
+
+	self shouldnt: [ shape modelElementDescription validate: reference ] raise: MAValidationError.
+	self shouldnt: [ edge modelElementDescription validate: association ] raise: MAValidationError.
+	^ shape
+]

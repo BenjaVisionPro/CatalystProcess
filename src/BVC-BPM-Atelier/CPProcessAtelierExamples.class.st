@@ -3544,3 +3544,33 @@ CPProcessAtelierExamples >> processPaletteUsesBpmnGridPresentationAndUnifiedEven
 	self assert: element paletteElement class equals: CPProcessPaletteElement.
 	^ element
 ]
+
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> createDataObjectStagesObjectReferenceAndShapeTogether [
+	<gtExample>
+	| fixture process memento dataObject operation assessment flowContext stagedElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+
+	operation := CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	stagedElements := (self diagramContextForMemento: memento) elements.
+	self assert: assessment isApplicable.
+	self assert: (flowContext stagedFlowElements identityIncludes: dataObject).
+	self assert: (flowContext stagedFlowElements identityIncludes: assessment dataObjectReference).
+	self assert: assessment dataObjectReference dataObjectRef == dataObject.
+	self assert: assessment shape modelElement == assessment dataObjectReference.
+	self assert: (stagedElements identityIncludes: assessment shape).
+	self assert: (process flowElements identityIncludes: dataObject) not.
+	^ assessment
+]

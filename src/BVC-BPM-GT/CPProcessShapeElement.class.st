@@ -105,6 +105,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 			effect: (BlBlurBelowEffect radius: 10) ].
 	self addChild: uprightHost.
 	self addActivityLabelForBounds: aRectangle.
+	self addDataObjectDecorationForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
 	self addBoundaryEventRingsForBounds: aRectangle.
 	self addBoundaryEventDefinitionDecorationForBounds: aRectangle.
@@ -130,6 +131,15 @@ CPProcessShapeElement >> labelElement [
 
 { #category : 'private - geometry' }
 CPProcessShapeElement >> geometryFor: aFlowNode bounds: aRectangle [
+	aFlowNode isDataObjectReference ifTrue: [
+		| fold |
+		fold := 10.
+		^ BlPolygonGeometry vertices: {
+			0 @ 0.
+			(aRectangle width - fold) @ 0.
+			aRectangle width @ fold.
+			aRectangle width @ aRectangle height.
+			0 @ aRectangle height } ].
 	aFlowNode isEvent ifTrue: [ ^ BlCircleGeometry new ].
 	aFlowNode isActivity ifTrue: [ ^ BlRoundedRectangleGeometry cornerRadius: 8 ].
 	aFlowNode isGateway ifTrue: [
@@ -1127,3 +1137,40 @@ CPProcessShapeElement >> nestedProcessVisual [
 	^ nestedProcessVisual
 ]
 
+
+
+{ #category : 'private - decoration' }
+CPProcessShapeElement >> addDataObjectDecorationForBounds: aRectangle [
+	| fold horizontal vertical markerHeight markerGap markerOrigin |
+	modelElement isDataObjectReference ifFalse: [ ^ self ].
+	fold := 10.
+	horizontal := BlElement new
+		extent: fold @ 1;
+		background: normalBorderColor;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: (aRectangle width - fold) @ fold;
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	vertical := BlElement new
+		extent: 1 @ fold;
+		background: normalBorderColor;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: (aRectangle width - fold) @ 0;
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	self addUprightChild: horizontal.
+	self addUprightChild: vertical.
+
+	modelElement isCollection ifFalse: [ ^ self ].
+	markerHeight := 8.
+	markerGap := 3.
+	markerOrigin := (aRectangle width / 2 - markerGap) @ (aRectangle height - markerHeight - 4).
+	-1 to: 1 do: [ :index |
+		self addUprightChild: (BlElement new
+			extent: 1 @ markerHeight;
+			background: normalBorderColor;
+			constraintsDo: [ :c | c ignoreByLayout ];
+			relocate: markerOrigin + (((index + 1) * markerGap) @ 0);
+			preventMeAndChildrenMouseEvents;
+			yourself) ]
+]

@@ -17,6 +17,7 @@ Class {
 		'contextualAppendPaletteItems',
 		'poolPaletteItem',
 		'eventPaletteItem',
+		'dataPaletteItem',
 		'diagramCameraInitialized'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -30,7 +31,8 @@ CPProcessPresentation >> initialize [
 	diagramEditing := CPReadOnlyProcessDiagramEditing new.
 	contextualAppendPaletteItems := #().
 	poolPaletteItem := nil.
-	eventPaletteItem := nil
+	eventPaletteItem := nil.
+	dataPaletteItem := nil
 ]
 
 { #category : 'private - building' }
@@ -100,6 +102,7 @@ CPProcessPresentation >> newConfiguredProcessDiagramElementCollaborationHosted: 
 		diagramEditing: diagramEditing;
 		poolPaletteItem: poolPaletteItem;
 		eventPaletteItem: eventPaletteItem;
+		dataPaletteItem: dataPaletteItem;
 		contextualAppendPaletteItems: contextualAppendPaletteItems;
 		collaborationChangedDo: [ self ensureCollaborationDiagramPresentation ].
 	diagramContext
@@ -426,6 +429,13 @@ CPProcessPresentation >> eventPaletteItem: aPaletteItem [
 	eventPaletteItem := aPaletteItem.
 	processDiagramElement ifNotNil: [ :aVisual |
 		aVisual eventPaletteItem: eventPaletteItem ]
+]
+
+{ #category : 'configuration' }
+CPProcessPresentation >> dataPaletteItem: aPaletteItem [
+	dataPaletteItem := aPaletteItem.
+	processDiagramElement ifNotNil: [ :aVisual |
+		aVisual dataPaletteItem: dataPaletteItem ]
 ]
 
 { #category : 'configuration' }

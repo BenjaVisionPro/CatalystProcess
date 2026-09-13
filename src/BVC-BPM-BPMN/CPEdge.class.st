@@ -52,7 +52,7 @@ CPEdge >> modelElementDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #modelElement;
-		classes: { CPSequenceFlow. CPMessageFlow };
+		classes: { CPSequenceFlow. CPMessageFlow. CPDataAssociation };
 		reference: CPSequenceFlow new labelDescription;
 		label: 'Element';
 		priority: 100;

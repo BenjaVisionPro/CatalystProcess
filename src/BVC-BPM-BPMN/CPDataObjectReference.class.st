@@ -50,3 +50,9 @@ CPDataObjectReference >> dataStateDescription [
 		group: 'Data';
 		yourself
 ]
+
+
+{ #category : 'testing' }
+CPDataObjectReference >> isDataObjectReference [
+	^ true
+]

@@ -119,3 +119,9 @@ CPFlowNode >> isBoundaryEvent [
 ]
 
 
+
+
+{ #category : 'testing' }
+CPFlowNode >> isFlowNode [
+	^ true
+]

@@ -31,6 +31,7 @@ Class {
 		'contextualAppendPaletteItems',
 		'poolPaletteItem',
 		'eventPaletteItem',
+		'dataPaletteItem',
 		'diagramElementsRemovedBlock',
 		'connectionSourceModelElement',
 		'connectionTargetModelElement',
@@ -57,6 +58,7 @@ CPProcessVisualElement >> initialize [
 	contextualAppendPaletteItems := #().
 	poolPaletteItem := nil.
 	eventPaletteItem := nil.
+	dataPaletteItem := nil.
 	laneSetVisual := nil.
 	diagramSelection := CPDiagramSelection new.
 	shapeElementsByShape := IdentityDictionary new.
@@ -107,6 +109,11 @@ CPProcessVisualElement >> poolPaletteItem: aPaletteItem [
 CPProcessVisualElement >> eventPaletteItem: aPaletteItem [
 	eventPaletteItem := aPaletteItem
 ]
+{ #category : 'accessing' }
+CPProcessVisualElement >> dataPaletteItem: aPaletteItem [
+	dataPaletteItem := aPaletteItem
+]
+
 
 { #category : 'accessing' }
 CPProcessVisualElement >> diagramEditing [
@@ -793,21 +800,22 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 	element constraintsDo: [ :c | c ignoreByLayout ].
 	self installSelectionOn: element for: modelElement.
 	self installPositioningOn: element for: aShape.
-	(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
-		self installReplacementOnShape: element for: modelElement shape: aShape ].
-	self installConnectionOn: element for: modelElement.
-	self installTaskTypePopupOn: element for: modelElement shape: aShape.
-	self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
-	self installSubProcessExpansionOn: element for: modelElement shape: aShape.
-	self installGatewayTypePopupOn: element for: modelElement shape: aShape.
-	self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
-	self installBoundaryEventTypePopupOn: element for: modelElement shape: aShape.
-	self installStartEventTypePopupOn: element for: modelElement shape: aShape.
-	self installEndEventTypePopupOn: element for: modelElement shape: aShape.
-	self
-		installResizeHandleFor: aShape
-		modelElement: modelElement
-		shapeElement: element.
+	modelElement isFlowNode ifTrue: [
+		(modelElement isSubProcess and: [ self stagedExpandedOf: aShape ]) ifFalse: [
+			self installReplacementOnShape: element for: modelElement shape: aShape ].
+		self installConnectionOn: element for: modelElement.
+		self installTaskTypePopupOn: element for: modelElement shape: aShape.
+		self installSubProcessTypePopupOn: element for: modelElement shape: aShape.
+		self installSubProcessExpansionOn: element for: modelElement shape: aShape.
+		self installGatewayTypePopupOn: element for: modelElement shape: aShape.
+		self installIntermediateEventTypePopupOn: element for: modelElement shape: aShape.
+		self installBoundaryEventTypePopupOn: element for: modelElement shape: aShape.
+		self installStartEventTypePopupOn: element for: modelElement shape: aShape.
+		self installEndEventTypePopupOn: element for: modelElement shape: aShape.
+		self
+			installResizeHandleFor: aShape
+			modelElement: modelElement
+			shapeElement: element ].
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	modelElement isBoundaryEvent
@@ -1632,7 +1640,7 @@ CPProcessVisualElement >> externalLabelLocalOriginForExtent: anExtent width: lab
 { #category : 'private - labels' }
 CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: aShape shapeElement: aShapeElement [
 	| labelHost interactionSurface label labelWidth |
-	(aFlowNode isEvent or: [ aFlowNode isGateway ]) ifFalse: [ ^ self ].
+	(aFlowNode isEvent or: [ aFlowNode isGateway or: [ aFlowNode isDataObjectReference ] ]) ifFalse: [ ^ self ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ self ].
 	labelWidth := 180.
 	labelHost := BlElement new
@@ -1653,7 +1661,9 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
 		yourself.
-	label := self newEditableLabelFor: aFlowNode.
+	label := aFlowNode isDataObjectReference
+		ifTrue: [ self newEditableLabelFor: aFlowNode dataObjectRef ]
+		ifFalse: [ self newEditableLabelFor: aFlowNode ].
 	label hFitContentLimited.
 	label vFitContent.
 	label constraintsDo: [ :c |
@@ -3218,6 +3228,12 @@ CPProcessVisualElement >> paletteItemForDragItem: aDragItem [
 ]
 
 { #category : 'private - creation' }
+CPProcessVisualElement >> isDataPaletteDragItem: aDragItem [
+	dataPaletteItem ifNil: [ ^ false ].
+	^ (self paletteItemForDragItem: aDragItem) == dataPaletteItem
+]
+
+{ #category : 'private - creation' }
 CPProcessVisualElement >> isPoolPaletteDragItem: aDragItem [
 	poolPaletteItem ifNil: [ ^ false ].
 	^ (self paletteItemForDragItem: aDragItem) == poolPaletteItem
@@ -3364,6 +3380,16 @@ CPProcessVisualElement >> acceptsPaletteDragItem: aDragItem [
 	 is owned by edge drop targets. The Process surface must not also accept them."
 	candidate isBoundaryEvent ifTrue: [ ^ false ].
 
+	(self isDataPaletteDragItem: aDragItem) ifTrue: [
+		proposedBounds := 0 @ 0 extent: (self extentForModelElement: (CPDataObjectReference new dataObjectRef: candidate; yourself)).
+		operation := diagramEditing
+			createDataObject: candidate
+			bounds: proposedBounds
+			inProcessHostedBy: hostShape.
+		operation ifNil: [ ^ false ].
+		assessment := operation assess.
+		^ assessment isApplicable ].
+
 	proposedBounds := 0 @ 0 extent: (self extentForModelElement: candidate).
 	operation := diagramEditing
 		createFlowNode: candidate
@@ -3423,6 +3449,27 @@ CPProcessVisualElement >> createPaletteItem: aDragItem atRootDiagramPoint: aRoot
 	candidate isParticipant ifTrue: [
 		^ self createParticipantPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
 	candidate isBoundaryEvent ifTrue: [ ^ self createBoundaryEventPaletteItem: candidate atRootDiagramPoint: aRootPoint ].
+	(self isDataPaletteDragItem: aDragItem) ifTrue: [
+		| dataReference |
+		dataReference := CPDataObjectReference new dataObjectRef: candidate; yourself.
+		elementExtent := self extentForModelElement: dataReference.
+		bounds := self
+			boundsCenteredAtRootDiagramPoint: aRootPoint
+			extent: elementExtent.
+		bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
+		operation := diagramEditing
+			createDataObject: candidate
+			bounds: bounds
+			inProcessHostedBy: hostShape.
+		operation ifNil: [ ^ nil ].
+		assessment := operation apply.
+		assessment isApplicable ifTrue: [
+			self refreshEditor.
+			(rootVisual diagramElementForModelElementInTree: assessment dataObjectReference) ifNotNil: [ :aShape |
+				diagramSelection selectOnly: aShape ].
+			rootVisual updateSelectionAppearanceRecursively.
+			selectionChangedBlock ifNotNil: [ :aBlock | aBlock value: diagramSelection soleDiagramElement ] ].
+		^ assessment ].
 
 	elementExtent := self extentForModelElement: candidate.
 	bounds := self
@@ -3689,6 +3736,7 @@ CPProcessVisualElement >> replacementBoundsFor: aFlowNode shape: aShape [
 
 { #category : 'private - shapes' }
 CPProcessVisualElement >> extentForModelElement: aFlowNode [
+	aFlowNode isDataObjectReference ifTrue: [ ^ 44 @ 54 ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ 32 @ 32 ].
 	aFlowNode isEvent ifTrue: [ ^ 42 @ 42 ].
 	aFlowNode isActivity ifTrue: [ ^ 132 @ 54 ].
@@ -5006,7 +5054,8 @@ CPProcessVisualElement >> configureNestedProcessVisual: aVisual [
 		diagramEditing: diagramEditing;
 		contextualAppendPaletteItems: contextualAppendPaletteItems;
 		poolPaletteItem: poolPaletteItem;
-		eventPaletteItem: eventPaletteItem
+		eventPaletteItem: eventPaletteItem;
+		dataPaletteItem: dataPaletteItem
 ]
 
 { #category : 'private - subprocess' }
