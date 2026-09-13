@@ -10,6 +10,11 @@ Class {
 	#package : 'BVC-BPM-BPMN'
 }
 
+{ #category : 'defaults' }
+CPDataObject class >> defaultIcon [
+	^ #database
+]
+
 { #category : 'initialization' }
 CPDataObject >> initialize [
 	super initialize.

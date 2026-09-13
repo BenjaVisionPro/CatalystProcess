@@ -21,7 +21,8 @@ CPBpmnIcons class >> availableIconsForStyleNamed: aStyleName [
 		#sequenceFlow -> (self icon: #sequenceFlow styleName: aStyleName).
 		#intermediateEvent -> (self icon: #intermediateEvent styleName: aStyleName).
 		#exclusiveGateway -> (self icon: #exclusiveGateway styleName: aStyleName).
-		#parallelGateway -> (self icon: #parallelGateway styleName: aStyleName)
+		#parallelGateway -> (self icon: #parallelGateway styleName: aStyleName).
+		#database -> (self icon: #database styleName: aStyleName)
 	}
 ]
 
@@ -42,6 +43,7 @@ CPBpmnIcons class >> icon: aSelectorSymbol styleName: aStyleName [
 	aSelectorSymbol = #intermediateEvent ifTrue: [ ^ self intermediateEvent ].
 	aSelectorSymbol = #exclusiveGateway ifTrue: [ ^ self exclusiveGateway ].
 	aSelectorSymbol = #parallelGateway ifTrue: [ ^ self parallelGateway ].
+	aSelectorSymbol = #database ifTrue: [ ^ FontAwesomeIcons icon: #database styleName: aStyleName ].
 	self error: 'Unknown Catalyst Process icon: ', aSelectorSymbol asString
 ]
 

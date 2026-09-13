@@ -9,6 +9,11 @@ Class {
 	#package : 'BVC-BPM-BPMN'
 }
 
+{ #category : 'defaults' }
+CPDataObjectReference class >> defaultIcon [
+	^ #database
+]
+
 { #category : 'accessing' }
 CPDataObjectReference >> dataObjectRef [ ^ dataObjectRef ]
 { #category : 'accessing' }
