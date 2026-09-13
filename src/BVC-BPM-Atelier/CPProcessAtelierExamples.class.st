@@ -3540,6 +3540,7 @@ CPProcessAtelierExamples >> processPaletteUsesBpmnGridPresentationAndUnifiedEven
 		'Gateway'
 		'Sub-process'
 		'Call activity'
+		'Data'
 		'Pool / Lane').
 	self assert: element paletteElement class equals: CPProcessPaletteElement.
 	^ element
