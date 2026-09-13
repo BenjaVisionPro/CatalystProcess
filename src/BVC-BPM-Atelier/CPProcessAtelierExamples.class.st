@@ -3575,3 +3575,115 @@ CPProcessAtelierExamples >> createDataObjectStagesObjectReferenceAndShapeTogethe
 	self assert: (process flowElements identityIncludes: dataObject) not.
 	^ assessment
 ]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> connectDataObjectToActivityStagesInputContractAndEdge [
+	<gtExample>
+	| fixture process memento task taskShape dataObject createAssessment flowContext operation assessment activityMemento ioDescription ioSpecification ioMemento inputDescription inputs inputSet inputSetMemento inputRefsDescription associationsDescription associations diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+
+	operation := CPAtelierConnectDataAssociation
+		dataReference: createAssessment dataObjectReference
+		activity: task
+		inputAssociation: true
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment association class equals: CPDataInputAssociation.
+	self assert: assessment association sourceRefs first == createAssessment dataObjectReference.
+	self assert: assessment association targetRef == assessment dataItem.
+	self assert: assessment edge sourceElement == createAssessment shape.
+	self assert: assessment edge targetElement == taskShape.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	activityMemento := flowContext childMementoFor: task.
+	ioDescription := task ioSpecificationDescription.
+	ioSpecification := activityMemento readUsing: ioDescription.
+	self assert: ioSpecification == assessment ioSpecification.
+	ioMemento := activityMemento childMementoFor: ioSpecification inRelation: ioDescription.
+	inputDescription := ioSpecification dataInputsDescription.
+	inputs := ioMemento readUsing: inputDescription.
+	self assert: (inputs identityIncludes: assessment dataItem).
+	inputSet := ioSpecification inputSets first.
+	inputSetMemento := ioMemento childMementoFor: inputSet inRelation: ioSpecification inputSetsDescription.
+	inputRefsDescription := inputSet dataInputRefsDescription.
+	self assert: ((inputSetMemento readUsing: inputRefsDescription) identityIncludes: assessment dataItem).
+	associationsDescription := task dataInputAssociationsDescription.
+	associations := activityMemento readUsing: associationsDescription.
+	self assert: (associations identityIncludes: assessment association).
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: (diagramElements identityIncludes: assessment edge).
+	self assert: task ioSpecification isNil.
+	^ assessment
+]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> connectActivityToDataObjectStagesOutputContractAndEdge [
+	<gtExample>
+	| fixture process memento task taskShape dataObject createAssessment flowContext operation assessment activityMemento ioDescription ioSpecification ioMemento outputDescription outputs outputSet outputSetMemento outputRefsDescription associationsDescription associations diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+
+	operation := CPAtelierConnectDataAssociation
+		dataReference: createAssessment dataObjectReference
+		activity: task
+		inputAssociation: false
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment association class equals: CPDataOutputAssociation.
+	self assert: assessment association sourceRefs first == assessment dataItem.
+	self assert: assessment association targetRef == createAssessment dataObjectReference.
+	self assert: assessment edge sourceElement == taskShape.
+	self assert: assessment edge targetElement == createAssessment shape.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	activityMemento := flowContext childMementoFor: task.
+	ioDescription := task ioSpecificationDescription.
+	ioSpecification := activityMemento readUsing: ioDescription.
+	self assert: ioSpecification == assessment ioSpecification.
+	ioMemento := activityMemento childMementoFor: ioSpecification inRelation: ioDescription.
+	outputDescription := ioSpecification dataOutputsDescription.
+	outputs := ioMemento readUsing: outputDescription.
+	self assert: (outputs identityIncludes: assessment dataItem).
+	outputSet := ioSpecification outputSets first.
+	outputSetMemento := ioMemento childMementoFor: outputSet inRelation: ioSpecification outputSetsDescription.
+	outputRefsDescription := outputSet dataOutputRefsDescription.
+	self assert: ((outputSetMemento readUsing: outputRefsDescription) identityIncludes: assessment dataItem).
+	associationsDescription := task dataOutputAssociationsDescription.
+	associations := activityMemento readUsing: associationsDescription.
+	self assert: (associations identityIncludes: assessment association).
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: (diagramElements identityIncludes: assessment edge).
+	self assert: task ioSpecification isNil.
+	^ assessment
+]

@@ -351,12 +351,31 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 	sourceContainer := self flowContainerContaining: source.
 	targetContainer := self flowContainerContaining: target.
 	(sourceContainer notNil and: [ sourceContainer == targetContainer ]) ifTrue: [
-		^ CPAtelierConnectFlowNodes
-			source: source
-			target: target
-			flowContainer: sourceContainer
-			processMemento: processMemento
-			diagramContext: diagramContext ].
+		(source isDataObjectReference and: [ target isActivity ]) ifTrue: [
+			^ CPAtelierConnectDataAssociation
+				dataReference: source
+				activity: target
+				inputAssociation: true
+				flowContainer: sourceContainer
+				processMemento: processMemento
+				diagramContext: diagramContext ].
+		(source isActivity and: [ target isDataObjectReference ]) ifTrue: [
+			^ CPAtelierConnectDataAssociation
+				dataReference: target
+				activity: source
+				inputAssociation: false
+				flowContainer: sourceContainer
+				processMemento: processMemento
+				diagramContext: diagramContext ].
+		(source isFlowNode and: [ target isFlowNode ]) ifTrue: [
+			^ CPAtelierConnectFlowNodes
+				source: source
+				target: target
+				flowContainer: sourceContainer
+				processMemento: processMemento
+				diagramContext: diagramContext ].
+		^ nil ].
+	(source isFlowNode and: [ target isFlowNode ]) ifFalse: [ ^ nil ].
 	^ CPAtelierConnectMessageFlow
 		source: source
 		target: target
