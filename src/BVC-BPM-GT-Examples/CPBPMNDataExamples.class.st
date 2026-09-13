@@ -147,7 +147,10 @@ CPBPMNDataExamples >> dataReferenceAndAssociationAreValidDiagramSubjects [
 	association := CPDataInputAssociation new.
 	edge := CPEdge new modelElement: association; yourself.
 
-	self shouldnt: [ shape modelElementDescription validate: reference ] raise: MAValidationError.
-	self shouldnt: [ edge modelElementDescription validate: association ] raise: MAValidationError.
+	shape modelElementDescription validate: reference.
+	edge modelElementDescription validate: association.
+
+	self assert: shape modelElement == reference.
+	self assert: edge modelElement == association.
 	^ shape
 ]
