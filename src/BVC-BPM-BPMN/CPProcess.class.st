@@ -119,6 +119,7 @@ CPProcess >> diagramDescription [
 	^ MAToOneRelationDescription new
 		accessor: #diagram;
 		classes: { CPDiagram };
+		reference: CPDiagram new identifierDescription;
 		label: 'Diagram';
 		priority: 110;
 		group: 'Diagram';

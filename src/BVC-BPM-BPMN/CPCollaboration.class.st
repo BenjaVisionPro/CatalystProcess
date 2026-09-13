@@ -125,6 +125,7 @@ CPCollaboration >> diagramDescription [
 	^ MAToOneRelationDescription new
 		accessor: #diagram;
 		classes: { CPDiagram };
+		reference: CPDiagram new identifierDescription;
 		label: 'Diagram';
 		priority: 120;
 		group: 'Diagram';
