@@ -19,6 +19,18 @@ CPDataObjectReference >> dataObjectRef [ ^ dataObjectRef ]
 { #category : 'accessing' }
 CPDataObjectReference >> dataObjectRef: aDataObject [ dataObjectRef := aDataObject ]
 { #category : 'accessing' }
+CPDataObjectReference >> label [
+	^ dataObjectRef
+		ifNil: [ super label ]
+		ifNotNil: [ dataObjectRef label ]
+]
+{ #category : 'accessing' }
+CPDataObjectReference >> label: anObject [
+	^ dataObjectRef
+		ifNil: [ super label: anObject ]
+		ifNotNil: [ dataObjectRef label: anObject ]
+]
+{ #category : 'accessing' }
 CPDataObjectReference >> dataState [ ^ dataState ]
 { #category : 'accessing' }
 CPDataObjectReference >> dataState: aDataState [ dataState := aDataState ]

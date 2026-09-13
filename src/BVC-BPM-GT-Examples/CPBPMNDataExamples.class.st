@@ -26,12 +26,14 @@ CPBPMNDataExamples >> dataObjectReferenceSharesUnderlyingStructure [
 	| dataObject reference |
 	dataObject := self dataObjectUsesExternalMagritteStructure.
 	reference := CPDataObjectReference new
-		label: 'Order [approved]';
 		dataObjectRef: dataObject;
 		dataState: (CPDataState new label: 'approved');
 		yourself.
 	self assert: reference itemSubjectRef == dataObject itemSubjectRef.
 	self assert: reference structureRef == dataObject structureRef.
+	self assert: reference label equals: dataObject label.
+	reference label: 'Renamed order'.
+	self assert: dataObject label equals: 'Renamed order'.
 	^ reference
 ]
 
