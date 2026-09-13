@@ -367,7 +367,7 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 				flowContainer: sourceContainer
 				processMemento: processMemento
 				diagramContext: diagramContext ].
-		(source isFlowNode and: [ target isFlowNode ]) ifTrue: [
+		((source isKindOf: CPFlowNode) and: [ target isKindOf: CPFlowNode ]) ifTrue: [
 			^ CPAtelierConnectFlowNodes
 				source: source
 				target: target
@@ -375,7 +375,6 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 				processMemento: processMemento
 				diagramContext: diagramContext ].
 		^ nil ].
-	(source isFlowNode and: [ target isFlowNode ]) ifFalse: [ ^ nil ].
 	^ CPAtelierConnectMessageFlow
 		source: source
 		target: target
