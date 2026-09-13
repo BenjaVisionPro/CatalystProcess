@@ -9,9 +9,8 @@ Class {
 		'collaborationDiagramElement',
 		'processDiagramElement',
 		'diagramScrollElement',
-		'detailHostElement',
-		'detailScrollElement',
 		'workspaceElement',
+		'inspectorBlock',
 		'diagramEditing',
 		'diagramContext',
 		'documentContext',
@@ -73,27 +72,6 @@ CPProcessPresentation >> prepareHostElement [
 		on: BlElementExtentChangedEvent
 		do: [ :anEvent | self updateDiagramViewportExtent ]).
 
-	detailHostElement := BrVerticalPane new
-		hMatchParent;
-		vFitContent;
-		cellSpacing: 0;
-		padding: BlInsets empty;
-		background: Color transparent;
-		yourself.
-
-	detailScrollElement := BrScrollPane new
-		background: Color transparent;
-		allowMeAndChildrenMouseEvents;
-		aptitude: BrScrollPaneAptitude
-			+ BrGlamorousWithVerticalScrollbarAptitude
-			+ CFGlassSurfaceAptitude new;
-		hExact: 300;
-		vFitContentLimited;
-		constraintsDo: [ :c |
-			c frame horizontal alignRight.
-			c frame vertical alignTop ];
-		content: detailHostElement;
-		yourself.
 
 	workspaceElement := BrFrame new
 		background: surfaceColor;
@@ -101,7 +79,6 @@ CPProcessPresentation >> prepareHostElement [
 		vMatchParent;
 		layout: BlFrameLayout new;
 		addChild: diagramScrollElement;
-		addChild: detailScrollElement;
 		yourself.
 
 	self hostElement
@@ -330,17 +307,21 @@ CPProcessPresentation >> diagramSelectionDidChange [
 
 { #category : 'private - selection' }
 CPProcessPresentation >> selectModelElement: aModelElement [
-	| selectedMemento detailElement |
+	| selectedMemento presentationBlock |
+	inspectorBlock ifNil: [ ^ self ].
 	aModelElement ifNil: [
-		detailHostElement removeChildren.
+		inspectorBlock value: nil value: nil value: nil.
 		^ self ].
 	selectedMemento := self mementoForModelElement: aModelElement.
-	detailElement := self
-		newDetailElementFor: aModelElement
-		memento: selectedMemento.
-	detailHostElement
-		removeChildren;
-		addChild: detailElement
+	presentationBlock := [ :aDetailPresentation |
+		(self isParticipantModelElement: aModelElement) ifTrue: [
+			self
+				configureParticipantOrientationFor: aModelElement
+				on: aDetailPresentation ] ].
+	inspectorBlock
+		value: aModelElement
+		value: selectedMemento
+		value: presentationBlock
 ]
 
 
@@ -394,20 +375,6 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 ]
 
 
-{ #category : 'private - selection' }
-CPProcessPresentation >> newDetailElementFor: aModelElement memento: aMemento [
-	| viewModel detailPresentation |
-	detailPresentation := CFMaDetailPresentation new beOverlay.
-	(self isParticipantModelElement: aModelElement) ifTrue: [
-		self
-			configureParticipantOrientationFor: aModelElement
-			on: detailPresentation ].
-	viewModel := CFMaViewModel forObject: aModelElement memento: aMemento.
-	viewModel
-		ignoreImplicitActions;
-		elementBuilderDo: [ detailPresentation ].
-	^ viewModel asElement
-]
 
 { #category : 'private - theme' }
 CPProcessPresentation >> resolvedThemeColor: aThemeableColor [
@@ -495,9 +462,11 @@ CPProcessPresentation >> processDiagramElement [
 	^ processDiagramElement
 ]
 
-{ #category : 'accessing - testing' }
-CPProcessPresentation >> detailHostElement [
-	^ detailHostElement
+
+{ #category : 'configuration' }
+CPProcessPresentation >> inspectorDo: aBlock [
+	"The Atelier host owns the inspector browser. Process only reports the selected semantic object, its active memento, and optional Detail presentation configuration."
+	inspectorBlock := aBlock
 ]
 
 { #category : 'accessing - testing' }

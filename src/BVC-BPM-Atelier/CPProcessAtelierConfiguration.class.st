@@ -88,6 +88,14 @@ CPProcessAtelierConfiguration >> applyEditingTo: anAtelierViewModel [
 	super applyEditingTo: anAtelierViewModel.
 	anAtelierViewModel presentationDo: [ :aPresentation |
 		aPresentation
+			inspectorDo: [ :anObject :aMemento :aPresentationBlock |
+				anObject
+					ifNil: [ anAtelierViewModel clearInspector ]
+					ifNotNil: [
+						anAtelierViewModel
+							inspectObject: anObject
+							memento: aMemento
+							presentationDo: aPresentationBlock ] ];
 			transactionMemento: session rootMemento;
 			documentContext: session documentContext;
 			diagramContext: session diagramContext;

@@ -1,3 +1,694 @@
+# CURRENT CONTINUATION SNAPSHOT — 13 September 2026, ~11:00 Sydney
+
+This section supersedes the earlier continuation plans where they conflict with the work completed on 12–13 September. Preserve the historical sections below as evidence; do not reinterpret their then-current gaps as the current implementation state.
+
+## A. Current direction and immediate next goal
+
+The immediate goal is **Inspector / Tree Pager cleanup in Foundation/Atelier**, with Catalyst Process as the current pressure-test client. Do not add another Process-specific inspector lifecycle. The reusable navigation/details surface must work for all Atelier users.
+
+The first visible defect to remove is the transient **`Preparing...`** state. The inspector must never display that asynchronous placeholder. When a page/detail is requested, leave the current/empty visual state in place while content is prepared, then install the completed content atomically once it is ready. Async preparation is an implementation detail, not a user-visible page.
+
+Source facts establishing the boundary:
+
+- `GtMagritteViewModel>>asElement` currently installs a `BrLabel` with text `Preparing...` in its `whenPending:` branch and replaces it in `whenSuccess:`. This is the exact source of the visible pending label.
+- `CFMaPhlowNavigation` explicitly describes itself as adapting Foundation navigation onto ordinary Phlow and, **when present, the existing GT Tree Pager**. `treePagerPaneContaining:ifFound:ifNone:` detects `GtTreePagerPaneElement`; navigation reuses/activates existing links and fires `GtTreePagerScrollToColumnWish`.
+- `CFMaTreePagerPruneRemovedBranchHandler` subscribes to `GtTreePagerLinkModelStateChanged` through the pager model, confirming that Foundation already has Tree Pager-specific navigation policy.
+- `CPProcessPresentation>>prepareHostElement` currently composes the Process workspace with a 300px, content-sized overlay Detail scroll element using `CFGlassSurfaceAptitude`. `selectModelElement:` replaces the contents of `detailHostElement`. Process therefore still contains presentation composition for the selected Detail surface, but it must not become the owner of generic pager/loading behavior.
+
+Architectural conclusion: **the inspector navigation surface to standardise is the shared GT Tree Pager / Foundation-Atelier navigation path.** Process is one Atelier client. The current Process overlay Detail composition should converge with that shared pager behavior rather than growing its own loading, history, navigation or branch-management implementation.
+
+### Required Tree Pager behavior
+
+1. Never show `Preparing...` or another temporary async label.
+2. Prepare the requested content off-screen / undisplayed; reveal it only when ready.
+3. Preserve the current Atelier workspace while inspector content changes. A page transition must not blank, resize or otherwise disturb the diagram workspace.
+4. Keep pager/history/navigation semantics in Foundation/Atelier so every Atelier client receives the same behavior.
+5. Keep Process responsible only for Process selection, BPM semantic/DI policy, and the Detail content it contributes.
+6. Do not patch GT dependency source merely to hide the label unless investigation proves Foundation cannot express the required hosting policy cleanly. Prefer a Foundation-owned composition/lifecycle seam around the standard GT Magritte/Tree Pager behavior.
+7. Preserve the existing Foundation Tree Pager navigation behavior: selecting/navigating to an already-present immediate child should reuse/activate that branch rather than spawning duplicates; closing a spawned inspector prunes its removed branch through the Foundation handler.
+
+## B. Workspace / inspector presentation now established
+
+The old split workspace has been replaced in Process by a full diagram workspace with the selected-object Detail surface overlaid at the right. The diagram remains the full workspace underneath. The inspector occupies only the height required by its actual content rather than reserving a full-height right column.
+
+Current presentation decisions:
+
+- Inspector width is **300px**.
+- The outer inspector surface uses the established glass treatment: translucent surface plus blur-below.
+- Foundation Detail supports an overlay appearance. The form background is transparent; Detail cards/rows use the theme's subtle background rather than an opaque standalone form canvas.
+- The diagram remains visible beneath and around the inspector. Empty inspector space must never become an opaque blocker over the workspace.
+- Process should not own generic glass/theme policy beyond choosing the shared Foundation presentation.
+
+Historical audit item **F07** below is retained as evidence of the 10 September source state. Its statement that the promised details workspace was absent is **superseded by this snapshot** for continuation work. The reusable Tree Pager lifecycle remains the next cleanup target.
+
+## C. Foundation Detail architecture changes completed during this continuation
+
+### One Detail rendering path for fields
+
+Participant Orientation originally exposed a second independently-built `CFMaDetailPresentation`, which caused styling and lifecycle divergence. That duplicate presentation path has been removed. Orientation remains a separate DI-backed adapter model (`CPParticipantOrientationSelection`) because it edits diagram state, but its field now contributes to the same Detail presentation as the semantic Participant fields.
+
+Foundation now supports build-phase Detail contributions rather than mutating a completed presentation. `afterPrimaryContentDo:` contributions run while the normal form/memento/theme build context is alive.
+
+### Field ownership is explicit
+
+A contributed field may belong to a memento other than the Detail presentation's primary memento. Foundation now carries an explicit `CFMaFieldContext` containing the field description and its owning memento. Validation, enablement, information, revert/change indication and editor binding use that field context rather than assuming every field belongs to `self memento`.
+
+This is the correct reusable boundary for mixed-model Detail surfaces. Do not reintroduce special-case Process validation or editor paths.
+
+### Compact identity editor direction
+
+The compact identity block at the top of Detail is driven by its Magritte reference descriptions. `isReadOnly` remains authoritative: read-only values render statically; writable values use their normal Magritte editor. The compact widget owns only compact placement/presentation.
+
+Important design correction from the iterations in this chat: developers **do not** mark descriptions with special compact roles or selectors. Reference order is enough. The compact widget treats the **first textual line as primary text and later textual lines as supporting text**; non-text entries such as the icon do not count as text lines. Supporting text uses the theme's supporting font size and tertiary foreground.
+
+Do not revive `compactIndex`, selector tests such as `handlesSelector: #label/#identifier`, arbitrary style symbols, or custom editor semantics. Writable text should use the standard GT Magritte editor/stencil; the widget supplies its compact editor aptitude/geometry.
+
+The latest compact-editor work also restores Foundation's normal form-navigation shortcut path for generated writable identity editors rather than installing local Enter handling in the widget. Runtime verification of the latest shortcut fix is still required.
+
+## D. Process editor work completed since the 12 September morning snapshot
+
+### Orientation projection cleanup
+
+The orientation work moved away from per-feature correction lists toward composition:
+
+- `CPProcessShapeElement` has an orbital/root frame that carries diagram geometry and an upright visual host for content that must remain readable.
+- Shape/edge presentation objects own their upright Motion targets rather than having `CPProcessVisualElement` inspect feature internals.
+- Boundary Events are compositionally attached to Activities through an attachment host/anchor while retaining independent BPMN-DI shapes. Authoritative perimeter attachment geometry accounts for quarter-turn orientation.
+- Boundary Event drag positioning was corrected to move the compositional target rather than relocating the centered Boundary child itself.
+- Ordinary external node labels live with their node composition and intentionally participate in Lane clipping. Boundary hover labels remain orbital adornments.
+- Process-specific connection endpoint Motion properties animate assessed from/to points; the obsolete accepted 1px Process-content handoff correction was removed after the structural fix.
+
+### Axis-neutral Pool/Lane editing
+
+`CPPoolLaneGeometry` now supplies partition-axis/cross-axis operations. Lane layout, insertion and Participant resize use one algorithm parameterized by orientation rather than separate horizontal/vertical editing implementations. First-Lane creation, subsequent insertion, palette before/after targeting and Lane drops use the same orientation abstraction. This was runtime-confirmed during the session.
+
+### Palette redesign
+
+Foundation gained an explicit `paletteElementFactory:` seam while retaining generic drag/materialization/capture mechanics. Process owns `CPProcessPaletteElement` and its BPM-specific layout.
+
+Current Process palette decisions include:
+
+- rows: Start / Stop / Event; Activity / Gateway; Sub-process / Call activity; Pool/Lane;
+- Start, Stop and Event use the same Font Awesome circle geometry, differentiated primarily by restrained semantic color;
+- the same Event palette item creates an ordinary event on canvas and a Boundary Event when dropped on an Activity;
+- no visible drag handle; background drag moves the palette while item drags remain item drags;
+- centered compact rows, 5px outer padding and tight inter-icon spacing;
+- shared hover-help text instead of item tooltips;
+- theme subtle background with blur below.
+
+The architecture is intentionally extensible: Message Flow, Data and Artifacts are expected to be appended through explicit Process palette rows without changing Foundation drag mechanics.
+
+### Lane reorder
+
+A first source implementation of Lane reordering now exists. Drag begins from the Lane header and requests an assessed reorder within the current staged `CPLaneSet`. The operation stages semantic Lane order and translates the relevant Lane DI subtree, referenced FlowNodes, attached Boundary Events and affected SequenceFlow terminal/full routing as appropriate. It is axis-neutral and refuses hierarchy changes.
+
+**Runtime verification is still required before calling Lane reorder accepted.** Do not confuse structural/source checks with gesture confirmation.
+
+## E. Current baselines and verification status
+
+Latest source artifacts produced in this continuation:
+
+- Process: `ProcessSep13-lane-reorder-v12.24.zip` (Lane reorder source pass; runtime verification pending).
+- Foundation compact identity: `Foundation-Sep13-compact-identity-editing-v9.1-form-navigation.zip` (standard Magritte compact editors + normal Foundation form-navigation hook; latest runtime verification pending).
+- Earlier Process workspace baseline immediately before Lane reorder: `ProcessSep12-workspace-overlay-v12.23-inspector-300.zip`.
+
+Do not call a source-only structural scan a green runtime result. The last explicitly runtime-confirmed areas in this continuation include the orientation/Boundary-event visual corrections and axis-neutral Pool/Lane editing. Lane reorder and the latest compact-identity Enter/navigation adjustment still need live GT confirmation.
+
+## F. Immediate continuation plan
+
+1. Start with the generic inspector/Tree Pager lifecycle, not Process.
+2. Reproduce the `Preparing...` flash and trace the page/content future from the containing `GtTreePagerPaneElement` through Foundation/Phlow/Magritte.
+3. Preserve standard GT Magritte editor construction and standard Tree Pager navigation identity. Change only the presentation lifecycle needed to keep pending content undisplayed.
+4. Establish an executable Foundation example that proves pending content is not installed and successful content appears only when ready. Include error-state behavior explicitly rather than silently swallowing errors.
+5. Ensure the same behavior works for an ordinary non-Process Atelier client.
+6. Then verify Process selection/detail navigation uses that generic path with the full diagram workspace still visible/usable beneath the inspector.
+7. Once the generic pager behavior is green, return to Lane reorder runtime verification and then continue the planned BPM Data / Message Flow / Artifact work.
+
+## G. Design rules reinforced by this continuation
+
+- Presentation semantics belong to the presenting widget; developers should not annotate domain descriptions with hidden presentation-role conventions.
+- Description `isReadOnly` controls whether Magritte supplies an editor; do not create a parallel editability concept.
+- Reuse standard Magritte editors and memento semantics. Compact/Detail widgets may provide geometry and aptitude, not alternate value conversion/commit behavior.
+- Never infer protocols with `respondsTo:` or class-switch compatibility code. Fix the collaborator contract.
+- Do not invent Bloc/Brick selectors. Source-check the API before using it. Recent mistakes such as `#childCount` and assuming an aptitude has `#label` are examples of what must not recur.
+- Process-specific presentation should pressure-test reusable Foundation/Atelier behavior, not absorb generic pager, Detail, palette or transaction policy.
+- Keep source-proven facts, runtime observations and design goals explicitly separate.
+
+---
+
+# CURRENT CONTINUATION SNAPSHOT — 12 September 2026, ~08:40 Sydney
+
+This section supersedes the 11 September continuation snapshot below for current implementation status and continuation advice. The older snapshots are retained as historical evidence of the evolution of the implementation and rejected approaches.
+
+## A. Current accepted baselines
+
+### Foundation Detail
+
+The accepted Foundation grouped-buttons single-option representation remains:
+
+- `Foundation-Sep11-0640-patchA-grouped-buttons-single-option.zip`
+
+The user runtime-confirmed this all green. It remains the correct reusable Foundation Detail primitive for the Pool orientation field.
+
+### Process orientation — current green code baseline
+
+The current accepted Process baseline is:
+
+- `ProcessSep11-0640-patchBM-orientation-audit-cleanup.zip`
+
+The user explicitly reported **all green** after BM.
+
+BM was a behavior-preserving cleanup built on the runtime-verified BL orientation handoff. Its important architectural cleanup was:
+
+- shared presentation-independent Pool/Lane quarter-turn geometry moved to `BVC-BPM-BPMN` as `CPPoolLaneGeometry`;
+- Atelier owns assessment/application of the authoritative DI edit;
+- GT owns projection and Motion only;
+- obsolete experimental Participant-Motion behavior from BK was removed;
+- connection-label linear correction returned to ordinary Foundation `CFMotionTranslationTrack`;
+- the custom external-label Motion behavior remained because the then-current flat animation structure still required a progress-dependent screen-space correction;
+- the verified one-pixel Process-content handoff correction remained in GT, not in persisted BPMN-DI geometry.
+
+Immediately before BM, `ProcessSep11-0640-patchBL-process-content-handoff-pixel-fix.zip` was runtime-confirmed by the user as **“perfect.”** BL removed the final approximately one-pixel endpoint jump for the Process content that existed at that time.
+
+Do not regress the core orientation invariant: the DI operation is an exact rigid quarter-turn of the Pool coordinate system; Pool/Lane structure rotates, FlowNode centres rotate, FlowNode extents remain upright, and edge waypoints rotate.
+
+## B. New runtime finding after BM — Boundary Event exposes a structural animation flaw
+
+After BM was all green, the user added a Boundary Event. During Pool orientation animation the Boundary Event jumps at the final authoritative refresh.
+
+This is important evidence: the problem is **not** that Boundary Events need one more endpoint correction. The current animation architecture is too flat. If every newly composed diagram feature must be added to an orientation target/correction list, the projection is not preserving the visual composition of the BPMN node.
+
+The user identified the preferred direction:
+
+> transform node centres through the rotation; keep the things that must remain upright upright; make the Bloc projection compose a node and its adornments so Motion acts on the composition rather than knowing every adornment type individually.
+
+That direction is supported by current source structure.
+
+### Exact source evidence for the flaw
+
+`CPProcessShapeElement>>hostBoundaryEventElement:atLocalPosition:` makes the Boundary Event a genuine Bloc child of its attached Activity:
+
+```smalltalk
+CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalPosition: aPoint [
+    aBoundaryElement constraintsDo: [ :c | c ignoreByLayout ].
+    self addChild: aBoundaryElement.
+    aBoundaryElement relocate: aPoint.
+    self forceLayout
+]
+```
+
+`CPProcessVisualElement>>addShapeFor:hostedByActivityElement:` deliberately uses that containment for Boundary Events:
+
+```smalltalk
+modelElement isBoundaryEvent
+    ifTrue: [
+        anActivityElement
+            hostBoundaryEventElement: element
+            atLocalPosition: bounds origin
+                - (self stagedBoundsOf: anActivityElement diagramShape) origin ]
+```
+
+But the orientation code later discards that hierarchy conceptually. `CPProcessVisualElement>>orientationUprightElements` flattens all shape visuals into independent Motion targets:
+
+```smalltalk
+shapeElementsByShape valuesDo: [ :aShapeElement |
+    elements add: aShapeElement.
+    aShapeElement externalLabelHost ifNotNil: [ :aLabel |
+        elements add: aLabel ] ].
+```
+
+This includes both an Activity and its hosted Boundary Event. `CPProcessPresentation>>animateParticipantOrientationFor:horizontal:assessment:commit:` then installs an independent inverse `CFMotionRotationTrack` on every entry in that flattened collection.
+
+That is the wrong abstraction boundary. A visual that is already a descendant of another animated visual must not be treated as though it were an unrelated top-level diagram object. The resulting transform depends on parent/child transform composition and creates exactly the kind of feature-by-feature correction burden now being observed.
+
+### Foundation Motion source fact
+
+In the supplied accepted Foundation source, no dedicated class or selector named `keepUpright`, `upright`, `counterRotate`, or equivalent was found in `BVC-Motion-Core`. The relevant primitive is `CFMotionRotationTrack`, whose presentation participates in Motion's shared transform channel. Therefore do not rely on a presumed `keepUpright` API without checking a newer Foundation source.
+
+A clean keep-upright behavior can still be expressed using Foundation Motion: apply an inverse rotation track to the appropriate **visual layer**, not to every semantic/DI shape independently.
+
+## C. Recommended orientation projection architecture
+
+The next orientation work should stop extending `orientationUprightElements`, `orientationExternalLabelOffsets`, and per-feature endpoint-correction dictionaries. The goal should be a compositional projection where new adornments naturally inherit the correct behavior.
+
+### 1. Separate a node's orbital frame from its upright visual frame
+
+A FlowNode presentation should have a stable node-centred composition. Conceptually:
+
+```text
+FlowNode orbital frame       -- centred on CPShape bounds centre
+|
++-- upright body frame       -- inverse rotation cancels Pool rotation
+|   +-- node body
+|   +-- body-internal markers/icons
+|   +-- ordinary external node label, if its contract is screen-upright/below-node
+|
++-- rotating attachment frame
+    +-- Boundary Event attachment slot(s)
+        +-- upright Boundary Event glyph/body
+```
+
+The **orbital frame** is the important missing abstraction. Its centre follows the Pool quarter-turn. It inherits the Pool rotation, so relative attachment positions rotate naturally. It is not itself counter-rotated.
+
+The **upright body frame** is counter-rotated through Foundation Motion. The node body therefore remains upright while its centre travels around the Pool centre.
+
+This distinction matters for Boundary Events. Their attachment point must rotate from one edge of an Activity to the corresponding rotated edge, so the Boundary Event position belongs in the rotating/orbital frame. But the Boundary Event symbol itself should remain upright, so only its glyph/body presentation gets the inverse rotation. Do **not** counter-rotate the entire Activity container and then independently counter-rotate the Boundary Event child again.
+
+### 2. The node centre is the single geometric anchor
+
+The authoritative Atelier assessment already does the right high-level thing. `CPAtelierSetParticipantOrientation>>assess` computes every non-Lane shape's new bounds using `rotateUprightBounds:within:`. That means the authoritative model is already based on rotating each shape centre while preserving its extent.
+
+The projection should mirror that rule rather than deriving Motion from each concrete visual subtype:
+
+```text
+current node centre
+    -> exact quarter-turn through CPPoolLaneGeometry
+    -> Motion carries node orbital frame centre to that destination
+    -> upright layer receives inverse visual rotation
+```
+
+A node feature should normally not participate in orientation code at all. It should choose the correct node presentation layer when it is constructed.
+
+### 3. Classify visual composition, not BPMN feature types
+
+Prefer a very small set of presentation roles rather than checks such as “is Boundary Event?”, “has external label?”, etc. The useful roles are approximately:
+
+- **rotates with diagram frame** — Lane structure, edge paths, attachment positions;
+- **moves with diagram frame but remains upright** — FlowNode body, Boundary Event glyph, text/icon surfaces;
+- **screen-relative adornment** — an ordinary external node label whose final renderer intentionally keeps it below an upright node;
+- **path-relative upright adornment** — SequenceFlow label: its path anchor is derived from rendered edge geometry, but the label text stays upright.
+
+These should be represented by containment/presentation objects, not by a central orientation method enumerating current BPMN features.
+
+### 4. Boundary Event DI remains independent even if its visual is composed with the Activity
+
+Do not change BPMN semantics or DI ownership to solve projection. A Boundary Event keeps its own `CPShape` and authoritative bounds. The Activity-owned visual composition is only a projection convenience.
+
+At build time, derive the Boundary Event's local attachment vector from DI:
+
+```text
+boundaryEventShape centre - activityShape centre
+```
+
+Store/project that into the Activity orbital frame. When the Pool rotates, the orbital frame rotates the vector automatically. The Boundary Event's upright visual layer counter-rotates to remain readable. At the Motion endpoint, the resulting screen centre should equal the proposed Boundary Event DI shape centre without a Boundary-Event-specific handoff correction.
+
+This gives a very strong regression: the Boundary Event centre produced by the composed visual transform at progress 1 must exactly equal `assessment proposedFlowNodeBoundsByShape` for the Boundary Event.
+
+### 5. Ordinary node labels should become composition rather than procedural Motion corrections
+
+The current `CPProcessOrientationExternalLabelMotionBehaviour` exists because external labels are explicitly reparented to the diagram root by `bringNodeInteractionSurfacesToFront` / `bringExternalLabelToFrontIn:`. Once detached from their node, Motion has to reconstruct the desired relation procedurally.
+
+That is a code smell for orientation. If z-order can be achieved without destroying ownership, prefer keeping a node label inside a node-level upright adornment layer. Then “stay below this upright node” is ordinary layout inside the node composition and no progress-dependent orientation behavior is needed.
+
+If Bloc requires a root overlay for hit-testing/z-order, introduce an explicit projection/portal abstraction that preserves the node-relative coordinate contract; do not make orientation code rediscover ownership from dictionaries.
+
+### 6. SequenceFlow labels are a separate composition problem, but still should not be feature-specific
+
+A connection label is not owned by a FlowNode. Its authoritative anchor is `CPProcessEdgeLabelPath`, derived from the rendered edge path. Since FlowNodes stay upright while DI waypoints rotate, final endpoint docking is not necessarily the rigidly rotated old rendered path. Therefore an edge label may still need Motion based on the proposed rendered edge path.
+
+But that should be an **edge presentation-unit rule**, not a special case in Participant orientation. A useful target structure is:
+
+```text
+Edge presentation
++-- path geometry frame
++-- label anchor/frame following CPProcessEdgeLabelPath
+    +-- upright label visual
+```
+
+Then orientation asks the edge presentation to animate from current projected geometry to the assessed projected geometry; the Participant orientation method does not calculate connection-label centres itself.
+
+## D. Layering rules for the redesign
+
+Keep these boundaries strict:
+
+### BPMN / DI (`BVC-BPM-BPMN`)
+
+Owns presentation-independent exact geometry only:
+
+- `CPShape>>isHorizontal`;
+- `CPPoolLaneGeometry` quarter-turn mathematics;
+- BPMN-DI shape/edge data.
+
+It must know nothing about Bloc, Motion, labels, Boundary Event visual hosting, or pixels.
+
+### Atelier (`BVC-BPM-Atelier`)
+
+Owns the authoritative edit assessment and application:
+
+- target Participant/Lane orientation;
+- proposed Participant/Lane bounds;
+- proposed FlowNode bounds (centre rotated, extent preserved);
+- proposed SequenceFlow waypoints;
+- proposed collaboration endpoint waypoints;
+- validation and memento writes.
+
+It must not know how a Boundary Event is visually hosted or which child visuals stay upright.
+
+### GT projection (`BVC-BPM-GT`)
+
+Owns visual composition:
+
+- FlowNode orbital/upright/adornment frames;
+- Activity/Boundary Event projection relationship;
+- external-label projection relationship;
+- edge/path/edge-label projection;
+- mapping DI geometry into Bloc geometry.
+
+This is the correct layer for solving the new Boundary Event issue.
+
+### Foundation Motion
+
+Owns animation and transform interpolation exclusively. Process may compose Motion tracks/behaviors over its projection objects, but must not introduce separate animation loops or timing systems.
+
+## E. Specific current code to reconsider/remove after the compositional projection exists
+
+Do not delete these until the replacement is proven by regressions, but they are now redesign targets rather than architecture to preserve:
+
+- `CPProcessVisualElement>>orientationUprightElements`
+- `CPProcessVisualElement>>orientationExternalLabelOffsets`
+- `CPProcessVisualElement>>orientationConnectionLabelCorrectionsForAssessment:horizontal:`
+- `CPProcessVisualElement>>orientationContentHandoffCorrectionForAssessment:horizontal:`
+- `CPProcessOrientationExternalLabelMotionBehaviour`
+- the large feature-aware loop inside `CPProcessPresentation>>animateParticipantOrientationFor:horizontal:assessment:commit:`
+
+The goal is that `animateParticipantOrientationFor:` knows about the Participant/Process projection as a few compositional animation units, not every current node/adornment type.
+
+BL's one-pixel handoff correction is accepted runtime evidence, but in the new architecture treat it as evidence that the old flat projection had a coordinate-boundary mismatch—not as a permanent rule that every child presentation should inherit. Re-test whether it is still needed after node-centred composition is in place.
+
+## F. Regression strategy before removing old orientation code
+
+The next implementation should be driven by composition-level regressions. At minimum prove:
+
+1. A plain Task centre follows the exact assessed quarter-turn and its body stays upright.
+2. An Event/Gateway behaves identically without type-specific animation code.
+3. A Task with an external label keeps the label's renderer-defined relation without a label-specific Participant-orientation correction.
+4. An Activity with a Boundary Event ends with both centres exactly equal to their assessed DI bounds and both glyphs upright.
+5. Multiple Boundary Events on different Activity edges rotate to the corresponding edges correctly.
+6. SequenceFlow path and label end exactly at the authoritative projected path/label placement.
+7. Horizontal→vertical→horizontal restores exact DI geometry and produces no visual handoff jump.
+8. The existing canonical horizontal Pool/Lane regression remains green.
+
+Use `assert:` only in GT examples. Do not use `deny:`. Do not use ordinal collection selectors beyond `ninth`.
+
+## G. Immediate next investigation
+
+Before writing another patch, inspect whether the current `CPProcessShapeElement` can be safely split internally into explicit orbital/body/adornment hosts without changing its public interaction contract. Pay particular attention to:
+
+- selection and drag event surfaces;
+- resize handles;
+- connection anchors;
+- popup/type affordances;
+- expanded SubProcess nested visuals;
+- Boundary Event hit-testing and drag behavior;
+- z-order currently achieved by reparenting labels to `diagramPresentationParent`.
+
+The preferred result is **one transformable node projection with explicit sublayers**, not more orientation lookup dictionaries.
+
+---
+
+# CURRENT CONTINUATION SNAPSHOT — 11 September 2026, ~23:10 Sydney
+
+This section supersedes the 10 September continuation snapshot below for current implementation status and continuation advice. The older material is retained because it contains the original Definitions-root refactor evidence, source audit, class map and historical failure analysis.
+
+## A. Current accepted baselines
+
+### Foundation
+
+The new typed Detail field representation for a grouped-buttons single-option editor is **runtime confirmed green**.
+
+Current accepted Foundation artifact:
+
+- `Foundation-Sep11-0640-patchA-grouped-buttons-single-option.zip`
+
+Key additions:
+
+- `CFMaGroupedButtonsConfiguration` as a typed `CFMaFieldRepresentationConfiguration`.
+- `CFMaFieldConfiguration>>beGroupedButtons`.
+- `CFMaGroupedButtonsConfiguration>>addSingleOptionUsing:toDetailPresentation:`.
+- `CFMaDetailGroupedButtonsElement`, implemented with `BrToggleGroup`.
+- `CFMaDetailPresentation>>addGroupedButtonsSingleOptionUsing:`.
+- Existing `MAOptionDescription>>blocOptionIconStencil` is used for icon choices; text is the fallback.
+- Writes still go through the normal Foundation/GT Magritte memento path.
+
+Focused examples `fieldConfigurationCanUseGroupedButtons` and `groupedButtonsAreMutuallyExclusive` were reported all green by the user.
+
+This is now a reusable Foundation primitive; do not replace it with a Process-specific control.
+
+### Process — stable horizontal Pool/Lane baseline
+
+The last explicitly runtime-confirmed clean horizontal Pool/Lane baseline is:
+
+- `ProcessSep11-0640-patchAR-horizontal-lane-final-cleanup.zip`
+
+The horizontal work before orientation established DI-faithful Pool/Lane rendering, creation, insertion, nested Lane layout, content-aware Lane minimums, Lane deletion, node/edge movement during resize, live external-label and connection-label preview, and canonical horizontal regressions. Treat AR as the rollback point if later orientation work is found to have damaged unrelated horizontal behavior.
+
+### Process — orientation baseline
+
+`ProcessSep11-0640-patchAS-bpmn-di-pool-lane-orientation.zip` was explicitly reported **all green** by the user. It introduced BPMN-DI Pool/Lane orientation through `CPShape>>isHorizontal`, defaulting to true, and explicit orientation collaborators:
+
+- `CPPoolLaneOrientation`
+- `CPHorizontalPoolLaneOrientation`
+- `CPVerticalPoolLaneOrientation`
+
+The BPMN 2.0 source basis is that `BPMNShape::isHorizontal` is an optional attribute for Pools and Lanes that determines horizontal (`true`) versus vertical (`false`) depiction. Orientation belongs to DI, not to semantic `CPParticipant` or to a whole diagram.
+
+## B. Pool orientation UI and editing behavior now established
+
+The first consumer of Foundation grouped buttons is Pool orientation in Detail.
+
+User-facing field:
+
+- label: **Orientation**
+- Vertical icon: `#squareHalfStroke`
+- Horizontal icon: `#squareHalfStrokeHorizontal`
+
+The field is shown for a selected Pool but must not invent a semantic `CPParticipant` orientation property. It adapts the Participant's DI `CPShape` and delegates the structural change to typed Process diagram editing.
+
+Current editing messages are explicit, not symbol-dispatched:
+
+```smalltalk
+makeParticipantVertical: participantShape
+makeParticipantHorizontal: participantShape
+```
+
+The operation changes the Participant DI orientation and all Lane DI orientations together. Pool/Lane semantic ownership and FlowNode Lane membership remain unchanged.
+
+A lifecycle bug was found after the first successful horizontal→vertical switch: the Collaboration visual refresh rebuilt staged depiction context while the old Detail orientation adapter remained alive. `ProcessSep11-0640-patchAX-orientation-toggle-refresh-fix.zip` fixed this by rebuilding Pool Detail from the newly refreshed staged Collaboration state. User runtime result: **“works well.”** Bidirectional switching therefore worked at AX.
+
+## C. Orientation geometry invariant — do not regress this
+
+Orientation switching is **not ordinary Lane reflow**. The user explicitly requires it to look like a 90-degree rotation of the Pool coordinate structure.
+
+Authoritative geometry rule:
+
+1. The Pool keeps its centre and swaps width/height.
+2. Pool and Lane rectangles are transformed by the same exact quarter-turn.
+3. Nested Lane rectangles use the same transform.
+4. FlowNode **centres** follow the same quarter-turn around the Pool centre.
+5. FlowNode extents do **not** rotate; BPMN nodes remain upright.
+6. SequenceFlow waypoint positions follow the quarter-turn.
+7. Ordinary node labels and connection labels remain upright.
+8. Pool/Lane header labels rotate with the Pool/Lane structure.
+9. Horizontal→vertical→horizontal must restore original DI geometry, modulo only unavoidable numeric representation.
+
+`ProcessSep11-0640-patchAV-rigid-pool-orientation-rotation.zip` replaced orientation-time Lane reflow with this rigid transform. Do not reintroduce `CPAtelierLaneLayout` as the authority for the orientation switch itself. Lane reflow remains correct for normal resize/editing after orientation has been chosen.
+
+Relevant regressions added during this work include:
+
+- `participantOrientationRotatesGeometryWithoutRotatingFlowNodes`
+- `participantOrientationRoundTripRestoresExactGeometry`
+
+The earlier fixture error using `tenth`, `twelfth` and `thirteenth` on `Array` was fixed by explicit `at:` indexing. Do not use ordinal collection accessors beyond `ninth`.
+
+## D. Motion is mandatory for all visible animation
+
+The user has made the project rule explicit: **all animation uses Foundation Motion exclusively.**
+
+For Pool orientation:
+
+- no Bloc animation API,
+- no timers,
+- no hand-written animation loops,
+- no independent interpolation outside Motion.
+
+The first Motion attempt committed/refreshed final DI before starting animation, producing a visible snap. That ordering was rejected.
+
+`ProcessSep11-0640-patchAZ-seamless-motion-orientation-handoff.zip` changed the handoff to:
+
+```text
+existing authoritative presentation
+    ↓
+Foundation Motion rotates the existing Pool presentation to the exact quarter-turn endpoint
+    ↓
+only at the Motion endpoint, commit the matching DI transform
+    ↓
+refresh authoritative presentation
+```
+
+The transformed old presentation and refreshed new presentation therefore occupy the same geometry at the handoff. The user reported this **looks good**.
+
+Motion behavior during the turn:
+
+- Pool/Lane structure rotates.
+- Pool/Lane header labels rotate with it.
+- FlowNodes counter-rotate so their net screen orientation stays upright while their centres follow the Pool's circular path.
+- Ordinary labels must also remain upright and must finish at exactly the placement the authoritative renderer derives after commit.
+
+This seamless handoff sequence is accepted. Do not return to “commit, refresh, then animate from the beginning.”
+
+## E. Remaining orientation animation defect — labels
+
+The only currently reported visual defect is label placement during the Motion quarter-turn.
+
+User runtime evidence from the supplied recording:
+
+- external Event/Gateway labels start below their upright node,
+- during rotation they travel to the **opposite edge / above** the node,
+- at the end, authoritative refresh puts them back below,
+- therefore a visible label jump remains,
+- label calculations must cover both external FlowNode labels and connection labels.
+
+Several endpoint-vector approaches were tried and rejected because the abstraction was wrong or the coordinate transform was wrong. Do not revive those patches wholesale:
+
+- BA: endpoint corrective translation; labels travelled incorrectly.
+- BB: corrected quarter-turn direction; improved but still opposite-edge handoff.
+- BC: attempted screen-space owner offset; still wrong.
+- BD: introduced `CPProcessOrientationExternalLabelMotionBehaviour`; runtime still showed below→above behavior.
+
+Source inspection of BD found a concrete composition issue in the procedural external-label behavior. It used:
+
+```smalltalk
+translation = inverseRotatedOffset - offset
+```
+
+while the same label element simultaneously receives a Motion counter-rotation and the enclosing Pool receives its own Motion rotation. The translation contribution is composed in the element's Motion transform channel after the counter-rotation contribution, so the inverse-local formula is not the correct correction in that composition. The observed vertical sign error is consistent with this: the label is corrected toward the opposite screen-space edge.
+
+A new candidate patch was prepared:
+
+- `ProcessSep11-0640-patchBE-label-counterrotation-space-fix.zip`
+
+BE changes the procedural correction to:
+
+```smalltalk
+translation = desiredScreenOffset - poolRotatedOffset
+```
+
+with the same Motion progress, so a below-node offset remains below instead of being converted to the inverse local offset. The clockwise/counter-clockwise examples were changed to assert that `rotatedOffset + correction = originalOffset`.
+
+**BE is structurally audited but has not yet been runtime-confirmed by the user.** Treat it as a candidate, not a green baseline. If it still fails, stop changing signs. Instrument the actual Motion-composed label centre, node centre and Pool transform at progress 0, 0.25, 0.5, 0.75 and 1.0 in one live example and derive the correction from those observed coordinate spaces.
+
+For connection labels, preserve this distinction:
+
+- SequenceFlow geometry/waypoints rotate with the Pool.
+- `CPProcessEdgeLabelPath` is the authoritative placement rule for the final rendered connection label.
+- Connection label text must stay upright.
+- At the Motion endpoint the label centre must equal the centre produced by the same `CPProcessEdgeLabelPath` rules after DI commit/refresh.
+
+Do not invent a second permanent label geometry model in Motion.
+
+## F. Relevant source added during orientation work
+
+### BPMN DI
+
+`CPShape` now has `isHorizontal`, default true, with Magritte description. Staged render paths must read the shape's staged orientation through the diagram memento, not only the committed object.
+
+### Orientation presentation
+
+`CPPoolLaneOrientation` and concrete horizontal/vertical subclasses own presentation-axis differences such as:
+
+- Participant content origin offset,
+- Lane body origin offset,
+- Pool/Lane header band constraints,
+- label rotation,
+- insertion-axis interpretation.
+
+Avoid scattered `ifHorizontal` geometry in renderers where the orientation collaborator already represents the policy.
+
+### Orientation editing
+
+The orientation operation is a DI geometry operation, distinct from normal Participant resize. It must atomically stage the Participant/Lanes/nodes/waypoints destination before the final commit/refresh handoff.
+
+### Detail adapter
+
+Pool Detail must resolve the current staged Participant shape after Collaboration refresh. Do not keep an adapter bound to a stale pre-refresh depiction object.
+
+## G. Vertical Pool/Lane editing beyond orientation switch
+
+A vertical resize/layout slice was implemented in `ProcessSep11-0640-patchAT-vertical-lane-resize-layout.zip`, adding width-based Lane minima and explicit vertical LaneSet reflow. Its runtime status was not recorded as separately user-confirmed before later orientation work proceeded, so do not overstate it as a green checkpoint.
+
+Still to verify/finish for a complete vertical editing experience:
+
+- first-Lane creation sizing for vertical Pools,
+- Pool palette Lane insertion order along x rather than y,
+- sibling Lane insertion/removal under vertical orientation,
+- nested Lane creation/removal/reflow,
+- drag/drop Lane targeting,
+- content-aware minimum widths,
+- vertical resize with nodes/waypoints/labels,
+- horizontal canonical regressions after every vertical change.
+
+Keep orientation switching (rigid quarter-turn) separate from these normal vertical editing policies (width-based reflow).
+
+## H. Horizontal Pool/Lane architecture carried forward
+
+The following contracts were green before orientation and remain important:
+
+- BPMN DI is authoritative rendered geometry.
+- Atelier calculates editing/auto-layout geometry; Bloc projects it.
+- `CPAtelierLaneLayout` owns Lane minimum and recursive LaneSet reflow policy.
+- Horizontal Lane minimum height is 140.
+- Vertical Lane minimum width introduced in AT is 140.
+- Lane deletion removes Lane/Lane DI but preserves referenced FlowNodes.
+- Lane membership is partition metadata, not FlowNode ownership.
+- FlowNodes move with their Lane when Pool/Lane geometry moves.
+- committed SequenceFlow waypoints move coherently with those nodes.
+- live resize preview uses proposed Lane bounds, FlowNode bounds and edge waypoints as one coherent preview snapshot.
+- external node labels and connection labels follow the same proposed geometry during resize.
+- `CPAtelierResizeParticipantShape>>endpointDeltaFrom:to:` is required by its superclass and must not be deleted as “dead code.”
+
+Canonical horizontal examples include `horizontalPoolLaneEditingRegression` and `horizontalPoolLaneMutationRegression`.
+
+## I. Structural/package integrity rules
+
+Before sending any Process archive, audit at least:
+
+- every `.class.st` filename matches declared class `#name`,
+- declared `#package` matches package directory,
+- no duplicate class definitions,
+- no orphan Tonel `{ #category : ... }` sections,
+- no accidental production BVC-BPM-GT dependency on BVC-BPM-Atelier policy classes,
+- required superclass hooks such as `endpointDeltaFrom:to:` remain present,
+- no collection ordinal selectors beyond `ninth`,
+- no accidental overwrite of one class file with another class declaration.
+
+Historical reason: patches AB/AC were corrupted by writing `CPProcessVisualElementExamples` content into `CPProcessLaneContext.class.st`; AK contained a duplicate Tonel category marker. These failures must not recur.
+
+## J. Foundation/GT design rules to preserve
+
+- GT examples use `self assert:`; these example classes are not `TestCase` subclasses and do not support `deny:`.
+- Parenthesize boolean keyword expressions under `assert:` where parser ambiguity can create selectors such as `#assert:identityIncludes:`.
+- Never add/modify GT framework code without explicit user authorization, source evidence and design justification.
+- Avoid `respondsTo:` compatibility probing.
+- Avoid arbitrary symbol-dispatch configuration APIs.
+- `beOrdered` is for to-many relation descriptions only, never `MAToOneRelationDescription`.
+- Process classes use `CP` prefix.
+- Source claims must distinguish exact source fact, user runtime evidence and inference.
+- Motion is the exclusive animation system.
+
+## K. Recommended immediate continuation
+
+1. Load/test `ProcessSep11-0640-patchBE-label-counterrotation-space-fix.zip` on top of the same Foundation grouped-buttons/Motion environment.
+2. Visually test both Horizontal→Vertical and Vertical→Horizontal with:
+   - Start Event external label,
+   - End Event external label,
+   - Gateway external label,
+   - labelled SequenceFlows on different segment orientations.
+3. The acceptance criterion is strict: each external node label stays on its intended screen-space side of the upright node for the entire rotation, and every connection label remains continuously attached to its intended path placement. There must be no end-of-Motion jump when DI refresh occurs.
+4. If BE fails, instrument actual composed positions through Motion progress instead of applying another guessed sign/axis correction.
+5. Once labels are seamless, run the canonical horizontal regressions plus the orientation round-trip regressions before continuing vertical creation/insertion behavior.
+
+---
+
 # CURRENT CONTINUATION SNAPSHOT — 10 September 2026, ~21:32 Sydney
 
 This section supersedes the implementation-status and continuation advice in the older handover below. The older material is retained because it contains the original source audit, normative references, class map and historical findings. Do **not** treat its old `CPProcess>>diagram` / Process-root transaction descriptions as the current target architecture.
