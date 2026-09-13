@@ -5,7 +5,9 @@ Class {
 		'flowElements',
 		'laneSets',
 		'diagram',
-		'definitionalCollaborationRef'
+		'definitionalCollaborationRef',
+		'ioSpecification',
+		'properties'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -15,7 +17,8 @@ Class {
 CPProcess >> initialize [
 	super initialize.
 	flowElements := OrderedCollection new.
-	laneSets := OrderedCollection new
+	laneSets := OrderedCollection new.
+	properties := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -159,4 +162,32 @@ CPProcess >> validationResult [
 { #category : 'testing' }
 CPProcess >> isSubProcess [
 	^ false
+]
+
+
+{ #category : 'accessing' }
+CPProcess >> ioSpecification [ ^ ioSpecification ]
+{ #category : 'accessing' }
+CPProcess >> ioSpecification: aSpecification [ ioSpecification := aSpecification ]
+{ #category : 'accessing' }
+CPProcess >> properties [ ^ properties ]
+{ #category : 'accessing' }
+CPProcess >> properties: aCollection [ properties := aCollection asOrderedCollection ]
+
+{ #category : 'descriptions' }
+CPProcess >> ioSpecificationDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #ioSpecification;
+		classes: { CPInputOutputSpecification };
+		reference: CPInputOutputSpecification new identifierDescription;
+		label: 'Input/output specification';
+		priority: 130;
+		group: 'Data';
+		yourself
+]
+{ #category : 'descriptions' }
+CPProcess >> propertiesDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new accessor: #properties; classes: { CPProperty }; reference: CPProperty new labelDescription; label: 'Properties'; priority: 140; group: 'Data'; beOrdered; yourself
 ]

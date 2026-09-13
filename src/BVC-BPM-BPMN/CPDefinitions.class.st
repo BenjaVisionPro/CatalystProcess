@@ -89,8 +89,8 @@ CPDefinitions >> rootElementsDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new
 		accessor: #rootElements;
-		classes: { CPProcess. CPCollaboration };
-		reference: CPProcess new labelDescription;
+		classes: { CPProcess. CPCollaboration. CPItemDefinition. CPDataStore };
+		reference: self identifierDescription;
 		label: 'Root elements';
 		priority: 100;
 		group: 'Relations';
