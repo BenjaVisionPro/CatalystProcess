@@ -1661,9 +1661,7 @@ CPProcessVisualElement >> addExternalLabelFor: aFlowNode bounds: bounds shape: a
 			c frame horizontal alignCenter.
 			c frame vertical alignCenter ];
 		yourself.
-	label := aFlowNode isDataObjectReference
-		ifTrue: [ self newEditableLabelFor: aFlowNode dataObjectRef ]
-		ifFalse: [ self newEditableLabelFor: aFlowNode ].
+	label := self newEditableLabelFor: aFlowNode.
 	label hFitContentLimited.
 	label vFitContent.
 	label constraintsDo: [ :c |
