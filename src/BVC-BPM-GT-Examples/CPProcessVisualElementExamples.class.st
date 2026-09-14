@@ -4442,3 +4442,45 @@ CPProcessVisualElementExamples >> dataAssociationConnectsAndRendersThroughStanda
 	self assert: associationMemento model == assessment association.
 	^ visual
 ]
+
+{ #category : 'examples - data' }
+CPProcessVisualElementExamples >> eventDataAssociationsUseStandardConnectionGesture [
+	<gtExample>
+	| fixture process memento catchEvent throwEvent dataObject createAssessment visual catchAssessment throwAssessment |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	catchEvent := fixture third.
+	throwEvent := fixture fifth.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+
+	visual := self visualElementForFixture: fixture.
+	visual refresh.
+	self assert: (visual
+		isValidConnectionTarget: createAssessment dataObjectReference
+		from: catchEvent).
+	catchAssessment := visual
+		connectFrom: catchEvent
+		to: createAssessment dataObjectReference.
+	self assert: catchAssessment isApplicable.
+	self assert: catchAssessment association class equals: CPDataOutputAssociation.
+	self assert: (visual lineElementsForEdge: catchAssessment edge) notEmpty.
+
+	self assert: (visual
+		isValidConnectionTarget: throwEvent
+		from: createAssessment dataObjectReference).
+	throwAssessment := visual
+		connectFrom: createAssessment dataObjectReference
+		to: throwEvent.
+	self assert: throwAssessment isApplicable.
+	self assert: throwAssessment association class equals: CPDataInputAssociation.
+	self assert: (visual lineElementsForEdge: throwAssessment edge) notEmpty.
+	^ visual
+]

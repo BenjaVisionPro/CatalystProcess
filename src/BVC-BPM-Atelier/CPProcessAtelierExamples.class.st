@@ -3862,3 +3862,101 @@ CPProcessAtelierExamples >> removeActivityShapeAlsoRemovesOwnedDataAssociationEd
 	self assert: (flowContext stagedFlowElements identityIncludes: createAssessment dataObjectReference).
 	^ assessment
 ]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> connectCatchEventToDataObjectStagesOutputContractAndEdge [
+	<gtExample>
+	| fixture process memento catchEvent catchShape dataObject createAssessment operation assessment flowContext eventMemento outputs set setMemento associations diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	catchEvent := fixture third.
+	catchShape := fixture at: 9.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+
+	operation := CPAtelierConnectEventDataAssociation
+		catchEvent: catchEvent
+		toDataReference: createAssessment dataObjectReference
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment association class equals: CPDataOutputAssociation.
+	self assert: assessment association sourceRefs first == assessment dataItem.
+	self assert: assessment association targetRef == createAssessment dataObjectReference.
+	self assert: assessment edge sourceElement == catchShape.
+	self assert: assessment edge targetElement == createAssessment shape.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	eventMemento := flowContext childMementoFor: catchEvent.
+	outputs := eventMemento readUsing: catchEvent dataOutputsDescription.
+	self assert: (outputs identityIncludes: assessment dataItem).
+	set := eventMemento readUsing: catchEvent outputSetDescription.
+	self assert: set == assessment set.
+	setMemento := eventMemento childMementoFor: set inRelation: catchEvent outputSetDescription.
+	self assert: ((setMemento readUsing: set dataOutputRefsDescription) identityIncludes: assessment dataItem).
+	associations := eventMemento readUsing: catchEvent dataOutputAssociationsDescription.
+	self assert: (associations identityIncludes: assessment association).
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: (diagramElements identityIncludes: assessment edge).
+	self assert: catchEvent outputSet isNil.
+	^ assessment
+]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> connectDataObjectToThrowEventStagesInputContractAndEdge [
+	<gtExample>
+	| fixture process memento throwEvent throwShape dataObject createAssessment operation assessment flowContext eventMemento inputs set setMemento associations diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	throwEvent := fixture fifth.
+	throwShape := fixture at: 11.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+
+	operation := CPAtelierConnectEventDataAssociation
+		dataReference: createAssessment dataObjectReference
+		toThrowEvent: throwEvent
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment association class equals: CPDataInputAssociation.
+	self assert: assessment association sourceRefs first == createAssessment dataObjectReference.
+	self assert: assessment association targetRef == assessment dataItem.
+	self assert: assessment edge sourceElement == createAssessment shape.
+	self assert: assessment edge targetElement == throwShape.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	eventMemento := flowContext childMementoFor: throwEvent.
+	inputs := eventMemento readUsing: throwEvent dataInputsDescription.
+	self assert: (inputs identityIncludes: assessment dataItem).
+	set := eventMemento readUsing: throwEvent inputSetDescription.
+	self assert: set == assessment set.
+	setMemento := eventMemento childMementoFor: set inRelation: throwEvent inputSetDescription.
+	self assert: ((setMemento readUsing: set dataInputRefsDescription) identityIncludes: assessment dataItem).
+	associations := eventMemento readUsing: throwEvent dataInputAssociationsDescription.
+	self assert: (associations identityIncludes: assessment association).
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: (diagramElements identityIncludes: assessment edge).
+	self assert: throwEvent inputSet isNil.
+	^ assessment
+]
