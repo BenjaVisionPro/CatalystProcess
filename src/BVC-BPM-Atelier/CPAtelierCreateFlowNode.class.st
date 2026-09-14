@@ -76,9 +76,8 @@ CPAtelierCreateFlowNode >> assess [
 		proposedFlowElements: proposedFlowElements
 		proposedDiagramElements: proposedElements.
 	targetLane ifNotNil: [
-		laneOperation := CPAtelierMoveFlowNodeLaneMembership
-			flowNode: flowNode
-			sourceLane: nil
+		laneOperation := CPAtelierAssignFlowNodeToLane
+			proposedFlowNode: flowNode
 			targetLane: targetLane
 			processMemento: processMemento.
 		laneAssessment := laneOperation assess.

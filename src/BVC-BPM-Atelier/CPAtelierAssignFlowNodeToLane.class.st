@@ -10,7 +10,8 @@ Class {
 	#instVars : [
 		'flowNode',
 		'targetLane',
-		'processMemento'
+		'processMemento',
+		'proposedFlowNode'
 	],
 	#category : 'BVC-BPM-Atelier-Diagram',
 	#package : 'BVC-BPM-Atelier',
@@ -26,12 +27,25 @@ CPAtelierAssignFlowNodeToLane class >> flowNode: aFlowNode targetLane: aLane pro
 		yourself
 ]
 
+{ #category : 'instance creation' }
+CPAtelierAssignFlowNodeToLane class >> proposedFlowNode: aFlowNode targetLane: aLane processMemento: aMemento [
+	^ self new
+		flowNode: aFlowNode;
+		targetLane: aLane;
+		processMemento: aMemento;
+		proposedFlowNode: true;
+		yourself
+]
+
 { #category : 'assessing' }
 CPAtelierAssignFlowNodeToLane >> assess [
 	| laneContext targetLaneSet lanes proposedByLane changed |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A FlowNode is required.' ].
-	((CPProcessFlowContainerContext rootFor: processMemento) stagedFlowNodes identityIncludes: flowNode) ifFalse: [
-		^ self rejectedBecause: 'The object is not a staged Process FlowNode.' ].
+	flowNode isFlowNode ifFalse: [
+		^ self rejectedBecause: 'The object is not a FlowNode.' ].
+	proposedFlowNode ifFalse: [
+		((CPProcessFlowContainerContext rootFor: processMemento) stagedFlowNodes identityIncludes: flowNode) ifFalse: [
+			^ self rejectedBecause: 'The object is not a staged Process FlowNode.' ] ].
 	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
 
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.
@@ -100,8 +114,17 @@ CPAtelierAssignFlowNodeToLane >> rejectedBecause: aString [
 		yourself
 ]
 
+
+{ #category : 'initialization' }
+CPAtelierAssignFlowNodeToLane >> initialize [
+	super initialize.
+	proposedFlowNode := false
+]
+
 { #category : 'accessing' }
 CPAtelierAssignFlowNodeToLane >> flowNode: anObject [ flowNode := anObject ]
+{ #category : 'accessing' }
+CPAtelierAssignFlowNodeToLane >> proposedFlowNode: aBoolean [ proposedFlowNode := aBoolean ]
 { #category : 'accessing' }
 CPAtelierAssignFlowNodeToLane >> targetLane: anObject [ targetLane := anObject ]
 { #category : 'accessing' }
