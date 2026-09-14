@@ -4284,3 +4284,23 @@ CPProcessAtelierExamples >> diagramCompactIdentityUsesDepictedProcessLabel [
 	^ diagram
 ]
 
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsWorkspaceProcessActivationIsScopedToRootElements [
+	| definitions |
+	definitions := CPDefinitions new.
+	self assert: (definitions isRootElementsDescription: definitions rootElementsDescription).
+	self assert: ((definitions isRootElementsDescription: definitions diagramsDescription) not).
+	^ definitions
+]
+
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsWorkspaceCurrentProcessComesFromFirstProcessRoot [
+	| definitions firstProcess secondProcess |
+	firstProcess := CPProcess new.
+	secondProcess := CPProcess new.
+	definitions := CPDefinitions new.
+	definitions rootElements: { firstProcess. CPDataStore new. secondProcess }.
+	self assert: ((definitions rootElements detect: [ :each | each isProcessDefinition ]) == firstProcess).
+	^ definitions
+]
+

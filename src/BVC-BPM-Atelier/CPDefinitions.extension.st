@@ -36,14 +36,27 @@ CPDefinitions >> asAtelier [
 		rootMemento: rootMemento
 		documentContext: documentContext.
 	definitionsViewModel presentationDo: [ :aPresentation |
+		aPresentation relationItemElementDo: [ :anElement :anObject :aDescription :aMemento |
+			((self isRootElementsDescription: aDescription) and: [ anObject == process ]) ifTrue: [
+				aPresentation
+					selectRelationItemElement: anElement
+					description: aDescription ] ].
 		aPresentation relationActivateDo: [ :anObject :aDescription :aMemento :anElement |
-			anObject isProcessDefinition ifTrue: [
-				self
-					showProcess: anObject
-					inAtelierViewModel: definitionsViewModel
-					rootMemento: rootMemento
-					documentContext: documentContext ] ] ].
+			(self isRootElementsDescription: aDescription) ifTrue: [
+				anObject isProcessDefinition ifTrue: [
+					process := anObject.
+					self
+						showProcess: process
+						inAtelierViewModel: definitionsViewModel
+						rootMemento: rootMemento
+						documentContext: documentContext ] ] ] ].
 	^ definitionsViewModel
+]
+
+
+{ #category : '*BVC-BPM-Atelier' }
+CPDefinitions >> isRootElementsDescription: aDescription [
+	^ aDescription accessor = self rootElementsDescription accessor
 ]
 
 { #category : '*BVC-BPM-Atelier' }
