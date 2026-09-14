@@ -121,6 +121,12 @@ CPFlowElement >> isDataObjectReference [
 	^ false
 ]
 
+{ #category : 'testing' }
+CPFlowElement >> isDataReference [
+	^ false
+]
+
+
 
 { #category : 'testing' }
 CPFlowElement >> isDataAssociation [

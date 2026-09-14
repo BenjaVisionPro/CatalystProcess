@@ -73,3 +73,8 @@ CPDataObjectReference >> dataStateDescription [
 CPDataObjectReference >> isDataObjectReference [
 	^ true
 ]
+
+{ #category : 'testing' }
+CPDataObjectReference >> isDataReference [
+	^ true
+]

@@ -850,7 +850,7 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 			installResizeHandleFor: aShape
 			modelElement: modelElement
 			shapeElement: element ].
-	modelElement isDataObjectReference ifTrue: [
+	modelElement isDataReference ifTrue: [
 		self installConnectionOn: element for: modelElement ].
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
@@ -3784,6 +3784,7 @@ CPProcessVisualElement >> replacementBoundsFor: aFlowNode shape: aShape [
 { #category : 'private - shapes' }
 CPProcessVisualElement >> extentForModelElement: aFlowNode [
 	aFlowNode isDataObjectReference ifTrue: [ ^ 44 @ 54 ].
+	aFlowNode isDataStoreReference ifTrue: [ ^ 54 @ 54 ].
 	aFlowNode isBoundaryEvent ifTrue: [ ^ 32 @ 32 ].
 	aFlowNode isEvent ifTrue: [ ^ 42 @ 42 ].
 	aFlowNode isActivity ifTrue: [ ^ 132 @ 54 ].

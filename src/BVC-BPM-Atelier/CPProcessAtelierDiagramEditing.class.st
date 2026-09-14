@@ -80,6 +80,20 @@ CPProcessAtelierDiagramEditing >> createDataObject: aDataObject bounds: proposed
 ]
 
 { #category : 'operation factories' }
+CPProcessAtelierDiagramEditing >> createDataStore: aDataStore bounds: proposedBounds inProcessHostedBy: aHostShape [
+	| targetContainer |
+	targetContainer := self flowContainerHostedBy: aHostShape.
+	targetContainer ifNil: [ ^ nil ].
+	^ CPAtelierCreateDataStore
+		dataStore: aDataStore
+		bounds: proposedBounds
+		flowContainer: targetContainer
+		processMemento: processMemento
+		documentContext: documentContext
+		diagramContext: diagramContext
+]
+
+{ #category : 'operation factories' }
 CPProcessAtelierDiagramEditing >> createFlowNode: aFlowNode bounds: proposedBounds inProcessHostedBy: aHostShape [
 	^ self
 		createFlowNode: aFlowNode
@@ -357,21 +371,21 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 	sourceContainer := self flowContainerContaining: source.
 	targetContainer := self flowContainerContaining: target.
 	(sourceContainer notNil and: [ sourceContainer == targetContainer ]) ifTrue: [
-		(source isDataObjectReference and: [ target isEvent and: [ target isThrowEvent ] ]) ifTrue: [
+		(source isDataReference and: [ target isEvent and: [ target isThrowEvent ] ]) ifTrue: [
 			^ CPAtelierConnectEventDataAssociation
 				dataReference: source
 				toThrowEvent: target
 				flowContainer: sourceContainer
 				processMemento: processMemento
 				diagramContext: diagramContext ].
-		(source isEvent and: [ source isCatchEvent and: [ target isDataObjectReference ] ]) ifTrue: [
+		(source isEvent and: [ source isCatchEvent and: [ target isDataReference ] ]) ifTrue: [
 			^ CPAtelierConnectEventDataAssociation
 				catchEvent: source
 				toDataReference: target
 				flowContainer: sourceContainer
 				processMemento: processMemento
 				diagramContext: diagramContext ].
-		(source isDataObjectReference and: [ target isActivity ]) ifTrue: [
+		(source isDataReference and: [ target isActivity ]) ifTrue: [
 			^ CPAtelierConnectDataAssociation
 				dataReference: source
 				activity: target
@@ -379,7 +393,7 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 				flowContainer: sourceContainer
 				processMemento: processMemento
 				diagramContext: diagramContext ].
-		(source isActivity and: [ target isDataObjectReference ]) ifTrue: [
+		(source isActivity and: [ target isDataReference ]) ifTrue: [
 			^ CPAtelierConnectDataAssociation
 				dataReference: target
 				activity: source

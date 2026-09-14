@@ -19,6 +19,16 @@ CPDataStoreReference >> dataStoreRef [ ^ dataStoreRef ]
 { #category : 'accessing' }
 CPDataStoreReference >> dataStoreRef: aDataStore [ dataStoreRef := aDataStore ]
 { #category : 'accessing' }
+CPDataStoreReference >> label [
+	^ dataStoreRef ifNotNil: [ dataStoreRef label ]
+]
+
+{ #category : 'accessing' }
+CPDataStoreReference >> label: aString [
+	dataStoreRef ifNotNil: [ dataStoreRef label: aString ]
+]
+
+{ #category : 'accessing' }
 CPDataStoreReference >> dataState [ ^ dataState ]
 { #category : 'accessing' }
 CPDataStoreReference >> dataState: aDataState [ dataState := aDataState ]
@@ -57,5 +67,10 @@ CPDataStoreReference >> dataStateDescription [
 
 { #category : 'testing' }
 CPDataStoreReference >> isDataStoreReference [
+	^ true
+]
+
+{ #category : 'testing' }
+CPDataStoreReference >> isDataReference [
 	^ true
 ]

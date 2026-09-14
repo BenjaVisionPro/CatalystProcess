@@ -106,6 +106,7 @@ CPProcessShapeElement >> shape: aShape modelElement: aFlowNode bounds: aRectangl
 	self addChild: uprightHost.
 	self addActivityLabelForBounds: aRectangle.
 	self addDataObjectDecorationForBounds: aRectangle.
+	self addDataStoreDecorationForBounds: aRectangle.
 	self addIntermediateEventDecorationForBounds: aRectangle.
 	self addBoundaryEventRingsForBounds: aRectangle.
 	self addBoundaryEventDefinitionDecorationForBounds: aRectangle.
@@ -131,6 +132,8 @@ CPProcessShapeElement >> labelElement [
 
 { #category : 'private - geometry' }
 CPProcessShapeElement >> geometryFor: aFlowNode bounds: aRectangle [
+	aFlowNode isDataStoreReference ifTrue: [
+		^ BlRoundedRectangleGeometry cornerRadius: 12 ].
 	aFlowNode isDataObjectReference ifTrue: [
 		| fold |
 		fold := 10.
@@ -1137,6 +1140,30 @@ CPProcessShapeElement >> nestedProcessVisual [
 	^ nestedProcessVisual
 ]
 
+
+
+{ #category : 'private - decoration' }
+CPProcessShapeElement >> addDataStoreDecorationForBounds: aRectangle [
+	| topLine bottomLine inset |
+	modelElement isDataStoreReference ifFalse: [ ^ self ].
+	inset := 6.
+	topLine := BlElement new
+		extent: (aRectangle width - (inset * 2)) @ 1;
+		background: normalBorderColor;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: inset @ 12;
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	bottomLine := BlElement new
+		extent: (aRectangle width - (inset * 2)) @ 1;
+		background: normalBorderColor;
+		constraintsDo: [ :c | c ignoreByLayout ];
+		relocate: inset @ (aRectangle height - 12);
+		preventMeAndChildrenMouseEvents;
+		yourself.
+	self addUprightChild: topLine.
+	self addUprightChild: bottomLine
+]
 
 
 { #category : 'private - decoration' }

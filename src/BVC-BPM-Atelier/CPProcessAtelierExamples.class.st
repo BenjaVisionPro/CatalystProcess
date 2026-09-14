@@ -3960,3 +3960,57 @@ CPProcessAtelierExamples >> connectDataObjectToThrowEventStagesInputContractAndE
 	self assert: throwEvent inputSet isNil.
 	^ assessment
 ]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> documentRootedDataStoreCreationOwnsRootReferenceAndShape [
+	<gtExample>
+	| definitions process diagram definitionsMemento documentContext processMemento diagramContext dataStore operation assessment |
+	process := CPProcess new label: 'Store process'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:data-store';
+		rootElements: (OrderedCollection with: process);
+		diagrams: (OrderedCollection with: diagram);
+		yourself.
+	definitionsMemento := CFMaMemento model: definitions.
+	documentContext := CPDefinitionsMementoContext memento: definitionsMemento.
+	processMemento := definitionsMemento
+		childMementoFor: process
+		inRelation: definitions rootElementsDescription.
+	diagramContext := documentContext diagramContextFor: diagram.
+	dataStore := CPDataStore new label: 'Orders'; yourself.
+
+	operation := CPAtelierCreateDataStore
+		dataStore: dataStore
+		bounds: (120 @ 90 extent: 54 @ 54)
+		flowContainer: process
+		processMemento: processMemento
+		documentContext: documentContext
+		diagramContext: diagramContext.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (documentContext rootElements identityIncludes: dataStore).
+	self assert: ((CPProcessFlowContainerContext rootFor: processMemento)
+		stagedFlowElements identityIncludes: assessment dataStoreReference).
+	self assert: assessment dataStoreReference dataStoreRef == dataStore.
+	self assert: assessment dataStoreReference label equals: 'Orders'.
+	self assert: (diagramContext elements identityIncludes: assessment shape).
+	self assert: assessment shape modelElement == assessment dataStoreReference.
+	^ assessment
+]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> dataStoreReferenceSharesAuthoritativeStoreLabel [
+	<gtExample>
+	| store reference |
+	store := CPDataStore new label: 'Archive'; yourself.
+	reference := CPDataStoreReference new dataStoreRef: store; yourself.
+
+	self assert: reference label equals: 'Archive'.
+	reference label: 'Records'.
+	self assert: store label equals: 'Records'.
+	self assert: reference label equals: 'Records'.
+	^ reference
+]
+
