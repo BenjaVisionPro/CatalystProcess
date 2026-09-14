@@ -36,6 +36,8 @@ CPAtelierTransferFlowNode >> assess [
 
 	sourceContext := CPProcessFlowContainerContext containingFlowElement: flowNode inRootMemento: processMemento.
 	sourceContext ifNil: [ ^ self rejectedBecause: 'The flow node is not present in staged flow-container state.' ].
+	(sourceContext stagedFlowNodes identityIncludes: flowNode) ifFalse: [
+		^ self rejectedBecause: 'Only a FlowNode can be transferred directly.' ].
 	targetContext := CPProcessFlowContainerContext forContainer: targetContainer inRootMemento: processMemento.
 	targetContext ifNil: [ ^ self rejectedBecause: 'The target flow container is not present in staged state.' ].
 	sourceContext container == targetContext container ifTrue: [

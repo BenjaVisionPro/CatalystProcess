@@ -49,7 +49,7 @@ CPProcessTopology >> flowElements [
 
 { #category : 'accessing' }
 CPProcessTopology >> flowNodes [
-	^ flowElements reject: [ :each | each isSequenceFlow ]
+	^ flowElements select: [ :each | each isFlowNode ]
 ]
 
 { #category : 'accessing' }

@@ -169,6 +169,12 @@ CPProcessAtelierDiagramEditing >> moveShapes: boundsByShape toProcessHostedBy: a
 	(targetContainer notNil
 		and: [ currentContainers size = 1
 		and: [ currentContainers anyOne ~~ targetContainer ] ]) ifTrue: [
+		| sourceContext |
+		sourceContext := CPProcessFlowContainerContext
+			forContainer: currentContainers anyOne
+			inRootMemento: processMemento.
+		(modelElements allSatisfy: [ :each | sourceContext stagedFlowNodes identityIncludes: each ])
+			ifFalse: [ ^ nil ].
 		boundsByFlowNode := IdentityDictionary new.
 		expandedBoundsByShape keysAndValuesDo: [ :aShape :proposedBounds |
 			boundsByFlowNode
@@ -367,7 +373,7 @@ CPProcessAtelierDiagramEditing >> connectFrom: aSourceShape to: aTargetShape way
 				flowContainer: sourceContainer
 				processMemento: processMemento
 				diagramContext: diagramContext ].
-		((source isKindOf: CPFlowNode) and: [ target isKindOf: CPFlowNode ]) ifTrue: [
+		(source isFlowNode and: [ target isFlowNode ]) ifTrue: [
 			^ CPAtelierConnectFlowNodes
 				source: source
 				target: target

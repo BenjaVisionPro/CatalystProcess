@@ -590,3 +590,24 @@ CPProcessExamples >> poolLaneGeometryQuarterTurnIsExactlyReversible [
 	self assert: restoredPoint equals: point.
 	^ restoredPoint
 ]
+
+
+{ #category : 'examples - process validation' }
+CPProcessExamples >> topologyFlowNodesExcludeDataElements [
+	<gtExample>
+	| process task dataObject dataReference topology |
+	process := CPProcess new.
+	task := CPUserTask new label: 'Task'; yourself.
+	dataObject := CPDataObject new label: 'Data'; yourself.
+	dataReference := CPDataObjectReference new dataObjectRef: dataObject; yourself.
+	process
+		addFlowElement: task;
+		addFlowElement: dataObject;
+		addFlowElement: dataReference.
+	topology := CPProcessTopology fromProcess: process.
+	self assert: topology flowNodes size equals: 1.
+	self assert: topology flowNodes first == task.
+	self assert: (topology flowElements identityIncludes: dataObject).
+	self assert: (topology flowElements identityIncludes: dataReference).
+	^ topology
+]

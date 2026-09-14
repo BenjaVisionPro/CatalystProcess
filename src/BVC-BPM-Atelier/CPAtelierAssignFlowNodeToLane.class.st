@@ -30,6 +30,8 @@ CPAtelierAssignFlowNodeToLane class >> flowNode: aFlowNode targetLane: aLane pro
 CPAtelierAssignFlowNodeToLane >> assess [
 	| laneContext targetLaneSet lanes proposedByLane changed |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A FlowNode is required.' ].
+	((CPProcessFlowContainerContext rootFor: processMemento) stagedFlowNodes identityIncludes: flowNode) ifFalse: [
+		^ self rejectedBecause: 'The object is not a staged Process FlowNode.' ].
 	targetLane ifNil: [ ^ self rejectedBecause: 'A target Lane is required.' ].
 
 	laneContext := CPProcessLaneContext inRootMemento: processMemento.

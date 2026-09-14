@@ -3687,3 +3687,45 @@ CPProcessAtelierExamples >> connectActivityToDataObjectStagesOutputContractAndEd
 	self assert: task ioSpecification isNil.
 	^ assessment
 ]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> flowNodeTransferRejectsDataElements [
+	<gtExample>
+	| process target dataObject dataReference diagram dataShape memento bounds operation assessment singleAssessment |
+	process := CPProcess new label: 'Data transfer guard'; yourself.
+	target := CPNoneSubProcess new label: 'Target'; yourself.
+	dataObject := CPDataObject new label: 'Data'; yourself.
+	dataReference := CPDataObjectReference new dataObjectRef: dataObject; yourself.
+	process
+		addFlowElement: target;
+		addFlowElement: dataObject;
+		addFlowElement: dataReference.
+	diagram := CPDiagram new.
+	process diagram: diagram.
+	diagram addElement: (CPShape new modelElement: target; bounds: (300 @ 40 extent: 160 @ 100); yourself).
+	dataShape := CPShape new modelElement: dataReference; bounds: (80 @ 60 extent: 44 @ 54); yourself.
+	diagram addElement: dataShape.
+	memento := CFMaMemento model: process.
+	singleAssessment := (CPAtelierTransferFlowNode
+		flowNode: dataReference
+		targetContainer: target
+		bounds: (40 @ 40 extent: 44 @ 54)
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) assess.
+	self assert: singleAssessment isApplicable not.
+	self assert: singleAssessment rejectionMessage equals: 'Only a FlowNode can be transferred directly.'.
+	bounds := IdentityDictionary new
+		at: dataReference put: (40 @ 40 extent: 44 @ 54);
+		yourself.
+	operation := CPAtelierTransferFlowNodes
+		flowNodes: { dataReference }
+		targetContainer: target
+		boundsByFlowNode: bounds
+		waypointsBySequenceFlow: IdentityDictionary new
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation assess.
+	self assert: assessment isApplicable not.
+	self assert: assessment rejectionMessage equals: 'Only FlowNodes can be transferred directly.'.
+	^ assessment
+]

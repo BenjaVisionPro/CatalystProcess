@@ -99,6 +99,11 @@ CPProcessFlowContainerContext >> stagedFlowElements [
 ]
 
 { #category : 'staged state' }
+CPProcessFlowContainerContext >> stagedFlowNodes [
+	^ self stagedFlowElements select: [ :each | each isFlowNode ]
+]
+
+{ #category : 'staged state' }
 CPProcessFlowContainerContext >> childMementoFor: aFlowElement [
 	^ memento
 		childMementoFor: aFlowElement

@@ -33,6 +33,8 @@ CPAtelierMoveFlowNodeLaneMembership class >> flowNode: aFlowNode sourceLane: aSo
 CPAtelierMoveFlowNodeLaneMembership >> assess [
 	| laneContext sourceLaneSet targetLaneSet proposedByLane changed |
 	flowNode ifNil: [ ^ self rejectedBecause: 'A FlowNode is required.' ].
+	((CPProcessFlowContainerContext rootFor: processMemento) stagedFlowNodes identityIncludes: flowNode) ifFalse: [
+		^ self rejectedBecause: 'The object is not a staged Process FlowNode.' ].
 	(sourceLane isNil and: [ targetLane isNil ]) ifTrue: [
 		^ self rejectedBecause: 'A source Lane or target Lane is required.' ].
 	sourceLane == targetLane ifTrue: [

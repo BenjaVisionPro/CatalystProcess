@@ -31,8 +31,6 @@ CPAtelierTransferFlowNodes >> assess [
 	flowNodes ifNil: [ ^ self rejectedBecause: 'At least one flow node is required.' ].
 	nodes := flowNodes asOrderedCollection.
 	nodes ifEmpty: [ ^ self rejectedBecause: 'At least one flow node is required.' ].
-	(nodes allSatisfy: [ :each | each isSequenceFlow not ]) ifFalse: [
-		^ self rejectedBecause: 'Only FlowNodes can be transferred directly.' ].
 	targetContainer ifNil: [ ^ self rejectedBecause: 'A target flow container is required.' ].
 	proposedBoundsByFlowNode ifNil: [ ^ self rejectedBecause: 'Proposed node bounds are required.' ].
 	proposedWaypointsBySequenceFlow ifNil: [ ^ self rejectedBecause: 'Proposed SequenceFlow waypoints are required.' ].
@@ -41,6 +39,14 @@ CPAtelierTransferFlowNodes >> assess [
 		containingFlowElement: nodes first
 		inRootMemento: processMemento.
 	sourceContext ifNil: [ ^ self rejectedBecause: 'The selection is not present in staged flow-container state.' ].
+	(nodes allSatisfy: [ :each |
+		| eachContext |
+		eachContext := CPProcessFlowContainerContext
+			containingFlowElement: each
+			inRootMemento: processMemento.
+		eachContext notNil and: [
+			eachContext stagedFlowNodes identityIncludes: each ] ]) ifFalse: [
+		^ self rejectedBecause: 'Only FlowNodes can be transferred directly.' ].
 	(nodes allSatisfy: [ :each |
 		| eachContext |
 		eachContext := CPProcessFlowContainerContext

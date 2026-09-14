@@ -28,7 +28,7 @@ CPAtelierCreateLane class >> lane: aLane bounds: aRectangle processMemento: aMem
 
 { #category : 'assessing' }
 CPAtelierCreateLane >> assess [
-	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment flowElementsDescription stagedFlowElements proposedFlowNodeRefs flowNodeRefsDescription |
+	| laneSetsDescription laneSets createsLaneSet laneSet laneSetMemento lanesDescription lanes diagram diagramContext elements shape boundsDescription proposedLaneSets proposedLanes proposedElements participantResizeOperation participantResizeAssessment assessment proposedFlowNodeRefs flowNodeRefsDescription |
 	lane ifNil: [ ^ self rejectedBecause: 'A Lane is required.' ].
 	bounds ifNil: [ ^ self rejectedBecause: 'Lane bounds are required.' ].
 	laneSetsDescription := processMemento magritteDescription
@@ -86,10 +86,7 @@ CPAtelierCreateLane >> assess [
 
 	proposedFlowNodeRefs := nil.
 	createsLaneSet ifTrue: [
-		flowElementsDescription := processMemento magritteDescription
-			detect: [ :each | each handlesSelector: #flowElements ].
-		stagedFlowElements := processMemento readUsing: flowElementsDescription.
-		proposedFlowNodeRefs := stagedFlowElements reject: [ :each | each isSequenceFlow ].
+		proposedFlowNodeRefs := (CPProcessFlowContainerContext rootFor: processMemento) stagedFlowNodes.
 		flowNodeRefsDescription := lane magritteDescription
 			detect: [ :each | each handlesSelector: #flowNodeRefs ].
 		[ flowNodeRefsDescription validate: proposedFlowNodeRefs ]

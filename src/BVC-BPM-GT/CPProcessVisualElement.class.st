@@ -2329,6 +2329,7 @@ CPProcessVisualElement >> clearInsertionTarget [
 CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNode [
 	| candidates localPoint |
 	diagramEditing allowsEditing ifFalse: [ ^ nil ].
+	(self isStagedFlowNode: aFlowNode) ifFalse: [ ^ nil ].
 	candidates := OrderedCollection new.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
 		((self stagedSourceOf: anEdge modelElement) == aFlowNode
@@ -2730,7 +2731,7 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 					self clearInsertionTarget.
 					insertionEdge
 						ifNil: [
-							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane currentLane operation |
+							| targetVisual targetBounds constrainedBounds rootPoint boundsByShape targetLane currentLane operation isFlowNode |
 							rootPoint := self rootDiagramPointForLocalPoint: releaseBounds center.
 							targetVisual := rootVisual
 								processVisualAtRootDiagramPoint: rootPoint
@@ -2744,10 +2745,14 @@ CPProcessVisualElement >> installPositioningFrom: anInteractionElement moving: a
 							targetLane := targetVisual == self
 								ifTrue: [ self laneAtGlobalPoint: anEvent position ]
 								ifFalse: [ nil ].
-							currentLane := self stagedLaneContainingFlowNode: draggedModelElement.
+							isFlowNode := self isStagedFlowNode: draggedModelElement.
+							currentLane := isFlowNode
+								ifTrue: [ self stagedLaneContainingFlowNode: draggedModelElement ]
+								ifFalse: [ nil ].
 							operation := (targetVisual == self
+								and: [ isFlowNode
 								and: [ targetLane ~~ currentLane
-								and: [ targetLane notNil or: [ currentLane notNil ] ] ])
+								and: [ targetLane notNil or: [ currentLane notNil ] ] ] ])
 								ifTrue: [
 									diagramEditing
 										moveFlowNode: draggedModelElement
@@ -5307,6 +5312,15 @@ CPProcessVisualElement >> hasActiveEditableLabel [
 	^ activeEditableLabel notNil
 ]
 
+
+{ #category : 'private - lanes' }
+CPProcessVisualElement >> isStagedFlowNode: aModelElement [
+	| context |
+	context := CPProcessFlowContainerContext
+		forContainer: flowContainer
+		inRootMemento: memento.
+	^ context notNil and: [ context stagedFlowNodes identityIncludes: aModelElement ]
+]
 
 { #category : 'private - lanes' }
 CPProcessVisualElement >> stagedLaneContainingFlowNode: aFlowNode [

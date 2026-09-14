@@ -2518,7 +2518,7 @@ CPProcessVisualElementExamples >> firstLaneAdoptsExistingProcessFlowNodes [
 	self assert: assessment isApplicable.
 	lane := assessment lane.
 	laneContext := CPProcessLaneContext inRootMemento: memento.
-	expectedNodes := process flowElements reject: [ :each | each isSequenceFlow ].
+	expectedNodes := process flowElements select: [ :each | each isFlowNode ].
 	self assert: (laneContext stagedFlowNodeRefsOf: lane) size equals: expectedNodes size.
 	expectedNodes do: [ :each |
 		self assert: ((laneContext stagedFlowNodeRefsOf: lane) identityIncludes: each) ].
@@ -4370,3 +4370,35 @@ CPProcessVisualElementExamples >> eventPaletteItemCanBecomeBoundaryEventCandidat
 	^ candidate
 ]
 
+
+
+{ #category : 'examples - data' }
+CPProcessVisualElementExamples >> firstLaneWithDataAdoptsOnlyFlowNodes [
+	<gtExample>
+	| fixture process memento processVisual dataObject dataAssessment laneAssessment lane laneContext stagedRefs |
+	fixture := self collaborationVisualFixture.
+	process := fixture first.
+	memento := fixture second.
+	processVisual := fixture at: 9.
+	dataObject := CPDataObject new label: 'Data'; yourself.
+	dataAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (160 @ 20 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: dataAssessment isApplicable.
+	self assert: (processVisual isStagedFlowNode: dataObject) not.
+	self assert: (processVisual isStagedFlowNode: dataAssessment dataObjectReference) not.
+
+	laneAssessment := processVisual
+		createLaneFromPoolPaletteAtRootDiagramPoint: 300 @ 140.
+	self assert: laneAssessment isApplicable.
+	lane := laneAssessment lane.
+	laneContext := CPProcessLaneContext inRootMemento: memento.
+	stagedRefs := laneContext stagedFlowNodeRefsOf: lane.
+	self assert: (stagedRefs identityIncludes: dataObject) not.
+	self assert: (stagedRefs identityIncludes: dataAssessment dataObjectReference) not.
+	self assert: stagedRefs size equals: (CPProcessFlowContainerContext rootFor: memento) stagedFlowNodes size.
+	^ laneAssessment
+]
