@@ -197,3 +197,8 @@ CPProcess >> isProcessDefinition [
 	^ true
 ]
 
+{ #category : 'accessing - presentation' }
+CPProcess class >> defaultIcon [
+	^ #diagramProject
+]
+

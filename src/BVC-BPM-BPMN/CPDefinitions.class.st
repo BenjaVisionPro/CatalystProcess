@@ -111,3 +111,9 @@ CPDefinitions >> diagramsDescription [
 		beOrdered;
 		yourself
 ]
+
+{ #category : 'accessing - presentation' }
+CPDefinitions class >> defaultIcon [
+	^ #chartDiagram
+]
+
