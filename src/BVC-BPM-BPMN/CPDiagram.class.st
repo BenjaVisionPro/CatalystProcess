@@ -101,3 +101,28 @@ CPDiagram >> elements: aCollection [
 CPDiagram >> addElement: aDiagramElement [
 	plane addElement: aDiagramElement
 ]
+
+{ #category : 'accessing - presentation' }
+CPDiagram >> compactIdentityLabel [
+	^ self modelElement
+		ifNil: [ 'Diagram' ]
+		ifNotNil: [ :anElement |
+			anElement label
+				ifNil: [ anElement class name ]
+				ifNotNil: [ :aLabel | aLabel ] ]
+]
+
+{ #category : 'descriptions - presentation' }
+CPDiagram >> compactIdentityLabelDescription [
+	^ MAStringDescription new
+		accessor: #compactIdentityLabel;
+		label: 'Diagram';
+		beReadOnly;
+		yourself
+]
+
+{ #category : 'descriptions - presentation' }
+CPDiagram >> compactIdentityReference [
+	^ self iconDescription, self compactIdentityLabelDescription, self identifierDescription
+]
+

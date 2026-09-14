@@ -4252,3 +4252,16 @@ CPProcessAtelierExamples >> definitionsWorkspaceUsesDetailPresentation [
 	^ presentation
 ]
 
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> diagramCompactIdentityUsesDepictedProcessLabel [
+	<gtExample>
+	| process diagram reference |
+	process := CPProcess new label: 'Order handling'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	reference := diagram compactIdentityReference.
+
+	self assert: diagram compactIdentityLabel equals: 'Order handling'.
+	self assert: reference asContainer children size equals: 3.
+	^ diagram
+]
+
