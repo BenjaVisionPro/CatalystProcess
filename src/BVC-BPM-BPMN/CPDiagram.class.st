@@ -126,3 +126,8 @@ CPDiagram >> compactIdentityReference [
 	^ self iconDescription, self compactIdentityLabelDescription, self identifierDescription
 ]
 
+{ #category : 'accessing - presentation' }
+CPDiagram class >> defaultIcon [
+	^ #chartDiagram
+]
+

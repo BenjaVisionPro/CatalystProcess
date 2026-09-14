@@ -114,6 +114,6 @@ CPDefinitions >> diagramsDescription [
 
 { #category : 'accessing - presentation' }
 CPDefinitions class >> defaultIcon [
-	^ #chartDiagram
+	^ #chartNetwork
 ]
 
