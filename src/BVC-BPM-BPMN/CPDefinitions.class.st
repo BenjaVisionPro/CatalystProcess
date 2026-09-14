@@ -94,7 +94,9 @@ CPDefinitions >> rootElementsDescription [
 		label: 'Root elements';
 		priority: 100;
 		group: 'Relations';
+		beModifiable;
 		beOrdered;
+		newItemClassStencil: [ :aClass | aClass new ];
 		yourself
 ]
 

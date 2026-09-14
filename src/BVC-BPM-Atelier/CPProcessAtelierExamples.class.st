@@ -4126,6 +4126,25 @@ CPProcessAtelierExamples >> existingDefinitionsProcessBecomesCallActivityWithout
 ]
 
 { #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsRootElementsUseStandardRelationCreation [
+	<gtExample>
+	| definitions description |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:definitions-relation-creation';
+		yourself.
+	description := definitions rootElementsDescription.
+
+	self assert: description definitive not.
+	self assert: description newItemClassStencil isNotNil.
+	self assert: description classes equals: { CPProcess. CPCollaboration. CPItemDefinition. CPDataStore }.
+	self assert: ((description newItemClassStencil asStencilBuilder: CFMaNewItemStencilBuilder)
+		itemClass: CPProcess;
+		description: description;
+		build) class equals: CPProcess.
+	^ description
+]
+
+{ #category : 'examples - definitions workspace' }
 CPProcessAtelierExamples >> definitionsWorkspaceWithReusableProcessAndData [
 	<gtExample>
 	| definitions orderProcess fulfilmentProcess orderData ordersStore
