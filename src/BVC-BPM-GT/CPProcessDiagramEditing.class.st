@@ -44,6 +44,12 @@ CPProcessDiagramEditing >> createParticipant: aParticipant bounds: proposedBound
 ]
 
 
+{ #category : 'operation factories' }
+CPProcessDiagramEditing >> referenceDefinitionsRootElement: aRootElement bounds: proposedBounds inProcessHostedBy: aHostShape [
+	^ self subclassResponsibility
+]
+
+
 { #category : 'testing' }
 CPProcessDiagramEditing >> allowsEditing [
 	^ true

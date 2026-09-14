@@ -4014,3 +4014,71 @@ CPProcessAtelierExamples >> dataStoreReferenceSharesAuthoritativeStoreLabel [
 	^ reference
 ]
 
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> existingDefinitionsDataStoreCanBeReferencedWithoutMovingStore [
+	<gtExample>
+	| definitions process diagram definitionsMemento documentContext processMemento diagramContext dataStore operation assessment |
+	process := CPProcess new label: 'Store consumer'; yourself.
+	dataStore := CPDataStore new label: 'Shared orders'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:data-store-reference';
+		rootElements: (OrderedCollection with: process with: dataStore);
+		diagrams: (OrderedCollection with: diagram);
+		yourself.
+	definitionsMemento := CFMaMemento model: definitions.
+	documentContext := CPDefinitionsMementoContext memento: definitionsMemento.
+	processMemento := documentContext mementoForRootElement: process.
+	diagramContext := documentContext diagramContextFor: diagram.
+
+	operation := CPAtelierReferenceDataStore
+		dataStore: dataStore
+		bounds: (160 @ 100 extent: 54 @ 54)
+		flowContainer: process
+		processMemento: processMemento
+		documentContext: documentContext
+		diagramContext: diagramContext.
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: (documentContext rootElements identityIncludes: dataStore).
+	self assert: documentContext rootElements size equals: 2.
+	self assert: assessment dataStoreReference dataStoreRef == dataStore.
+	self assert: ((CPProcessFlowContainerContext rootFor: processMemento)
+		stagedFlowElements identityIncludes: assessment dataStoreReference).
+	self assert: (diagramContext elements identityIncludes: assessment shape).
+	self assert: assessment shape modelElement == assessment dataStoreReference.
+	^ assessment
+]
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> definitionsRootElementResolverRejectsNonDataStoreWithoutTypeSwitch [
+	<gtExample>
+	| definitions process diagram definitionsMemento session editing operation |
+	process := CPProcess new label: 'Consumer'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:definitions-drop';
+		rootElements: (OrderedCollection with: process);
+		diagrams: (OrderedCollection with: diagram);
+		yourself.
+	definitionsMemento := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: definitionsMemento
+		process: process
+		diagram: diagram.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: session processMemento
+		diagramContext: session diagramContext
+		collaborationContext: session collaborationContext
+		documentContext: session documentContext.
+
+	operation := editing
+		referenceDefinitionsRootElement: process
+		bounds: (120 @ 80 extent: 54 @ 54)
+		inProcessHostedBy: nil.
+
+	self assert: operation isNil.
+	^ editing
+]
+

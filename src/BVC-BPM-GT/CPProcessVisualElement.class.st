@@ -86,7 +86,8 @@ CPProcessVisualElement >> initialize [
 	self installDiagramCursor.
 	self installKeyboardHandler.
 	self installPaletteDropHandler.
-	self installContextualAppendDropHandler
+	self installContextualAppendDropHandler.
+	self installDefinitionsRootElementDropHandler
 ]
 
 
@@ -3170,6 +3171,89 @@ CPProcessVisualElement >> boundaryEventPaletteTargetModelElement: aModelElement 
 	boundaryEventPaletteTargetModelElement := aModelElement.
 	self updateDiagramAppearance
 ]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> installDefinitionsRootElementDropHandler [
+	self addEventHandler: (BlDropHandler new
+		acceptItemsSuchThat: [ :aDragItem :aDropArea |
+			self acceptsDefinitionsRootElementDragItem: aDragItem ];
+		whenDroppedDo: [ :anEvent |
+			self dropDefinitionsRootElementEvent: anEvent ];
+		yourself)
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> acceptsDefinitionsRootElementDragItem: aDragItem [
+	| sourceElement sourceContext candidate reference proposedBounds operation |
+	diagramEditing allowsEditing ifFalse: [ ^ false ].
+	sourceElement := aDragItem sourceElement.
+	sourceElement ifNil: [ ^ false ].
+	(sourceElement userData includesKey: #atelierPaletteSource) ifTrue: [ ^ false ].
+	sourceContext := sourceElement userData
+		at: #atelierRelationDragContext
+		ifAbsent: [ nil ].
+	sourceContext ifNil: [ ^ false ].
+
+	candidate := aDragItem domainObject.
+	reference := CPDataStoreReference new
+		dataStoreRef: candidate;
+		yourself.
+	proposedBounds := 0 @ 0 extent: (self extentForModelElement: reference).
+	operation := diagramEditing
+		referenceDefinitionsRootElement: candidate
+		bounds: proposedBounds
+		inProcessHostedBy: hostShape.
+	^ operation notNil
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> dropDefinitionsRootElementEvent: anEvent [
+	| dragItem globalPoint rootPoint targetVisual |
+	anEvent items size = 1 ifFalse: [ ^ self ].
+	dragItem := anEvent items first.
+	globalPoint := anEvent currentTarget
+		localPointToGlobal: anEvent position.
+	rootPoint := rootVisual diagramPointForGlobalPoint: globalPoint.
+	targetVisual := rootVisual
+		processVisualAtRootDiagramPoint: rootPoint
+		excluding: nil.
+	^ targetVisual
+		referenceDefinitionsRootElementDragItem: dragItem
+		atRootDiagramPoint: rootPoint
+]
+
+{ #category : 'private - creation' }
+CPProcessVisualElement >> referenceDefinitionsRootElementDragItem: aDragItem atRootDiagramPoint: aRootPoint [
+	| candidate reference elementExtent localPoint origin bounds operation assessment |
+	candidate := aDragItem domainObject.
+	reference := CPDataStoreReference new
+		dataStoreRef: candidate;
+		yourself.
+	elementExtent := self extentForModelElement: reference.
+	localPoint := self localPointForRootDiagramPoint: aRootPoint.
+	origin :=
+		((localPoint x - (elementExtent x / 2)) max: 0)
+		@ ((localPoint y - (elementExtent y / 2)) max: 0).
+	bounds := origin extent: elementExtent.
+	bounds := self
+		constrainedBounds: bounds
+		forFlowContainer: flowContainer.
+	operation := diagramEditing
+		referenceDefinitionsRootElement: candidate
+		bounds: bounds
+		inProcessHostedBy: hostShape.
+	operation ifNil: [ ^ nil ].
+	assessment := operation apply.
+	assessment isApplicable ifTrue: [
+		self refresh.
+		(self diagramShapeForModelElement: assessment dataStoreReference) ifNotNil: [ :aShape |
+			diagramSelection selectOnly: aShape ].
+		self updateDiagramAppearance.
+		selectionChangedBlock ifNotNil: [ :aBlock |
+			aBlock value: diagramSelection soleDiagramElement ] ].
+	^ assessment
+]
+
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> installPaletteDropHandler [

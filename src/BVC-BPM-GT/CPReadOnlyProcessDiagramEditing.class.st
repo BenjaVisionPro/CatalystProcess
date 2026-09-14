@@ -35,6 +35,12 @@ CPReadOnlyProcessDiagramEditing >> createParticipant: aParticipant bounds: propo
 ]
 
 
+{ #category : 'operation factories' }
+CPReadOnlyProcessDiagramEditing >> referenceDefinitionsRootElement: aRootElement bounds: proposedBounds inProcessHostedBy: aHostShape [
+	^ nil
+]
+
+
 { #category : 'testing' }
 CPReadOnlyProcessDiagramEditing >> allowsEditing [
 	^ false
