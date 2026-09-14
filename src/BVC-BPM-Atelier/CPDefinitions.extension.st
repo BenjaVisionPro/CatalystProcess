@@ -35,39 +35,37 @@ CPDefinitions >> asAtelier [
 		inAtelierViewModel: definitionsViewModel
 		rootMemento: rootMemento
 		documentContext: documentContext.
+
 	definitionsViewModel presentationDo: [ :aPresentation |
 		aPresentation relationItemElementDo: [ :anElement :anObject :aDescription :aMemento |
-			((self isRootElementsDescription: aDescription) and: [ anObject == process ]) ifTrue: [
-				currentProcessElement := anElement.
-				aPresentation
-					selectRelationItemElement: currentProcessElement
-					description: aDescription ] ].
-		aPresentation relationActivateDo: [ :anObject :aDescription :aMemento :anElement |
-			(self isRootElementsDescription: aDescription) ifTrue: [
-				anObject isProcessDefinition
-					ifTrue: [
-						process := anObject.
-						currentProcessElement := anElement.
-						aPresentation
-							selectRelationItemElement: currentProcessElement
-							description: aDescription.
-						self
-							showProcess: process
-							inAtelierViewModel: definitionsViewModel
-							rootMemento: rootMemento
-							documentContext: documentContext ]
-					ifFalse: [
-						currentProcessElement ifNotNil: [
-							aPresentation
-								selectRelationItemElement: currentProcessElement
-								description: aDescription ] ] ] ] ].
+			aDescription accessor = self rootElementsDescription accessor ifTrue: [
+				anObject == process ifTrue: [
+					currentProcessElement := anElement.
+					aPresentation
+						selectRelationElement: currentProcessElement
+						for: aDescription ].
+				anElement
+					when: BlClickEvent
+					do: [ :anEvent |
+						(anEvent modifiers isEmpty and: [ anObject isProcessDefinition ])
+							ifTrue: [
+								process := anObject.
+								currentProcessElement := anElement.
+								aPresentation
+									selectRelationElement: currentProcessElement
+									for: aDescription.
+								self
+									showProcess: process
+									inAtelierViewModel: definitionsViewModel
+									rootMemento: rootMemento
+									documentContext: documentContext.
+								definitionsViewModel asElement ]
+							ifFalse: [
+								currentProcessElement ifNotNil: [
+									aPresentation
+										selectRelationElement: currentProcessElement
+										for: aDescription ] ] ] ] ] ].
 	^ definitionsViewModel
-]
-
-
-{ #category : '*BVC-BPM-Atelier' }
-CPDefinitions >> isRootElementsDescription: aDescription [
-	^ aDescription accessor = self rootElementsDescription accessor
 ]
 
 { #category : '*BVC-BPM-Atelier' }
