@@ -143,3 +143,9 @@ CPFlowElement >> isDataObject [
 CPFlowElement >> dataAssociationDescriptions [
 	^ #()
 ]
+
+
+{ #category : 'testing' }
+CPFlowElement >> isMessageFlow [
+	^ false
+]

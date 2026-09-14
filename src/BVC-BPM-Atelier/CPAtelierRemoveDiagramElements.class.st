@@ -1,6 +1,6 @@
 "I represent removal of one explicit diagram selection as one Process editing intention.
 
-I receive BPMN DI identities, resolve their current staged semantic elements and containment, suppress redundant SequenceFlow removals when a selected FlowNode already removes the incident flow, and delegate the actual staged mutations to the existing focused remove operations. Participant removal likewise owns its incident MessageFlow removal, so an explicitly selected incident MessageFlow is not removed twice."
+I receive BPMN DI identities, resolve their current staged semantic elements and containment, suppress redundant SequenceFlow removals when a selected FlowNode already removes the incident flow, and delegate the actual staged mutations to focused remove operations. Data Associations are removed through their owning Activity/Event relation before selected endpoint removal, so their semantic relation and DI edge disappear together. Participant removal likewise owns its incident MessageFlow removal, so an explicitly selected incident MessageFlow is not removed twice."
 Class {
 	#name : 'CPAtelierRemoveDiagramElements',
 	#superclass : 'CFAtelierOperation',
@@ -34,7 +34,7 @@ CPAtelierRemoveDiagramElements class >> diagramElements: someDiagramElements pro
 
 { #category : 'assessing' }
 CPAtelierRemoveDiagramElements >> assess [
-	| participantOperations laneOperations flowOperations messageFlowOperations operations operationAssessments rejectedAssessment |
+	| participantOperations laneOperations dataAssociationOperations flowOperations messageFlowOperations operations operationAssessments rejectedAssessment |
 	diagramElements ifEmpty: [
 		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'At least one diagram element is required.' ].
 
@@ -44,9 +44,10 @@ CPAtelierRemoveDiagramElements >> assess [
 		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'Remove one Lane at a time.' ].
 	(laneOperations notEmpty and: [ participantOperations notEmpty or: [ self hasSelectedNonLaneProcessElements ] ]) ifTrue: [
 		^ CPAtelierRemoveDiagramElementsAssessment rejectedBecause: 'Remove a Lane separately from other diagram elements.' ].
+	dataAssociationOperations := self dataAssociationRemovalOperations.
 	flowOperations := self flowRemovalOperations.
 	messageFlowOperations := self messageFlowRemovalOperationsExcludingThoseOwnedBy: participantOperations.
-	operations := participantOperations , laneOperations , flowOperations , messageFlowOperations.
+	operations := participantOperations , laneOperations , dataAssociationOperations , flowOperations , messageFlowOperations.
 	operationAssessments := operations collect: [ :anOperation | anOperation assess ].
 	rejectedAssessment := operationAssessments
 		detect: [ :anAssessment | anAssessment isApplicable not ]
@@ -123,6 +124,42 @@ CPAtelierRemoveDiagramElements >> hasSelectedNonLaneProcessElements [
 ]
 
 { #category : 'private - resolving' }
+CPAtelierRemoveDiagramElements >> dataAssociationRemovalOperations [
+	| processDiagramContext selectedShapes associations |
+	processDiagramContext := self processDiagramContext.
+	selectedShapes := IdentitySet new.
+	associations := IdentitySet new.
+
+	diagramElements do: [ :aDiagramElement |
+		(processDiagramContext elements identityIncludes: aDiagramElement) ifTrue: [
+			| modelElement |
+			modelElement := processDiagramContext modelElementOf: aDiagramElement.
+			aDiagramElement isShape
+				ifTrue: [ selectedShapes add: aDiagramElement ]
+				ifFalse: [
+					(modelElement notNil and: [ modelElement isDataAssociation ]) ifTrue: [
+						associations add: modelElement ] ] ] ].
+
+	processDiagramContext elements do: [ :aDiagramElement |
+		aDiagramElement isEdge ifTrue: [
+			| modelElement sourceElement targetElement |
+			modelElement := processDiagramContext modelElementOf: aDiagramElement.
+			(modelElement notNil and: [ modelElement isDataAssociation ]) ifTrue: [
+				sourceElement := processDiagramContext sourceElementOf: aDiagramElement.
+				targetElement := processDiagramContext targetElementOf: aDiagramElement.
+				((selectedShapes identityIncludes: sourceElement)
+					or: [ selectedShapes identityIncludes: targetElement ]) ifTrue: [
+						associations add: modelElement ] ] ] ].
+
+	^ associations collect: [ :anAssociation |
+		CPAtelierRemoveDataAssociation
+			dataAssociation: anAssociation
+			processMemento: processMemento
+			diagramContext: processDiagramContext ]
+]
+
+
+{ #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 	| operations processDiagramContext laneContext stagedLanes selectedNodes operationOwnerNodes selectedSequenceFlows |
 	operations := OrderedCollection new.
@@ -141,8 +178,9 @@ CPAtelierRemoveDiagramElements >> flowRemovalOperations [
 						(stagedLanes identityIncludes: modelElement) ifFalse: [
 							selectedNodes add: modelElement ] ]
 					ifFalse: [
-						modelElement isSequenceFlow ifTrue: [
-							selectedSequenceFlows add: modelElement ] ] ] ] ].
+						modelElement isDataAssociation ifFalse: [
+							modelElement isSequenceFlow ifTrue: [
+								selectedSequenceFlows add: modelElement ] ] ] ] ] ].
 
 	operationOwnerNodes := selectedNodes copy.
 	selectedNodes do: [ :aFlowNode |

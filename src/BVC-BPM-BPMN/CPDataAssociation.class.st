@@ -79,3 +79,14 @@ CPDataAssociation >> assignmentsDescription [
 CPDataAssociation >> isDataAssociation [
 	^ true
 ]
+
+
+{ #category : 'testing' }
+CPDataAssociation >> isSequenceFlow [
+	^ false
+]
+
+{ #category : 'testing' }
+CPDataAssociation >> isMessageFlow [
+	^ false
+]

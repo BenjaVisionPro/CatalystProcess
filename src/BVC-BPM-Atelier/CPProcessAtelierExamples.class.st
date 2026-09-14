@@ -3729,3 +3729,136 @@ CPProcessAtelierExamples >> flowNodeTransferRejectsDataElements [
 	self assert: assessment rejectionMessage equals: 'Only FlowNodes can be transferred directly.'.
 	^ assessment
 ]
+
+
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> removeSelectedDataAssociationStagesOwnerAndDiagramRemovalTogether [
+	<gtExample>
+	| fixture process memento task dataObject createAssessment connectAssessment operation assessment flowContext activityMemento associations diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	task := fixture fourth.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+	connectAssessment := (CPAtelierConnectDataAssociation
+		dataReference: createAssessment dataObjectReference
+		activity: task
+		inputAssociation: true
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: connectAssessment isApplicable.
+
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { connectAssessment edge }
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	activityMemento := flowContext childMementoFor: task.
+	associations := activityMemento readUsing: task dataInputAssociationsDescription.
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: assessment isApplicable.
+	self assert: associations isEmpty.
+	self assert: (diagramElements identityIncludes: connectAssessment edge) not.
+	self assert: (flowContext stagedFlowElements identityIncludes: createAssessment dataObjectReference).
+	^ assessment
+]
+
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> removeDataReferenceShapeAlsoRemovesIncidentDataAssociation [
+	<gtExample>
+	| fixture process memento task dataObject createAssessment connectAssessment operation assessment flowContext activityMemento associations diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	task := fixture fourth.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+	connectAssessment := (CPAtelierConnectDataAssociation
+		dataReference: createAssessment dataObjectReference
+		activity: task
+		inputAssociation: true
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: connectAssessment isApplicable.
+
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { createAssessment shape }
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	activityMemento := flowContext childMementoFor: task.
+	associations := activityMemento readUsing: task dataInputAssociationsDescription.
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: assessment isApplicable.
+	self assert: associations isEmpty.
+	self assert: (diagramElements identityIncludes: connectAssessment edge) not.
+	self assert: (diagramElements identityIncludes: createAssessment shape) not.
+	self assert: (flowContext stagedFlowElements identityIncludes: createAssessment dataObjectReference) not.
+	self assert: (flowContext stagedFlowElements identityIncludes: dataObject).
+	^ assessment
+]
+
+
+
+{ #category : 'examples - data' }
+CPProcessAtelierExamples >> removeActivityShapeAlsoRemovesOwnedDataAssociationEdge [
+	<gtExample>
+	| fixture process memento task taskShape dataObject createAssessment connectAssessment operation assessment flowContext diagramElements |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	task := fixture fourth.
+	taskShape := fixture at: 10.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+	connectAssessment := (CPAtelierConnectDataAssociation
+		dataReference: createAssessment dataObjectReference
+		activity: task
+		inputAssociation: true
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: connectAssessment isApplicable.
+
+	operation := CPAtelierRemoveDiagramElements
+		diagramElements: { taskShape }
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento).
+	assessment := operation apply.
+
+	flowContext := CPProcessFlowContainerContext rootFor: memento.
+	diagramElements := (self diagramContextForMemento: memento) elements.
+	self assert: assessment isApplicable.
+	self assert: (flowContext stagedFlowElements identityIncludes: task) not.
+	self assert: (diagramElements identityIncludes: taskShape) not.
+	self assert: (diagramElements identityIncludes: connectAssessment edge) not.
+	self assert: (flowContext stagedFlowElements identityIncludes: createAssessment dataObjectReference).
+	^ assessment
+]

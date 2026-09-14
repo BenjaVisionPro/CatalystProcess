@@ -71,3 +71,9 @@ CPMessageFlow >> isMessageFlow [
 CPMessageFlow >> isDataAssociation [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPMessageFlow >> isSequenceFlow [
+	^ false
+]

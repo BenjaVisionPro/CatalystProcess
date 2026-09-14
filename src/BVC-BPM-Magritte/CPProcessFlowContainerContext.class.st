@@ -81,7 +81,7 @@ CPProcessFlowContainerContext >> mementoForFlowElement: aFlowElement [
 
 
 { #category : 'resolving' }
-CPProcessFlowContainerContext >> mementoForDataAssociation: aDataAssociation [
+CPProcessFlowContainerContext >> dataAssociationContextFor: aDataAssociation [
 	| nested |
 	self stagedFlowElements do: [ :each |
 		| elementMemento |
@@ -90,14 +90,22 @@ CPProcessFlowContainerContext >> mementoForDataAssociation: aDataAssociation [
 			| associations |
 			associations := elementMemento readUsing: aDescription.
 			(associations identityIncludes: aDataAssociation) ifTrue: [
-				^ elementMemento
-					childMementoFor: aDataAssociation
-					inRelation: aDescription ] ].
+				^ CPDataAssociationMementoContext
+					association: aDataAssociation
+					owner: each
+					ownerMemento: elementMemento
+					relationDescription: aDescription ] ].
 		each isSubProcess ifTrue: [
 			nested := (self childContextForSubProcess: each)
-				mementoForDataAssociation: aDataAssociation.
+				dataAssociationContextFor: aDataAssociation.
 			nested ifNotNil: [ ^ nested ] ] ].
 	^ nil
+]
+
+{ #category : 'resolving' }
+CPProcessFlowContainerContext >> mementoForDataAssociation: aDataAssociation [
+	^ (self dataAssociationContextFor: aDataAssociation)
+		ifNotNil: [ :aContext | aContext associationMemento ]
 ]
 
 { #category : 'resolving' }
