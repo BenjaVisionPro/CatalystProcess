@@ -65,3 +65,9 @@ CPMessageFlow >> targetRefDescription [
 CPMessageFlow >> isMessageFlow [
 	^ true
 ]
+
+
+{ #category : 'testing' }
+CPMessageFlow >> isDataAssociation [
+	^ false
+]

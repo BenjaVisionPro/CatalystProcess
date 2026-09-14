@@ -10,7 +10,8 @@ Class {
 		'hitElements',
 		'bendpointHandles',
 		'reconnectHandles',
-		'labelHost'
+		'labelHost',
+		'dotted'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -24,7 +25,8 @@ CPProcessEdgeVisual >> edge: anEdge [
 	hitElements := OrderedCollection new.
 	bendpointHandles := OrderedCollection new.
 	reconnectHandles := OrderedCollection new.
-	labelHost := nil
+	labelHost := nil.
+	dotted := false
 ]
 
 { #category : 'rendering' }
@@ -42,7 +44,7 @@ CPProcessEdgeVisual >> addSegmentFrom: aFromAnchor to: aToAnchor arrowhead: hasA
 	line := BlLineElement new
 		fromAnchor: aFromAnchor;
 		toAnchor: aToAnchor;
-		border: (BlBorder paint: aColor width: 1.5);
+		border: (self borderForColor: aColor width: 1.5);
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
 	hasArrowhead ifTrue: [
@@ -61,6 +63,22 @@ CPProcessEdgeVisual >> addSegmentFrom: aFromAnchor to: aToAnchor arrowhead: hasA
 CPProcessEdgeVisual >> identify: anElement [
 	anElement userData at: #processDiagramElement put: diagramEdge.
 	anElement userData at: #processModelElement put: diagramEdge modelElement
+]
+
+{ #category : 'configuration' }
+CPProcessEdgeVisual >> beDotted [
+	dotted := true
+]
+
+{ #category : 'private - appearance' }
+CPProcessEdgeVisual >> borderForColor: aColor width: aWidth [
+	dotted ifTrue: [
+		^ BlBorder builder
+			dashArray: #(2 4);
+			paint: aColor;
+			width: aWidth;
+			build ].
+	^ BlBorder paint: aColor width: aWidth
 ]
 
 { #category : 'accessing' }
@@ -95,8 +113,8 @@ CPProcessEdgeVisual >> selected: isSelected insertionTarget: isInsertionTarget s
 	| isEmphasized |
 	isEmphasized := isSelected or: [ isInsertionTarget ].
 	lineElements do: [ :aLine |
-		aLine border: (BlBorder
-			paint: (isEmphasized ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
+		aLine border: (self
+			borderForColor: (isEmphasized ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
 			width: (isEmphasized ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ]
 ]
 

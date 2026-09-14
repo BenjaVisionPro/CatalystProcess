@@ -368,6 +368,8 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 	flowContext := CPProcessFlowContainerContext rootFor: self memento.
 	selectedMemento := flowContext mementoForFlowElement: aModelElement.
 	selectedMemento ifNotNil: [ ^ selectedMemento ].
+	selectedMemento := flowContext mementoForDataAssociation: aModelElement.
+	selectedMemento ifNotNil: [ ^ selectedMemento ].
 
 	collaborationContext := self collaborationContext.
 	selectedMemento := collaborationContext ifNotNil: [ :aContext |

@@ -75,3 +75,9 @@ CPActivity >> dataOutputAssociationsDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new accessor: #dataOutputAssociations; classes: { CPDataOutputAssociation }; reference: CPDataOutputAssociation new identifierDescription; label: 'Output associations'; priority: 170; group: 'Data'; beOrdered; yourself
 ]
+
+
+{ #category : 'data' }
+CPActivity >> dataAssociationDescriptions [
+	^ { self dataInputAssociationsDescription. self dataOutputAssociationsDescription }
+]

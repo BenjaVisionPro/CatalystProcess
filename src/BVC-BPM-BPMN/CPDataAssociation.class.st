@@ -73,3 +73,9 @@ CPDataAssociation >> assignmentsDescription [
 		beOrdered;
 		yourself
 ]
+
+
+{ #category : 'testing' }
+CPDataAssociation >> isDataAssociation [
+	^ true
+]

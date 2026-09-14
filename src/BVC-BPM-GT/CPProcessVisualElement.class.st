@@ -455,13 +455,28 @@ CPProcessVisualElement >> refresh [
 
 { #category : 'private - visibility' }
 CPProcessVisualElement >> shouldRenderDiagramElement: aDiagramElement [
-	| modelElement context |
-	modelElement := aDiagramElement isShape
-		ifTrue: [ self stagedModelElementOf: aDiagramElement ]
-		ifFalse: [ aDiagramElement modelElement ].
+	| modelElement context sourceDiagramElement targetDiagramElement sourceModelElement targetModelElement sourceContext targetContext |
+	modelElement := self stagedModelElementOf: aDiagramElement.
 	modelElement ifNil: [ ^ false ].
 	(aDiagramElement isShape and: [
 		self lanesForCurrentProcess identityIncludes: modelElement ]) ifTrue: [ ^ true ].
+	(aDiagramElement isEdge and: [ modelElement isDataAssociation ]) ifTrue: [
+		sourceDiagramElement := diagramContext sourceElementOf: aDiagramElement.
+		targetDiagramElement := diagramContext targetElementOf: aDiagramElement.
+		(sourceDiagramElement isNil or: [ targetDiagramElement isNil ]) ifTrue: [ ^ false ].
+		sourceModelElement := self stagedModelElementOf: sourceDiagramElement.
+		targetModelElement := self stagedModelElementOf: targetDiagramElement.
+		(sourceModelElement isNil or: [ targetModelElement isNil ]) ifTrue: [ ^ false ].
+		sourceContext := CPProcessFlowContainerContext
+			containingFlowElement: sourceModelElement
+			inRootMemento: memento.
+		targetContext := CPProcessFlowContainerContext
+			containingFlowElement: targetModelElement
+			inRootMemento: memento.
+		^ sourceContext notNil
+			and: [ targetContext notNil
+				and: [ sourceContext container == flowContainer
+					and: [ targetContext container == flowContainer ] ] ] ].
 	context := CPProcessFlowContainerContext
 		containingFlowElement: modelElement
 		inRootMemento: memento.
@@ -532,6 +547,25 @@ CPProcessVisualElement >> stagedModelElementOf: aShape [
 { #category : 'private - staged state' }
 CPProcessVisualElement >> stagedWaypointsOf: anEdge [
 	^ diagramContext waypointsOf: anEdge
+]
+
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedVisibleSourceOfEdge: anEdge [
+	| modelElement sourceElement |
+	modelElement := self stagedModelElementOf: anEdge.
+	modelElement isDataAssociation ifFalse: [ ^ self stagedSourceOf: modelElement ].
+	sourceElement := diagramContext sourceElementOf: anEdge.
+	^ sourceElement ifNotNil: [ self stagedModelElementOf: sourceElement ]
+]
+
+{ #category : 'private - staged state' }
+CPProcessVisualElement >> stagedVisibleTargetOfEdge: anEdge [
+	| modelElement targetElement |
+	modelElement := self stagedModelElementOf: anEdge.
+	modelElement isDataAssociation ifFalse: [ ^ self stagedTargetOf: modelElement ].
+	targetElement := diagramContext targetElementOf: anEdge.
+	^ targetElement ifNotNil: [ self stagedModelElementOf: targetElement ]
 ]
 
 { #category : 'private - staged state' }
@@ -816,6 +850,8 @@ CPProcessVisualElement >> addShapeFor: aShape hostedByActivityElement: anActivit
 			installResizeHandleFor: aShape
 			modelElement: modelElement
 			shapeElement: element ].
+	modelElement isDataObjectReference ifTrue: [
+		self installConnectionOn: element for: modelElement ].
 	shapeElementsByShape at: aShape put: element.
 	shapeElementsByModelElement at: modelElement put: element.
 	modelElement isBoundaryEvent
@@ -1259,10 +1295,9 @@ CPProcessVisualElement >> labelPlacementFor: anEdge segmentIndex: aSegmentIndex 
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints flowNodeBoundsByShape: proposedFlowNodeBounds [
-	| sequenceFlow source target sourceShape targetShape sourceBounds targetBounds sourcePoint targetPoint points |
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
+	| source target sourceShape targetShape sourceBounds targetBounds sourcePoint targetPoint points |
+	source := self stagedVisibleSourceOfEdge: anEdge.
+	target := self stagedVisibleTargetOfEdge: anEdge.
 	sourceShape := self shapeForModelElement: source.
 	targetShape := self shapeForModelElement: target.
 
@@ -1305,10 +1340,9 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints usingLiveBounds: useLiveBounds [
-	| sequenceFlow source target sourceBounds targetBounds sourcePoint targetPoint points |
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
+	| source target sourceBounds targetBounds sourcePoint targetPoint points |
+	source := self stagedVisibleSourceOfEdge: anEdge.
+	target := self stagedVisibleTargetOfEdge: anEdge.
 	useLiveBounds
 		ifTrue: [
 			| sourceElement targetElement |
@@ -1351,10 +1385,9 @@ CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints
 
 { #category : 'private - labels' }
 CPProcessVisualElement >> renderedPathPointsFor: anEdge waypoints: someWaypoints moving: aModelElement toBounds: proposedBounds [
-	| sequenceFlow source target sourceBounds targetBounds sourcePoint targetPoint points |
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
+	| source target sourceBounds targetBounds sourcePoint targetPoint points |
+	source := self stagedVisibleSourceOfEdge: anEdge.
+	target := self stagedVisibleTargetOfEdge: anEdge.
 	sourceBounds := source == aModelElement
 		ifTrue: [ proposedBounds ]
 		ifFalse: [ self diagramBoundsForElement: (self shapeElementForModelElement: source) ].
@@ -1865,15 +1898,18 @@ CPProcessVisualElement >> beginEditingLabelForEdge: anEdge [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge [
-	| waypoints |
+	| waypoints modelElement |
 	waypoints := self stagedWaypointsOf: anEdge.
 	waypoints size = 2
 		ifTrue: [ self addStraightEdgeFor: anEdge ]
 		ifFalse: [ self addEdgeFor: anEdge waypoints: waypoints ].
-	self addExternalLabelForEdge: anEdge.
-	self installReconnectHandlesFor: anEdge.
-	self installBendpointHandlesFor: anEdge
+	modelElement := self stagedModelElementOf: anEdge.
+	modelElement isDataAssociation ifFalse: [
+		self addExternalLabelForEdge: anEdge.
+		self installReconnectHandlesFor: anEdge.
+		self installBendpointHandlesFor: anEdge ]
 ]
+
 
 { #category : 'private - shapes' }
 CPProcessVisualElement >> shapeElementForModelElement: aFlowNode [
@@ -1890,10 +1926,10 @@ CPProcessVisualElement >> shapeElementForModelElement: aFlowNode [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addStraightEdgeFor: anEdge [
-	| sequenceFlow sourceElement targetElement source target sourceAnchor targetAnchor edgeVisual |
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
+	| modelElement sourceElement targetElement source target sourceAnchor targetAnchor edgeVisual |
+	modelElement := self stagedModelElementOf: anEdge.
+	source := self stagedVisibleSourceOfEdge: anEdge.
+	target := self stagedVisibleTargetOfEdge: anEdge.
 	sourceElement := self shapeElementForModelElement: source.
 	targetElement := self shapeElementForModelElement: target.
 	(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ self ].
@@ -1905,6 +1941,7 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 		from: targetElement.
 
 	edgeVisual := CPProcessEdgeVisual new edge: anEdge.
+	modelElement isDataAssociation ifTrue: [ edgeVisual beDotted ].
 	edgeVisual
 		addSegmentFrom: sourceAnchor
 		to: targetAnchor
@@ -1912,15 +1949,14 @@ CPProcessVisualElement >> addStraightEdgeFor: anEdge [
 		color: self shapeBorderColor
 		segmentIndex: 1
 		installInteraction: [ :anElement :aSegmentIndex |
-			self installEdgeSelectionOn: anElement for: anEdge.
-			self installPaletteInsertionOn: anElement for: anEdge.
 			self
-				installBendpointInsertionOn: anElement
+				installEdgeInteractionOn: anElement
 				for: anEdge
 				segmentIndex: aSegmentIndex ]
 		addTo: self diagramPresentationParent.
 	edgeVisualsByEdge at: anEdge put: edgeVisual
 ]
+
 
 { #category : 'private - layout' }
 CPProcessVisualElement >> bringNodeInteractionSurfacesToFront [
@@ -1959,12 +1995,12 @@ CPProcessVisualElement >> anchorClassFor: aFlowNode [
 
 { #category : 'private - edges' }
 CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
-	| sequenceFlow source target sourceElement targetElement interiorPoints
+	| modelElement source target sourceElement targetElement interiorPoints
 	  sourceReference targetReference pairCount edgeVisual |
 	waypoints size < 3 ifTrue: [ ^ self addStraightEdgeFor: anEdge ].
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
+	modelElement := self stagedModelElementOf: anEdge.
+	source := self stagedVisibleSourceOfEdge: anEdge.
+	target := self stagedVisibleTargetOfEdge: anEdge.
 	sourceElement := self shapeElementForModelElement: source.
 	targetElement := self shapeElementForModelElement: target.
 	(sourceElement isNil or: [ targetElement isNil ]) ifTrue: [ ^ self ].
@@ -1976,6 +2012,7 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 	self addDiagramChild: targetReference.
 
 	edgeVisual := CPProcessEdgeVisual new edge: anEdge.
+	modelElement isDataAssociation ifTrue: [ edgeVisual beDotted ].
 	pairCount := interiorPoints size + 1.
 	1 to: pairCount do: [ :index |
 		| fromAnchor toAnchor |
@@ -2003,10 +2040,8 @@ CPProcessVisualElement >> addEdgeFor: anEdge waypoints: waypoints [
 			color: self shapeBorderColor
 			segmentIndex: index
 			installInteraction: [ :anElement :aSegmentIndex |
-				self installEdgeSelectionOn: anElement for: anEdge.
-				self installPaletteInsertionOn: anElement for: anEdge.
 				self
-					installBendpointInsertionOn: anElement
+					installEdgeInteractionOn: anElement
 					for: anEdge
 					segmentIndex: aSegmentIndex ]
 			addTo: self diagramPresentationParent ].
@@ -2026,11 +2061,22 @@ CPProcessVisualElement >> anchorReferenceElementAt: aPoint [
 
 
 { #category : 'private - edges' }
+CPProcessVisualElement >> installEdgeInteractionOn: anElement for: anEdge segmentIndex: aSegmentIndex [
+	| modelElement |
+	self installEdgeSelectionOn: anElement for: anEdge.
+	modelElement := self stagedModelElementOf: anEdge.
+	modelElement isDataAssociation ifTrue: [ ^ self ].
+	self installPaletteInsertionOn: anElement for: anEdge.
+	self
+		installBendpointInsertionOn: anElement
+		for: anEdge
+		segmentIndex: aSegmentIndex
+]
+
+{ #category : 'private - edges' }
 CPProcessVisualElement >> edge: anEdge isIncidentTo: aModelElement [
-	| sequenceFlow |
-	sequenceFlow := anEdge modelElement.
-	^ (self stagedSourceOf: sequenceFlow) == aModelElement
-		or: [ (self stagedTargetOf: sequenceFlow) == aModelElement ]
+	^ (self stagedVisibleSourceOfEdge: anEdge) == aModelElement
+		or: [ (self stagedVisibleTargetOfEdge: anEdge) == aModelElement ]
 ]
 
 
@@ -2332,11 +2378,14 @@ CPProcessVisualElement >> insertionEdgeAtGlobalPoint: aGlobalPoint for: aFlowNod
 	(self isStagedFlowNode: aFlowNode) ifFalse: [ ^ nil ].
 	candidates := OrderedCollection new.
 	edgeVisualsByEdge keysAndValuesDo: [ :anEdge :anEdgeVisual |
-		((self stagedSourceOf: anEdge modelElement) == aFlowNode
-			or: [ (self stagedTargetOf: anEdge modelElement) == aFlowNode ])
-			ifFalse: [
-				(anEdgeVisual containsGlobalPoint: aGlobalPoint)
-					ifTrue: [ candidates add: anEdge ] ] ].
+		| modelElement |
+		modelElement := self stagedModelElementOf: anEdge.
+		modelElement isSequenceFlow ifTrue: [
+			((self stagedSourceOf: modelElement) == aFlowNode
+				or: [ (self stagedTargetOf: modelElement) == aFlowNode ])
+				ifFalse: [
+					(anEdgeVisual containsGlobalPoint: aGlobalPoint)
+						ifTrue: [ candidates add: anEdge ] ] ] ].
 	candidates ifEmpty: [ ^ nil ].
 	candidates size = 1 ifTrue: [ ^ candidates first ].
 
@@ -2519,20 +2568,16 @@ CPProcessVisualElement >> selectedShapeEntriesForGroupDragIncluding: draggedMode
 { #category : 'private - positioning' }
 CPProcessVisualElement >> internalEdgesForMovedModelElements: movedModelElements [
 	^ edgeVisualsByEdge keys select: [ :anEdge |
-		| sequenceFlow |
-		sequenceFlow := anEdge modelElement.
-		(movedModelElements includes: (self stagedSourceOf: sequenceFlow))
-			and: [ movedModelElements includes: (self stagedTargetOf: sequenceFlow) ] ]
+		(movedModelElements includes: (self stagedVisibleSourceOfEdge: anEdge))
+			and: [ movedModelElements includes: (self stagedVisibleTargetOfEdge: anEdge) ] ]
 ]
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> internalBentEdgesForMovedModelElements: movedModelElements [
 	^ edgeVisualsByEdge keys select: [ :anEdge |
-		| sequenceFlow |
-		sequenceFlow := anEdge modelElement.
-		(movedModelElements includes: (self stagedSourceOf: sequenceFlow))
+		(movedModelElements includes: (self stagedVisibleSourceOfEdge: anEdge))
 			and: [
-				(movedModelElements includes: (self stagedTargetOf: sequenceFlow))
+				(movedModelElements includes: (self stagedVisibleTargetOfEdge: anEdge))
 					and: [ (self stagedWaypointsOf: anEdge) size > 2 ] ] ]
 ]
 
@@ -2543,10 +2588,9 @@ CPProcessVisualElement >> translatedWaypointsOf: anEdge by: delta [
 
 { #category : 'private - positioning' }
 CPProcessVisualElement >> newGroupMovePreviewFor: anEdge waypoints: someWaypoints [
-	| sequenceFlow source target sourceElement targetElement interiorPoints sourceReference targetReference lines pairCount references |
-	sequenceFlow := anEdge modelElement.
-	source := self stagedSourceOf: sequenceFlow.
-	target := self stagedTargetOf: sequenceFlow.
+	| source target sourceElement targetElement interiorPoints sourceReference targetReference lines pairCount references |
+	source := self stagedVisibleSourceOfEdge: anEdge.
+	target := self stagedVisibleTargetOfEdge: anEdge.
 	sourceElement := shapeElementsByModelElement at: source.
 	targetElement := shapeElementsByModelElement at: target.
 	interiorPoints := someWaypoints copyFrom: 2 to: someWaypoints size - 1.
@@ -3973,7 +4017,7 @@ CPProcessVisualElement >> isValidConnectionTarget: aTarget from: aSource [
 ]
 
 { #category : 'collaboration connection' }
-CPProcessVisualElement >> sequenceFlowTargetAtGlobalPoint: aPoint from: aSource [
+CPProcessVisualElement >> processConnectionTargetAtGlobalPoint: aPoint from: aSource [
 	^ self
 		validConnectionTargetAtGlobalPoint: aPoint
 		from: aSource
@@ -3991,7 +4035,7 @@ CPProcessVisualElement >> messageFlowEndpointAtGlobalPoint: aPoint excluding: an
 
 
 { #category : 'collaboration connection' }
-CPProcessVisualElement >> connectSequenceFlowFrom: aSource to: aTarget [
+CPProcessVisualElement >> connectProcessFrom: aSource to: aTarget [
 	^ self connectFrom: aSource to: aTarget
 ]
 

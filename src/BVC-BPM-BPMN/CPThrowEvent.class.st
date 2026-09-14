@@ -123,3 +123,9 @@ CPThrowEvent >> dataInputAssociationsDescription [
 		beOrdered;
 		yourself
 ]
+
+
+{ #category : 'data' }
+CPThrowEvent >> dataAssociationDescriptions [
+	^ { self dataInputAssociationsDescription }
+]

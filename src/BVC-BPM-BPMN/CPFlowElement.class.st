@@ -121,6 +121,12 @@ CPFlowElement >> isDataObjectReference [
 	^ false
 ]
 
+
+{ #category : 'testing' }
+CPFlowElement >> isDataAssociation [
+	^ false
+]
+
 { #category : 'testing' }
 CPFlowElement >> isDataStoreReference [
 	^ false
@@ -130,4 +136,10 @@ CPFlowElement >> isDataStoreReference [
 { #category : 'testing' }
 CPFlowElement >> isDataObject [
 	^ false
+]
+
+
+{ #category : 'data' }
+CPFlowElement >> dataAssociationDescriptions [
+	^ #()
 ]

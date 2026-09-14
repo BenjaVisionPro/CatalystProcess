@@ -1590,16 +1590,16 @@ CPProcessVisualElementExamples >> collaborationHostedProcessKnowsItsConnectionCo
 { #category : 'examples - collaboration message flow connection' }
 CPProcessVisualElementExamples >> collaborationConnectionTargetsAreExplicitDomainObjects [
 	<gtExample>
-	| sequenceTarget messageTarget |
-	sequenceTarget := CPCollaborationConnectionTarget
-		sequenceFlowTo: CPUserTask new.
+	| processTarget messageTarget |
+	processTarget := CPCollaborationConnectionTarget
+		processTo: CPUserTask new.
 	messageTarget := CPCollaborationConnectionTarget
 		messageFlowTo: CPParticipant new.
 
-	self assert: sequenceTarget isSequenceFlowTarget.
-	self assert: sequenceTarget isMessageFlowTarget not.
+	self assert: processTarget isProcessTarget.
+	self assert: processTarget isMessageFlowTarget not.
 	self assert: messageTarget isMessageFlowTarget.
-	self assert: messageTarget isSequenceFlowTarget not.
+	self assert: messageTarget isProcessTarget not.
 	^ messageTarget
 ]
 
@@ -4401,4 +4401,44 @@ CPProcessVisualElementExamples >> firstLaneWithDataAdoptsOnlyFlowNodes [
 	self assert: (stagedRefs identityIncludes: dataAssessment dataObjectReference) not.
 	self assert: stagedRefs size equals: (CPProcessFlowContainerContext rootFor: memento) stagedFlowNodes size.
 	^ laneAssessment
+]
+
+{ #category : 'examples - data' }
+CPProcessVisualElementExamples >> dataAssociationConnectsAndRendersThroughStandardGesturePath [
+	<gtExample>
+	| fixture process memento task dataObject createAssessment visual dataShapeElement assessment associationMemento |
+	fixture := self fixture.
+	process := fixture first.
+	memento := fixture second.
+	task := fixture fourth.
+	dataObject := CPDataObject new label: 'Order'; yourself.
+	createAssessment := (CPAtelierCreateDataObject
+		dataObject: dataObject
+		bounds: (300 @ 220 extent: 44 @ 54)
+		flowContainer: process
+		processMemento: memento
+		diagramContext: (self diagramContextForMemento: memento)) apply.
+	self assert: createAssessment isApplicable.
+
+	visual := self visualElementForFixture: fixture.
+	visual refresh.
+	dataShapeElement := visual shapeElementForModelElement: createAssessment dataObjectReference.
+	self assert: dataShapeElement notNil.
+	self assert: dataShapeElement connectionPort notNil.
+	self assert: (visual
+		isValidConnectionTarget: task
+		from: createAssessment dataObjectReference).
+
+	assessment := visual
+		connectFrom: createAssessment dataObjectReference
+		to: task.
+	self assert: assessment isApplicable.
+	self assert: assessment association isDataAssociation.
+	self assert: (visual lineElementsForEdge: assessment edge) notEmpty.
+	self assert: (visual shouldRenderDiagramElement: assessment edge).
+	associationMemento := (CPProcessFlowContainerContext rootFor: memento)
+		mementoForDataAssociation: assessment association.
+	self assert: associationMemento notNil.
+	self assert: associationMemento model == assessment association.
+	^ visual
 ]

@@ -112,6 +112,25 @@ CPDiagramMementoContext >> waypointsOf: anEdge [
 	^ (edgeMemento readUsing: description) ifNil: [ #() ]
 ]
 
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> sourceElementOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := self mementoFor: anEdge.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #sourceElement ].
+	^ edgeMemento readUsing: description
+]
+
+{ #category : 'staged state' }
+CPDiagramMementoContext >> targetElementOf: anEdge [
+	| edgeMemento description |
+	edgeMemento := self mementoFor: anEdge.
+	description := edgeMemento magritteDescription
+		detect: [ :each | each handlesSelector: #targetElement ].
+	^ edgeMemento readUsing: description
+]
+
 { #category : 'staged state' }
 CPDiagramMementoContext >> labelSegmentIndexOf: anEdge [
 	| edgeMemento description |

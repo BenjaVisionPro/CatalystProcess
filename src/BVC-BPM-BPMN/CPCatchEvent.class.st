@@ -142,3 +142,9 @@ CPCatchEvent >> parallelMultipleDescription [
 		group: 'Event';
 		yourself
 ]
+
+
+{ #category : 'data' }
+CPCatchEvent >> dataAssociationDescriptions [
+	^ { self dataOutputAssociationsDescription }
+]

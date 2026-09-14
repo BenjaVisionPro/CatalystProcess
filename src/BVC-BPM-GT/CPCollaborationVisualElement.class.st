@@ -409,7 +409,7 @@ CPCollaborationVisualElement >> beginConnectionDragFrom: aSource sourceVisual: a
 	self removeConnectionPreview.
 	pointer := self diagramPointForGlobalPoint: anEvent position.
 	sourceBounds := self
-		liveCollaborationBoundsForFlowNode: aSource
+		liveCollaborationBoundsForProcessElement: aSource
 		inVisual: aSourceVisual.
 	sourceBounds ifNil: [ ^ self ].
 	sourcePoint := aSourceVisual
@@ -452,7 +452,7 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 		from: aSource
 		sourceVisual: aSourceVisual.
 	sourceBounds := self
-		liveCollaborationBoundsForFlowNode: aSource
+		liveCollaborationBoundsForProcessElement: aSource
 		inVisual: aSourceVisual.
 	sourceBounds ifNil: [ ^ self ].
 
@@ -465,10 +465,10 @@ CPCollaborationVisualElement >> updateConnectionDragFrom: aSource sourceVisual: 
 				toward: targetReference.
 			targetPoint := pointer ]
 		ifNotNil: [
-			target isSequenceFlowTarget
+			target isProcessTarget
 			ifTrue: [
 				targetBounds := self
-					liveCollaborationBoundsForFlowNode: target modelElement
+					liveCollaborationBoundsForProcessElement: target modelElement
 					inVisual: aSourceVisual.
 				targetBounds ifNil: [ ^ self ].
 				sourcePoint := aSourceVisual
@@ -501,9 +501,9 @@ CPCollaborationVisualElement >> endConnectionDragFrom: aSource sourceVisual: aSo
 		sourceVisual: aSourceVisual.
 	self removeConnectionPreview.
 	target ifNil: [ ^ nil ].
-	target isSequenceFlowTarget ifTrue: [
+	target isProcessTarget ifTrue: [
 		^ aSourceVisual
-			connectSequenceFlowFrom: aSource
+			connectProcessFrom: aSource
 			to: target modelElement ].
 	sourceShape := aSourceVisual diagramShapeForModelElement: aSource.
 	targetShape := self participantShapeFor: target modelElement.
@@ -523,11 +523,11 @@ CPCollaborationVisualElement >> endConnectionDragFrom: aSource sourceVisual: aSo
 
 { #category : 'connection' }
 CPCollaborationVisualElement >> connectionTargetAtGlobalPoint: aGlobalPoint from: aSource sourceVisual: aSourceVisual [
-	| sequenceTarget participantTarget sourceShape targetShape operation assessment |
-	sequenceTarget := aSourceVisual
-		sequenceFlowTargetAtGlobalPoint: aGlobalPoint
+	| processTarget participantTarget sourceShape targetShape operation assessment |
+	processTarget := aSourceVisual
+		processConnectionTargetAtGlobalPoint: aGlobalPoint
 		from: aSource.
-	sequenceTarget ifNotNil: [ ^ CPCollaborationConnectionTarget sequenceFlowTo: sequenceTarget ].
+	processTarget ifNotNil: [ ^ CPCollaborationConnectionTarget processTo: processTarget ].
 	participantTarget := self
 		participantAtCollaborationPoint: (self diagramPointForGlobalPoint: aGlobalPoint)
 		excludingEndpoint: aSource.
@@ -1470,9 +1470,9 @@ CPCollaborationVisualElement >> hostedProcessBodyExtent [
 
 
 { #category : 'connection geometry' }
-CPCollaborationVisualElement >> liveCollaborationBoundsForFlowNode: aFlowNode inVisual: aSourceVisual [
+CPCollaborationVisualElement >> liveCollaborationBoundsForProcessElement: aModelElement inVisual: aSourceVisual [
 	| element topLeft bottomRight |
-	element := aSourceVisual shapeElementForModelElement: aFlowNode.
+	element := aSourceVisual shapeElementForModelElement: aModelElement.
 	element ifNil: [ ^ nil ].
 	topLeft := self diagramPresentationParent
 		globalPointToLocal: (element localPointToGlobal: 0 @ 0).

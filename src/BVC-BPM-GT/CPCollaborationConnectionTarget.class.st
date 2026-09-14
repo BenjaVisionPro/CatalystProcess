@@ -1,12 +1,12 @@
 "I describe the resolved semantic target of one connection drag coordinated by CPCollaborationVisualElement.
 
-I distinguish a normal SequenceFlow target from a cross-Pool MessageFlow target through explicit constructors and testing messages, avoiding hidden symbol dispatch."
+I distinguish a Process-local connection target from a cross-Pool MessageFlow target through explicit constructors and testing messages, avoiding hidden symbol dispatch."
 Class {
 	#name : 'CPCollaborationConnectionTarget',
 	#superclass : 'Object',
 	#instVars : [
 		'modelElement',
-		'sequenceFlowTarget'
+		'processTarget'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
 	#package : 'BVC-BPM-GT',
@@ -14,10 +14,10 @@ Class {
 }
 
 { #category : 'instance creation' }
-CPCollaborationConnectionTarget class >> sequenceFlowTo: aFlowNode [
+CPCollaborationConnectionTarget class >> processTo: aModelElement [
 	^ self new
-		modelElement: aFlowNode;
-		sequenceFlowTarget: true;
+		modelElement: aModelElement;
+		processTarget: true;
 		yourself
 ]
 
@@ -25,7 +25,7 @@ CPCollaborationConnectionTarget class >> sequenceFlowTo: aFlowNode [
 CPCollaborationConnectionTarget class >> messageFlowTo: anInteractionNode [
 	^ self new
 		modelElement: anInteractionNode;
-		sequenceFlowTarget: false;
+		processTarget: false;
 		yourself
 ]
 
@@ -40,16 +40,16 @@ CPCollaborationConnectionTarget >> modelElement: anObject [
 ]
 
 { #category : 'testing' }
-CPCollaborationConnectionTarget >> isSequenceFlowTarget [
-	^ sequenceFlowTarget
+CPCollaborationConnectionTarget >> isProcessTarget [
+	^ processTarget
 ]
 
 { #category : 'testing' }
 CPCollaborationConnectionTarget >> isMessageFlowTarget [
-	^ sequenceFlowTarget not
+	^ processTarget not
 ]
 
 { #category : 'private' }
-CPCollaborationConnectionTarget >> sequenceFlowTarget: aBoolean [
-	sequenceFlowTarget := aBoolean
+CPCollaborationConnectionTarget >> processTarget: aBoolean [
+	processTarget := aBoolean
 ]
