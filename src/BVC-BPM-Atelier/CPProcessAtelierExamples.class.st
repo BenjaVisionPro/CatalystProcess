@@ -4236,3 +4236,19 @@ CPProcessAtelierExamples >> definitionsWorkspaceWithReusableProcessAndData [
 	^ viewModel
 ]
 
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsWorkspaceUsesDetailPresentation [
+	<gtExample>
+	| definitions memento presentation |
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:definitions-detail';
+		yourself.
+	memento := CFMaMemento model: definitions.
+	presentation := memento magritteDescription blocPresentationStencil
+		memento: memento;
+		build.
+
+	self assert: presentation class equals: CFMaDetailPresentation.
+	^ presentation
+]
+
