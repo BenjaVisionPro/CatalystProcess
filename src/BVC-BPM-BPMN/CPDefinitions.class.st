@@ -96,6 +96,7 @@ CPDefinitions >> rootElementsDescription [
 		group: 'Relations';
 		beModifiable;
 		beOrdered;
+		fieldConfigure: [ :field | field beList beSingleSelection ];
 		newItemClassStencil: [ :aClass | aClass new ];
 		yourself
 ]

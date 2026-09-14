@@ -17,7 +17,7 @@ CPDefinitions >> asAtelierForProcess: aProcess [
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitions >> asAtelier [
-	| rootMemento documentContext process definitionsViewModel |
+	| rootMemento documentContext process definitionsViewModel currentProcessElement |
 	rootMemento := CFMaMemento model: self.
 	documentContext := CPDefinitionsMementoContext memento: rootMemento.
 	process := documentContext rootElements
@@ -38,18 +38,29 @@ CPDefinitions >> asAtelier [
 	definitionsViewModel presentationDo: [ :aPresentation |
 		aPresentation relationItemElementDo: [ :anElement :anObject :aDescription :aMemento |
 			((self isRootElementsDescription: aDescription) and: [ anObject == process ]) ifTrue: [
+				currentProcessElement := anElement.
 				aPresentation
-					selectRelationItemElement: anElement
+					selectRelationItemElement: currentProcessElement
 					description: aDescription ] ].
 		aPresentation relationActivateDo: [ :anObject :aDescription :aMemento :anElement |
 			(self isRootElementsDescription: aDescription) ifTrue: [
-				anObject isProcessDefinition ifTrue: [
-					process := anObject.
-					self
-						showProcess: process
-						inAtelierViewModel: definitionsViewModel
-						rootMemento: rootMemento
-						documentContext: documentContext ] ] ] ].
+				anObject isProcessDefinition
+					ifTrue: [
+						process := anObject.
+						currentProcessElement := anElement.
+						aPresentation
+							selectRelationItemElement: currentProcessElement
+							description: aDescription.
+						self
+							showProcess: process
+							inAtelierViewModel: definitionsViewModel
+							rootMemento: rootMemento
+							documentContext: documentContext ]
+					ifFalse: [
+						currentProcessElement ifNotNil: [
+							aPresentation
+								selectRelationItemElement: currentProcessElement
+								description: aDescription ] ] ] ] ].
 	^ definitionsViewModel
 ]
 

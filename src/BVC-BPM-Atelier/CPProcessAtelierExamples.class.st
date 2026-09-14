@@ -4304,3 +4304,14 @@ CPProcessAtelierExamples >> definitionsWorkspaceCurrentProcessComesFromFirstProc
 	^ definitions
 ]
 
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsRootElementsUseSingleSelection [
+	| definitions configuration |
+	definitions := CPDefinitions new.
+	configuration := CFMaFieldConfiguration new.
+	definitions rootElementsDescription configureField: configuration.
+	self assert: configuration representation class equals: CFMaListConfiguration.
+	self assert: configuration representation allowsMultipleSelection not.
+	^ definitions
+]
+
