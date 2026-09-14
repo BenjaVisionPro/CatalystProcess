@@ -85,3 +85,8 @@ CPItemDefinition >> isProcessDefinition [
 	^ false
 ]
 
+{ #category : 'accessing - presentation' }
+CPItemDefinition class >> defaultIcon [
+	^ #cube
+]
+

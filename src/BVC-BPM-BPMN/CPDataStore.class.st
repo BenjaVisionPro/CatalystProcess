@@ -72,3 +72,8 @@ CPDataStore >> isProcessDefinition [
 	^ false
 ]
 
+{ #category : 'accessing - presentation' }
+CPDataStore class >> defaultIcon [
+	^ #database
+]
+
