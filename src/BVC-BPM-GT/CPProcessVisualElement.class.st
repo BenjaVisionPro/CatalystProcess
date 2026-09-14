@@ -3184,7 +3184,7 @@ CPProcessVisualElement >> installDefinitionsRootElementDropHandler [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> acceptsDefinitionsRootElementDragItem: aDragItem [
-	| sourceElement sourceContext candidate reference proposedBounds operation |
+	| sourceElement sourceContext operation |
 	diagramEditing allowsEditing ifFalse: [ ^ false ].
 	sourceElement := aDragItem sourceElement.
 	sourceElement ifNil: [ ^ false ].
@@ -3193,15 +3193,8 @@ CPProcessVisualElement >> acceptsDefinitionsRootElementDragItem: aDragItem [
 		at: #atelierRelationDragContext
 		ifAbsent: [ nil ].
 	sourceContext ifNil: [ ^ false ].
-
-	candidate := aDragItem domainObject.
-	reference := CPDataStoreReference new
-		dataStoreRef: candidate;
-		yourself.
-	proposedBounds := 0 @ 0 extent: (self extentForModelElement: reference).
 	operation := diagramEditing
-		referenceDefinitionsRootElement: candidate
-		bounds: proposedBounds
+		referenceDefinitionsRootElement: aDragItem domainObject
 		inProcessHostedBy: hostShape.
 	^ operation notNil
 ]
@@ -3224,36 +3217,30 @@ CPProcessVisualElement >> dropDefinitionsRootElementEvent: anEvent [
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> referenceDefinitionsRootElementDragItem: aDragItem atRootDiagramPoint: aRootPoint [
-	| candidate reference elementExtent localPoint origin bounds operation assessment |
-	candidate := aDragItem domainObject.
-	reference := CPDataStoreReference new
-		dataStoreRef: candidate;
-		yourself.
-	elementExtent := self extentForModelElement: reference.
+	| operation modelElement elementExtent localPoint origin bounds assessment |
+	operation := diagramEditing
+		referenceDefinitionsRootElement: aDragItem domainObject
+		inProcessHostedBy: hostShape.
+	operation ifNil: [ ^ nil ].
+	modelElement := operation modelElement.
+	elementExtent := self extentForModelElement: modelElement.
 	localPoint := self localPointForRootDiagramPoint: aRootPoint.
 	origin :=
 		((localPoint x - (elementExtent x / 2)) max: 0)
 		@ ((localPoint y - (elementExtent y / 2)) max: 0).
 	bounds := origin extent: elementExtent.
-	bounds := self
-		constrainedBounds: bounds
-		forFlowContainer: flowContainer.
-	operation := diagramEditing
-		referenceDefinitionsRootElement: candidate
-		bounds: bounds
-		inProcessHostedBy: hostShape.
-	operation ifNil: [ ^ nil ].
+	bounds := self constrainedBounds: bounds forFlowContainer: flowContainer.
+	operation bounds: bounds.
 	assessment := operation apply.
 	assessment isApplicable ifTrue: [
 		self refresh.
-		(self diagramShapeForModelElement: assessment dataStoreReference) ifNotNil: [ :aShape |
+		(self diagramShapeForModelElement: modelElement) ifNotNil: [ :aShape |
 			diagramSelection selectOnly: aShape ].
 		self updateDiagramAppearance.
 		selectionChangedBlock ifNotNil: [ :aBlock |
 			aBlock value: diagramSelection soleDiagramElement ] ].
 	^ assessment
 ]
-
 
 { #category : 'private - creation' }
 CPProcessVisualElement >> installPaletteDropHandler [

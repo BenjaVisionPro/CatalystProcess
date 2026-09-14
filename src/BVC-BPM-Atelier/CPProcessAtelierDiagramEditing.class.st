@@ -94,19 +94,32 @@ CPProcessAtelierDiagramEditing >> createDataStore: aDataStore bounds: proposedBo
 ]
 
 { #category : 'operation factories' }
-CPProcessAtelierDiagramEditing >> referenceDefinitionsRootElement: aRootElement bounds: proposedBounds inProcessHostedBy: aHostShape [
-	| targetContainer operation |
+CPProcessAtelierDiagramEditing >> referenceDefinitionsRootElement: aRootElement inProcessHostedBy: aHostShape [
+	| targetContainer dataStoreOperation processOperation |
 	targetContainer := self flowContainerHostedBy: aHostShape.
 	targetContainer ifNil: [ ^ nil ].
-	operation := CPAtelierReferenceDataStore
+
+	dataStoreOperation := CPAtelierReferenceDataStore
 		dataStore: aRootElement
-		bounds: proposedBounds
+		bounds: (0 @ 0 extent: 1 @ 1)
 		flowContainer: targetContainer
 		processMemento: processMemento
 		documentContext: documentContext
 		diagramContext: diagramContext.
-	operation assess isApplicable ifFalse: [ ^ nil ].
-	^ operation
+	[ dataStoreOperation modelElement dataStoreRefDescription validate: aRootElement ]
+		on: MAValidationError
+		do: [ :ignored |
+			processOperation := CPAtelierReferenceProcess
+				process: aRootElement
+				flowContainer: targetContainer
+				processMemento: processMemento
+				documentContext: documentContext
+				diagramContext: diagramContext.
+			[ processOperation modelElement calledElementDescription validate: aRootElement ]
+				on: MAValidationError
+				do: [ :anotherIgnored | ^ nil ].
+			^ processOperation ].
+	^ dataStoreOperation
 ]
 
 { #category : 'operation factories' }

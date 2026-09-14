@@ -3,10 +3,10 @@
 I do not create, copy or move the Data Store. The candidate must already be present in the staged Definitions rootElements collection. Its CPDataStoreReference description remains authoritative for validating that the candidate is actually a BPMN Data Store."
 Class {
 	#name : 'CPAtelierReferenceDataStore',
-	#superclass : 'CFAtelierOperation',
+	#superclass : 'CPAtelierReferenceDefinitionsRootElement',
 	#instVars : [
 		'dataStore',
-		'bounds',
+		'dataStoreReference',
 		'flowContainerContext',
 		'documentContext',
 		'diagramContext'
@@ -20,6 +20,7 @@ Class {
 CPAtelierReferenceDataStore class >> dataStore: aDataStore bounds: aRectangle flowContainer: aContainer processMemento: aMemento documentContext: aDocumentContext diagramContext: aDiagramContext [
 	^ self new
 		dataStore: aDataStore;
+		dataStoreReference: (CPDataStoreReference new dataStoreRef: aDataStore; yourself);
 		bounds: aRectangle;
 		flowContainerContext: (CPProcessFlowContainerContext forContainer: aContainer inRootMemento: aMemento);
 		documentContext: aDocumentContext;
@@ -29,7 +30,7 @@ CPAtelierReferenceDataStore class >> dataStore: aDataStore bounds: aRectangle fl
 
 { #category : 'assessing' }
 CPAtelierReferenceDataStore >> assess [
-	| rootElements flowElements elements reference shape proposedFlowElements proposedElements |
+	| rootElements flowElements elements shape proposedFlowElements proposedElements |
 	documentContext ifNil: [
 		^ self rejectedBecause: 'A Definitions-rooted Atelier session is required.' ].
 	dataStore ifNil: [
@@ -43,15 +44,12 @@ CPAtelierReferenceDataStore >> assess [
 	(rootElements identityIncludes: dataStore) ifFalse: [
 		^ self rejectedBecause: 'The referenced Data Store must already belong to these Definitions.' ].
 
-	reference := CPDataStoreReference new
-		dataStoreRef: dataStore;
-		yourself.
-	[ reference dataStoreRefDescription validate: dataStore ]
+	[ dataStoreReference dataStoreRefDescription validate: dataStore ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
 
 	shape := CPShape new
-		modelElement: reference;
+		modelElement: dataStoreReference;
 		bounds: bounds;
 		yourself.
 	[ shape boundsDescription validate: bounds ]
@@ -74,7 +72,7 @@ CPAtelierReferenceDataStore >> assess [
 
 	^ CPAtelierReferenceDataStoreAssessment
 		dataStore: dataStore
-		dataStoreReference: reference
+		dataStoreReference: dataStoreReference
 		shape: shape
 		proposedFlowElements: proposedFlowElements
 		proposedDiagramElements: proposedElements
@@ -97,9 +95,6 @@ CPAtelierReferenceDataStore >> rejectedBecause: aString [
 CPAtelierReferenceDataStore >> dataStore: anObject [ dataStore := anObject ]
 
 { #category : 'accessing' }
-CPAtelierReferenceDataStore >> bounds: aRectangle [ bounds := aRectangle ]
-
-{ #category : 'accessing' }
 CPAtelierReferenceDataStore >> flowContainerContext: aContext [ flowContainerContext := aContext ]
 
 { #category : 'accessing' }
@@ -107,3 +102,13 @@ CPAtelierReferenceDataStore >> documentContext: aContext [ documentContext := aC
 
 { #category : 'accessing' }
 CPAtelierReferenceDataStore >> diagramContext: aContext [ diagramContext := aContext ]
+
+{ #category : 'accessing' }
+CPAtelierReferenceDataStore >> dataStoreReference: anObject [
+	dataStoreReference := anObject
+]
+
+{ #category : 'accessing' }
+CPAtelierReferenceDataStore >> modelElement [
+	^ dataStoreReference
+]

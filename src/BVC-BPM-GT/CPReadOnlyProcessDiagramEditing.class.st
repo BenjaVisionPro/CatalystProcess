@@ -36,7 +36,7 @@ CPReadOnlyProcessDiagramEditing >> createParticipant: aParticipant bounds: propo
 
 
 { #category : 'operation factories' }
-CPReadOnlyProcessDiagramEditing >> referenceDefinitionsRootElement: aRootElement bounds: proposedBounds inProcessHostedBy: aHostShape [
+CPReadOnlyProcessDiagramEditing >> referenceDefinitionsRootElement: aRootElement inProcessHostedBy: aHostShape [
 	^ nil
 ]
 

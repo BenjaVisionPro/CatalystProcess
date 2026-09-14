@@ -4075,10 +4075,51 @@ CPProcessAtelierExamples >> definitionsRootElementResolverRejectsNonDataStoreWit
 
 	operation := editing
 		referenceDefinitionsRootElement: process
-		bounds: (120 @ 80 extent: 54 @ 54)
 		inProcessHostedBy: nil.
 
 	self assert: operation isNil.
 	^ editing
 ]
 
+
+
+{ #category : 'examples - definitions' }
+CPProcessAtelierExamples >> existingDefinitionsProcessBecomesCallActivityWithoutCopyingProcess [
+	<gtExample>
+	| definitions caller called diagram definitionsMemento session editing operation assessment |
+	caller := CPProcess new label: 'Order handling'; yourself.
+	called := CPProcess new label: 'Fulfilment'; yourself.
+	diagram := CPDiagram new modelElement: caller; yourself.
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:process-reference';
+		rootElements: (OrderedCollection with: caller with: called);
+		diagrams: (OrderedCollection with: diagram);
+		yourself.
+	definitionsMemento := CFMaMemento model: definitions.
+	session := CPProcessAtelierSession
+		forDefinitionsMemento: definitionsMemento
+		process: caller
+		diagram: diagram.
+	editing := CPProcessAtelierDiagramEditing
+		processMemento: session processMemento
+		diagramContext: session diagramContext
+		collaborationContext: session collaborationContext
+		documentContext: session documentContext.
+
+	operation := editing
+		referenceDefinitionsRootElement: called
+		inProcessHostedBy: nil.
+	self assert: operation notNil.
+	self assert: operation modelElement isCallActivity.
+	self assert: operation modelElement calledElement == called.
+	operation bounds: (180 @ 100 extent: 120 @ 80).
+	assessment := operation apply.
+
+	self assert: assessment isApplicable.
+	self assert: assessment callActivity calledElement == called.
+	self assert: (session documentContext rootElements identityIncludes: called).
+	self assert: session documentContext rootElements size equals: 2.
+	self assert: ((CPProcessFlowContainerContext rootFor: session processMemento)
+		stagedFlowElements identityIncludes: assessment callActivity).
+	^ assessment
+]
