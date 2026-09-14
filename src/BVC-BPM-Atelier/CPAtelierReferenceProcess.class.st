@@ -23,7 +23,6 @@ CPAtelierReferenceProcess class >> process: aProcess flowContainer: aContainer p
 	^ self new
 		process: aProcess;
 		callActivity: (CPCallActivity new
-			label: aProcess label;
 			calledElement: aProcess;
 			yourself);
 		flowContainer: aContainer;
@@ -47,6 +46,7 @@ CPAtelierReferenceProcess >> assess [
 	[ callActivity calledElementDescription validate: process ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].
+	callActivity label: process label.
 
 	createOperation := CPAtelierCreateFlowNode
 		flowNode: callActivity
