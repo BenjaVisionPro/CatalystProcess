@@ -125,7 +125,7 @@ CPAtelierRemoveDiagramElements >> hasSelectedNonLaneProcessElements [
 
 { #category : 'private - resolving' }
 CPAtelierRemoveDiagramElements >> dataAssociationRemovalOperations [
-	| processDiagramContext selectedShapes associations |
+	| processDiagramContext selectedShapes associations operations |
 	processDiagramContext := self processDiagramContext.
 	selectedShapes := IdentitySet new.
 	associations := IdentitySet new.
@@ -151,11 +151,13 @@ CPAtelierRemoveDiagramElements >> dataAssociationRemovalOperations [
 					or: [ selectedShapes identityIncludes: targetElement ]) ifTrue: [
 						associations add: modelElement ] ] ] ].
 
-	^ associations collect: [ :anAssociation |
-		CPAtelierRemoveDataAssociation
+	operations := OrderedCollection new.
+	associations do: [ :anAssociation |
+		operations add: (CPAtelierRemoveDataAssociation
 			dataAssociation: anAssociation
 			processMemento: processMemento
-			diagramContext: processDiagramContext ]
+			diagramContext: processDiagramContext) ].
+	^ operations
 ]
 
 
