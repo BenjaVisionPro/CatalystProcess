@@ -58,7 +58,7 @@ CPAtelierReferenceDataStore >> assess [
 
 	flowElements := flowContainerContext stagedFlowElements.
 	proposedFlowElements := flowElements asOrderedCollection copy.
-	proposedFlowElements add: reference.
+	proposedFlowElements add: dataStoreReference.
 	[ flowContainerContext flowElementsDescription validate: proposedFlowElements ]
 		on: MAValidationError
 		do: [ :anException | ^ self rejectedBecause: anException printString ].

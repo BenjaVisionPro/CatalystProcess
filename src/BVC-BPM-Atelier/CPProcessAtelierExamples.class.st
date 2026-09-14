@@ -4051,15 +4051,16 @@ CPProcessAtelierExamples >> existingDefinitionsDataStoreCanBeReferencedWithoutMo
 	^ assessment
 ]
 
-{ #category : 'examples - data' }
-CPProcessAtelierExamples >> definitionsRootElementResolverRejectsNonDataStoreWithoutTypeSwitch [
+{ #category : 'examples - definitions' }
+CPProcessAtelierExamples >> definitionsRootElementResolverRejectsUnsupportedRootWithoutTypeSwitch [
 	<gtExample>
-	| definitions process diagram definitionsMemento session editing operation |
+	| definitions process itemDefinition diagram definitionsMemento session editing operation |
 	process := CPProcess new label: 'Consumer'; yourself.
+	itemDefinition := CPItemDefinition new.
 	diagram := CPDiagram new modelElement: process; yourself.
 	definitions := CPDefinitions new
 		targetNamespace: 'urn:catalyst:definitions-drop';
-		rootElements: (OrderedCollection with: process);
+		rootElements: (OrderedCollection with: process with: itemDefinition);
 		diagrams: (OrderedCollection with: diagram);
 		yourself.
 	definitionsMemento := CFMaMemento model: definitions.
@@ -4074,7 +4075,7 @@ CPProcessAtelierExamples >> definitionsRootElementResolverRejectsNonDataStoreWit
 		documentContext: session documentContext.
 
 	operation := editing
-		referenceDefinitionsRootElement: process
+		referenceDefinitionsRootElement: itemDefinition
 		inProcessHostedBy: nil.
 
 	self assert: operation isNil.
