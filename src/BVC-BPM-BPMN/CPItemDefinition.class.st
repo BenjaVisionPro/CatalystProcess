@@ -79,3 +79,9 @@ CPItemDefinition >> isCollectionDescription [
 		group: 'Data';
 		yourself
 ]
+
+{ #category : 'testing' }
+CPItemDefinition >> isProcessDefinition [
+	^ false
+]
+

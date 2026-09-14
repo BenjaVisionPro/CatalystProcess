@@ -131,3 +131,9 @@ CPCollaboration >> diagramDescription [
 		group: 'Diagram';
 		yourself
 ]
+
+{ #category : 'testing' }
+CPCollaboration >> isProcessDefinition [
+	^ false
+]
+

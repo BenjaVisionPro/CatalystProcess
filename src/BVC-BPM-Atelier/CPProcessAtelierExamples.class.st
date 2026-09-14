@@ -4124,3 +4124,115 @@ CPProcessAtelierExamples >> existingDefinitionsProcessBecomesCallActivityWithout
 		stagedFlowElements identityIncludes: assessment callActivity).
 	^ assessment
 ]
+
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsWorkspaceWithReusableProcessAndData [
+	<gtExample>
+	| definitions orderProcess fulfilmentProcess orderData ordersStore
+	  orderDiagram fulfilmentDiagram
+	  start review finish firstFlow secondFlow
+	  startShape reviewShape finishShape firstEdge secondEdge
+	  fulfilStart fulfilTask fulfilFinish fulfilFirstFlow fulfilSecondFlow
+	  fulfilStartShape fulfilTaskShape fulfilFinishShape fulfilFirstEdge fulfilSecondEdge
+	  viewModel |
+
+	orderData := CPItemDefinition new.
+	ordersStore := CPDataStore new
+		label: 'Orders';
+		itemSubjectRef: orderData;
+		isUnlimited: true;
+		yourself.
+
+	orderProcess := CPProcess new
+		label: 'Order handling';
+		yourself.
+	start := CPNoneStartEvent new label: 'Start'; yourself.
+	review := CPUserTask new label: 'Review order'; yourself.
+	finish := CPNoneEndEvent new label: 'Complete'; yourself.
+	firstFlow := CPSequenceFlow new
+		sourceRef: start;
+		targetRef: review;
+		yourself.
+	secondFlow := CPSequenceFlow new
+		sourceRef: review;
+		targetRef: finish;
+		yourself.
+	orderProcess
+		addFlowElement: start;
+		addFlowElement: review;
+		addFlowElement: finish;
+		addFlowElement: firstFlow;
+		addFlowElement: secondFlow.
+
+	orderDiagram := CPDiagram new modelElement: orderProcess; yourself.
+	startShape := CPShape new modelElement: start; bounds: (100 @ 120 extent: 42 @ 42); yourself.
+	reviewShape := CPShape new modelElement: review; bounds: (220 @ 114 extent: 132 @ 54); yourself.
+	finishShape := CPShape new modelElement: finish; bounds: (430 @ 120 extent: 42 @ 42); yourself.
+	firstEdge := CPEdge new modelElement: firstFlow; yourself.
+	firstEdge addWaypoint: 142 @ 141; addWaypoint: 220 @ 141.
+	secondEdge := CPEdge new modelElement: secondFlow; yourself.
+	secondEdge addWaypoint: 352 @ 141; addWaypoint: 430 @ 141.
+	orderDiagram
+		addElement: startShape;
+		addElement: reviewShape;
+		addElement: finishShape;
+		addElement: firstEdge;
+		addElement: secondEdge.
+
+	fulfilmentProcess := CPProcess new
+		label: 'Fulfilment';
+		yourself.
+	fulfilStart := CPNoneStartEvent new label: 'Start'; yourself.
+	fulfilTask := CPUserTask new label: 'Pack order'; yourself.
+	fulfilFinish := CPNoneEndEvent new label: 'Dispatched'; yourself.
+	fulfilFirstFlow := CPSequenceFlow new
+		sourceRef: fulfilStart;
+		targetRef: fulfilTask;
+		yourself.
+	fulfilSecondFlow := CPSequenceFlow new
+		sourceRef: fulfilTask;
+		targetRef: fulfilFinish;
+		yourself.
+	fulfilmentProcess
+		addFlowElement: fulfilStart;
+		addFlowElement: fulfilTask;
+		addFlowElement: fulfilFinish;
+		addFlowElement: fulfilFirstFlow;
+		addFlowElement: fulfilSecondFlow.
+
+	fulfilmentDiagram := CPDiagram new modelElement: fulfilmentProcess; yourself.
+	fulfilStartShape := CPShape new modelElement: fulfilStart; bounds: (100 @ 120 extent: 42 @ 42); yourself.
+	fulfilTaskShape := CPShape new modelElement: fulfilTask; bounds: (220 @ 114 extent: 132 @ 54); yourself.
+	fulfilFinishShape := CPShape new modelElement: fulfilFinish; bounds: (430 @ 120 extent: 42 @ 42); yourself.
+	fulfilFirstEdge := CPEdge new modelElement: fulfilFirstFlow; yourself.
+	fulfilFirstEdge addWaypoint: 142 @ 141; addWaypoint: 220 @ 141.
+	fulfilSecondEdge := CPEdge new modelElement: fulfilSecondFlow; yourself.
+	fulfilSecondEdge addWaypoint: 352 @ 141; addWaypoint: 430 @ 141.
+	fulfilmentDiagram
+		addElement: fulfilStartShape;
+		addElement: fulfilTaskShape;
+		addElement: fulfilFinishShape;
+		addElement: fulfilFirstEdge;
+		addElement: fulfilSecondEdge.
+
+	definitions := CPDefinitions new
+		targetNamespace: 'urn:catalyst:definitions-workspace-example';
+		rootElements: (OrderedCollection
+			with: orderProcess
+			with: fulfilmentProcess
+			with: ordersStore
+			with: orderData);
+		diagrams: (OrderedCollection
+			with: orderDiagram
+			with: fulfilmentDiagram);
+		yourself.
+
+	viewModel := definitions asAtelier.
+
+	self assert: viewModel object == definitions.
+	self assert: viewModel palette notNil.
+	self assert: definitions rootElements size equals: 4.
+	self assert: definitions diagrams size equals: 2.
+	^ viewModel
+]
+

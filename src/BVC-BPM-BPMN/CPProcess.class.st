@@ -191,3 +191,9 @@ CPProcess >> propertiesDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new accessor: #properties; classes: { CPProperty }; reference: CPProperty new labelDescription; label: 'Properties'; priority: 140; group: 'Data'; beOrdered; yourself
 ]
+
+{ #category : 'testing' }
+CPProcess >> isProcessDefinition [
+	^ true
+]
+

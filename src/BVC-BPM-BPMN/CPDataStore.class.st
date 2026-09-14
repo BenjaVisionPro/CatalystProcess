@@ -66,3 +66,9 @@ CPDataStore >> isUnlimitedDescription [
 		group: 'Data';
 		yourself
 ]
+
+{ #category : 'testing' }
+CPDataStore >> isProcessDefinition [
+	^ false
+]
+
