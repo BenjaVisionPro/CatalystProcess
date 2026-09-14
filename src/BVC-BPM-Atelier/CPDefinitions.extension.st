@@ -17,7 +17,7 @@ CPDefinitions >> asAtelierForProcess: aProcess [
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitions >> asAtelier [
-	| rootMemento documentContext process diagrams diagram session processViewModel definitionsViewModel |
+	| rootMemento documentContext process definitionsViewModel |
 	rootMemento := CFMaMemento model: self.
 	documentContext := CPDefinitionsMementoContext memento: rootMemento.
 	process := documentContext rootElements
@@ -26,24 +26,42 @@ CPDefinitions >> asAtelier [
 			^ CFAtelierViewModel
 				forObject: self
 				memento: rootMemento ].
-	diagrams := documentContext diagramsForProcess: process.
+
+	definitionsViewModel := CFAtelierViewModel
+		forObject: self
+		memento: rootMemento.
+	self
+		showProcess: process
+		inAtelierViewModel: definitionsViewModel
+		rootMemento: rootMemento
+		documentContext: documentContext.
+	definitionsViewModel presentationDo: [ :aPresentation |
+		aPresentation relationActivateDo: [ :anObject :aDescription :aMemento :anElement |
+			anObject isProcessDefinition ifTrue: [
+				self
+					showProcess: anObject
+					inAtelierViewModel: definitionsViewModel
+					rootMemento: rootMemento
+					documentContext: documentContext ] ] ].
+	^ definitionsViewModel
+]
+
+{ #category : '*BVC-BPM-Atelier' }
+CPDefinitions >> showProcess: aProcess inAtelierViewModel: definitionsViewModel rootMemento: rootMemento documentContext: documentContext [
+	| diagrams diagram session processViewModel |
+	diagrams := documentContext diagramsForProcess: aProcess.
 	diagram := diagrams
 		ifEmpty: [ nil ]
 		ifNotEmpty: [ diagrams first ].
 	session := CPProcessAtelierSession
 		forDefinitionsMemento: rootMemento
-		process: process
+		process: aProcess
 		diagram: diagram.
 	processViewModel := session asViewModel.
-
-	definitionsViewModel := CFAtelierViewModel
-		forObject: self
-		memento: rootMemento.
 	definitionsViewModel
 		palette: processViewModel palette;
 		paletteElementFactory: processViewModel paletteElementFactory;
 		workspaceElementFactory: [ :anAtelierElement |
 			processViewModel asWorkspaceElementIn: anAtelierElement ].
-	^ definitionsViewModel
+	^ processViewModel
 ]
-
