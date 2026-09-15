@@ -15,14 +15,14 @@ CPProcessLabelAptitude >> initialize [
 			aStyle
 				background: Color transparent;
 				border: BlBorder empty;
-				foreground: (self theme typography titleForeground blocResolveColorForTheme: self theme);
+				foreground: (self theme label defaultTextForeground blocResolveColorForTheme: self theme);
 				fontSize: self theme typography titleFontSize ];
 		when: BrEditorModeState editable
 			style: [ :aStyle |
 				aStyle
 					background: Color transparent;
 					border: BlBorder empty;
-					foreground: (self theme typography titleForeground blocResolveColorForTheme: self theme);
+					foreground: (self theme label defaultTextForeground blocResolveColorForTheme: self theme);
 					fontSize: self theme typography titleFontSize ];
 		hovered: [ :aStyle |
 			aStyle
@@ -32,5 +32,5 @@ CPProcessLabelAptitude >> initialize [
 			aStyle
 				background: Color transparent;
 				border: BlBorder empty;
-				foreground: (self theme typography titleForeground blocResolveColorForTheme: self theme) ])
+				foreground: (self theme label defaultTextForeground blocResolveColorForTheme: self theme) ])
 ]

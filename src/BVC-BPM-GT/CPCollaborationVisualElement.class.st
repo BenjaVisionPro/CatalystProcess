@@ -1340,7 +1340,7 @@ CPCollaborationVisualElement >> poolBackgroundColor [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> poolBorderColor [
-	^ self resolvedThemeColor: self theme typography primaryForeground
+	^ self resolvedThemeColor: self theme diagram poolBorderColor
 ]
 
 { #category : 'private - theme' }

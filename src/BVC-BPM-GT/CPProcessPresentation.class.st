@@ -388,7 +388,7 @@ CPProcessPresentation >> resolvedThemeColor: aThemeableColor [
 
 { #category : 'private - theme' }
 CPProcessPresentation >> workspaceSurfaceColor [
-	^ self resolvedThemeColor: self hostElement theme surfaces baseBackground
+	^ self resolvedThemeColor: self hostElement theme diagram workspaceBackground
 ]
 
 { #category : 'visiting-description' }

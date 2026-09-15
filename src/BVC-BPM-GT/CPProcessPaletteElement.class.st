@@ -24,7 +24,7 @@ CPProcessPaletteElement >> configureAppearance [
 		effect: (BlBlurBelowEffect radius: 10);
 		addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
-				aStyle background: self theme interaction subtleBackgroundTint ];
+				aStyle background: self theme palette background ];
 			yourself).
 	self installBackgroundMoveInteraction
 ]

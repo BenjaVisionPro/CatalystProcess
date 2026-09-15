@@ -2871,12 +2871,12 @@ CPProcessVisualElement >> installDiagramCursor [
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBackgroundColor [
-	^ self resolvedThemeColor: self theme surfaces cardTint
+	^ self resolvedThemeColor: self theme diagram shapeBackground
 ]
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBorderColor [
-	^ self resolvedThemeColor: self theme typography primaryForeground
+	^ self resolvedThemeColor: self theme diagram shapeBorderColor
 ]
 
 { #category : 'private - theme' }
