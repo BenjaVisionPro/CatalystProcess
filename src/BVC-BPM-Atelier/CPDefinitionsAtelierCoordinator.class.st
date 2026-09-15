@@ -57,11 +57,13 @@ CPDefinitionsAtelierCoordinator >> initializeCurrentSession [
 { #category : 'private - initialization' }
 CPDefinitionsAtelierCoordinator >> configureViewModel [
 	definitionsViewModel
-		relationItemElementDo: [ :aRow :anObject :aDescription :aMemento |
-			self
-				configureRelationItem: aRow
-				object: anObject
-				description: aDescription ];
+		presentationDo: [ :aPresentation |
+			aPresentation
+				relationItemElementDo: [ :aRow :anObject :aDescription :aMemento |
+					self
+						configureRelationItem: aRow
+						object: anObject
+						description: aDescription ] ];
 		workspaceElementFactory: [ :anAtelierElement |
 			self atelierElement: anAtelierElement.
 			self currentWorkspaceElement ].
