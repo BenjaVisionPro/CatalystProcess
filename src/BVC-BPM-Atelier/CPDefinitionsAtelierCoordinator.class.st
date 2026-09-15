@@ -202,18 +202,18 @@ CPDefinitionsAtelierCoordinator >> configureViewModelPalette [
 { #category : 'private - composition' }
 CPDefinitionsAtelierCoordinator >> currentWorkspaceElement [
 	^ currentViewModel ifNotNil: [
-		currentViewModel asWorkspaceElementIn: atelierElement ]
+		currentViewModel preparedElementForMemento: currentViewModel memento ]
 ]
 
 { #category : 'private - composition' }
 CPDefinitionsAtelierCoordinator >> installCurrentClient [
 	self configureViewModelPalette.
 	atelierElement ifNil: [ ^ self ].
-	atelierElement workspaceElement: self currentWorkspaceElement.
 	currentViewModel
-		ifNil: [ atelierElement palette: nil elementFactory: nil ]
-		ifNotNil: [
+		ifNil: [
 			atelierElement
-				palette: currentViewModel palette
-				elementFactory: currentViewModel paletteElementFactory ]
+				workspaceElement: nil;
+				palette: nil elementFactory: nil ]
+		ifNotNil: [
+			currentViewModel installAsWorkspaceClientIn: atelierElement ]
 ]
