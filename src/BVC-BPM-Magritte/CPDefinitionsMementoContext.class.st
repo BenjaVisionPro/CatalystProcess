@@ -122,3 +122,14 @@ CPDefinitionsMementoContext >> detachRootElement: aRootElement [
 CPDefinitionsMementoContext >> detachDiagram: aDiagram [
 	definitionsMemento detachChildMementoFor: aDiagram inRelation: diagramsDescription
 ]
+
+
+{ #category : 'staged state' }
+CPDefinitionsMementoContext >> rootElementsObservable [
+	^ definitionsMemento readObservableValueUsing: rootElementsDescription
+]
+
+{ #category : 'staged state' }
+CPDefinitionsMementoContext >> diagramsObservable [
+	^ definitionsMemento readObservableValueUsing: diagramsDescription
+]

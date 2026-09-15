@@ -4284,3 +4284,86 @@ CPProcessAtelierExamples >> diagramCompactIdentityUsesDepictedProcessLabel [
 	^ diagram
 ]
 
+
+
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsWorkspaceSwitchRetainsAtelierContext [
+	<gtExample>
+	| definitions firstProcess secondProcess firstDiagram secondDiagram root viewModel coordinator element form content |
+	firstProcess := CPProcess new label: 'First'; yourself.
+	secondProcess := CPProcess new label: 'Second'; yourself.
+	firstDiagram := CPDiagram new modelElement: firstProcess; yourself.
+	secondDiagram := CPDiagram new modelElement: secondProcess; yourself.
+	definitions := CPDefinitions new
+		rootElements: (OrderedCollection with: firstProcess with: secondProcess);
+		diagrams: (OrderedCollection with: firstDiagram with: secondDiagram);
+		yourself.
+	root := CFMaMemento model: definitions.
+	viewModel := CFAtelierViewModel forObject: definitions memento: root.
+	coordinator := CPDefinitionsAtelierCoordinator
+		rootMemento: root
+		viewModel: viewModel.
+
+	element := viewModel asElement.
+	form := element formElement.
+	content := element children first.
+
+	coordinator activateProcess: secondProcess.
+
+	self assert: coordinator currentProcess == secondProcess.
+	self assert: element formElement == form.
+	self assert: element children first == content.
+	self assert: coordinator currentSession rootMemento == root.
+	^ element
+]
+
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> definitionsWorkspaceDoesNotGuessBetweenMultipleDepictions [
+	<gtExample>
+	| definitions process firstDiagram secondDiagram root viewModel coordinator |
+	process := CPProcess new label: 'Process'; yourself.
+	firstDiagram := CPDiagram new modelElement: process; yourself.
+	secondDiagram := CPDiagram new modelElement: process; yourself.
+	definitions := CPDefinitions new
+		rootElements: (OrderedCollection with: process);
+		diagrams: (OrderedCollection with: firstDiagram with: secondDiagram);
+		yourself.
+	root := CFMaMemento model: definitions.
+	viewModel := CFAtelierViewModel forObject: definitions memento: root.
+	coordinator := CPDefinitionsAtelierCoordinator
+		rootMemento: root
+		viewModel: viewModel.
+
+	self assert: coordinator currentProcess == process.
+	self assert: coordinator currentDiagram isNil.
+
+	coordinator activateDiagram: secondDiagram.
+	self assert: coordinator currentDiagram == secondDiagram.
+	^ coordinator
+]
+
+{ #category : 'examples - definitions workspace' }
+CPProcessAtelierExamples >> removingCurrentProcessInvalidatesDefinitionsWorkspaceSession [
+	<gtExample>
+	| definitions process diagram root viewModel coordinator context |
+	process := CPProcess new label: 'Process'; yourself.
+	diagram := CPDiagram new modelElement: process; yourself.
+	definitions := CPDefinitions new
+		rootElements: (OrderedCollection with: process);
+		diagrams: (OrderedCollection with: diagram);
+		yourself.
+	root := CFMaMemento model: definitions.
+	viewModel := CFAtelierViewModel forObject: definitions memento: root.
+	coordinator := CPDefinitionsAtelierCoordinator
+		rootMemento: root
+		viewModel: viewModel.
+	context := CPDefinitionsMementoContext memento: root.
+
+	context writeRootElements: OrderedCollection new.
+	coordinator validateCurrentSession.
+
+	self assert: coordinator currentSession isNil.
+	self assert: viewModel object == definitions.
+	self assert: root model == definitions.
+	^ coordinator
+]
