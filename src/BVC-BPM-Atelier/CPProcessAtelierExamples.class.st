@@ -4252,7 +4252,7 @@ CPProcessAtelierExamples >> definitionsWorkspaceWithReusableProcessAndData [
 	self assert: viewModel palette notNil.
 	self assert: definitions rootElements size equals: 4.
 	self assert: definitions diagrams size equals: 2.
-	^ viewModel
+	^ definitions
 ]
 
 { #category : 'examples - definitions workspace' }

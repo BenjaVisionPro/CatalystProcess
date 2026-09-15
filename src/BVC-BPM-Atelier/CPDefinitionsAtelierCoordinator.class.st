@@ -57,7 +57,11 @@ CPDefinitionsAtelierCoordinator >> configureViewModel [
 	definitionsViewModel
 		presentationDo: [ :aPresentation |
 			aPresentation relationItemElementDo: [ :aRow :anObject :aDescription :aMemento |
-				self configureRelationItem: aRow object: anObject description: aDescription ] ];
+				self
+					configureRelationItem: aRow
+					object: anObject
+					description: aDescription
+					presentation: aPresentation ] ];
 		workspaceElementFactory: [ :anAtelierElement |
 			atelierElement := anAtelierElement.
 			self currentWorkspaceElement ].
@@ -65,11 +69,16 @@ CPDefinitionsAtelierCoordinator >> configureViewModel [
 ]
 
 { #category : 'private - relations' }
-CPDefinitionsAtelierCoordinator >> configureRelationItem: aRow object: anObject description: aDescription [
+CPDefinitionsAtelierCoordinator >> configureRelationItem: aRow object: anObject description: aDescription presentation: aPresentation [
 	aDescription accessor = rootMemento model rootElementsDescription accessor ifFalse: [ ^ self ].
 	anObject isProcessDefinition ifFalse: [ ^ self ].
+
+	self currentProcess == anObject ifTrue: [
+		aPresentation selectRelationElement: aRow for: aDescription ].
+
 	aRow when: BlClickEvent do: [ :anEvent |
-		anEvent modifiers isEmpty ifTrue: [ self activateProcess: anObject ] ]
+		self activateProcess: anObject.
+		aPresentation selectRelationElement: aRow for: aDescription ]
 ]
 
 { #category : 'accessing' }
