@@ -1,6 +1,6 @@
-"I coordinate which Process editing session is hosted inside one Definitions-rooted Atelier.
+"I coordinate the Process currently shown inside one Definitions-rooted Atelier.
 
-CPDefinitions remains the Atelier object and transaction root. CPProcessAtelierSession remains the canonical Process + Diagram editing session. I only coordinate the currently hosted session and install its ordinary Process Atelier client into the stable Foundation Atelier host."
+CPDefinitions remains the transaction and Atelier root. CPProcessAtelierSession owns the Process/Diagram editing session. I only translate Process-row activation into replacement of the existing Atelier workspace and palette."
 Class {
 	#name : 'CPDefinitionsAtelierCoordinator',
 	#superclass : 'Object',
@@ -10,8 +10,7 @@ Class {
 		'definitionsViewModel',
 		'atelierElement',
 		'currentSession',
-		'currentViewModel',
-		'observingDocument'
+		'currentViewModel'
 	],
 	#category : 'BVC-BPM-Atelier-Configuration',
 	#package : 'BVC-BPM-Atelier',
@@ -24,7 +23,7 @@ CPDefinitionsAtelierCoordinator class >> rootMemento: aRootMemento viewModel: aV
 		rootMemento: aRootMemento;
 		definitionsViewModel: aViewModel;
 		initializeDocumentContext;
-		initializeCurrentSession;
+		initializeCurrentProcess;
 		configureViewModel;
 		yourself
 ]
@@ -41,12 +40,11 @@ CPDefinitionsAtelierCoordinator >> definitionsViewModel: aViewModel [
 
 { #category : 'private - initialization' }
 CPDefinitionsAtelierCoordinator >> initializeDocumentContext [
-	documentContext := CPDefinitionsMementoContext memento: rootMemento.
-	observingDocument := false
+	documentContext := CPDefinitionsMementoContext memento: rootMemento
 ]
 
 { #category : 'private - initialization' }
-CPDefinitionsAtelierCoordinator >> initializeCurrentSession [
+CPDefinitionsAtelierCoordinator >> initializeCurrentProcess [
 	| process |
 	process := documentContext rootElements
 		detect: [ :each | each isProcessDefinition ]
@@ -58,53 +56,20 @@ CPDefinitionsAtelierCoordinator >> initializeCurrentSession [
 CPDefinitionsAtelierCoordinator >> configureViewModel [
 	definitionsViewModel
 		presentationDo: [ :aPresentation |
-			aPresentation
-				relationItemElementDo: [ :aRow :anObject :aDescription :aMemento |
-					self
-						configureRelationItem: aRow
-						object: anObject
-						description: aDescription ] ];
+			aPresentation relationItemElementDo: [ :aRow :anObject :aDescription :aMemento |
+				self configureRelationItem: aRow object: anObject description: aDescription ] ];
 		workspaceElementFactory: [ :anAtelierElement |
-			self atelierElement: anAtelierElement.
+			atelierElement := anAtelierElement.
 			self currentWorkspaceElement ].
 	self configureViewModelPalette
 ]
 
-{ #category : 'private - initialization' }
-CPDefinitionsAtelierCoordinator >> atelierElement: anElement [
-	atelierElement := anElement.
-	self installDocumentObservation
-]
-
-{ #category : 'private - observing' }
-CPDefinitionsAtelierCoordinator >> installDocumentObservation [
-	observingDocument ifTrue: [ ^ self ].
-	atelierElement ifNil: [ ^ self ].
-	observingDocument := true.
-
-	atelierElement withAsyncSinkDo: [ :anElementSink |
-		anElementSink
-			sink: AsyncPeekSink new;
-			whenUpdate: [ :anElement :aSink | self validateCurrentSession ].
-		documentContext rootElementsObservable observe: anElementSink ].
-
-	atelierElement withAsyncSinkDo: [ :anElementSink |
-		anElementSink
-			sink: AsyncPeekSink new;
-			whenUpdate: [ :anElement :aSink | self validateCurrentSession ].
-		documentContext diagramsObservable observe: anElementSink ]
-]
-
 { #category : 'private - relations' }
 CPDefinitionsAtelierCoordinator >> configureRelationItem: aRow object: anObject description: aDescription [
-	aDescription accessor = rootMemento model rootElementsDescription accessor
-		ifFalse: [ ^ self ].
+	aDescription accessor = rootMemento model rootElementsDescription accessor ifFalse: [ ^ self ].
 	anObject isProcessDefinition ifFalse: [ ^ self ].
-	aRow
-		when: BlClickEvent
-		do: [ :anEvent |
-			anEvent modifiers isEmpty ifTrue: [
-				self activateProcess: anObject ] ]
+	aRow when: BlClickEvent do: [ :anEvent |
+		anEvent modifiers isEmpty ifTrue: [ self activateProcess: anObject ] ]
 ]
 
 { #category : 'accessing' }
@@ -153,9 +118,7 @@ CPDefinitionsAtelierCoordinator >> activateDiagram: aDiagram [
 CPDefinitionsAtelierCoordinator >> setCurrentProcess: aProcess [
 	| diagrams diagram |
 	diagrams := documentContext diagramsForProcess: aProcess.
-	diagram := diagrams size = 1
-		ifTrue: [ diagrams first ]
-		ifFalse: [ nil ].
+	diagram := diagrams size = 1 ifTrue: [ diagrams first ] ifFalse: [ nil ].
 	currentSession := CPProcessAtelierSession
 		forDefinitionsMemento: rootMemento
 		process: aProcess
@@ -163,61 +126,26 @@ CPDefinitionsAtelierCoordinator >> setCurrentProcess: aProcess [
 	currentViewModel := currentSession asViewModel
 ]
 
-{ #category : 'private - switching' }
-CPDefinitionsAtelierCoordinator >> clearCurrentSession [
-	currentSession := nil.
-	currentViewModel := nil.
-	self installCurrentClient
-]
-
-{ #category : 'private - switching' }
-CPDefinitionsAtelierCoordinator >> validateCurrentSession [
-	| process diagram |
-	currentSession ifNil: [ ^ self ].
-	process := self currentProcess.
-	(documentContext rootElements identityIncludes: process) ifFalse: [
-		^ self clearCurrentSession ].
-	diagram := self currentDiagram.
-	(diagram notNil and: [
-		(documentContext diagrams identityIncludes: diagram) not ]) ifTrue: [
-			currentSession := CPProcessAtelierSession
-				forDefinitionsMemento: rootMemento
-				process: process
-				diagram: nil.
-			currentViewModel := currentSession asViewModel.
-			self installCurrentClient ]
-]
-
 { #category : 'private - composition' }
 CPDefinitionsAtelierCoordinator >> configureViewModelPalette [
-	currentViewModel
-		ifNil: [
-			definitionsViewModel
-				palette: nil;
-				paletteElementFactory: nil ]
-		ifNotNil: [
-			definitionsViewModel
-				palette: currentViewModel palette;
-				paletteElementFactory: currentViewModel paletteElementFactory ]
+	currentViewModel ifNotNil: [
+		definitionsViewModel
+			palette: currentViewModel palette;
+			paletteElementFactory: currentViewModel paletteElementFactory ]
 ]
 
 { #category : 'private - composition' }
 CPDefinitionsAtelierCoordinator >> currentWorkspaceElement [
 	^ currentViewModel ifNotNil: [
-		currentViewModel preparedElementForMemento: currentSession processMemento ]
+		currentViewModel asWorkspaceElementIn: atelierElement ]
 ]
 
 { #category : 'private - composition' }
 CPDefinitionsAtelierCoordinator >> installCurrentClient [
-	self configureViewModelPalette.
 	atelierElement ifNil: [ ^ self ].
-	currentViewModel
-		ifNil: [
-			atelierElement
-				workspaceElement: nil;
-				palette: nil elementFactory: nil ]
-		ifNotNil: [
-			currentViewModel
-				installAsWorkspaceClientIn: atelierElement
-				memento: currentSession processMemento ]
+	atelierElement workspaceElement: self currentWorkspaceElement.
+	currentViewModel ifNotNil: [
+		atelierElement
+			palette: currentViewModel palette
+			elementFactory: currentViewModel paletteElementFactory ]
 ]
