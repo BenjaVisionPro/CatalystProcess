@@ -37,9 +37,11 @@ CPProcessPresentation >> initialize [
 
 { #category : 'private - building' }
 CPProcessPresentation >> prepareHostElement [
-	| surfaceColor collaborationContext collaborationDiagram |
+	| collaborationContext collaborationDiagram workspaceStyle |
 	diagramCameraInitialized := false.
-	surfaceColor := self workspaceSurfaceColor.
+	workspaceStyle := BrLazyStyleCommonAptitude new
+		default: [ :aStyle |
+			aStyle background: self hostElement theme diagram workspaceBackground ].
 	collaborationContext := self collaborationContext.
 	collaborationDiagram := collaborationContext ifNotNil: [ :aContext | aContext diagram ].
 
@@ -61,11 +63,11 @@ CPProcessPresentation >> prepareHostElement [
 			collaborationDiagramElement ].
 
 	diagramScrollElement := BrScrollPane new
-		background: surfaceColor;
 		allowMeAndChildrenMouseEvents;
 		aptitude: BrScrollPaneAptitude
 			+ BrGlamorousWithHorizontalScrollbarAptitude
-			+ BrGlamorousWithVerticalScrollbarAptitude;
+			+ BrGlamorousWithVerticalScrollbarAptitude
+			+ workspaceStyle copy;
 		hMatchParent;
 		vMatchParent;
 		content: diagramElement;
@@ -76,7 +78,7 @@ CPProcessPresentation >> prepareHostElement [
 
 
 	workspaceElement := BrFrame new
-		background: surfaceColor;
+		addAptitude: workspaceStyle copy;
 		hMatchParent;
 		vMatchParent;
 		layout: BlFrameLayout new;
@@ -84,7 +86,7 @@ CPProcessPresentation >> prepareHostElement [
 		yourself.
 
 	self hostElement
-		background: surfaceColor;
+		addAptitude: workspaceStyle;
 		hMatchParent;
 		vMatchParent;
 		addChild: workspaceElement.
@@ -380,16 +382,6 @@ CPProcessPresentation >> mementoForModelElement: aModelElement [
 ]
 
 
-
-{ #category : 'private - theme' }
-CPProcessPresentation >> resolvedThemeColor: aThemeableColor [
-	^ aThemeableColor blocResolveColorForTheme: self hostElement theme
-]
-
-{ #category : 'private - theme' }
-CPProcessPresentation >> workspaceSurfaceColor [
-	^ self resolvedThemeColor: self hostElement theme diagram workspaceBackground
-]
 
 { #category : 'visiting-description' }
 CPProcessPresentation >> visitContainer: aDescription [
