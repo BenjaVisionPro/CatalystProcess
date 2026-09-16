@@ -24,7 +24,7 @@ CPProcessPaletteElement >> configureAppearance [
 		addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
 				aStyle
-				background: self theme palette background blocResolveColorForTheme: self theme;
+				background: (self theme palette background blocResolveColorForTheme: self theme);
 				border: (BlBorder paint: (self theme diagram paletteBorderColor blocResolveColorForTheme: self theme) width: 1) ];
 			yourself).
 	self installBackgroundMoveInteraction

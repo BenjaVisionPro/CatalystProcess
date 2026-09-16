@@ -276,7 +276,7 @@ CPProcessEdgeVisual >> newBendpointHandleAt: aPoint waypointIndex: waypointIndex
 		yourself.
 	handle addAptitude: (BrLazyStyleCommonAptitude new
 		default: [ :aStyle |
-			aStyle background: handle theme diagram handleBackground blocResolveColorForTheme: handle theme ];
+			aStyle background: (handle theme diagram handleBackground blocResolveColorForTheme: handle theme) ];
 		yourself).
 
 	handle
@@ -333,7 +333,7 @@ CPProcessEdgeVisual >> newReconnectHandleMovingSource: movesSource selectionColo
 		yourself.
 	handle addAptitude: (BrLazyStyleCommonAptitude new
 		default: [ :aStyle |
-			aStyle background: handle theme diagram handleBackground blocResolveColorForTheme: handle theme ];
+			aStyle background: (handle theme diagram handleBackground blocResolveColorForTheme: handle theme) ];
 		yourself).
 
 	handle
