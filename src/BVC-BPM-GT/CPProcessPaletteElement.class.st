@@ -20,11 +20,12 @@ CPProcessPaletteElement >> configureAppearance [
 		padding: (BlInsets all: 5);
 		cellSpacing: 0;
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 8);
-		border: (BlBorder paint: Color black width: 1);
 		effect: (BlBlurBelowEffect radius: 10);
 		addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
-				aStyle background: self theme palette background ];
+				aStyle
+				background: self theme palette background;
+				border: (BlBorder paint: self theme diagram paletteBorderColor width: 1) ];
 			yourself).
 	self installBackgroundMoveInteraction
 ]

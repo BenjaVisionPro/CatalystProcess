@@ -267,7 +267,7 @@ CPProcessEdgeVisual >> newBendpointHandleAt: aPoint waypointIndex: waypointIndex
 	handle := BlElement new
 		extent: handleExtent;
 		geometry: BlRectangleGeometry new;
-		background: Color white;
+		background: self theme diagram handleBackground;
 		border: (BlBorder
 			paint: aSelectionColor
 			width: 1.5);
@@ -324,7 +324,7 @@ CPProcessEdgeVisual >> newReconnectHandleMovingSource: movesSource selectionColo
 	handle := BlElement new
 		extent: 10 @ 10;
 		geometry: BlCircleGeometry new;
-		background: Color white;
+		background: self theme diagram handleBackground;
 		border: (BlBorder paint: aSelectionColor width: 2);
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];

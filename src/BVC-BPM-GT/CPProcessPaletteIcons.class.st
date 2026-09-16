@@ -8,51 +8,49 @@ Class {
 }
 
 { #category : 'private - icons' }
-CPProcessPaletteIcons class >> darkStartColor [
-	^ Color r: 0.03 g: 0.38 b: 0.08
-]
-
-{ #category : 'private - icons' }
-CPProcessPaletteIcons class >> darkStopColor [
-	^ Color r: 0.48 g: 0.025 b: 0.025
-]
-
-{ #category : 'private - icons' }
-CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector color: aColor [
+CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector color: aColorBlock [
 	^ [
-		(FontAwesomeIcons icon: aSelector)
+		| icon |
+		icon := FontAwesomeIcons icon: aSelector.
+		icon
 			height: 18;
-			color: aColor;
+			addAptitude: (BrLazyStyleCommonAptitude new
+				default: [ :aStyle | icon color: (aColorBlock value: icon theme) ];
+				yourself);
 			yourself ] asStencil
 ]
 
 { #category : 'private - icons' }
 CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector [
-	^ self fontAwesomeIcon: aSelector color: Color black
+	^ self fontAwesomeIcon: aSelector color: [ :aTheme | aTheme diagram iconForeground ]
 ]
 
 { #category : 'private - icons' }
 CPProcessPaletteIcons class >> processIcon: aSelector [
 	^ [
-		(CPBpmnIcons icon: aSelector)
+		| icon |
+		icon := CPBpmnIcons icon: aSelector.
+		icon
 			height: 18;
-			color: Color black;
+			addAptitude: (BrLazyStyleCommonAptitude new
+				default: [ :aStyle | icon color: icon theme diagram iconForeground ];
+				yourself);
 			yourself ] asStencil
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> startEvent [
-	^ self fontAwesomeIcon: #circle color: self darkStartColor
+	^ self fontAwesomeIcon: #circle color: [ :aTheme | aTheme diagram startEventColor ]
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> endEvent [
-	^ self fontAwesomeIcon: #circle color: self darkStopColor
+	^ self fontAwesomeIcon: #circle color: [ :aTheme | aTheme diagram endEventColor ]
 ]
 
 { #category : 'icons' }
 CPProcessPaletteIcons class >> event [
-	^ self fontAwesomeIcon: #circle color: Color black
+	^ self fontAwesomeIcon: #circle
 ]
 
 { #category : 'icons' }
@@ -84,17 +82,20 @@ CPProcessPaletteIcons class >> poolLane [
 			layout: BlFrameLayout new;
 			geometry: (BlRoundedRectangleGeometry cornerRadius: 3);
 			background: Color transparent;
-			border: (BlBorder paint: Color black width: 1.5);
 			yourself.
 		divider := BlElement new
 			extent: 1.5 @ 14;
-			background: Color black;
 			constraintsDo: [ :c |
 				c frame horizontal alignLeft.
 				c frame vertical alignCenter.
 				c margin: (BlInsets top: 0 right: 0 bottom: 0 left: 5) ];
 			yourself.
 		element addChild: divider.
+		element addAptitude: (BrLazyStyleCommonAptitude new
+			default: [ :aStyle |
+				element border: (BlBorder paint: element theme diagram iconForeground width: 1.5).
+				divider background: element theme diagram iconForeground ];
+			yourself).
 		element ] asStencil
 ]
 

@@ -1174,10 +1174,10 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		bounds: bounds
 		background: self shapeBackgroundColor
 		borderColor: (aFlowNode isStartEvent
-			ifTrue: [ CPProcessPaletteIcons darkStartColor ]
+			ifTrue: [ (self theme diagram startEventColor blocResolveColorForTheme: self theme) ]
 			ifFalse: [
 				aFlowNode isEndEvent
-					ifTrue: [ CPProcessPaletteIcons darkStopColor ]
+					ifTrue: [ (self theme diagram endEventColor blocResolveColorForTheme: self theme) ]
 					ifFalse: [ self shapeBorderColor ] ])
 		label: label
 		expanded: (self stagedExpandedOf: aShape).
@@ -2167,8 +2167,8 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 
 { #category : 'private - appearance' }
 CPProcessVisualElement >> normalBorderColorFor: aModelElement [
-	aModelElement isStartEvent ifTrue: [ ^ CPProcessPaletteIcons darkStartColor ].
-	aModelElement isEndEvent ifTrue: [ ^ CPProcessPaletteIcons darkStopColor ].
+	aModelElement isStartEvent ifTrue: [ ^ (self theme diagram startEventColor blocResolveColorForTheme: self theme) ].
+	aModelElement isEndEvent ifTrue: [ ^ (self theme diagram endEventColor blocResolveColorForTheme: self theme) ].
 	^ self shapeBorderColor
 ]
 

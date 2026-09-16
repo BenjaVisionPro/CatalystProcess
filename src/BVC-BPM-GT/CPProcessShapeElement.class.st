@@ -368,7 +368,7 @@ CPProcessShapeElement >> addBoundaryEventDefinitionDecorationForBounds: aRectang
 	modelElement isBoundaryEvent ifFalse: [ ^ self ].
 	modelElement eventDefinitions ifEmpty: [ ^ self ].
 	definition := modelElement eventDefinitions first.
-	marker := FontAwesomeIcons defaultStyle icon: definition class eventTypeIcon.
+	marker := self applyDiagramIconThemeTo: (FontAwesomeIcons defaultStyle icon: definition class eventTypeIcon).
 	boundaryEventDefinitionMarker := marker.
 	marker
 		extent: 14 @ 14;
@@ -386,7 +386,7 @@ CPProcessShapeElement >> boundaryEventDefinitionClass: aDefinitionClass [
 		boundaryEventDefinitionMarker removeFromParent.
 		boundaryEventDefinitionMarker := nil ].
 	aDefinitionClass ifNil: [ ^ self ].
-	boundaryEventDefinitionMarker := FontAwesomeIcons defaultStyle icon: aDefinitionClass eventTypeIcon.
+	boundaryEventDefinitionMarker := self applyDiagramIconThemeTo: (FontAwesomeIcons defaultStyle icon: aDefinitionClass eventTypeIcon).
 	boundaryEventDefinitionMarker
 		extent: 16 @ 16;
 		constraintsDo: [ :c |
@@ -593,7 +593,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 	resolvedBorderColor := aBorderColor blocResolveColorForTheme: self theme.
 	isDragging := false.
 	didDrag := false.
-	icon := FontAwesomeIcons defaultStyle icon: #arrowRightFromArc.
+	icon := self applyDiagramIconThemeTo: (FontAwesomeIcons defaultStyle icon: #arrowRightFromArc).
 	icon
 		color: resolvedBorderColor;
 		size: 11 @ 11;
@@ -641,7 +641,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		padding: (BlInsets all: 1);
 		layout: (BlLinearLayout vertical alignCenter);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
-		background: (Color white alpha: 0.82);
+		background: self theme diagram popupBackground;
 		border: (BlBorder paint: (resolvedBorderColor alpha: 0.55) width: 1);
 		effect: (BlBlurBelowEffect radius: 10);
 		opacity: 0.0;
@@ -1010,10 +1010,11 @@ CPProcessShapeElement >> hostBoundaryEventElement: aBoundaryElement atLocalCente
 { #category : 'private - decoration' }
 CPProcessShapeElement >> addSubProcessDecorationForBounds: aRectangle [
 	modelElement isSubProcess ifFalse: [ ^ self ].
-	subProcessExpansionMarker := (FontAwesomeIcons
+	subProcessExpansionMarker := self applyDiagramIconThemeTo: (FontAwesomeIcons
 		icon: (isExpanded
 			ifTrue: [ #squareMinus ]
-			ifFalse: [ #squarePlus ]))
+			ifFalse: [ #squarePlus ])).
+	subProcessExpansionMarker
 		size: 14 @ 14;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
@@ -1201,4 +1202,12 @@ CPProcessShapeElement >> addDataObjectDecorationForBounds: aRectangle [
 			relocate: markerOrigin + (((index + 1) * markerGap) @ 0);
 			preventMeAndChildrenMouseEvents;
 			yourself) ]
+]
+
+{ #category : 'private - appearance' }
+CPProcessShapeElement >> applyDiagramIconThemeTo: anIcon [
+	anIcon addAptitude: (BrLazyStyleCommonAptitude new
+		default: [ :aStyle | anIcon color: anIcon theme diagram iconForeground ];
+		yourself).
+	^ anIcon
 ]

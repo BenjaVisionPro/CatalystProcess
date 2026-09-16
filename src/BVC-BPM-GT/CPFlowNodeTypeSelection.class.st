@@ -38,8 +38,13 @@ CPFlowNodeTypeSelection >> typeClassDescription [
 			field bePopup
 				displayBlock: [ :aClass | self typeLabelFor: aClass ] ];
 		blocOptionIconStencil: [ :aClass |
-			(FontAwesomeIcons defaultStyle icon: (self typeIconFor: aClass))
+			| icon |
+			icon := FontAwesomeIcons defaultStyle icon: (self typeIconFor: aClass).
+			icon
 				size: 16 @ 16;
+				addAptitude: (BrLazyStyleCommonAptitude new
+					default: [ :aStyle | icon color: icon theme diagram iconForeground ];
+					yourself);
 				yourself ];
 		beRequired;
 		yourself

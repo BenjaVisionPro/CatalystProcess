@@ -60,10 +60,15 @@ CPParticipantOrientationSelection >> isHorizontalDescription [
 		autoAccept: true;
 		fieldConfigure: [ :field | field beGroupedButtons ];
 		blocOptionIconStencil: [ :aBoolean |
-			(FontAwesomeIcons defaultStyle icon: (aBoolean
+			| icon |
+			icon := FontAwesomeIcons defaultStyle icon: (aBoolean
 				ifTrue: [ #squareHalfStrokeHorizontal ]
-				ifFalse: [ #squareHalfStroke ]))
+				ifFalse: [ #squareHalfStroke ]).
+			icon
 				size: 16 @ 16;
+				addAptitude: (BrLazyStyleCommonAptitude new
+					default: [ :aStyle | icon color: icon theme diagram iconForeground ];
+					yourself);
 				yourself ];
 		beRequired;
 		yourself
