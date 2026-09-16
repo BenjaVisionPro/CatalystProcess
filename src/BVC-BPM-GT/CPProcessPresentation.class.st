@@ -42,7 +42,7 @@ CPProcessPresentation >> prepareHostElement [
 	newWorkspaceStyle := [
 		BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
-				aStyle background: (self hostElement theme diagram workspaceBackground blocResolveColorForTheme: self hostElement theme) ] ].
+				aStyle background: self hostElement theme diagram workspaceBackground ] ].
 	collaborationContext := self collaborationContext.
 	collaborationDiagram := collaborationContext ifNotNil: [ :aContext | aContext diagram ].
 

@@ -1174,10 +1174,10 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		bounds: bounds
 		background: self shapeBackgroundColor
 		borderColor: (aFlowNode isStartEvent
-			ifTrue: [ (self theme diagram startEventColor blocResolveColorForTheme: self theme) ]
+			ifTrue: [ self theme diagram startEventColor ]
 			ifFalse: [
 				aFlowNode isEndEvent
-					ifTrue: [ (self theme diagram endEventColor blocResolveColorForTheme: self theme) ]
+					ifTrue: [ self theme diagram endEventColor ]
 					ifFalse: [ self shapeBorderColor ] ])
 		label: label
 		expanded: (self stagedExpandedOf: aShape).
@@ -2167,8 +2167,8 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 
 { #category : 'private - appearance' }
 CPProcessVisualElement >> normalBorderColorFor: aModelElement [
-	aModelElement isStartEvent ifTrue: [ ^ (self theme diagram startEventColor blocResolveColorForTheme: self theme) ].
-	aModelElement isEndEvent ifTrue: [ ^ (self theme diagram endEventColor blocResolveColorForTheme: self theme) ].
+	aModelElement isStartEvent ifTrue: [ ^ self theme diagram startEventColor ].
+	aModelElement isEndEvent ifTrue: [ ^ self theme diagram endEventColor ].
 	^ self shapeBorderColor
 ]
 
@@ -2871,22 +2871,17 @@ CPProcessVisualElement >> installDiagramCursor [
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBackgroundColor [
-	^ self resolvedThemeColor: self theme diagram shapeBackground
+	^ self theme diagram shapeBackground
 ]
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBorderColor [
-	^ self resolvedThemeColor: self theme diagram shapeBorderColor
+	^ self theme diagram shapeBorderColor
 ]
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> selectionColor [
-	^ self resolvedThemeColor: self theme item selectedColor
-]
-
-{ #category : 'private - theme' }
-CPProcessVisualElement >> resolvedThemeColor: aThemeableColor [
-	^ aThemeableColor blocResolveColorForTheme: self theme
+	^ self theme item selectedColor
 ]
 
 { #category : 'private - staged state' }

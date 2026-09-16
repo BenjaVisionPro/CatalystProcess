@@ -1330,7 +1330,7 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> selectionColor [
-	^ self resolvedThemeColor: self theme item selectedColor
+	^ self theme item selectedColor
 ]
 
 { #category : 'private - theme' }
@@ -1340,12 +1340,7 @@ CPCollaborationVisualElement >> poolBackgroundColor [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> poolBorderColor [
-	^ self resolvedThemeColor: self theme diagram poolBorderColor
-]
-
-{ #category : 'private - theme' }
-CPCollaborationVisualElement >> resolvedThemeColor: aThemeableColor [
-	^ aThemeableColor blocResolveColorForTheme: self theme
+	^ self theme diagram poolBorderColor
 ]
 
 { #category : 'accessing - presentation' }

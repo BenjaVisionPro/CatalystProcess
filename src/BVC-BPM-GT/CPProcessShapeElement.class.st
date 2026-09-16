@@ -589,13 +589,12 @@ CPProcessShapeElement >> bringResizeHandlesToFront [
 
 { #category : 'connection' }
 CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor borderColor: aBorderColor beginConnection: aBeginBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
-	| isDragging didDrag icon resolvedBorderColor |
-	resolvedBorderColor := aBorderColor blocResolveColorForTheme: self theme.
+	| isDragging didDrag icon |
 	isDragging := false.
 	didDrag := false.
 	icon := self applyDiagramIconThemeTo: (FontAwesomeIcons defaultStyle icon: #arrowRightFromArc).
 	icon
-		color: resolvedBorderColor;
+		color: aBorderColor;
 		size: 11 @ 11;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
@@ -641,7 +640,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		padding: (BlInsets all: 1);
 		layout: (BlLinearLayout vertical alignCenter);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
-		border: (BlBorder paint: (resolvedBorderColor alpha: 0.55) width: 1);
+		border: (BlBorder paint: (aBorderColor alpha: 0.55) width: 1);
 		effect: (BlBlurBelowEffect radius: 10);
 		opacity: 0.0;
 		visibility: BlVisibility hidden;
@@ -653,7 +652,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		yourself.
 	contextualDragOptions addAptitude: (BrLazyStyleCommonAptitude new
 		default: [ :aStyle |
-			aStyle background: (contextualDragOptions theme diagram popupBackground blocResolveColorForTheme: contextualDragOptions theme) ];
+			aStyle background: contextualDragOptions theme diagram popupBackground ];
 		yourself).
 	contextualDragOptions
 		addEventHandler: (BlEventHandler
@@ -1210,7 +1209,7 @@ CPProcessShapeElement >> addDataObjectDecorationForBounds: aRectangle [
 { #category : 'private - appearance' }
 CPProcessShapeElement >> applyDiagramIconThemeTo: anIcon [
 	anIcon addAptitude: (BrLazyStyleCommonAptitude new
-		default: [ :aStyle | anIcon color: (anIcon theme diagram iconForeground blocResolveColorForTheme: anIcon theme) ];
+		default: [ :aStyle | anIcon color: anIcon theme diagram iconForeground ];
 		yourself).
 	^ anIcon
 ]
