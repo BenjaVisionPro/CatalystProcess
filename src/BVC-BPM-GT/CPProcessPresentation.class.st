@@ -37,11 +37,12 @@ CPProcessPresentation >> initialize [
 
 { #category : 'private - building' }
 CPProcessPresentation >> prepareHostElement [
-	| collaborationContext collaborationDiagram workspaceStyle |
+	| collaborationContext collaborationDiagram newWorkspaceStyle |
 	diagramCameraInitialized := false.
-	workspaceStyle := BrLazyStyleCommonAptitude new
-		default: [ :aStyle |
-			aStyle background: self hostElement theme diagram workspaceBackground ].
+	newWorkspaceStyle := [
+		BrLazyStyleCommonAptitude new
+			default: [ :aStyle |
+				aStyle background: self hostElement theme diagram workspaceBackground ] ].
 	collaborationContext := self collaborationContext.
 	collaborationDiagram := collaborationContext ifNotNil: [ :aContext | aContext diagram ].
 
@@ -67,7 +68,7 @@ CPProcessPresentation >> prepareHostElement [
 		aptitude: BrScrollPaneAptitude
 			+ BrGlamorousWithHorizontalScrollbarAptitude
 			+ BrGlamorousWithVerticalScrollbarAptitude
-			+ workspaceStyle copy;
+			+ newWorkspaceStyle value;
 		hMatchParent;
 		vMatchParent;
 		content: diagramElement;
@@ -78,7 +79,7 @@ CPProcessPresentation >> prepareHostElement [
 
 
 	workspaceElement := BrFrame new
-		addAptitude: workspaceStyle copy;
+		addAptitude: newWorkspaceStyle value;
 		hMatchParent;
 		vMatchParent;
 		layout: BlFrameLayout new;
@@ -86,7 +87,7 @@ CPProcessPresentation >> prepareHostElement [
 		yourself.
 
 	self hostElement
-		addAptitude: workspaceStyle;
+		addAptitude: newWorkspaceStyle value;
 		hMatchParent;
 		vMatchParent;
 		addChild: workspaceElement.
