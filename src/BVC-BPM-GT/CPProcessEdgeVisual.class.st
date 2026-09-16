@@ -11,6 +11,7 @@ Class {
 		'bendpointHandles',
 		'reconnectHandles',
 		'labelHost',
+		'arrowhead',
 		'dotted'
 	],
 	#category : 'BVC-BPM-GT-Diagram',
@@ -26,6 +27,7 @@ CPProcessEdgeVisual >> edge: anEdge [
 	bendpointHandles := OrderedCollection new.
 	reconnectHandles := OrderedCollection new.
 	labelHost := nil.
+	arrowhead := nil.
 	dotted := false
 ]
 
@@ -48,8 +50,10 @@ CPProcessEdgeVisual >> addSegmentFrom: aFromAnchor to: aToAnchor arrowhead: hasA
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
 	hasArrowhead ifTrue: [
-		line toHead: (BlArrowheadSimpleArrow new
-			border: (BlBorder paint: aColor width: 1.5)) ].
+		arrowhead := BlArrowheadSimpleArrow new
+			border: (BlBorder paint: aColor width: 1.5);
+			yourself.
+		line toHead: arrowhead ].
 	self identify: line.
 	anInteractionBlock value: line value: aSegmentIndex.
 
@@ -110,12 +114,14 @@ CPProcessEdgeVisual >> containsGlobalPoint: aPoint [
 
 { #category : 'appearance' }
 CPProcessEdgeVisual >> selected: isSelected insertionTarget: isInsertionTarget selectionColor: aSelectionColor normalColor: aNormalColor [
-	| isEmphasized |
+	| isEmphasized color width |
 	isEmphasized := isSelected or: [ isInsertionTarget ].
+	color := isEmphasized ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ].
+	width := isEmphasized ifTrue: [ 3 ] ifFalse: [ 1.5 ].
 	lineElements do: [ :aLine |
-		aLine border: (self
-			borderForColor: (isEmphasized ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
-			width: (isEmphasized ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ]
+		aLine border: (self borderForColor: color width: width) ].
+	arrowhead ifNotNil: [
+		arrowhead border: (BlBorder paint: color width: width) ]
 ]
 
 { #category : 'bendpoint handles' }

@@ -9,6 +9,7 @@ Class {
 		'lineElements',
 		'hitElements',
 		'sourceMarker',
+		'targetArrow',
 		'labelHost',
 		'reconnectHandles',
 		'bendpointHandles'
@@ -31,6 +32,7 @@ CPCollaborationMessageFlowVisual >> edge: anEdge [
 	lineElements := OrderedCollection new.
 	hitElements := OrderedCollection new.
 	sourceMarker := nil.
+	targetArrow := nil.
 	labelHost := nil.
 	reconnectHandles := OrderedCollection new.
 	bendpointHandles := OrderedCollection new
@@ -123,13 +125,15 @@ CPCollaborationMessageFlowVisual >> addSourceMarkerAt: aPoint color: aColor in: 
 { #category : 'private - rendering' }
 CPCollaborationMessageFlowVisual >> addTargetArrowFrom: start to: finish color: aColor in: aParent [
 	| line |
+	targetArrow := BlArrowheadSimpleArrow new
+		border: (BlBorder paint: aColor width: 1.5);
+		yourself.
 	line := BlLineElement new
 		fromAnchor: (BlAbsolutePositionAnchor position: start);
 		toAnchor: (BlAbsolutePositionAnchor position: finish);
 		border: (BlBorder paint: Color transparent width: 0);
 		constraintsDo: [ :c | c ignoreByLayout ];
-		toHead: (BlArrowheadSimpleArrow new
-			border: (BlBorder paint: aColor width: 1.5));
+		toHead: targetArrow;
 		preventMeAndChildrenMouseEvents;
 		yourself.
 	self identify: line.
@@ -172,14 +176,15 @@ CPCollaborationMessageFlowVisual >> hitElements [
 
 { #category : 'appearance' }
 CPCollaborationMessageFlowVisual >> selected: isSelected selectionColor: aSelectionColor normalColor: aNormalColor [
+	| color width |
+	color := isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ].
+	width := isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ].
 	lineElements allButLast do: [ :aLine |
-		aLine border: (BlBorder
-			paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
-			width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ].
+		aLine border: (BlBorder paint: color width: width) ].
 	sourceMarker ifNotNil: [
-		sourceMarker border: (BlBorder
-			paint: (isSelected ifTrue: [ aSelectionColor ] ifFalse: [ aNormalColor ])
-			width: (isSelected ifTrue: [ 3 ] ifFalse: [ 1.5 ])) ].
+		sourceMarker border: (BlBorder paint: color width: width) ].
+	targetArrow ifNotNil: [
+		targetArrow border: (BlBorder paint: color width: width) ].
 	self reconnectHandlesVisible: isSelected.
 	self bendpointHandlesVisible: isSelected
 ]
