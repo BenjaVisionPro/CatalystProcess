@@ -93,7 +93,7 @@ CPProcessPaletteIcons class >> poolLane [
 		element addChild: divider.
 		element addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
-				element border: (BlBorder paint: element theme diagram iconForeground width: 1.5).
+				element border: (BlBorder paint: (element theme diagram iconForeground blocResolveColorForTheme: element theme) width: 1.5).
 				divider background: element theme diagram iconForeground ];
 			yourself).
 		element ] asStencil

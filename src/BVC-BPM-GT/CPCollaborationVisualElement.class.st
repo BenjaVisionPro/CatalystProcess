@@ -52,7 +52,11 @@ CPCollaborationVisualElement >> initialize [
 		beFocusable.
 	self
 		installKeyboardHandler;
-		installPaletteDropHandler
+		installPaletteDropHandler.
+	self addEventHandler: (BlEventHandler
+		on: BlElementThemeChanged
+		do: [ :anEvent |
+			anEvent target == self ifTrue: [ self updateSelectionAppearance ] ])
 ]
 
 
@@ -1330,7 +1334,7 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> selectionColor [
-	^ self theme item selectedColor
+	^ self theme item selectedColor blocResolveColorForTheme: self theme
 ]
 
 { #category : 'private - theme' }
@@ -1340,7 +1344,7 @@ CPCollaborationVisualElement >> poolBackgroundColor [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> poolBorderColor [
-	^ self theme diagram poolBorderColor
+	^ self theme diagram poolBorderColor blocResolveColorForTheme: self theme
 ]
 
 { #category : 'accessing - presentation' }

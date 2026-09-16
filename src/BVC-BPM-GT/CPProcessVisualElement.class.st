@@ -87,7 +87,11 @@ CPProcessVisualElement >> initialize [
 	self installKeyboardHandler.
 	self installPaletteDropHandler.
 	self installContextualAppendDropHandler.
-	self installDefinitionsRootElementDropHandler
+	self installDefinitionsRootElementDropHandler.
+	self addEventHandler: (BlEventHandler
+		on: BlElementThemeChanged
+		do: [ :anEvent |
+			anEvent target == self ifTrue: [ self updateDiagramAppearance ] ])
 ]
 
 
@@ -1173,12 +1177,7 @@ CPProcessVisualElement >> newShapeElementFor: aFlowNode shape: aShape bounds: bo
 		modelElement: aFlowNode
 		bounds: bounds
 		background: self shapeBackgroundColor
-		borderColor: (aFlowNode isStartEvent
-			ifTrue: [ self theme diagram startEventColor ]
-			ifFalse: [
-				aFlowNode isEndEvent
-					ifTrue: [ self theme diagram endEventColor ]
-					ifFalse: [ self shapeBorderColor ] ])
+		borderColor: (self normalBorderColorFor: aFlowNode)
 		label: label
 		expanded: (self stagedExpandedOf: aShape).
 	aFlowNode isBoundaryEvent ifTrue: [
@@ -2167,8 +2166,8 @@ CPProcessVisualElement >> shapeElementFor: aShape [
 
 { #category : 'private - appearance' }
 CPProcessVisualElement >> normalBorderColorFor: aModelElement [
-	aModelElement isStartEvent ifTrue: [ ^ self theme diagram startEventColor ].
-	aModelElement isEndEvent ifTrue: [ ^ self theme diagram endEventColor ].
+	aModelElement isStartEvent ifTrue: [ ^ self theme diagram startEventColor blocResolveColorForTheme: self theme ].
+	aModelElement isEndEvent ifTrue: [ ^ self theme diagram endEventColor blocResolveColorForTheme: self theme ].
 	^ self shapeBorderColor
 ]
 
@@ -2871,17 +2870,17 @@ CPProcessVisualElement >> installDiagramCursor [
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBackgroundColor [
-	^ self theme diagram shapeBackground
+	^ self theme diagram shapeBackground blocResolveColorForTheme: self theme
 ]
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> shapeBorderColor [
-	^ self theme diagram shapeBorderColor
+	^ self theme diagram shapeBorderColor blocResolveColorForTheme: self theme
 ]
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> selectionColor [
-	^ self theme item selectedColor
+	^ self theme item selectedColor blocResolveColorForTheme: self theme
 ]
 
 { #category : 'private - staged state' }

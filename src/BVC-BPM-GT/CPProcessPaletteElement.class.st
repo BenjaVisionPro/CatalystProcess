@@ -25,7 +25,7 @@ CPProcessPaletteElement >> configureAppearance [
 			default: [ :aStyle |
 				aStyle
 				background: self theme palette background;
-				border: (BlBorder paint: self theme diagram paletteBorderColor width: 1) ];
+				border: (BlBorder paint: (self theme diagram paletteBorderColor blocResolveColorForTheme: self theme) width: 1) ];
 			yourself).
 	self installBackgroundMoveInteraction
 ]
