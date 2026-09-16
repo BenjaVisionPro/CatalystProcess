@@ -44,7 +44,7 @@ CPSubProcessTypeSelection >> typeClassDescription [
 			icon
 				size: 14 @ 14;
 				addAptitude: (BrLazyStyleCommonAptitude new
-					default: [ :aStyle | icon color: icon theme diagram iconForeground ];
+					default: [ :aStyle | icon color: icon theme diagram iconForeground blocResolveColorForTheme: icon theme ];
 					yourself);
 				yourself ];
 		beRequired;
