@@ -1330,7 +1330,7 @@ CPCollaborationVisualElement >> stagedModelElementOf: aShape [
 
 { #category : 'private - theme' }
 CPCollaborationVisualElement >> selectionColor [
-	^ self theme item selectedColor
+	^ self resolvedThemeColor: self theme item selectedColor
 ]
 
 { #category : 'private - theme' }

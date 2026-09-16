@@ -2881,7 +2881,7 @@ CPProcessVisualElement >> shapeBorderColor [
 
 { #category : 'private - theme' }
 CPProcessVisualElement >> selectionColor [
-	^ self theme item selectedColor
+	^ self resolvedThemeColor: self theme item selectedColor
 ]
 
 { #category : 'private - theme' }
