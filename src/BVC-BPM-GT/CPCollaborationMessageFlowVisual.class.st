@@ -215,11 +215,14 @@ CPCollaborationMessageFlowVisual >> newReconnectHandleMovingSource: movesSource 
 	handle := BlElement new
 		extent: 10 @ 10;
 		geometry: BlCircleGeometry new;
-		background: self theme diagram handleBackground;
 		border: (BlBorder paint: aSelectionColor width: 2);
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		yourself.
+	handle addAptitude: (BrLazyStyleCommonAptitude new
+		default: [ :aStyle |
+			aStyle background: (handle theme diagram handleBackground blocResolveColorForTheme: handle theme) ];
+		yourself).
 	handle
 		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler on: BlDragStartEvent do: [ :anEvent |
@@ -275,12 +278,15 @@ CPCollaborationMessageFlowVisual >> newBendpointHandleAt: aPoint waypointIndex: 
 	handle := BlElement new
 		extent: handleExtent;
 		geometry: BlRectangleGeometry new;
-		background: self theme diagram handleBackground;
 		border: (BlBorder paint: aSelectionColor width: 1.5);
 		visibility: BlVisibility hidden;
 		constraintsDo: [ :c | c ignoreByLayout ];
 		relocate: aPoint - (handleExtent / 2);
 		yourself.
+	handle addAptitude: (BrLazyStyleCommonAptitude new
+		default: [ :aStyle |
+			aStyle background: (handle theme diagram handleBackground blocResolveColorForTheme: handle theme) ];
+		yourself).
 	handle
 		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]);
 		addEventHandler: (BlEventHandler on: BlDoubleClickEvent do: [ :anEvent |

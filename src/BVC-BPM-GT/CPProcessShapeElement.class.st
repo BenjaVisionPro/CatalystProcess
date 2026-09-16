@@ -641,7 +641,6 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		padding: (BlInsets all: 1);
 		layout: (BlLinearLayout vertical alignCenter);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
-		background: self theme diagram popupBackground;
 		border: (BlBorder paint: (resolvedBorderColor alpha: 0.55) width: 1);
 		effect: (BlBlurBelowEffect radius: 10);
 		opacity: 0.0;
@@ -652,6 +651,10 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 			c margin: (BlInsets top: 0 right: 20 negated bottom: 0 left: 0) ];
 		addChild: connectionPort;
 		yourself.
+	contextualDragOptions addAptitude: (BrLazyStyleCommonAptitude new
+		default: [ :aStyle |
+			aStyle background: (contextualDragOptions theme diagram popupBackground blocResolveColorForTheme: contextualDragOptions theme) ];
+		yourself).
 	contextualDragOptions
 		addEventHandler: (BlEventHandler
 			on: BlMouseEnterEvent
@@ -1207,7 +1210,7 @@ CPProcessShapeElement >> addDataObjectDecorationForBounds: aRectangle [
 { #category : 'private - appearance' }
 CPProcessShapeElement >> applyDiagramIconThemeTo: anIcon [
 	anIcon addAptitude: (BrLazyStyleCommonAptitude new
-		default: [ :aStyle | anIcon color: anIcon theme diagram iconForeground ];
+		default: [ :aStyle | anIcon color: (anIcon theme diagram iconForeground blocResolveColorForTheme: anIcon theme) ];
 		yourself).
 	^ anIcon
 ]
