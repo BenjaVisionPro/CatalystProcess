@@ -589,12 +589,13 @@ CPProcessShapeElement >> bringResizeHandlesToFront [
 
 { #category : 'connection' }
 CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor borderColor: aBorderColor beginConnection: aBeginBlock dragStarted: aDragStartBlock dragged: aDragBlock dragEnded: aDragEndBlock [
-	| isDragging didDrag icon |
+	| isDragging didDrag icon resolvedBorderColor |
+	resolvedBorderColor := aBorderColor blocResolveColorForTheme: self theme.
 	isDragging := false.
 	didDrag := false.
 	icon := FontAwesomeIcons defaultStyle icon: #arrowRightFromArc.
 	icon
-		color: aBorderColor;
+		color: resolvedBorderColor;
 		size: 11 @ 11;
 		constraintsDo: [ :c |
 			c frame horizontal alignCenter.
@@ -641,7 +642,7 @@ CPProcessShapeElement >> installConnectionPortSelectionColor: aSelectionColor bo
 		layout: (BlLinearLayout vertical alignCenter);
 		geometry: (BlRoundedRectangleGeometry cornerRadius: 10);
 		background: (Color white alpha: 0.82);
-		border: (BlBorder paint: (aBorderColor alpha: 0.55) width: 1);
+		border: (BlBorder paint: (resolvedBorderColor alpha: 0.55) width: 1);
 		effect: (BlBlurBelowEffect radius: 10);
 		opacity: 0.0;
 		visibility: BlVisibility hidden;
