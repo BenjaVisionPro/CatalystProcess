@@ -221,7 +221,9 @@ CPCollaborationMessageFlowVisual >> newReconnectHandleMovingSource: movesSource 
 		yourself.
 	handle addAptitude: (BrLazyStyleCommonAptitude new
 		default: [ :aStyle |
-			aStyle background: (handle theme diagram handleBackground blocResolveColorForTheme: handle theme) ];
+			| aTheme |
+			aTheme := handle theme.
+			aStyle background: (aTheme diagram handleBackground blocResolveColorForTheme: aTheme) ];
 		yourself).
 	handle
 		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]);
@@ -285,7 +287,9 @@ CPCollaborationMessageFlowVisual >> newBendpointHandleAt: aPoint waypointIndex: 
 		yourself.
 	handle addAptitude: (BrLazyStyleCommonAptitude new
 		default: [ :aStyle |
-			aStyle background: (handle theme diagram handleBackground blocResolveColorForTheme: handle theme) ];
+			| aTheme |
+			aTheme := handle theme.
+			aStyle background: (aTheme diagram handleBackground blocResolveColorForTheme: aTheme) ];
 		yourself).
 	handle
 		addEventHandler: (BlEventHandler on: BlClickEvent do: [ :anEvent | anEvent consumed: true ]);

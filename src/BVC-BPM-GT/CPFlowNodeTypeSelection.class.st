@@ -43,7 +43,10 @@ CPFlowNodeTypeSelection >> typeClassDescription [
 			icon
 				size: 16 @ 16;
 				addAptitude: (BrLazyStyleCommonAptitude new
-					default: [ :aStyle | icon color: (icon theme diagram iconForeground blocResolveColorForTheme: icon theme) ];
+					default: [ :aStyle |
+						| aTheme |
+						aTheme := icon theme.
+						icon color: (aTheme diagram iconForeground blocResolveColorForTheme: aTheme) ];
 					yourself);
 				yourself ];
 		beRequired;

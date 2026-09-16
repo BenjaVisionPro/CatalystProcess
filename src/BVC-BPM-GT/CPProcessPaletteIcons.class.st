@@ -15,7 +15,10 @@ CPProcessPaletteIcons class >> fontAwesomeIcon: aSelector color: aColorBlock [
 		icon
 			height: 18;
 			addAptitude: (BrLazyStyleCommonAptitude new
-				default: [ :aStyle | icon color: ((aColorBlock value: icon theme) blocResolveColorForTheme: icon theme) ];
+				default: [ :aStyle |
+					| aTheme |
+					aTheme := icon theme.
+					icon color: ((aColorBlock value: aTheme) blocResolveColorForTheme: aTheme) ];
 				yourself);
 			yourself ] asStencil
 ]
@@ -33,7 +36,10 @@ CPProcessPaletteIcons class >> processIcon: aSelector [
 		icon
 			height: 18;
 			addAptitude: (BrLazyStyleCommonAptitude new
-				default: [ :aStyle | icon color: (icon theme diagram iconForeground blocResolveColorForTheme: icon theme) ];
+				default: [ :aStyle |
+					| aTheme |
+					aTheme := icon theme.
+					icon color: (aTheme diagram iconForeground blocResolveColorForTheme: aTheme) ];
 				yourself);
 			yourself ] asStencil
 ]
@@ -93,8 +99,11 @@ CPProcessPaletteIcons class >> poolLane [
 		element addChild: divider.
 		element addAptitude: (BrLazyStyleCommonAptitude new
 			default: [ :aStyle |
-				element border: (BlBorder paint: (element theme diagram iconForeground blocResolveColorForTheme: element theme) width: 1.5).
-				divider background: (element theme diagram iconForeground blocResolveColorForTheme: element theme) ];
+				| aTheme resolvedColor |
+				aTheme := element theme.
+				resolvedColor := aTheme diagram iconForeground blocResolveColorForTheme: aTheme.
+				element border: (BlBorder paint: resolvedColor width: 1.5).
+				divider background: resolvedColor ];
 			yourself).
 		element ] asStencil
 ]
