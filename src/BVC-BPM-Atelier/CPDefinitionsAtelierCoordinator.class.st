@@ -127,7 +127,7 @@ CPDefinitionsAtelierCoordinator >> activateDiagram: aDiagram [
 CPDefinitionsAtelierCoordinator >> setCurrentProcess: aProcess [
 	| diagrams diagram |
 	diagrams := documentContext diagramsForProcess: aProcess.
-	diagram := diagrams size = 1 ifTrue: [ diagrams first ] ifFalse: [ nil ].
+	diagram := diagrams ifEmpty: [ nil ] ifNotEmpty: [ diagrams first ].
 	currentSession := CPProcessAtelierSession
 		forDefinitionsMemento: rootMemento
 		process: aProcess

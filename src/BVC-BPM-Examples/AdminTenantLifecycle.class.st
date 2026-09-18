@@ -1,6 +1,6 @@
 Class {
 	#name : 'AdminTenantLifecycle',
-	#superclass : 'CatalystTenantLifecycleV1',
+	#superclass : 'CatalystTenantLifecycleV2',
 	#category : 'BVC-BPM-Examples-Marketplace',
 	#package : 'BVC-BPM-Examples',
 	#tag : 'Marketplace'
