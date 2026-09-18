@@ -214,3 +214,35 @@ CPTenantLifecycleSourceExamples >> saveInheritedDiagramCreatesIndependentSpecial
 	self assert: revertedDiagram plane modelElement == revertedProcess.
 	^ reverted
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsModel [
+	<gtExample>
+	| definitions root context resume resumeMemento selectors reloaded reloadedResume |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	root := CFMaMemento model: definitions.
+	context := CPDefinitionsMementoContext memento: root.
+	resume := context rootElements detect: [ :each | each identifier = #resumeTenant ].
+	resumeMemento := context mementoForRootElement: resume.
+	resumeMemento write: 'Customer Resume Tenant' using: resume labelDescription.
+
+	self assert: resume label equals: 'Resume Tenant'.
+	selectors := CPDefinitionsSourceMaterializer
+		saveMemento: root
+		in: CustomerInheritedTenantLifecycle.
+	self assert: selectors size equals: 1.
+	self assert: selectors first equals: #resumeTenant.
+	self assert: resume label equals: 'Customer Resume Tenant'.
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	reloaded := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	reloadedResume := reloaded rootElements detect: [ :each | each identifier = #resumeTenant ].
+	self assert: reloadedResume label equals: 'Customer Resume Tenant'.
+
+	CPDefinitionsSourceMaterializer
+		revertProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle.
+	^ reloaded
+]
