@@ -425,3 +425,87 @@ CPDefinitionsSourceMaterializer >> versionOf: aSourceClass [
 		self error: 'The Definition class is not a published version' ].
 	^ aSourceClass versionOf
 ]
+
+{ #category : 'publishing' }
+CPDefinitionsSourceMaterializer class >> publish: aSourceClass [
+	^ self new publish: aSourceClass
+]
+
+{ #category : 'publishing' }
+CPDefinitionsSourceMaterializer >> publish: aSourceClass [
+	| version publishedClass |
+	(self isPublishedVersion: aSourceClass) ifTrue: [
+		self error: 'A published Definition version cannot be published again' ].
+
+	"Materialise first so publication cannot snapshot invalid source."
+	self materialize: aSourceClass.
+	version := self nextVersionFor: aSourceClass.
+	publishedClass := self
+		installPublishedClassFor: aSourceClass
+		version: version.
+
+	self compileDefinitionsFrom: aSourceClass into: publishedClass.
+	(self effectivePragmasNamed: #process: for: aSourceClass)
+		do: [ :each | publishedClass class compile: each method sourceCode ].
+	(self effectivePragmasNamed: #diagram:process: for: aSourceClass)
+		do: [ :each | publishedClass class compile: each method sourceCode ].
+	publishedClass class compile: (self versionSourceFor: version).
+	publishedClass class compile: (self versionOfSourceFor: aSourceClass).
+
+	"The snapshot must stand on its own and materialise successfully."
+	self materialize: publishedClass.
+	^ publishedClass
+]
+
+{ #category : 'private - publishing' }
+CPDefinitionsSourceMaterializer >> nextVersionFor: aSourceClass [
+	| versions |
+	versions := (Pragma allNamed: #publishedVersion)
+		collect: [ :aPragma | aPragma methodClass instanceSide ]
+		thenSelect: [ :each |
+			each ~~ aSourceClass
+				and: [ each versionOf = aSourceClass ] ].
+	^ versions
+		ifEmpty: [ 1 ]
+		ifNotEmpty: [ (versions collect: #version) max + 1 ]
+]
+
+{ #category : 'private - publishing' }
+CPDefinitionsSourceMaterializer >> installPublishedClassFor: aSourceClass version: anInteger [
+	| className |
+	className := (aSourceClass name , 'V' , anInteger asString) asSymbol.
+	(Smalltalk includesKey: className) ifTrue: [
+		self error: 'The published Definition class already exists' ].
+	^ (Object << className
+		slots: {};
+		package: aSourceClass package name) install
+]
+
+{ #category : 'private - publishing' }
+CPDefinitionsSourceMaterializer >> compileDefinitionsFrom: aSourceClass into: aPublishedClass [
+	| current method |
+	current := aSourceClass.
+	method := nil.
+	[ current notNil and: [ method isNil ] ] whileTrue: [
+		method := current class methodDict at: #definitions ifAbsent: [ nil ].
+		current := current superclass ].
+	method ifNil: [ self error: 'A source-backed Definition class must define or inherit definitions' ].
+	aPublishedClass class compile: method sourceCode
+]
+
+{ #category : 'private - publishing' }
+CPDefinitionsSourceMaterializer >> versionSourceFor: anInteger [
+	^ String streamContents: [ :stream |
+		stream
+			nextPutAll: 'version'; cr;
+			tab; nextPutAll: '<publishedVersion>'; cr;
+			tab; nextPutAll: '^ '; nextPutAll: anInteger asString ]
+]
+
+{ #category : 'private - publishing' }
+CPDefinitionsSourceMaterializer >> versionOfSourceFor: aSourceClass [
+	^ String streamContents: [ :stream |
+		stream
+			nextPutAll: 'versionOf'; cr;
+			tab; nextPutAll: '^ '; nextPutAll: aSourceClass name ]
+]
