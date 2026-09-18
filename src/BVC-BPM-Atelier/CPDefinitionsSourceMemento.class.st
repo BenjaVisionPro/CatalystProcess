@@ -36,3 +36,10 @@ CPDefinitionsSourceMemento >> commit [
 		in: sourceClass.
 	^ super commit
 ]
+
+{ #category : 'private - children' }
+CPDefinitionsSourceMemento >> newChildMementoFor: anObject [
+	^ (CFMaMemento model: anObject)
+		parentMemento: self;
+		yourself
+]

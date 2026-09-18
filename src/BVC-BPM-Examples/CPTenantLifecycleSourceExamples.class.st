@@ -227,6 +227,7 @@ CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsMode
 	context := CPDefinitionsMementoContext memento: root.
 	resume := context rootElements detect: [ :each | each identifier = #resumeTenant ].
 	resumeMemento := context mementoForRootElement: resume.
+	self assert: resumeMemento class equals: CFMaMemento.
 	resumeMemento write: 'Customer Resume Tenant' using: resume labelDescription.
 
 	self assert: resume label equals: 'Resume Tenant'.
@@ -262,6 +263,7 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoCommitWritesSourceAndCommi
 	context := CPDefinitionsMementoContext memento: root.
 	resume := context rootElements detect: [ :each | each identifier = #resumeTenant ].
 	resumeMemento := context mementoForRootElement: resume.
+	self assert: resumeMemento class equals: CFMaMemento.
 	resumeMemento write: 'Customer Resume Tenant' using: resume labelDescription.
 
 	self assert: resume label equals: 'Resume Tenant'.
