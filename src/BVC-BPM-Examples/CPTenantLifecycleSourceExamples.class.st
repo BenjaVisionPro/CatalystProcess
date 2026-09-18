@@ -44,3 +44,36 @@ CPTenantLifecycleSourceExamples >> customerDefinitionsUseNearestIdentityContribu
 	self assert: definitions diagrams size equals: 2.
 	^ definitions
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> marketplaceSourceOwnership [
+	<gtExample>
+	self assert: (CPDefinitionsSourceMaterializer
+		isLocalProcess: #suspendTenant
+		in: CatalystTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isLocalDiagram: #suspendTenantOperations
+		in: CatalystTenantLifecycle).
+	^ CatalystTenantLifecycle
+]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> customerSourceOwnership [
+	<gtExample>
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedProcess: #suspendTenant
+		in: CustomerTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #resumeTenant
+		in: CustomerTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #removeTenant
+		in: CustomerTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedDiagram: #suspendTenantOverview
+		in: CustomerTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedDiagram: #suspendTenantOperations
+		in: CustomerTenantLifecycle).
+	^ CustomerTenantLifecycle
+]

@@ -106,3 +106,101 @@ CPDefinitionsSourceMaterializer >> validateDiagram: aDiagram identifier: anIdent
 	aDiagram identifier = anIdentifier ifFalse: [
 		self error: 'Diagram pragma identity must match the CPDiagram identifier' ]
 ]
+
+{ #category : 'opening' }
+CPDefinitionsSourceMaterializer class >> open: aSourceClass [
+	^ (self materialize: aSourceClass) asAtelier
+]
+
+{ #category : 'querying - processes' }
+CPDefinitionsSourceMaterializer class >> isInheritedProcess: anIdentifier in: aSourceClass [
+	^ self new isInheritedProcess: anIdentifier in: aSourceClass
+]
+
+{ #category : 'querying - processes' }
+CPDefinitionsSourceMaterializer class >> isLocalProcess: anIdentifier in: aSourceClass [
+	^ self new isLocalProcess: anIdentifier in: aSourceClass
+]
+
+{ #category : 'querying - processes' }
+CPDefinitionsSourceMaterializer class >> isSpecialisedProcess: anIdentifier in: aSourceClass [
+	^ self new isSpecialisedProcess: anIdentifier in: aSourceClass
+]
+
+{ #category : 'querying - diagrams' }
+CPDefinitionsSourceMaterializer class >> isInheritedDiagram: anIdentifier in: aSourceClass [
+	^ self new isInheritedDiagram: anIdentifier in: aSourceClass
+]
+
+{ #category : 'querying - diagrams' }
+CPDefinitionsSourceMaterializer class >> isLocalDiagram: anIdentifier in: aSourceClass [
+	^ self new isLocalDiagram: anIdentifier in: aSourceClass
+]
+
+{ #category : 'querying - diagrams' }
+CPDefinitionsSourceMaterializer class >> isSpecialisedDiagram: anIdentifier in: aSourceClass [
+	^ self new isSpecialisedDiagram: anIdentifier in: aSourceClass
+]
+
+{ #category : 'querying - processes' }
+CPDefinitionsSourceMaterializer >> isInheritedProcess: anIdentifier in: aSourceClass [
+	| pragma |
+	pragma := self effectivePragmaNamed: #process: identifier: anIdentifier for: aSourceClass.
+	^ pragma methodClass instanceSide ~~ aSourceClass
+]
+
+{ #category : 'querying - processes' }
+CPDefinitionsSourceMaterializer >> isLocalProcess: anIdentifier in: aSourceClass [
+	| pragma |
+	pragma := self effectivePragmaNamed: #process: identifier: anIdentifier for: aSourceClass.
+	^ pragma methodClass instanceSide == aSourceClass
+		and: [ (self inheritedPragmaNamed: #process: identifier: anIdentifier for: aSourceClass) isNil ]
+]
+
+{ #category : 'querying - processes' }
+CPDefinitionsSourceMaterializer >> isSpecialisedProcess: anIdentifier in: aSourceClass [
+	| pragma |
+	pragma := self effectivePragmaNamed: #process: identifier: anIdentifier for: aSourceClass.
+	^ pragma methodClass instanceSide == aSourceClass
+		and: [ (self inheritedPragmaNamed: #process: identifier: anIdentifier for: aSourceClass) notNil ]
+]
+
+{ #category : 'querying - diagrams' }
+CPDefinitionsSourceMaterializer >> isInheritedDiagram: anIdentifier in: aSourceClass [
+	| pragma |
+	pragma := self effectivePragmaNamed: #diagram:process: identifier: anIdentifier for: aSourceClass.
+	^ pragma methodClass instanceSide ~~ aSourceClass
+]
+
+{ #category : 'querying - diagrams' }
+CPDefinitionsSourceMaterializer >> isLocalDiagram: anIdentifier in: aSourceClass [
+	| pragma |
+	pragma := self effectivePragmaNamed: #diagram:process: identifier: anIdentifier for: aSourceClass.
+	^ pragma methodClass instanceSide == aSourceClass
+		and: [ (self inheritedPragmaNamed: #diagram:process: identifier: anIdentifier for: aSourceClass) isNil ]
+]
+
+{ #category : 'querying - diagrams' }
+CPDefinitionsSourceMaterializer >> isSpecialisedDiagram: anIdentifier in: aSourceClass [
+	| pragma |
+	pragma := self effectivePragmaNamed: #diagram:process: identifier: anIdentifier for: aSourceClass.
+	^ pragma methodClass instanceSide == aSourceClass
+		and: [ (self inheritedPragmaNamed: #diagram:process: identifier: anIdentifier for: aSourceClass) notNil ]
+]
+
+{ #category : 'private - discovering' }
+CPDefinitionsSourceMaterializer >> effectivePragmaNamed: aPragmaSelector identifier: anIdentifier for: aSourceClass [
+	^ (self effectivePragmasNamed: aPragmaSelector for: aSourceClass)
+		detect: [ :each | (each argumentAt: 1) = anIdentifier ]
+		ifNone: [ self error: 'No source method declares that model identity' ]
+]
+
+{ #category : 'private - discovering' }
+CPDefinitionsSourceMaterializer >> inheritedPragmaNamed: aPragmaSelector identifier: anIdentifier for: aSourceClass [
+	| superclass |
+	superclass := aSourceClass superclass.
+	superclass ifNil: [ ^ nil ].
+	^ (self effectivePragmasNamed: aPragmaSelector for: superclass)
+		detect: [ :each | (each argumentAt: 1) = anIdentifier ]
+		ifNone: [ nil ]
+]
