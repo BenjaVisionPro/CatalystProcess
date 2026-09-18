@@ -400,3 +400,32 @@ CPDefinitionsSourceMaterializer >> processSourceForIdentifier: anIdentifier labe
 			tab;
 			nextPutAll: 'yourself' ]
 ]
+
+{ #category : 'querying - versions' }
+CPDefinitionsSourceMaterializer class >> isPublishedVersion: aSourceClass [
+	^ self new isPublishedVersion: aSourceClass
+]
+
+{ #category : 'querying - versions' }
+CPDefinitionsSourceMaterializer >> isPublishedVersion: aSourceClass [
+	^ (Pragma allNamed: #versionOf:)
+		anySatisfy: [ :aPragma |
+			aPragma methodClass isMeta
+				and: [ aPragma methodClass instanceSide == aSourceClass ] ]
+]
+
+{ #category : 'querying - versions' }
+CPDefinitionsSourceMaterializer class >> versionOf: aSourceClass [
+	^ self new versionOf: aSourceClass
+]
+
+{ #category : 'querying - versions' }
+CPDefinitionsSourceMaterializer >> versionOf: aSourceClass [
+	| pragmas |
+	pragmas := (Pragma allNamed: #versionOf:) select: [ :aPragma |
+		aPragma methodClass isMeta
+			and: [ aPragma methodClass instanceSide == aSourceClass ] ].
+	pragmas size = 1 ifFalse: [
+		self error: 'A published Definition version must declare exactly one versionOf: pragma' ].
+	^ pragmas first argumentAt: 1
+]

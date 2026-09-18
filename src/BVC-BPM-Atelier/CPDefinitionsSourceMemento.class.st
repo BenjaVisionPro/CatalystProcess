@@ -31,6 +31,8 @@ CPDefinitionsSourceMemento >> sourceClass: aSourceClass [
 
 { #category : 'actions' }
 CPDefinitionsSourceMemento >> commit [
+	(CPDefinitionsSourceMaterializer isPublishedVersion: sourceClass) ifTrue: [
+		self error: 'Published Definition versions are immutable' ].
 	CPDefinitionsSourceMaterializer new
 		saveSourceChangesFromMemento: self
 		in: sourceClass.

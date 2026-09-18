@@ -303,3 +303,32 @@ CPTenantLifecycleSourceExamples >> restoreInheritedDiagram: anIdentifier in: aSo
 			revertDiagram: anIdentifier
 			in: aSourceClass ]
 ]
+
+{ #category : 'examples - marketplace versions' }
+CPTenantLifecycleSourceExamples >> publishedVersionIsSelfContainedAndVersioned [
+	<gtExample>
+	| definitions |
+	definitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycleV1.
+	self assert: CatalystTenantLifecycleV1 version equals: 1.
+	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: CatalystTenantLifecycleV1).
+	self assert: (CPDefinitionsSourceMaterializer versionOf: CatalystTenantLifecycleV1) equals: CatalystTenantLifecycle.
+	self assert: CatalystTenantLifecycleV1 superclass equals: Object.
+	self assert: definitions identifier equals: #tenantLifecycle.
+	self assert: definitions rootElements size equals: 3.
+	self assert: definitions diagrams size equals: 2.
+	^ definitions
+]
+
+{ #category : 'examples - marketplace versions' }
+CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersion [
+	<gtExample>
+	| definitions |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
+	self deny: (CPDefinitionsSourceMaterializer isPublishedVersion: CustomerVersionedTenantLifecycle).
+	self assert: CustomerVersionedTenantLifecycle superclass equals: CatalystTenantLifecycleV1.
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #suspendTenant
+		in: CustomerVersionedTenantLifecycle).
+	self assert: definitions rootElements size equals: 3.
+	^ definitions
+]
