@@ -340,6 +340,19 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 	^ definitions
 ]
 
+
+{ #category : 'examples - marketplace bootstrap' }
+CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
+	<gtExample>
+	| definitions |
+	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+	self assert: AdminTenantLifecycle superclass = CatalystTenantLifecycleV1.
+	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: AdminTenantLifecycle) not.
+	self assert: definitions rootElements size equals: 9.
+	self assert: definitions diagrams size equals: 6.
+	^ definitions
+]
+
 { #category : 'examples - marketplace bootstrap' }
 CPTenantLifecycleSourceExamples >> adminTenantLifecycleAtelier [
 	<gtExample>
