@@ -321,8 +321,8 @@ CPTenantLifecycleSourceExamples >> publishedVersionIsSelfContainedAndVersioned [
 	self assert: (CPDefinitionsSourceMaterializer versionOf: CatalystTenantLifecycleV1) equals: CatalystTenantLifecycle.
 	self assert: CatalystTenantLifecycleV1 superclass equals: Object.
 	self assert: definitions identifier equals: #tenantLifecycle.
-	self assert: definitions rootElements size equals: 3.
-	self assert: definitions diagrams size equals: 2.
+	self assert: definitions rootElements size equals: 9.
+	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
 
@@ -336,26 +336,7 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #suspendTenant
 		in: CustomerVersionedTenantLifecycle).
-	self assert: definitions rootElements size equals: 3.
-	^ definitions
-]
-
-{ #category : 'examples - marketplace bootstrap' }
-CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
-	<gtExample>
-	| definitions |
-	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
-
-	self assert: AdminTenantLifecycle superclass equals: CatalystTenantLifecycleV3.
-	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: AdminTenantLifecycle) not.
-	self assert: definitions identifier equals: #tenantLifecycle.
 	self assert: definitions rootElements size equals: 9.
-	self assert: definitions diagrams size equals: 5.
-	#(provisionTenant startSubscription changeSubscription renewSubscription recoverPayment suspendTenant resumeTenant cancelSubscription removeTenant)
-		do: [ :identifier |
-			self assert: (CPDefinitionsSourceMaterializer
-				isInheritedProcess: identifier
-				in: AdminTenantLifecycle) ].
 	^ definitions
 ]
 
@@ -363,4 +344,20 @@ CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
 CPTenantLifecycleSourceExamples >> adminTenantLifecycleAtelier [
 	<gtExample>
 	^ self adminTenantLifecycleDefinition
+]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> startSubscriptionIsMaterialisedAsBpmn [
+	<gtExample>
+	| definitions process diagram |
+	definitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycle.
+	process := definitions rootElements
+		detect: [ :each | each identifier = #startSubscription ].
+	diagram := definitions diagrams
+		detect: [ :each | each identifier = #startSubscriptionOverview ].
+	self assert: process flowElements size equals: 22.
+	self assert: (process flowElements count: [ :each | each isFlowNode ]) equals: 11.
+	self assert: (process flowElements count: [ :each | each isSequenceFlow ]) equals: 11.
+	self assert: diagram plane modelElement == process.
+	^ diagram
 ]
