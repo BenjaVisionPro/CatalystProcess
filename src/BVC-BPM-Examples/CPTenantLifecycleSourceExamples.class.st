@@ -94,3 +94,28 @@ CPTenantLifecycleSourceExamples >> processSourcePreservesExistingSelector [
 	self assert: (source includesSubstring: 'Changed Customer Suspend Tenant').
 	^ source
 ]
+
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> saveExistingSpecialisedProcessAndReload [
+	<gtExample>
+	| definitions suspend selector reloaded reloadedSuspend |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerTenantLifecycle.
+	suspend := definitions rootElements
+		detect: [ :each | each identifier = #suspendTenant ].
+
+	selector := CPDefinitionsSourceMaterializer
+		saveProcess: suspend
+		in: CustomerTenantLifecycle.
+	self assert: selector equals: #customerSuspension.
+
+	reloaded := CPDefinitionsSourceMaterializer materialize: CustomerTenantLifecycle.
+	reloadedSuspend := reloaded rootElements
+		detect: [ :each | each identifier = #suspendTenant ].
+	self assert: reloadedSuspend identifier equals: #suspendTenant.
+	self assert: reloadedSuspend label equals: 'Customer Suspend Tenant'.
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedProcess: #suspendTenant
+		in: CustomerTenantLifecycle).
+	^ reloaded
+]
