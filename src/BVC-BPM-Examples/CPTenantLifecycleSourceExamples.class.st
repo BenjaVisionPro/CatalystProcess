@@ -359,6 +359,5 @@ CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
 { #category : 'examples - marketplace bootstrap' }
 CPTenantLifecycleSourceExamples >> adminTenantLifecycleAtelier [
 	<gtExample>
-	self adminTenantLifecycleDefinition.
-	^ CPDefinitionsSourceMaterializer open: AdminTenantLifecycle
+	^ self adminTenantLifecycleDefinition
 ]
