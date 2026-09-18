@@ -14,8 +14,8 @@ CPTenantLifecycleSourceExamples >> marketplaceDefinitions [
 
 	self assert: definitions identifier equals: #tenantLifecycle.
 	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
-	self assert: definitions rootElements size equals: 3.
-	self assert: definitions diagrams size equals: 2.
+	self assert: definitions rootElements size equals: 6.
+	self assert: definitions diagrams size equals: 7.
 
 	suspend := definitions rootElements
 		detect: [ :each | each identifier = #suspendTenant ].
@@ -40,8 +40,8 @@ CPTenantLifecycleSourceExamples >> customerDefinitionsUseNearestIdentityContribu
 	self assert: suspend label equals: 'Customer Suspend Tenant'.
 	self assert: overview plane modelElement == suspend.
 	self assert: operations plane modelElement == suspend.
-	self assert: definitions rootElements size equals: 3.
-	self assert: definitions diagrams size equals: 2.
+	self assert: definitions rootElements size equals: 6.
+	self assert: definitions diagrams size equals: 7.
 	^ definitions
 ]
 
@@ -98,7 +98,6 @@ CPTenantLifecycleSourceExamples >> processSourcePreservesExistingSelector [
 
 { #category : 'examples - marketplace source' }
 CPTenantLifecycleSourceExamples >> saveExistingSpecialisedProcessAndReload [
-	<gtExample>
 	| definitions suspend selector reloaded reloadedSuspend |
 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerTenantLifecycle.
 	suspend := definitions rootElements
@@ -125,7 +124,7 @@ CPTenantLifecycleSourceExamples >> saveInheritedProcessCreatesSpecialisationAndR
 	<gtExample>
 	| definitions resume selector reloaded reloadedResume revertedSelector reverted revertedResume |
 	self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle.
-	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	[ definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #resumeTenant
 		in: CustomerInheritedTenantLifecycle).
@@ -158,7 +157,8 @@ CPTenantLifecycleSourceExamples >> saveInheritedProcessCreatesSpecialisationAndR
 	revertedResume := reverted rootElements
 		detect: [ :each | each identifier = #resumeTenant ].
 	self assert: revertedResume label equals: 'Resume Tenant'.
-	^ reverted
+	^ reverted ] ensure: [
+		self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle ]
 ]
 
 
@@ -167,7 +167,7 @@ CPTenantLifecycleSourceExamples >> saveInheritedDiagramCreatesIndependentSpecial
 	<gtExample>
 	| definitions diagram process selector reloaded reloadedDiagram reloadedProcess revertedSelector reverted revertedDiagram revertedProcess |
 	self restoreInheritedDiagram: #suspendTenantOverview in: CustomerInheritedTenantLifecycle.
-	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	[ 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #suspendTenant
 		in: CustomerInheritedTenantLifecycle).
@@ -214,7 +214,8 @@ CPTenantLifecycleSourceExamples >> saveInheritedDiagramCreatesIndependentSpecial
 	revertedProcess := reverted rootElements
 		detect: [ :each | each identifier = #suspendTenant ].
 	self assert: revertedDiagram plane modelElement == revertedProcess.
-	^ reverted
+	^ reverted ] ensure: [
+		self restoreInheritedDiagram: #suspendTenantOverview in: CustomerInheritedTenantLifecycle ]
 ]
 
 { #category : 'examples - marketplace source' }
@@ -222,7 +223,7 @@ CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsMode
 	<gtExample>
 	| definitions root context resume resumeMemento selectors reloaded reloadedResume |
 	self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle.
-	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	[ 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	root := CFMaMemento model: definitions.
 	context := CPDefinitionsMementoContext memento: root.
 	resume := context rootElements detect: [ :each | each identifier = #resumeTenant ].
@@ -245,10 +246,8 @@ CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsMode
 	reloadedResume := reloaded rootElements detect: [ :each | each identifier = #resumeTenant ].
 	self assert: reloadedResume label equals: 'Customer Resume Tenant'.
 
-	CPDefinitionsSourceMaterializer
-		revertProcess: #resumeTenant
-		in: CustomerInheritedTenantLifecycle.
-	^ reloaded
+	^ reloaded ] ensure: [
+		self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle ]
 ]
 
 { #category : 'examples - marketplace source' }
@@ -256,7 +255,7 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoCommitWritesSourceAndCommi
 	<gtExample>
 	| definitions root context resume resumeMemento reloaded reloadedResume |
 	self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle.
-	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	[ 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	root := CPDefinitionsSourceMemento
 		model: definitions
 		sourceClass: CustomerInheritedTenantLifecycle.
@@ -277,10 +276,8 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoCommitWritesSourceAndCommi
 	reloadedResume := reloaded rootElements detect: [ :each | each identifier = #resumeTenant ].
 	self assert: reloadedResume label equals: 'Customer Resume Tenant'.
 
-	CPDefinitionsSourceMaterializer
-		revertProcess: #resumeTenant
-		in: CustomerInheritedTenantLifecycle.
-	^ reloaded
+	^ reloaded ] ensure: [
+		self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle ]
 ]
 
 
