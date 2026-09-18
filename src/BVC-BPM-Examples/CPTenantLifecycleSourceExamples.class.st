@@ -324,7 +324,7 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 	<gtExample>
 	| definitions |
 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
-	self deny: (CPDefinitionsSourceMaterializer isPublishedVersion: CustomerVersionedTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: CustomerVersionedTenantLifecycle) not.
 	self assert: CustomerVersionedTenantLifecycle superclass equals: CatalystTenantLifecycleV1.
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #suspendTenant
