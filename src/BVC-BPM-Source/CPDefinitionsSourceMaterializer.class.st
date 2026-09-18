@@ -208,6 +208,7 @@ CPDefinitionsSourceMaterializer class >> saveProcess: aProcess in: aSourceClass 
 { #category : 'saving - processes' }
 CPDefinitionsSourceMaterializer >> saveProcess: aProcess in: aSourceClass [
 	| pragma selector source |
+	self validateMutableSourceClass: aSourceClass.
 	self validateProcessForSourceSave: aProcess.
 	pragma := self
 		localPragmaNamed: #process:
@@ -273,6 +274,7 @@ CPDefinitionsSourceMaterializer class >> revertProcess: anIdentifier in: aSource
 { #category : 'reverting - processes' }
 CPDefinitionsSourceMaterializer >> revertProcess: anIdentifier in: aSourceClass [
 	| localPragma inheritedPragma selector |
+	self validateMutableSourceClass: aSourceClass.
 	localPragma := self
 		localPragmaNamed: #process:
 		identifier: anIdentifier
@@ -299,6 +301,7 @@ CPDefinitionsSourceMaterializer class >> saveDiagram: aDiagram in: aSourceClass 
 { #category : 'saving - diagrams' }
 CPDefinitionsSourceMaterializer >> saveDiagram: aDiagram in: aSourceClass [
 	| pragma selector source processIdentifier |
+	self validateMutableSourceClass: aSourceClass.
 	self validateDiagramForSourceSave: aDiagram.
 	processIdentifier := aDiagram plane modelElement identifier.
 	pragma := self
@@ -357,6 +360,7 @@ CPDefinitionsSourceMaterializer class >> revertDiagram: anIdentifier in: aSource
 { #category : 'reverting - diagrams' }
 CPDefinitionsSourceMaterializer >> revertDiagram: anIdentifier in: aSourceClass [
 	| localPragma inheritedPragma selector |
+	self validateMutableSourceClass: aSourceClass.
 	localPragma := self
 		localPragmaNamed: #diagram:process:
 		identifier: anIdentifier
@@ -399,6 +403,14 @@ CPDefinitionsSourceMaterializer >> processSourceForIdentifier: anIdentifier labe
 			tab;
 			tab;
 			nextPutAll: 'yourself' ]
+]
+
+
+
+{ #category : 'private - validating' }
+CPDefinitionsSourceMaterializer >> validateMutableSourceClass: aSourceClass [
+	(self isPublishedVersion: aSourceClass) ifTrue: [
+		self error: 'Published Definition versions are immutable' ]
 ]
 
 { #category : 'querying - versions' }
