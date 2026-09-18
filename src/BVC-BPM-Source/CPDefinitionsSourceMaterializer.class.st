@@ -38,10 +38,31 @@ CPDefinitionsSourceMaterializer >> materialize: aSourceClass [
 				ifAbsent: [ self error: 'Diagram references a Process that is not present in these Definitions' ].
 			diagram := aPragma methodClass instanceSide perform: aPragma methodSelector.
 			self validateDiagram: diagram identifier: diagramIdentifier.
+			self canonicalizeDiagram: diagram forProcess: process.
 			diagram plane modelElement: process.
 			definitions addDiagram: diagram ].
 
 	^ definitions
+]
+
+
+{ #category : 'private - materializing' }
+CPDefinitionsSourceMaterializer >> canonicalizeDiagram: aDiagram forProcess: aProcess [
+	| flowElementsByIdentifier |
+	flowElementsByIdentifier := Dictionary new.
+	aProcess flowElements do: [ :each |
+		(flowElementsByIdentifier includesKey: each identifier) ifTrue: [
+			self error: 'A Process cannot contain duplicate flow element identities' ].
+		flowElementsByIdentifier at: each identifier put: each ].
+	aDiagram plane elements do: [ :each |
+		(each isShape or: [ each isEdge ]) ifTrue: [
+			| modelElement canonical |
+			modelElement := each modelElement.
+			modelElement ifNotNil: [
+				canonical := flowElementsByIdentifier
+					at: modelElement identifier
+					ifAbsent: [ self error: 'Diagram element references a flow element that is not present in its Process' ].
+				each modelElement: canonical ] ] ]
 ]
 
 { #category : 'private - discovering' }

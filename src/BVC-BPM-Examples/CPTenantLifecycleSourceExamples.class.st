@@ -9,19 +9,29 @@ Class {
 { #category : 'examples - marketplace source' }
 CPTenantLifecycleSourceExamples >> marketplaceDefinitions [
 	<gtExample>
-	| definitions suspend diagrams |
+	| definitions suspend diagrams provision provisionDiagram provisionNodes |
 	definitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycle.
 
 	self assert: definitions identifier equals: #tenantLifecycle.
 	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
-	self assert: definitions rootElements size equals: 6.
-	self assert: definitions diagrams size equals: 7.
+	self assert: definitions rootElements size equals: 9.
+	self assert: definitions diagrams size equals: 5.
 
 	suspend := definitions rootElements
 		detect: [ :each | each identifier = #suspendTenant ].
 	diagrams := definitions diagrams
 		select: [ :each | each plane modelElement == suspend ].
 	self assert: diagrams size equals: 2.
+	provision := definitions rootElements detect: [ :each | each identifier = #provisionTenant ].
+	provisionDiagram := definitions diagrams detect: [ :each | each identifier = #provisionTenantOverview ].
+	provisionNodes := provision flowElements reject: [ :each | each isSequenceFlow ].
+	self assert: provision label equals: 'Provision Tenant'.
+	self assert: provision flowElements size equals: 21.
+	self assert: provisionNodes size equals: 11.
+	self assert: provisionDiagram plane modelElement == provision.
+	provisionDiagram plane elements do: [ :each |
+		(each isShape or: [ each isEdge ]) ifTrue: [
+			self assert: (provision flowElements identityIncludes: each modelElement) ] ].
 	^ definitions
 ]
 
@@ -40,8 +50,8 @@ CPTenantLifecycleSourceExamples >> customerDefinitionsUseNearestIdentityContribu
 	self assert: suspend label equals: 'Customer Suspend Tenant'.
 	self assert: overview plane modelElement == suspend.
 	self assert: operations plane modelElement == suspend.
-	self assert: definitions rootElements size equals: 6.
-	self assert: definitions diagrams size equals: 7.
+	self assert: definitions rootElements size equals: 9.
+	self assert: definitions diagrams size equals: 5.
 	^ definitions
 ]
 
