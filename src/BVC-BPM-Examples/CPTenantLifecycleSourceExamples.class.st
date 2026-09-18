@@ -246,3 +246,33 @@ CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsMode
 		in: CustomerInheritedTenantLifecycle.
 	^ reloaded
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> sourceBackedMementoCommitWritesSourceAndCommitsModel [
+	<gtExample>
+	| definitions root context resume resumeMemento reloaded reloadedResume |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	root := CPDefinitionsSourceMemento
+		model: definitions
+		sourceClass: CustomerInheritedTenantLifecycle.
+	context := CPDefinitionsMementoContext memento: root.
+	resume := context rootElements detect: [ :each | each identifier = #resumeTenant ].
+	resumeMemento := context mementoForRootElement: resume.
+	resumeMemento write: 'Customer Resume Tenant' using: resume labelDescription.
+
+	self assert: resume label equals: 'Resume Tenant'.
+	root commit.
+	self assert: resume label equals: 'Customer Resume Tenant'.
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	reloaded := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	reloadedResume := reloaded rootElements detect: [ :each | each identifier = #resumeTenant ].
+	self assert: reloadedResume label equals: 'Customer Resume Tenant'.
+
+	CPDefinitionsSourceMaterializer
+		revertProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle.
+	^ reloaded
+]
