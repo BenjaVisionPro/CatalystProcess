@@ -332,3 +332,33 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 	self assert: definitions rootElements size equals: 3.
 	^ definitions
 ]
+
+{ #category : 'examples - marketplace bootstrap' }
+CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
+	<gtExample>
+	| definitions |
+	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+
+	self assert: AdminTenantLifecycle superclass equals: CatalystTenantLifecycleV1.
+	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: AdminTenantLifecycle) not.
+	self assert: definitions identifier equals: #tenantLifecycle.
+	self assert: definitions rootElements size equals: 3.
+	self assert: definitions diagrams size equals: 2.
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #suspendTenant
+		in: AdminTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #resumeTenant
+		in: AdminTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #removeTenant
+		in: AdminTenantLifecycle).
+	^ definitions
+]
+
+{ #category : 'examples - marketplace bootstrap' }
+CPTenantLifecycleSourceExamples >> adminTenantLifecycleAtelier [
+	<gtExample>
+	self adminTenantLifecycleDefinition.
+	^ CPDefinitionsSourceMaterializer open: AdminTenantLifecycle
+]
