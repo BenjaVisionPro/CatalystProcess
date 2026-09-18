@@ -8,8 +8,13 @@ Class {
 
 { #category : 'versioning' }
 CatalystTenantLifecycleV1 class >> version [
-	<versionOf: CatalystTenantLifecycle>
+	<publishedVersion>
 	^ 1
+]
+
+{ #category : 'versioning' }
+CatalystTenantLifecycleV1 class >> versionOf [
+	^ CatalystTenantLifecycle
 ]
 
 { #category : 'model' }
