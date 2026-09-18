@@ -124,6 +124,7 @@ CPTenantLifecycleSourceExamples >> saveExistingSpecialisedProcessAndReload [
 CPTenantLifecycleSourceExamples >> saveInheritedProcessCreatesSpecialisationAndRevertRestoresInheritance [
 	<gtExample>
 	| definitions resume selector reloaded reloadedResume revertedSelector reverted revertedResume |
+	self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle.
 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #resumeTenant
@@ -165,6 +166,7 @@ CPTenantLifecycleSourceExamples >> saveInheritedProcessCreatesSpecialisationAndR
 CPTenantLifecycleSourceExamples >> saveInheritedDiagramCreatesIndependentSpecialisationAndRevertRestoresInheritance [
 	<gtExample>
 	| definitions diagram process selector reloaded reloadedDiagram reloadedProcess revertedSelector reverted revertedDiagram revertedProcess |
+	self restoreInheritedDiagram: #suspendTenantOverview in: CustomerInheritedTenantLifecycle.
 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #suspendTenant
@@ -219,6 +221,7 @@ CPTenantLifecycleSourceExamples >> saveInheritedDiagramCreatesIndependentSpecial
 CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsModel [
 	<gtExample>
 	| definitions root context resume resumeMemento selectors reloaded reloadedResume |
+	self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle.
 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	root := CFMaMemento model: definitions.
 	context := CPDefinitionsMementoContext memento: root.
@@ -251,6 +254,7 @@ CPTenantLifecycleSourceExamples >> atelierMementoSaveWritesSourceThenCommitsMode
 CPTenantLifecycleSourceExamples >> sourceBackedMementoCommitWritesSourceAndCommitsModel [
 	<gtExample>
 	| definitions root context resume resumeMemento reloaded reloadedResume |
+	self restoreInheritedProcess: #resumeTenant in: CustomerInheritedTenantLifecycle.
 	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
 	root := CPDefinitionsSourceMemento
 		model: definitions
@@ -275,4 +279,25 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoCommitWritesSourceAndCommi
 		revertProcess: #resumeTenant
 		in: CustomerInheritedTenantLifecycle.
 	^ reloaded
+]
+
+
+{ #category : 'private - source fixtures' }
+CPTenantLifecycleSourceExamples >> restoreInheritedProcess: anIdentifier in: aSourceClass [
+	(CPDefinitionsSourceMaterializer
+		isSpecialisedProcess: anIdentifier
+		in: aSourceClass) ifTrue: [
+		CPDefinitionsSourceMaterializer
+			revertProcess: anIdentifier
+			in: aSourceClass ]
+]
+
+{ #category : 'private - source fixtures' }
+CPTenantLifecycleSourceExamples >> restoreInheritedDiagram: anIdentifier in: aSourceClass [
+	(CPDefinitionsSourceMaterializer
+		isSpecialisedDiagram: anIdentifier
+		in: aSourceClass) ifTrue: [
+		CPDefinitionsSourceMaterializer
+			revertDiagram: anIdentifier
+			in: aSourceClass ]
 ]
