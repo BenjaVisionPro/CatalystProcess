@@ -77,3 +77,20 @@ CPTenantLifecycleSourceExamples >> customerSourceOwnership [
 		in: CustomerTenantLifecycle).
 	^ CustomerTenantLifecycle
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> processSourcePreservesExistingSelector [
+	<gtExample>
+	| definitions suspend source |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerTenantLifecycle.
+	suspend := definitions rootElements detect: [ :each | each identifier = #suspendTenant ].
+	suspend label: 'Changed Customer Suspend Tenant'.
+	source := CPDefinitionsSourceMaterializer new
+		processSourceFor: suspend
+		selector: #customerSuspension.
+
+	self assert: (source beginsWith: 'customerSuspension').
+	self assert: (source includesSubstring: '<process: #suspendTenant>').
+	self assert: (source includesSubstring: 'Changed Customer Suspend Tenant').
+	^ source
+]

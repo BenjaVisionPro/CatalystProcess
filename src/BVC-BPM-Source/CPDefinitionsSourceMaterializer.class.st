@@ -204,3 +204,87 @@ CPDefinitionsSourceMaterializer >> inheritedPragmaNamed: aPragmaSelector identif
 		detect: [ :each | (each argumentAt: 1) = anIdentifier ]
 		ifNone: [ nil ]
 ]
+
+{ #category : 'saving - processes' }
+CPDefinitionsSourceMaterializer class >> saveProcess: aProcess in: aSourceClass [
+	^ self new saveProcess: aProcess in: aSourceClass
+]
+
+{ #category : 'saving - processes' }
+CPDefinitionsSourceMaterializer >> saveProcess: aProcess in: aSourceClass [
+	| pragma selector source |
+	self validateProcessForSourceSave: aProcess.
+	pragma := self
+		localPragmaNamed: #process:
+		identifier: aProcess identifier
+		for: aSourceClass.
+	selector := pragma
+		ifNil: [ self initialSelectorFor: aProcess identifier in: aSourceClass ]
+		ifNotNil: [ pragma methodSelector ].
+	source := self processSourceFor: aProcess selector: selector.
+	aSourceClass class compile: source.
+	^ selector
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> localPragmaNamed: aPragmaSelector identifier: anIdentifier for: aSourceClass [
+	| matches |
+	matches := (Pragma allNamed: aPragmaSelector) select: [ :aPragma |
+		aPragma methodClass isMeta
+			and: [ aPragma methodClass instanceSide == aSourceClass
+			and: [ (aPragma argumentAt: 1) = anIdentifier ] ] ].
+	matches size > 1 ifTrue: [
+		self error: 'A source class cannot declare the same model identity more than once' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> initialSelectorFor: anIdentifier in: aSourceClass [
+	| selector |
+	selector := anIdentifier asString asSymbol.
+	(aSourceClass class includesSelector: selector) ifTrue: [
+		self error: 'The initial source selector is already in use' ].
+	^ selector
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelector [
+	^ String streamContents: [ :stream |
+		stream
+			nextPutAll: aSelector asString;
+			cr;
+			tab;
+			nextPutAll: '<process: ';
+			nextPutAll: aProcess identifier storeString;
+			nextPutAll: '>';
+			cr;
+			tab;
+			nextPutAll: '^ (CPProcess identifier: ';
+			nextPutAll: aProcess identifier storeString;
+			nextPutAll: ')';
+			cr;
+			tab;
+			tab;
+			nextPutAll: 'label: ';
+			nextPutAll: aProcess label storeString;
+			nextPutAll: ';';
+			cr;
+			tab;
+			tab;
+			nextPutAll: 'yourself' ]
+]
+
+{ #category : 'private - validating' }
+CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
+	self validateProcess: aProcess identifier: aProcess identifier.
+	aProcess flowElements ifNotEmpty: [
+		self error: 'Process source saving does not yet support flow elements' ].
+	aProcess laneSets ifNotEmpty: [
+		self error: 'Process source saving does not yet support lane sets' ].
+	aProcess properties ifNotEmpty: [
+		self error: 'Process source saving does not yet support properties' ].
+	aProcess ioSpecification ifNotNil: [
+		self error: 'Process source saving does not yet support input/output specifications' ].
+	aProcess definitionalCollaborationRef ifNotNil: [
+		self error: 'Process source saving does not yet support definitional collaborations' ]
+]
