@@ -346,29 +346,16 @@ CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
 	| definitions |
 	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
 
-	self assert: AdminTenantLifecycle superclass equals: CatalystTenantLifecycleV2.
+	self assert: AdminTenantLifecycle superclass equals: CatalystTenantLifecycleV3.
 	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: AdminTenantLifecycle) not.
 	self assert: definitions identifier equals: #tenantLifecycle.
-	self assert: definitions rootElements size equals: 6.
-	self assert: definitions diagrams size equals: 7.
-	self assert: (CPDefinitionsSourceMaterializer
-		isInheritedProcess: #createTenant
-		in: AdminTenantLifecycle).
-	self assert: (CPDefinitionsSourceMaterializer
-		isInheritedProcess: #upgradeTenant
-		in: AdminTenantLifecycle).
-	self assert: (CPDefinitionsSourceMaterializer
-		isInheritedProcess: #expireTenantTrial
-		in: AdminTenantLifecycle).
-	self assert: (CPDefinitionsSourceMaterializer
-		isInheritedProcess: #suspendTenant
-		in: AdminTenantLifecycle).
-	self assert: (CPDefinitionsSourceMaterializer
-		isInheritedProcess: #resumeTenant
-		in: AdminTenantLifecycle).
-	self assert: (CPDefinitionsSourceMaterializer
-		isInheritedProcess: #removeTenant
-		in: AdminTenantLifecycle).
+	self assert: definitions rootElements size equals: 9.
+	self assert: definitions diagrams size equals: 5.
+	#(provisionTenant startSubscription changeSubscription renewSubscription recoverPayment suspendTenant resumeTenant cancelSubscription removeTenant)
+		do: [ :identifier |
+			self assert: (CPDefinitionsSourceMaterializer
+				isInheritedProcess: identifier
+				in: AdminTenantLifecycle) ].
 	^ definitions
 ]
 
