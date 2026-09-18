@@ -19,6 +19,8 @@ BaselineOfCatalystProcess >> baseline: spec [
 					with: [ spec requires: #('CatalystFoundation') ];
 				package: 'BVC-BPM-BPMN'
 					with: [ spec requires: #('BVC-BPM-Core') ];
+				package: 'BVC-BPM-Source'
+					with: [ spec requires: #('BVC-BPM-BPMN') ];
 				package: 'BVC-BPM-Design'
 					with: [ spec requires: #('BVC-BPM-Core') ];
 				package: 'BVC-BPM-Definition'
@@ -36,7 +38,7 @@ BaselineOfCatalystProcess >> baseline: spec [
 				package: 'BVC-BPM-GT-Examples'
 					with: [ spec requires: #('BVC-BPM-GT' 'BVC-BPM-Atelier') ];
 				package: 'BVC-BPM-Examples'
-					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-BPMN' 'BVC-BPM-Design' 'BVC-BPM-Definition' 'BVC-BPM-Runtime' 'BVC-BPM-Automation') ];
+					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-BPMN' 'BVC-BPM-Source' 'BVC-BPM-Design' 'BVC-BPM-Definition' 'BVC-BPM-Runtime' 'BVC-BPM-Automation') ];
 				package: 'BVC-BPM-Tests'
 					with: [ spec requires: #('BVC-BPM-Examples') ].
 			spec group: 'atelier' with: #('BVC-BPM-Atelier' 'BVC-BPM-GT-Examples') ]
