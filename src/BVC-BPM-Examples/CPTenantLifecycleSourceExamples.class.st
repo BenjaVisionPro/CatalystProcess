@@ -119,3 +119,43 @@ CPTenantLifecycleSourceExamples >> saveExistingSpecialisedProcessAndReload [
 		in: CustomerTenantLifecycle).
 	^ reloaded
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> saveInheritedProcessCreatesSpecialisationAndRevertRestoresInheritance [
+	<gtExample>
+	| definitions resume selector reloaded reloadedResume revertedSelector reverted revertedResume |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	resume := definitions rootElements
+		detect: [ :each | each identifier = #resumeTenant ].
+	resume label: 'Customer Resume Tenant'.
+	selector := CPDefinitionsSourceMaterializer
+		saveProcess: resume
+		in: CustomerInheritedTenantLifecycle.
+	self assert: selector equals: #resumeTenant.
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	reloaded := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	reloadedResume := reloaded rootElements
+		detect: [ :each | each identifier = #resumeTenant ].
+	self assert: reloadedResume label equals: 'Customer Resume Tenant'.
+
+	revertedSelector := CPDefinitionsSourceMaterializer
+		revertProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle.
+	self assert: revertedSelector equals: selector.
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #resumeTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	reverted := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	revertedResume := reverted rootElements
+		detect: [ :each | each identifier = #resumeTenant ].
+	self assert: revertedResume label equals: 'Resume Tenant'.
+	^ reverted
+]

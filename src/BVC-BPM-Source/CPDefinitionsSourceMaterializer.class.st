@@ -288,3 +288,28 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 	aProcess definitionalCollaborationRef ifNotNil: [
 		self error: 'Process source saving does not yet support definitional collaborations' ]
 ]
+
+{ #category : 'reverting - processes' }
+CPDefinitionsSourceMaterializer class >> revertProcess: anIdentifier in: aSourceClass [
+	^ self new revertProcess: anIdentifier in: aSourceClass
+]
+
+{ #category : 'reverting - processes' }
+CPDefinitionsSourceMaterializer >> revertProcess: anIdentifier in: aSourceClass [
+	| localPragma inheritedPragma selector |
+	localPragma := self
+		localPragmaNamed: #process:
+		identifier: anIdentifier
+		for: aSourceClass.
+	localPragma ifNil: [
+		self error: 'There is no local Process contribution to revert' ].
+	inheritedPragma := self
+		inheritedPragmaNamed: #process:
+		identifier: anIdentifier
+		for: aSourceClass.
+	inheritedPragma ifNil: [
+		self error: 'A local Process without an inherited contribution cannot be reverted' ].
+	selector := localPragma methodSelector.
+	aSourceClass class removeSelector: selector.
+	^ selector
+]
