@@ -313,3 +313,87 @@ CPDefinitionsSourceMaterializer >> revertProcess: anIdentifier in: aSourceClass 
 	aSourceClass class removeSelector: selector.
 	^ selector
 ]
+
+
+{ #category : 'saving - diagrams' }
+CPDefinitionsSourceMaterializer class >> saveDiagram: aDiagram in: aSourceClass [
+	^ self new saveDiagram: aDiagram in: aSourceClass
+]
+
+{ #category : 'saving - diagrams' }
+CPDefinitionsSourceMaterializer >> saveDiagram: aDiagram in: aSourceClass [
+	| pragma selector source processIdentifier |
+	self validateDiagramForSourceSave: aDiagram.
+	processIdentifier := aDiagram plane modelElement identifier.
+	pragma := self
+		localPragmaNamed: #diagram:process:
+		identifier: aDiagram identifier
+		for: aSourceClass.
+	selector := pragma
+		ifNil: [ self initialSelectorFor: aDiagram identifier in: aSourceClass ]
+		ifNotNil: [ pragma methodSelector ].
+	source := self
+		diagramSourceFor: aDiagram
+		processIdentifier: processIdentifier
+		selector: selector.
+	aSourceClass class compile: source.
+	^ selector
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> diagramSourceFor: aDiagram processIdentifier: aProcessIdentifier selector: aSelector [
+	^ String streamContents: [ :stream |
+		stream
+			nextPutAll: aSelector asString;
+			cr;
+			tab;
+			nextPutAll: '<diagram: ';
+			nextPutAll: aDiagram identifier storeString;
+			nextPutAll: ' process: ';
+			nextPutAll: aProcessIdentifier storeString;
+			nextPutAll: '>';
+			cr;
+			tab;
+			nextPutAll: '^ CPDiagram identifier: ';
+			nextPutAll: aDiagram identifier storeString ]
+]
+
+{ #category : 'private - validating' }
+CPDefinitionsSourceMaterializer >> validateDiagramForSourceSave: aDiagram [
+	| modelElement |
+	self validateDiagram: aDiagram identifier: aDiagram identifier.
+	aDiagram labelStyles ifNotEmpty: [
+		self error: 'Diagram source saving does not yet support label styles' ].
+	aDiagram plane elements ifNotEmpty: [
+		self error: 'Diagram source saving does not yet support diagram elements' ].
+	modelElement := aDiagram plane modelElement.
+	modelElement ifNil: [
+		self error: 'A source-backed Diagram must depict a Process' ].
+	modelElement class = CPProcess ifFalse: [
+		self error: 'Diagram source saving currently supports Process diagrams only' ]
+]
+
+{ #category : 'reverting - diagrams' }
+CPDefinitionsSourceMaterializer class >> revertDiagram: anIdentifier in: aSourceClass [
+	^ self new revertDiagram: anIdentifier in: aSourceClass
+]
+
+{ #category : 'reverting - diagrams' }
+CPDefinitionsSourceMaterializer >> revertDiagram: anIdentifier in: aSourceClass [
+	| localPragma inheritedPragma selector |
+	localPragma := self
+		localPragmaNamed: #diagram:process:
+		identifier: anIdentifier
+		for: aSourceClass.
+	localPragma ifNil: [
+		self error: 'There is no local Diagram contribution to revert' ].
+	inheritedPragma := self
+		inheritedPragmaNamed: #diagram:process:
+		identifier: anIdentifier
+		for: aSourceClass.
+	inheritedPragma ifNil: [
+		self error: 'A local Diagram without an inherited contribution cannot be reverted' ].
+	selector := localPragma methodSelector.
+	aSourceClass class removeSelector: selector.
+	^ selector
+]

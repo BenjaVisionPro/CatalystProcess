@@ -159,3 +159,58 @@ CPTenantLifecycleSourceExamples >> saveInheritedProcessCreatesSpecialisationAndR
 	self assert: revertedResume label equals: 'Resume Tenant'.
 	^ reverted
 ]
+
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> saveInheritedDiagramCreatesIndependentSpecialisationAndRevertRestoresInheritance [
+	<gtExample>
+	| definitions diagram process selector reloaded reloadedDiagram reloadedProcess revertedSelector reverted revertedDiagram revertedProcess |
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #suspendTenant
+		in: CustomerInheritedTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedDiagram: #suspendTenantOverview
+		in: CustomerInheritedTenantLifecycle).
+
+	diagram := definitions diagrams
+		detect: [ :each | each identifier = #suspendTenantOverview ].
+	process := diagram plane modelElement.
+	selector := CPDefinitionsSourceMaterializer
+		saveDiagram: diagram
+		in: CustomerInheritedTenantLifecycle.
+	self assert: selector equals: #suspendTenantOverview.
+	self assert: (CPDefinitionsSourceMaterializer
+		isSpecialisedDiagram: #suspendTenantOverview
+		in: CustomerInheritedTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #suspendTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	reloaded := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	reloadedDiagram := reloaded diagrams
+		detect: [ :each | each identifier = #suspendTenantOverview ].
+	reloadedProcess := reloaded rootElements
+		detect: [ :each | each identifier = #suspendTenant ].
+	self assert: reloadedDiagram plane modelElement == reloadedProcess.
+	self assert: reloadedProcess label equals: process label.
+
+	revertedSelector := CPDefinitionsSourceMaterializer
+		revertDiagram: #suspendTenantOverview
+		in: CustomerInheritedTenantLifecycle.
+	self assert: revertedSelector equals: selector.
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedDiagram: #suspendTenantOverview
+		in: CustomerInheritedTenantLifecycle).
+	self assert: (CPDefinitionsSourceMaterializer
+		isInheritedProcess: #suspendTenant
+		in: CustomerInheritedTenantLifecycle).
+
+	reverted := CPDefinitionsSourceMaterializer materialize: CustomerInheritedTenantLifecycle.
+	revertedDiagram := reverted diagrams
+		detect: [ :each | each identifier = #suspendTenantOverview ].
+	revertedProcess := reverted rootElements
+		detect: [ :each | each identifier = #suspendTenant ].
+	self assert: revertedDiagram plane modelElement == revertedProcess.
+	^ reverted
+]
