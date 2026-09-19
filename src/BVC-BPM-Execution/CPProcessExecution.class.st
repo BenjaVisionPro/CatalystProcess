@@ -6,7 +6,8 @@ Class {
 		'tenant',
 		'startedBy',
 		'environment',
-		'started'
+		'started',
+		'completed'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -42,7 +43,8 @@ CPProcessExecution >> environment: anExecutionEnvironment [ environment := anExe
 { #category : 'initialization' }
 CPProcessExecution >> initialize [
 	super initialize.
-	started := false
+	started := false.
+	completed := false
 ]
 
 { #category : 'testing' }
@@ -60,4 +62,29 @@ CPProcessExecution >> start [
 	started := true.
 	executions := startEvents collect: [ :each | self executeStartEvent: each occurrence: nil ].
 	^ executions
+]
+
+
+{ #category : 'testing' }
+CPProcessExecution >> isCompleted [
+	^ completed
+]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> canComplete [
+	started ifFalse: [ ^ false ].
+	completed ifTrue: [ ^ false ].
+	(self flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
+	(self activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
+	self allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
+	^ true
+]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> complete [
+	self canComplete ifFalse: [
+		self error: 'A Process execution cannot complete while executable or waiting work remains.' ].
+	completed := true.
+	^ self
 ]

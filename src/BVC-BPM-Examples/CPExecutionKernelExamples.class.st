@@ -1200,3 +1200,49 @@ CPExecutionKernelExamples >> processExecutionCannotStartTwice [
 	self assert: execution isStarted.
 	^ execution
 ]
+
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> processExecutionCompletesWhenNoWorkRemains [
+	<gtExample>
+	| process start end flow execution activation |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	end := CPNoneEndEvent new identifier: 'end'; yourself.
+	flow := CPSequenceFlow new identifier: 'toEnd'; sourceRef: start; targetRef: end; yourself.
+	process addFlowElement: start; addFlowElement: end; addFlowElement: flow.
+	execution := self executionFor: process.
+	execution start.
+	self assert: execution isCompleted not.
+	self assert: execution canComplete not.
+	activation := (execution availableFlowActivationsOn: flow) first.
+	execution executeEndEvent: end consuming: activation.
+	self assert: execution canComplete.
+	execution complete.
+	self assert: execution isCompleted.
+	^ execution
+]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> processExecutionCannotCompleteWhileMessageWaits [
+	<gtExample>
+	| process start receive message flow execution receiveExecution rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receive := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	flow := CPSequenceFlow new identifier: 'toReceive'; sourceRef: start; targetRef: receive; yourself.
+	process addFlowElement: start; addFlowElement: receive; addFlowElement: flow.
+	execution := self executionFor: process.
+	execution start.
+	receiveExecution := execution createReceiveTaskExecutionFor: receive.
+	receiveExecution consumeFlowActivation: (execution availableFlowActivationsOn: flow) first.
+	execution activateReceiveTaskExecution: receiveExecution.
+	self assert: execution canComplete not.
+	rejected := false.
+	[ execution complete ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isCompleted not.
+	self assert: receiveExecution isWaitingForMessage.
+	^ execution
+]
