@@ -516,3 +516,76 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
 			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
 ]
+
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcessWithDiagram [
+	<gtExample>
+	| definitions root context process start finish flow diagram shape edge roots diagrams reloaded |
+	[
+		(AdminTenantLifecycle class includesSelector: #reviewTenantAccessOverview)
+			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccessOverview ].
+		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ].
+		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: definitions sourceClass: AdminTenantLifecycle.
+		context := CPDefinitionsMementoContext memento: root.
+
+		process := (CPProcess identifier: #reviewTenantAccess)
+			label: 'Review Tenant Access';
+			yourself.
+		start := (CPStartEvent identifier: #reviewRequested)
+			label: 'Review requested';
+			yourself.
+		finish := (CPEndEvent identifier: #reviewCompleted)
+			label: 'Review completed';
+			yourself.
+		flow := CPSequenceFlow identifier: #reviewToCompletion.
+		flow sourceRef: start.
+		flow targetRef: finish.
+		process addFlowElement: start; addFlowElement: finish; addFlowElement: flow.
+
+		diagram := CPDiagram identifier: #reviewTenantAccessOverview.
+		shape := CPShape new modelElement: start; bounds: (80 @ 120 extent: 42 @ 42); yourself.
+		diagram addElement: shape.
+		shape := CPShape new modelElement: finish; bounds: (220 @ 120 extent: 42 @ 42); yourself.
+		diagram addElement: shape.
+		edge := CPEdge new modelElement: flow; yourself.
+		edge addWaypoint: 122 @ 141; addWaypoint: 220 @ 141.
+		diagram addElement: edge.
+		diagram plane modelElement: process.
+
+		roots := context rootElements copyWith: process.
+		diagrams := context diagrams copyWith: diagram.
+		context writeRootElements: roots.
+		context writeDiagrams: diagrams.
+		CPDefinitionsSourceMaterializer new
+			saveSourceChangesFromMemento: root
+			in: AdminTenantLifecycle.
+
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]).
+		self assert: (reloaded diagrams anySatisfy: [ :each | each identifier = #reviewTenantAccessOverview ]).
+		diagram := reloaded diagrams detect: [ :each | each identifier = #reviewTenantAccessOverview ].
+		self assert: diagram plane modelElement identifier equals: #reviewTenantAccess.
+		self assert: diagram plane elements size equals: 3.
+
+		root := CPDefinitionsSourceMemento model: reloaded sourceClass: AdminTenantLifecycle.
+		context := CPDefinitionsMementoContext memento: root.
+		diagrams := context diagrams reject: [ :each | each identifier = #reviewTenantAccessOverview ].
+		roots := context rootElements reject: [ :each | each identifier = #reviewTenantAccess ].
+		context writeDiagrams: diagrams.
+		context writeRootElements: roots.
+		CPDefinitionsSourceMaterializer new
+			saveSourceChangesFromMemento: root
+			in: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]) not.
+		self assert: (reloaded diagrams anySatisfy: [ :each | each identifier = #reviewTenantAccessOverview ]) not.
+		^ reloaded
+	] ensure: [
+		(AdminTenantLifecycle class includesSelector: #reviewTenantAccessOverview)
+			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccessOverview ].
+		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
+]
