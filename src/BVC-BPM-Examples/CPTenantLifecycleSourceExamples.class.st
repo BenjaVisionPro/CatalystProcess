@@ -480,3 +480,39 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoSavesProcessAndDiagramToge
 		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
 		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle ]
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess [
+	<gtExample>
+	| definitions root context localProcess staged reloaded |
+	[
+		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ].
+		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: definitions sourceClass: AdminTenantLifecycle.
+		context := CPDefinitionsMementoContext memento: root.
+		localProcess := (CPProcess identifier: #reviewTenantAccess)
+			label: 'Review Tenant Access';
+			yourself.
+		staged := context rootElements copyWith: localProcess.
+		context writeRootElements: staged.
+		CPDefinitionsSourceMaterializer new
+			saveSourceChangesFromMemento: root
+			in: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]).
+
+		root := CPDefinitionsSourceMemento model: reloaded sourceClass: AdminTenantLifecycle.
+		context := CPDefinitionsMementoContext memento: root.
+		staged := context rootElements reject: [ :each | each identifier = #reviewTenantAccess ].
+		context writeRootElements: staged.
+		CPDefinitionsSourceMaterializer new
+			saveSourceChangesFromMemento: root
+			in: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]) not.
+		^ reloaded
+	] ensure: [
+		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
+]

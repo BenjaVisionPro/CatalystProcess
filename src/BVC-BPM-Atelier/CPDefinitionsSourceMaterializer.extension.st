@@ -33,37 +33,68 @@ CPDefinitionsSourceMaterializer >> saveMemento: aDefinitionsMemento in: aSourceC
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> saveSourceChangesFromMemento: aDefinitionsMemento in: aSourceClass [
-	| context saves |
+	| context definitions stagedRoots stagedDiagrams saves removals |
 	context := CPDefinitionsMementoContext memento: aDefinitionsMemento.
 	self validateSourceBackedRelationsIn: context.
+	definitions := aDefinitionsMemento model.
+	stagedRoots := context rootElements.
+	stagedDiagrams := context diagrams.
 	saves := OrderedCollection new.
-	context rootElements do: [ :each |
-		each class = CPProcess ifTrue: [
-			| processMemento |
-			processMemento := context mementoForRootElement: each.
-			processMemento hasChangesToCommit ifTrue: [
-				saves add: (self processSourceSaveForMemento: processMemento in: aSourceClass) ] ] ].
-	context diagrams do: [ :each |
+	removals := OrderedCollection new.
+
+	stagedRoots do: [ :each |
+		| processMemento |
+		processMemento := context mementoForRootElement: each.
+		((definitions rootElements identityIncludes: each) not
+			or: [ processMemento hasChangesToCommit ]) ifTrue: [
+			saves add: (self processSourceSaveForMemento: processMemento in: aSourceClass) ] ].
+	stagedDiagrams do: [ :each |
 		| diagramMemento |
 		diagramMemento := context mementoForDiagram: each.
-		diagramMemento hasChangesToCommit ifTrue: [
+		((definitions diagrams identityIncludes: each) not
+			or: [ diagramMemento hasChangesToCommit ]) ifTrue: [
 			saves add: (self diagramSourceSaveForMemento: diagramMemento in: aSourceClass) ] ].
-	"Validate every staged source unit before mutating the class."
+
+	definitions diagrams do: [ :each |
+		(stagedDiagrams identityIncludes: each) ifFalse: [
+			| pragma |
+			pragma := self localPragmaNamed: #diagram:process: identifier: each identifier for: aSourceClass.
+			pragma ifNil: [
+				(self inheritedPragmaNamed: #diagram:process: identifier: each identifier for: aSourceClass)
+					ifNotNil: [ self error: 'An inherited Diagram cannot be deleted; specialise or revert it instead' ] ]
+				ifNotNil: [ removals add: pragma methodSelector ] ] ].
+	definitions rootElements do: [ :each |
+		(stagedRoots identityIncludes: each) ifFalse: [
+			| pragma |
+			pragma := self localPragmaNamed: #process: identifier: each identifier for: aSourceClass.
+			pragma ifNil: [
+				(self inheritedPragmaNamed: #process: identifier: each identifier for: aSourceClass)
+					ifNotNil: [ self error: 'An inherited Process cannot be deleted; specialise or revert it instead' ] ]
+				ifNotNil: [
+					(stagedDiagrams anySatisfy: [ :diagram | diagram plane modelElement == each ]) ifTrue: [
+						self error: 'A Process cannot be deleted while a staged Diagram references it' ].
+					removals add: pragma methodSelector ] ] ].
+
+	"Prepare every source unit before mutating the source class."
 	saves do: [ :each | aSourceClass class compiler source: each second; parse ].
+	removals do: [ :selector | aSourceClass class removeSelector: selector ].
 	saves do: [ :each | aSourceClass class compile: each second ].
 	^ saves collect: [ :each | each first ]
-]
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> validateSourceBackedRelationsIn: aDocumentContext [
-	| definitions stagedRoots stagedDiagrams |
-	definitions := aDocumentContext definitionsMemento model.
+	| stagedRoots stagedDiagrams |
 	stagedRoots := aDocumentContext rootElements.
 	stagedDiagrams := aDocumentContext diagrams.
-	(self sameIdentities: stagedRoots as: definitions rootElements) ifFalse: [
-		self error: 'Atelier source saving does not yet support adding, removing, or reordering Definitions root elements' ].
-	(self sameIdentities: stagedDiagrams as: definitions diagrams) ifFalse: [
-		self error: 'Atelier source saving does not yet support adding, removing, or reordering Diagrams' ]
+	aDocumentContext validateRootElements: stagedRoots.
+	aDocumentContext validateDiagrams: stagedDiagrams.
+	stagedRoots do: [ :each |
+		each class = CPProcess ifFalse: [
+			self error: 'Source-backed structural editing currently supports Processes only' ] ].
+	stagedDiagrams do: [ :each |
+		(each plane modelElement notNil
+			and: [ stagedRoots identityIncludes: each plane modelElement ]) ifFalse: [
+			self error: 'Every source-backed Diagram must reference a staged Process' ] ]
 ]
 
 { #category : '*BVC-BPM-Atelier' }
