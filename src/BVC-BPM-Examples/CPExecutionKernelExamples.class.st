@@ -826,3 +826,34 @@ CPExecutionKernelExamples >> receiveTaskRejectsDuplicateMessageOccurrence [
 	self assert: receiveExecution isCompleted.
 	^ receiveExecution
 ]
+
+
+{ #category : 'examples - receive task' }
+CPExecutionKernelExamples >> receiveTaskRejectsOccurrenceForDifferentMessage [
+	<gtExample>
+	| process expectedMessage otherMessage receive execution receiveExecution occurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	expectedMessage := CPMessage new identifier: 'expected'; yourself.
+	otherMessage := CPMessage new identifier: 'other'; yourself.
+	receive := CPReceiveTask new
+		identifier: 'receiveExpected';
+		messageRef: expectedMessage;
+		yourself.
+	process addFlowElement: receive.
+	execution := self executionFor: process.
+	receiveExecution := execution createReceiveTaskExecutionFor: receive.
+	execution activateReceiveTaskExecution: receiveExecution.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #other1;
+		definition: otherMessage;
+		yourself.
+	rejected := false.
+	[ execution triggerReceiveTaskExecution: receiveExecution with: occurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: receiveExecution isWaitingForMessage.
+	self assert: receiveExecution receivedOccurrence isNil.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #other1) not.
+	^ receiveExecution
+]

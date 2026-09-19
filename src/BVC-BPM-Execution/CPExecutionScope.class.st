@@ -614,10 +614,14 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 
 { #category : 'activities - receive' }
 CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOccurrence [
+	| expectedMessage |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
 		self error: 'The Receive Task execution does not belong to this execution scope.' ].
 	anActivityExecution isWaitingForMessage ifFalse: [
 		self error: 'Only a waiting Receive Task can accept a message occurrence.' ].
+	expectedMessage := anActivityExecution definition messageRef.
+	anOccurrence definition == expectedMessage ifFalse: [
+		self error: 'The occurrence does not carry the Message awaited by this Receive Task.' ].
 	self acceptOccurrence: anOccurrence.
 	anActivityExecution acceptReceivedOccurrence: anOccurrence.
 	anActivityExecution beginCompletion.
