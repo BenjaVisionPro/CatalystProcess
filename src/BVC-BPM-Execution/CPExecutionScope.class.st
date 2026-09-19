@@ -592,3 +592,36 @@ CPExecutionScope >> completeServiceTaskExecution: anActivityExecution withResult
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
 ]
+
+{ #category : 'building' }
+CPExecutionScope >> createReceiveTaskExecutionFor: aReceiveTask [
+	^ self addActivityExecution: (CPReceiveTaskExecution new
+		definition: aReceiveTask;
+		yourself)
+]
+
+{ #category : 'activities - receive' }
+CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Receive Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Receive Task execution can become Active.' ].
+	anActivityExecution definition messageRef ifNil: [
+		self error: 'A Receive Task requires a Message.' ].
+	anActivityExecution activate.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - receive' }
+CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOccurrence [
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Receive Task execution does not belong to this execution scope.' ].
+	anActivityExecution isWaitingForMessage ifFalse: [
+		self error: 'Only a waiting Receive Task can accept a message occurrence.' ].
+	self acceptOccurrence: anOccurrence.
+	anActivityExecution acceptReceivedOccurrence: anOccurrence.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]

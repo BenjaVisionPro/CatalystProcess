@@ -768,3 +768,61 @@ CPExecutionKernelExamples >> serviceTaskRejectsDuplicateExternalResult [
 	self assert: invocation isCompleted.
 	^ serviceExecution
 ]
+
+{ #category : 'examples - receive task' }
+CPExecutionKernelExamples >> receiveTaskWaitsForMessageOccurrence [
+	<gtExample>
+	| process message receive after outgoing execution receiveExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'request'; yourself.
+	receive := CPReceiveTask new
+		identifier: 'receiveRequest';
+		messageRef: message;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	outgoing := CPSequenceFlow new
+		identifier: 'afterReceive';
+		sourceRef: receive;
+		targetRef: after;
+		yourself.
+	process addFlowElement: receive.
+	process addFlowElement: after.
+	process addFlowElement: outgoing.
+	execution := self executionFor: process.
+	receiveExecution := execution createReceiveTaskExecutionFor: receive.
+	execution activateReceiveTaskExecution: receiveExecution.
+	self assert: receiveExecution isWaitingForMessage.
+	self assert: receiveExecution isCompleted not.
+	self assert: execution flowActivations isEmpty.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #request1;
+		definition: message;
+		yourself.
+	execution triggerReceiveTaskExecution: receiveExecution with: occurrence.
+	self assert: receiveExecution receivedOccurrence == occurrence.
+	self assert: receiveExecution isCompleted.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #request1).
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ receiveExecution
+]
+
+{ #category : 'examples - receive task' }
+CPExecutionKernelExamples >> receiveTaskRejectsDuplicateMessageOccurrence [
+	<gtExample>
+	| receiveExecution execution occurrence duplicateRejected |
+	receiveExecution := self receiveTaskWaitsForMessageOccurrence.
+	execution := receiveExecution scope.
+	occurrence := receiveExecution receivedOccurrence.
+	duplicateRejected := false.
+	[ execution
+		triggerReceiveTaskExecution: receiveExecution
+		with: (CPExecutionOccurrence new
+			occurrenceIdentifier: occurrence occurrenceIdentifier;
+			definition: occurrence definition;
+			yourself) ]
+		on: Error
+		do: [ :error | duplicateRejected := true ].
+	self assert: duplicateRejected.
+	self assert: receiveExecution isCompleted.
+	^ receiveExecution
+]
