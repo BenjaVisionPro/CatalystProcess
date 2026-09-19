@@ -303,6 +303,11 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 			each class = CPServiceTask ifTrue: [
 				each implementation = '##WebService' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'implementation: '; nextPutAll: each implementation storeString; nextPutAll: ';'; cr ].
 				each operationRef ifNotNil: [ :anOperation | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'operationRef: (CPOperation identifier: '; nextPutAll: anOperation identifier storeString; nextPutAll: ');'; cr ] ].
+			(each class = CPSendTask or: [ each class = CPReceiveTask ]) ifTrue: [
+				each implementation = '##WebService' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'implementation: '; nextPutAll: each implementation storeString; nextPutAll: ';'; cr ].
+				each messageRef ifNotNil: [ :aMessage | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'messageRef: (CPMessage identifier: '; nextPutAll: aMessage identifier storeString; nextPutAll: ');'; cr ].
+				each operationRef ifNotNil: [ :anOperation | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'operationRef: (CPOperation identifier: '; nextPutAll: anOperation identifier storeString; nextPutAll: ');'; cr ].
+				each class = CPReceiveTask ifTrue: [ each instantiate ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'instantiate: true;'; cr ] ] ].
 			each isGateway ifTrue: [
 				each gatewayDirection = 'Unspecified' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: (self sourceSelectorForGatewayDirection: each gatewayDirection); nextPutAll: ';'; cr ] ].
 			out
@@ -393,6 +398,11 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 			each hasValidGatewayDirection ifFalse: [ self error: 'Gateway direction is inconsistent with its incoming and outgoing Sequence Flows' ] ].
 		each class = CPServiceTask ifTrue: [
 			each operationRef ifNotNil: [ :anOperation | anOperation identifier ifNil: [ self error: 'A source-backed Service Task Operation requires a stable identifier' ] ] ].
+		(each class = CPSendTask or: [ each class = CPReceiveTask ]) ifTrue: [
+			each messageRef ifNotNil: [ :aMessage | aMessage identifier ifNil: [ self error: 'A source-backed messaging Task Message requires a stable identifier' ] ].
+			each operationRef ifNotNil: [ :anOperation | anOperation identifier ifNil: [ self error: 'A source-backed messaging Task Operation requires a stable identifier' ] ].
+			each class = CPReceiveTask ifTrue: [
+				each instantiate ifTrue: [ each incoming isEmpty ifFalse: [ self error: 'An instantiating Receive Task must not have incoming Sequence Flows' ] ] ] ].
 		each isActivity ifTrue: [
 			each resources ifNotEmpty: [ self error: 'Process source saving does not yet support Activity resources' ].
 			(each startQuantity isInteger and: [ each startQuantity >= 1 ]) ifFalse: [ self error: 'Activity startQuantity must be an integer greater than or equal to 1' ].
@@ -728,15 +738,24 @@ CPDefinitionsSourceMaterializer >> versionOfSourceFor: aSourceClass [
 
 { #category : 'private - materializing' }
 CPDefinitionsSourceMaterializer >> canonicalizeExternalReferencesIn: aProcess from: definitions [
-	| operationsByIdentifier |
+	| operationsByIdentifier messagesByIdentifier |
 	operationsByIdentifier := Dictionary new.
+	messagesByIdentifier := Dictionary new.
 	definitions rootElements do: [ :aRoot |
 		aRoot class = CPInterface ifTrue: [
 			aRoot operations do: [ :anOperation |
 				(operationsByIdentifier includesKey: anOperation identifier) ifTrue: [ self error: 'Operation identifiers must be unique within Definitions' ].
-				operationsByIdentifier at: anOperation identifier put: anOperation ] ] ].
+				operationsByIdentifier at: anOperation identifier put: anOperation ] ].
+		aRoot class = CPMessage ifTrue: [
+			(messagesByIdentifier includesKey: aRoot identifier) ifTrue: [ self error: 'Message identifiers must be unique within Definitions' ].
+			messagesByIdentifier at: aRoot identifier put: aRoot ] ].
 	aProcess flowElements do: [ :each |
 		each class = CPServiceTask ifTrue: [
 			each operationRef ifNotNil: [ :anOperation |
-				each operationRef: (operationsByIdentifier at: anOperation identifier ifAbsent: [ self error: 'Service Task references an Operation that is not present in its Definitions' ]) ] ] ]
+				each operationRef: (operationsByIdentifier at: anOperation identifier ifAbsent: [ self error: 'Service Task references an Operation that is not present in its Definitions' ]) ] ].
+		(each class = CPSendTask or: [ each class = CPReceiveTask ]) ifTrue: [
+			each messageRef ifNotNil: [ :aMessage |
+				each messageRef: (messagesByIdentifier at: aMessage identifier ifAbsent: [ self error: 'Messaging Task references a Message that is not present in its Definitions' ]) ].
+			each operationRef ifNotNil: [ :anOperation |
+				each operationRef: (operationsByIdentifier at: anOperation identifier ifAbsent: [ self error: 'Messaging Task references an Operation that is not present in its Definitions' ]) ] ] ]
 ]
