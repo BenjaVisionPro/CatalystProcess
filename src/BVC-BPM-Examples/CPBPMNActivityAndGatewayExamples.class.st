@@ -44,3 +44,32 @@ CPBPMNActivityAndGatewayExamples >> divergingGatewayDirection [
 	self assert: gateway hasValidGatewayDirection.
 	^ gateway
 ]
+
+{ #category : 'examples - gateways' }
+CPBPMNActivityAndGatewayExamples >> complexGatewayContract [
+	<gtExample>
+	| gateway target defaultFlow condition |
+	gateway := CPComplexGateway identifier: #complexDecision.
+	target := CPTask identifier: #continue.
+	defaultFlow := (CPSequenceFlow identifier: #otherwise) sourceRef: gateway; targetRef: target; yourself.
+	condition := (CPFormalExpression identifier: #activation) body: 'ready'; yourself.
+	gateway activationCondition: condition; default: defaultFlow.
+	self assert: gateway activationCondition equals: condition.
+	self assert: (gateway isDefaultFlow: defaultFlow).
+	self assert: gateway hasValidDefaultFlow.
+	^ gateway
+]
+
+{ #category : 'examples - gateways' }
+CPBPMNActivityAndGatewayExamples >> eventBasedGatewayContract [
+	<gtExample>
+	| gateway |
+	gateway := CPEventBasedGateway identifier: #awaitEvent.
+	self assert: gateway instantiate not.
+	self assert: gateway eventGatewayType equals: 'Exclusive'.
+	self assert: gateway hasValidEventGatewayType.
+	gateway instantiate: true; beParallel.
+	self assert: gateway eventGatewayType equals: 'Parallel'.
+	self assert: gateway hasValidEventGatewayType.
+	^ gateway
+]
