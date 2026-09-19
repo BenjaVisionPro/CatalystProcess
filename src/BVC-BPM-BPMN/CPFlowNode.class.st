@@ -125,3 +125,10 @@ CPFlowNode >> isBoundaryEvent [
 CPFlowNode >> isFlowNode [
 	^ true
 ]
+
+
+{ #category : 'testing' }
+CPFlowNode >> isDefaultFlow: aSequenceFlow [ ^ false ]
+
+{ #category : 'validation' }
+CPFlowNode >> hasValidDefaultFlow [ ^ true ]

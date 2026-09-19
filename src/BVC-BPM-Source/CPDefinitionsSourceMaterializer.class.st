@@ -293,6 +293,12 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				nextPutAll: ' put: (('; nextPutAll: each class name; nextPutAll: ' identifier: '; nextPutAll: each identifier storeString; nextPutAll: ')'; cr.
 			each label ifNotNil: [
 				out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: each label storeString; nextPutAll: ';'; cr ].
+			each isActivity ifTrue: [
+				each isForCompensation ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'isForCompensation: true;'; cr ].
+				each startQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'startQuantity: '; nextPutAll: each startQuantity storeString; nextPutAll: ';'; cr ].
+				each completionQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'completionQuantity: '; nextPutAll: each completionQuantity storeString; nextPutAll: ';'; cr ] ].
+			each isGateway ifTrue: [
+				each gatewayDirection = 'Unspecified' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: (self sourceSelectorForGatewayDirection: each gatewayDirection); nextPutAll: ';'; cr ] ].
 			out
 				nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'yourself).'; cr;
 				nextPutAll: String tab; nextPutAll: 'process addFlowElement: (nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr.
@@ -312,12 +318,21 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				nextPutAll: String tab; nextPutAll: 'process addFlowElement: flow.'; cr;
 				nextPutAll: String tab; nextPutAll: 'flowByIdentifier at: '; nextPutAll: each identifier storeString; nextPutAll: ' put: flow.'; cr ].
 		flows do: [ :each |
-			(each sourceRef isGateway and: [ each sourceRef isDefaultFlow: each ]) ifTrue: [
+			(each sourceRef isDefaultFlow: each) ifTrue: [
 				out
 					nextPutAll: String tab; nextPutAll: '(nodes at: '; nextPutAll: each sourceRef identifier storeString;
 					nextPutAll: ') default: (flowByIdentifier at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr ] ].
 		out nextPutAll: String tab; nextPutAll: '^ process' ].
 	^ stream
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> sourceSelectorForGatewayDirection: aDirection [
+	aDirection = 'Converging' ifTrue: [ ^ 'beConverging' ].
+	aDirection = 'Diverging' ifTrue: [ ^ 'beDiverging' ].
+	aDirection = 'Mixed' ifTrue: [ ^ 'beMixed' ].
+	aDirection = 'Unspecified' ifTrue: [ ^ 'beUnspecified' ].
+	self error: 'Invalid BPMN gateway direction'
 ]
 
 { #category : 'private - saving' }
@@ -365,8 +380,13 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 	self validateProcess: aProcess identifier: aProcess identifier.
 	identifiers := Set new.
 	aProcess flowElements do: [ :each |
-		(each isGateway and: [ each hasValidDefaultFlow not ]) ifTrue: [
-			self error: 'A Gateway default must reference one of its outgoing Sequence Flows' ].
+		each hasValidDefaultFlow ifFalse: [
+			self error: 'A default must reference one of its source node''s outgoing Sequence Flows' ].
+		each isGateway ifTrue: [
+			each hasValidGatewayDirection ifFalse: [ self error: 'Gateway direction is inconsistent with its incoming and outgoing Sequence Flows' ] ].
+		each isActivity ifTrue: [
+			(each startQuantity isInteger and: [ each startQuantity >= 1 ]) ifFalse: [ self error: 'Activity startQuantity must be an integer greater than or equal to 1' ].
+			(each completionQuantity isInteger and: [ each completionQuantity >= 1 ]) ifFalse: [ self error: 'Activity completionQuantity must be an integer greater than or equal to 1' ] ].
 		(each isActivity and: [ each loopCharacteristics notNil ]) ifTrue: [
 			self validateLoopCharacteristicsForSourceSave: each loopCharacteristics ].
 		each identifier ifNil: [
@@ -389,9 +409,9 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 					self error: 'A Sequence Flow sourceRef must belong to its Process' ] ].
 			(aProcess flowElements identityIncludes: each targetRef) ifFalse: [
 				self error: 'A Sequence Flow targetRef must belong to its Process' ].
-			(each sourceRef isGateway and: [ each sourceRef isDefaultFlow: each ]) ifTrue: [
+			(each sourceRef isDefaultFlow: each) ifTrue: [
 				(each sourceRef outgoing identityIncludes: each) ifFalse: [
-					self error: 'A Gateway default must reference one of its outgoing Sequence Flows' ] ] ] ].
+					self error: 'A default must reference one of its source node''s outgoing Sequence Flows' ] ] ] ].
 	aProcess laneSets ifNotEmpty: [
 		self error: 'Process source saving does not yet support lane sets' ].
 	aProcess properties ifNotEmpty: [

@@ -6,7 +6,11 @@ Class {
 		'properties',
 		'dataInputAssociations',
 		'dataOutputAssociations',
-		'loopCharacteristics'
+		'loopCharacteristics',
+		'isForCompensation',
+		'startQuantity',
+		'completionQuantity',
+		'default'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -29,7 +33,10 @@ CPActivity >> initialize [
 	super initialize.
 	properties := OrderedCollection new.
 	dataInputAssociations := OrderedCollection new.
-	dataOutputAssociations := OrderedCollection new
+	dataOutputAssociations := OrderedCollection new.
+	isForCompensation := false.
+	startQuantity := 1.
+	completionQuantity := 1
 ]
 
 { #category : 'accessing' }
@@ -104,4 +111,49 @@ CPActivity >> loopCharacteristicsDescription [
 		priority: 180;
 		group: 'Execution';
 		yourself
+]
+
+
+{ #category : 'accessing' }
+CPActivity >> isForCompensation [ ^ isForCompensation ]
+{ #category : 'accessing' }
+CPActivity >> isForCompensation: aBoolean [ isForCompensation := aBoolean ]
+{ #category : 'accessing' }
+CPActivity >> startQuantity [ ^ startQuantity ]
+{ #category : 'accessing' }
+CPActivity >> startQuantity: anInteger [ startQuantity := anInteger ]
+{ #category : 'accessing' }
+CPActivity >> completionQuantity [ ^ completionQuantity ]
+{ #category : 'accessing' }
+CPActivity >> completionQuantity: anInteger [ completionQuantity := anInteger ]
+{ #category : 'accessing' }
+CPActivity >> default [ ^ default ]
+{ #category : 'accessing' }
+CPActivity >> default: aSequenceFlow [ default := aSequenceFlow ]
+
+{ #category : 'testing' }
+CPActivity >> isDefaultFlow: aSequenceFlow [ ^ default == aSequenceFlow ]
+
+{ #category : 'validation' }
+CPActivity >> hasValidDefaultFlow [ ^ default isNil or: [ self outgoing identityIncludes: default ] ]
+
+{ #category : 'descriptions' }
+CPActivity >> isForCompensationDescription [
+	<magritteDescription>
+	^ MABooleanDescription new accessor: #isForCompensation; label: 'For compensation'; priority: 190; group: 'Execution'; yourself
+]
+{ #category : 'descriptions' }
+CPActivity >> startQuantityDescription [
+	<magritteDescription>
+	^ MANumberDescription new accessor: #startQuantity; label: 'Start quantity'; priority: 200; group: 'Execution'; yourself
+]
+{ #category : 'descriptions' }
+CPActivity >> completionQuantityDescription [
+	<magritteDescription>
+	^ MANumberDescription new accessor: #completionQuantity; label: 'Completion quantity'; priority: 210; group: 'Execution'; yourself
+]
+{ #category : 'descriptions' }
+CPActivity >> defaultDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new accessor: #default; classes: { CPSequenceFlow }; reference: CPSequenceFlow new labelDescription; label: 'Default'; priority: 130; group: 'Relations'; yourself
 ]
