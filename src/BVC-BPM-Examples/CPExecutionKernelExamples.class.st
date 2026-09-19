@@ -627,8 +627,8 @@ CPExecutionKernelExamples >> completedCallActivityContinuesCallerControlFlow [
 	call := CPCallActivity new identifier: 'call'; calledElement: calledProcess; yourself.
 	after := CPTask new identifier: 'after'; yourself.
 	outerFlow := CPSequenceFlow new identifier: 'afterCall'; sourceRef: call; targetRef: after; yourself.
-	call outgoing add: outerFlow.
-	after incoming add: outerFlow.
+	self assert: (call outgoing occurrencesOf: outerFlow) equals: 1.
+	self assert: (after incoming occurrencesOf: outerFlow) equals: 1.
 	execution := self executionFor: process.
 	callExecution := execution createActivityExecutionFor: call.
 	execution environment callableElement: calledProcess resolvesTo: calledProcess.
