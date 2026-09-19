@@ -507,3 +507,42 @@ CPExecutionScope >> completeSubProcessActivity: anActivityExecution [
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
 ]
+
+{ #category : 'activities - call' }
+CPExecutionScope >> activateCallActivityExecution: anActivityExecution [
+	| callActivity calledProcess startEvents calledScope |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Call Activity execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Call Activity can be activated.' ].
+	callActivity := anActivityExecution definition.
+	calledProcess := callActivity calledElement.
+	calledProcess ifNil: [ self error: 'A Call Activity requires a called element.' ].
+	calledProcess isProcessDefinition ifFalse: [
+		self error: 'The called element is not an executable Process definition.' ].
+	startEvents := calledProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents := startEvents select: [ :each | each eventDefinitions isEmpty ].
+	startEvents size > 1 ifTrue: [
+		self error: 'A called Process can have at most one empty Start Event for control-flow invocation.' ].
+	anActivityExecution activate.
+	calledScope := anActivityExecution createSubScopeFor: calledProcess.
+	startEvents
+		ifNotEmpty: [ calledScope executeStartEvent: startEvents first occurrence: nil ]
+		ifEmpty: [ calledScope activateImplicitSubProcessStart ].
+	^ anActivityExecution
+]
+
+{ #category : 'activities - call' }
+CPExecutionScope >> canCompleteCallActivity: anActivityExecution [
+	^ self canCompleteSubProcessActivity: anActivityExecution
+]
+
+{ #category : 'activities - call' }
+CPExecutionScope >> completeCallActivity: anActivityExecution [
+	(self canCompleteCallActivity: anActivityExecution) ifFalse: [
+		self error: 'The Call Activity cannot complete while called Process control flow or Activities remain active.' ].
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]

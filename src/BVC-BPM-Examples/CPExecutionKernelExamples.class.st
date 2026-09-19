@@ -575,3 +575,57 @@ CPExecutionKernelExamples >> completedSubProcessContinuesParentControlFlow [
 	self assert: (execution availableFlowActivationsOn: outerFlow) size equals: 1.
 	^ subProcessExecution
 ]
+
+{ #category : 'examples - call activity' }
+CPExecutionKernelExamples >> callActivityCreatesOwnedCalledProcessScope [
+	<gtExample>
+	| process calledProcess start end innerFlow call execution callExecution childScope |
+	process := CPProcess new identifier: 'caller'; yourself.
+	calledProcess := CPProcess new identifier: 'called'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	end := CPNoneEndEvent new identifier: 'end'; yourself.
+	innerFlow := CPSequenceFlow new identifier: 'calledFlow'; sourceRef: start; targetRef: end; yourself.
+	calledProcess addFlowElement: start.
+	calledProcess addFlowElement: end.
+	calledProcess addFlowElement: innerFlow.
+	call := CPCallActivity new identifier: 'call'; calledElement: calledProcess; yourself.
+	execution := CPProcessExecution for: process.
+	callExecution := execution createActivityExecutionFor: call.
+	execution activateCallActivityExecution: callExecution.
+	childScope := callExecution subScope.
+	self assert: callExecution isActive.
+	self assert: childScope definition == calledProcess.
+	self assert: childScope parentScope == execution.
+	self assert: childScope owningActivity == callExecution.
+	self assert: (childScope availableFlowActivationsOn: innerFlow) size equals: 1.
+	^ callExecution
+]
+
+{ #category : 'examples - call activity' }
+CPExecutionKernelExamples >> completedCallActivityContinuesCallerControlFlow [
+	<gtExample>
+	| process calledProcess start end innerFlow call after outerFlow execution callExecution childScope endActivation |
+	process := CPProcess new identifier: 'caller'; yourself.
+	calledProcess := CPProcess new identifier: 'called'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	end := CPNoneEndEvent new identifier: 'end'; yourself.
+	innerFlow := CPSequenceFlow new identifier: 'calledFlow'; sourceRef: start; targetRef: end; yourself.
+	calledProcess addFlowElement: start.
+	calledProcess addFlowElement: end.
+	calledProcess addFlowElement: innerFlow.
+	call := CPCallActivity new identifier: 'call'; calledElement: calledProcess; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	outerFlow := CPSequenceFlow new identifier: 'afterCall'; sourceRef: call; targetRef: after; yourself.
+	call outgoing add: outerFlow.
+	after incoming add: outerFlow.
+	execution := CPProcessExecution for: process.
+	callExecution := execution createActivityExecutionFor: call.
+	execution activateCallActivityExecution: callExecution.
+	childScope := callExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeEndEvent: end consuming: endActivation.
+	execution completeCallActivity: callExecution.
+	self assert: callExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outerFlow) size equals: 1.
+	^ callExecution
+]

@@ -76,3 +76,8 @@ CPCallableElement >> ioBindingsDescription [
 		beOrdered;
 		yourself
 ]
+
+{ #category : 'testing' }
+CPCallableElement >> isProcessDefinition [
+	^ false
+]
