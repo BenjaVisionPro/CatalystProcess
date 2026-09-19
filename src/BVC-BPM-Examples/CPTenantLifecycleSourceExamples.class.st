@@ -15,7 +15,7 @@ CPTenantLifecycleSourceExamples >> marketplaceDefinitions [
 	self assert: definitions identifier equals: #tenantLifecycle.
 	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
 	self assert: definitions rootElements size equals: 9.
-	self assert: definitions diagrams size equals: 5.
+	self assert: definitions diagrams size equals: 6.
 
 	suspend := definitions rootElements
 		detect: [ :each | each identifier = #suspendTenant ].
@@ -51,7 +51,7 @@ CPTenantLifecycleSourceExamples >> customerDefinitionsUseNearestIdentityContribu
 	self assert: overview plane modelElement == suspend.
 	self assert: operations plane modelElement == suspend.
 	self assert: definitions rootElements size equals: 9.
-	self assert: definitions diagrams size equals: 5.
+	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
 

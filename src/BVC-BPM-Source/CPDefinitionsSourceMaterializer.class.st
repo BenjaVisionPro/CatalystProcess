@@ -278,8 +278,8 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 	stream := String streamContents: [ :out |
 		out
 			nextPutAll: aSelector asString; nextPutAll: ' ['; cr;
-			nextPutAll: String tab; nextPutAll: '<process: '; nextPutAll: aProcess identifier storeString; nextPutAll: '>'; cr;
 			nextPutAll: String tab; nextPutAll: '| process nodes flow |'; cr;
+			nextPutAll: String tab; nextPutAll: '<process: '; nextPutAll: aProcess identifier storeString; nextPutAll: '>'; cr;
 			nextPutAll: String tab; nextPutAll: 'process := (CPProcess identifier: '; nextPutAll: aProcess identifier storeString; nextPutAll: ')'; cr.
 		aProcess label ifNotNil: [
 			out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: aProcess label storeString; nextPutAll: ';'; cr ].
