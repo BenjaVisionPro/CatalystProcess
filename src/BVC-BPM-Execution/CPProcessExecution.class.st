@@ -10,6 +10,13 @@ Class {
 	#package : 'BVC-BPM-Execution'
 }
 
+{ #category : 'instance creation' }
+CPProcessExecution class >> for: aProcess [
+	^ self new
+		definition: aProcess;
+		yourself
+]
+
 { #category : 'accessing' }
 CPProcessExecution >> deployment [ ^ deployment ]
 { #category : 'accessing' }

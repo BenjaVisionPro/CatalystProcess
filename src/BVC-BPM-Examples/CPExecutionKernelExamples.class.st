@@ -29,18 +29,34 @@ CPExecutionKernelExamples >> completedActivityExecution [
 ]
 
 { #category : 'examples' }
-CPExecutionKernelExamples >> nestedExecutionScope [
+CPExecutionKernelExamples >> processExecutionOwnsActivityExecution [
 	<gtExample>
-	| process activity child |
-	process := CPProcessExecution new.
-	activity := CPActivityExecution new.
-	process addActivityExecution: activity.
-	child := CPExecutionScope new owningActivity: activity; yourself.
-	process addChildScope: child.
-	activity subScope: child.
-	self assert: child parentScope == process.
+	| processDefinition activityDefinition process activity |
+	processDefinition := CPProcess new identifier: 'process'; yourself.
+	activityDefinition := CPTask new identifier: 'task'; yourself.
+	process := CPProcessExecution for: processDefinition.
+	activity := process createActivityExecutionFor: activityDefinition.
+	self assert: process definition == processDefinition.
+	self assert: activity definition == activityDefinition.
 	self assert: activity scope == process.
+	self assert: (process activityExecutions includes: activity).
+	^ process
+]
+
+{ #category : 'examples' }
+CPExecutionKernelExamples >> activityExecutionOwnsNestedScope [
+	<gtExample>
+	| processDefinition subProcessDefinition process activity child |
+	processDefinition := CPProcess new identifier: 'process'; yourself.
+	subProcessDefinition := CPSubProcess new identifier: 'subProcess'; yourself.
+	process := CPProcessExecution for: processDefinition.
+	activity := process createActivityExecutionFor: subProcessDefinition.
+	child := activity createSubScopeFor: subProcessDefinition.
+	self assert: child definition == subProcessDefinition.
+	self assert: child parentScope == process.
+	self assert: child owningActivity == activity.
 	self assert: activity subScope == child.
+	self assert: (process childScopes includes: child).
 	^ process
 ]
 

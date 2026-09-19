@@ -13,6 +13,13 @@ Class {
 	#package : 'BVC-BPM-Execution'
 }
 
+{ #category : 'instance creation' }
+CPExecutionScope class >> for: aScopeDefinition ownedBy: anActivityExecution [
+	^ anActivityExecution attachSubScope: (self new
+		definition: aScopeDefinition;
+		yourself)
+]
+
 { #category : 'initialization' }
 CPExecutionScope >> initialize [
 	super initialize.
@@ -41,7 +48,13 @@ CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
 CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
 
 { #category : 'building' }
+CPExecutionScope >> createActivityExecutionFor: anActivity [
+	^ CPActivityExecution for: anActivity in: self
+]
+
+{ #category : 'building' }
 CPExecutionScope >> addActivityExecution: anActivityExecution [
+	anActivityExecution scope ifNotNil: [ self error: 'The Activity execution already belongs to an execution scope.' ].
 	anActivityExecution scope: self.
 	activityExecutions add: anActivityExecution.
 	^ anActivityExecution
@@ -49,6 +62,9 @@ CPExecutionScope >> addActivityExecution: anActivityExecution [
 
 { #category : 'building' }
 CPExecutionScope >> addChildScope: aScope [
+	aScope parentScope ifNotNil: [ self error: 'The execution scope already has a parent scope.' ].
+	aScope owningActivity ifNil: [ self error: 'A child execution scope must be owned by an Activity execution.' ].
+	aScope owningActivity scope == self ifFalse: [ self error: 'A child execution scope must be owned by an Activity execution in its parent scope.' ].
 	aScope parentScope: self.
 	childScopes add: aScope.
 	^ aScope
