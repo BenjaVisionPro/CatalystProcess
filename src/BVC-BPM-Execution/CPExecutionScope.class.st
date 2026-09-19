@@ -354,3 +354,43 @@ CPExecutionScope >> selectedOutgoingFlowsForInclusiveGateway: aGateway condition
 	aGateway default ifNotNil: [ :defaultFlow | ^ OrderedCollection with: defaultFlow ].
 	self error: 'No Inclusive Gateway condition evaluated to true and no default Sequence Flow is defined.'
 ]
+
+{ #category : 'events - intermediate catch' }
+CPExecutionScope >> beginIntermediateCatchEvent: anEvent consuming: anActivation [
+	| execution |
+	(anActivation isAvailable and: [ anEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'An Intermediate Catch Event requires an available activation from one of its incoming Sequence Flows.' ].
+	execution := CPIntermediateCatchEventExecution new
+		definition: anEvent;
+		scope: self;
+		yourself.
+	eventExecutions add: execution.
+	execution consumeFlowActivation: anActivation.
+	^ execution
+]
+
+{ #category : 'events - intermediate catch' }
+CPExecutionScope >> triggerIntermediateCatchEventExecution: anEventExecution with: anOccurrence [
+	(eventExecutions identityIncludes: anEventExecution) ifFalse: [
+		self error: 'The Intermediate Catch Event execution does not belong to this execution scope.' ].
+	anEventExecution isWaiting ifFalse: [
+		self error: 'Only a waiting Intermediate Catch Event can accept an occurrence.' ].
+	self acceptOccurrence: anOccurrence.
+	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ anEventExecution
+]
+
+{ #category : 'events - event based' }
+CPExecutionScope >> triggerEventBasedGatewayExecution: aGatewayExecution subscription: aSubscription with: anOccurrence [
+	| eventExecution |
+	(gatewayExecutions identityIncludes: aGatewayExecution) ifFalse: [
+		self error: 'The Event-Based Gateway execution does not belong to this execution scope.' ].
+	aGatewayExecution acceptOccurrence: anOccurrence for: aSubscription.
+	eventExecution := CPIntermediateCatchEventExecution new
+		definition: aSubscription target;
+		scope: self;
+		yourself.
+	eventExecutions add: eventExecution.
+	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ eventExecution
+]

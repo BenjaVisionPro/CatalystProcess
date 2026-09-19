@@ -386,3 +386,60 @@ CPExecutionKernelExamples >> inclusiveGatewayWaitsForReachableIncomingBranch [
 	self assert: (execution canExecuteInclusiveGateway: gateway).
 	^ execution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> intermediateCatchEventWaitsThenContinues [
+	<gtExample>
+	| process before event after incoming outgoing execution producer activation eventExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	event := CPMessageCatchIntermediateEvent new identifier: 'message'; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: event; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: event; targetRef: after; yourself.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginIntermediateCatchEvent: event consuming: activation.
+	self assert: eventExecution isWaiting.
+	self assert: activation isAvailable not.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #message1; definition: event; yourself.
+	execution triggerIntermediateCatchEventExecution: eventExecution with: occurrence.
+	self assert: eventExecution isTriggered.
+	self assert: eventExecution occurrence == occurrence.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> eventBasedGatewayWinningEventContinuesControlFlow [
+	<gtExample>
+	| process before gateway message timer afterMessage afterTimer incoming messageFlow timerFlow afterMessageFlow execution producer activation gatewayExecution messageSubscription occurrence eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'wait'; yourself.
+	message := CPMessageCatchIntermediateEvent new identifier: 'message'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; yourself.
+	afterMessage := CPTask new identifier: 'afterMessage'; yourself.
+	afterTimer := CPTask new identifier: 'afterTimer'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	messageFlow := CPSequenceFlow new identifier: 'messageFlow'; sourceRef: gateway; targetRef: message; yourself.
+	timerFlow := CPSequenceFlow new identifier: 'timerFlow'; sourceRef: gateway; targetRef: timer; yourself.
+	afterMessageFlow := CPSequenceFlow new identifier: 'afterMessageFlow'; sourceRef: message; targetRef: afterMessage; yourself.
+	CPSequenceFlow new identifier: 'afterTimerFlow'; sourceRef: timer; targetRef: afterTimer; yourself.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution beginExclusiveEventBasedGateway: gateway consuming: activation.
+	messageSubscription := gatewayExecution subscriptions detect: [ :each | each sequenceFlow == messageFlow ].
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #message1; definition: message; yourself.
+	eventExecution := execution
+		triggerEventBasedGatewayExecution: gatewayExecution
+		subscription: messageSubscription
+		with: occurrence.
+	self assert: eventExecution isTriggered.
+	self assert: (execution availableFlowActivationsOn: afterMessageFlow) size equals: 1.
+	self assert: (gatewayExecution subscriptions detect: [ :each | each sequenceFlow == timerFlow ]) isWithdrawn.
+	^ eventExecution
+]
