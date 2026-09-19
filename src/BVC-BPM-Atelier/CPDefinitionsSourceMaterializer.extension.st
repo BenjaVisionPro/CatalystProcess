@@ -76,10 +76,12 @@ CPDefinitionsSourceMaterializer >> sameIdentities: left as: right [
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> processSourceSaveForMemento: aProcessMemento in: aSourceClass [
-	| process identifier pragma selector source |
+	| process stagedProcess identifier pragma selector source |
 	process := aProcessMemento model.
 	identifier := process identifier.
 	self validateProcessMementoForSourceSave: aProcessMemento.
+	stagedProcess := process copy.
+	stagedProcess label: (aProcessMemento readUsing: process labelDescription).
 	pragma := self
 		localPragmaNamed: #process:
 		identifier: identifier
@@ -88,7 +90,7 @@ CPDefinitionsSourceMaterializer >> processSourceSaveForMemento: aProcessMemento 
 		ifNil: [ self initialSelectorFor: identifier in: aSourceClass ]
 		ifNotNil: [ pragma methodSelector ].
 	source := self
-		processSourceFor: process
+		processSourceFor: stagedProcess
 		selector: selector.
 	^ { selector. source }
 ]
