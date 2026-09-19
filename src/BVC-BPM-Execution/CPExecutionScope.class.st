@@ -11,7 +11,8 @@ Class {
 		'eventExecutions',
 		'flowActivations',
 		'acceptedOccurrences',
-		'timerSubscriptions'
+		'timerSubscriptions',
+		'messageSubscriptions'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -33,7 +34,8 @@ CPExecutionScope >> initialize [
 	eventExecutions := OrderedCollection new.
 	flowActivations := OrderedCollection new.
 	acceptedOccurrences := OrderedCollection new.
-	timerSubscriptions := OrderedCollection new
+	timerSubscriptions := OrderedCollection new.
+	messageSubscriptions := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -71,6 +73,14 @@ CPExecutionScope >> timerSubscriptions [ ^ timerSubscriptions ]
 { #category : 'events - timer' }
 CPExecutionScope >> waitingTimerSubscriptions [
 	^ timerSubscriptions select: #isWaiting
+]
+
+{ #category : 'accessing' }
+CPExecutionScope >> messageSubscriptions [ ^ messageSubscriptions ]
+
+{ #category : 'messages' }
+CPExecutionScope >> waitingMessageSubscriptions [
+	^ messageSubscriptions select: #isWaiting
 ]
 
 
@@ -612,6 +622,7 @@ CPExecutionScope >> createReceiveTaskExecutionFor: aReceiveTask [
 
 { #category : 'activities - receive' }
 CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
+	| subscription |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
 		self error: 'The Receive Task execution does not belong to this execution scope.' ].
 	anActivityExecution isReady ifFalse: [
@@ -619,20 +630,28 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 	anActivityExecution definition messageRef ifNil: [
 		self error: 'A Receive Task requires a Message.' ].
 	anActivityExecution activate.
+	subscription := CPMessageSubscription new
+		receiveTaskExecution: anActivityExecution;
+		message: anActivityExecution definition messageRef;
+		yourself.
+	anActivityExecution subscription: subscription.
+	messageSubscriptions add: subscription.
 	^ anActivityExecution
 ]
 
 { #category : 'activities - receive' }
 CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOccurrence [
-	| expectedMessage |
+	| subscription |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
 		self error: 'The Receive Task execution does not belong to this execution scope.' ].
 	anActivityExecution isWaitingForMessage ifFalse: [
 		self error: 'Only a waiting Receive Task can accept a message occurrence.' ].
-	expectedMessage := anActivityExecution definition messageRef.
-	anOccurrence definition == expectedMessage ifFalse: [
+	subscription := anActivityExecution subscription.
+	subscription ifNil: [ self error: 'The Receive Task has no Message subscription.' ].
+	anOccurrence definition == subscription message ifFalse: [
 		self error: 'The occurrence does not carry the Message awaited by this Receive Task.' ].
 	self acceptOccurrence: anOccurrence.
+	subscription triggerWith: anOccurrence.
 	anActivityExecution acceptReceivedOccurrence: anOccurrence.
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.

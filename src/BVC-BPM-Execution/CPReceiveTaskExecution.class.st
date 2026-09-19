@@ -2,7 +2,8 @@ Class {
 	#name : 'CPReceiveTaskExecution',
 	#superclass : 'CPActivityExecution',
 	#instVars : [
-		'receivedOccurrence'
+		'receivedOccurrence',
+		'subscription'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -10,6 +11,13 @@ Class {
 
 { #category : 'accessing' }
 CPReceiveTaskExecution >> receivedOccurrence [ ^ receivedOccurrence ]
+
+
+{ #category : 'accessing' }
+CPReceiveTaskExecution >> subscription [ ^ subscription ]
+
+{ #category : 'accessing' }
+CPReceiveTaskExecution >> subscription: aMessageSubscription [ subscription := aMessageSubscription ]
 
 { #category : 'testing' }
 CPReceiveTaskExecution >> isWaitingForMessage [

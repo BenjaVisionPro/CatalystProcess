@@ -792,6 +792,9 @@ CPExecutionKernelExamples >> receiveTaskWaitsForMessageOccurrence [
 	receiveExecution := execution createReceiveTaskExecutionFor: receive.
 	execution activateReceiveTaskExecution: receiveExecution.
 	self assert: receiveExecution isWaitingForMessage.
+	self assert: receiveExecution subscription isWaiting.
+	self assert: (execution messageSubscriptions occurrencesOf: receiveExecution subscription) equals: 1.
+	self assert: (execution waitingMessageSubscriptions occurrencesOf: receiveExecution subscription) equals: 1.
 	self assert: receiveExecution isCompleted not.
 	self assert: execution flowActivations isEmpty.
 	occurrence := CPExecutionOccurrence new
@@ -804,6 +807,23 @@ CPExecutionKernelExamples >> receiveTaskWaitsForMessageOccurrence [
 	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #request1).
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ receiveExecution
+]
+
+{ #category : 'examples - receive task' }
+CPExecutionKernelExamples >> receiveTaskCreatesDurableMessageSubscription [
+	<gtExample>
+	| receiveExecution execution subscription |
+	receiveExecution := self receiveTaskWaitsForMessageOccurrence.
+	execution := receiveExecution scope.
+	subscription := receiveExecution subscription.
+	self assert: subscription notNil.
+	self assert: subscription receiveTaskExecution == receiveExecution.
+	self assert: subscription message == receiveExecution definition messageRef.
+	self assert: subscription isTriggered.
+	self assert: subscription occurrence == receiveExecution receivedOccurrence.
+	self assert: (execution messageSubscriptions occurrencesOf: subscription) equals: 1.
+	self assert: (execution waitingMessageSubscriptions includes: subscription) not.
+	^ subscription
 ]
 
 { #category : 'examples - receive task' }
