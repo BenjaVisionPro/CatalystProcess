@@ -476,8 +476,6 @@ CPExecutionKernelExamples >> interruptingBoundaryEventTerminatesActivityAndConti
 	boundary := CPBoundaryEvent new identifier: 'timeout'; attachedToRef: activity; cancelActivity: true; yourself.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'timeoutFlow'; sourceRef: boundary; targetRef: after; yourself.
-	boundary outgoing add: flow.
-	after incoming add: flow.
 	execution := CPProcessExecution for: process.
 	activityExecution := execution createActivityExecutionFor: activity.
 	activityExecution activate.
@@ -499,8 +497,6 @@ CPExecutionKernelExamples >> nonInterruptingBoundaryEventLeavesActivityActive [
 	boundary := CPBoundaryEvent new identifier: 'notice'; attachedToRef: activity; cancelActivity: false; yourself.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'noticeFlow'; sourceRef: boundary; targetRef: after; yourself.
-	boundary outgoing add: flow.
-	after incoming add: flow.
 	execution := CPProcessExecution for: process.
 	activityExecution := execution createActivityExecutionFor: activity.
 	activityExecution activate.
@@ -524,8 +520,6 @@ CPExecutionKernelExamples >> errorBoundaryEventFailsActivityAndContinues [
 	boundary eventDefinitions add: errorDefinition.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'errorFlow'; sourceRef: boundary; targetRef: after; yourself.
-	boundary outgoing add: flow.
-	after incoming add: flow.
 	execution := CPProcessExecution for: process.
 	activityExecution := execution createActivityExecutionFor: activity.
 	activityExecution activate.
