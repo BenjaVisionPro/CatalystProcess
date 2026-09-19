@@ -392,6 +392,7 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 		each class = CPServiceTask ifTrue: [
 			each operationRef ifNotNil: [ :anOperation | anOperation identifier ifNil: [ self error: 'A source-backed Service Task Operation requires a stable identifier' ] ] ].
 		each isActivity ifTrue: [
+			each resources ifNotEmpty: [ self error: 'Process source saving does not yet support Activity resources' ].
 			(each startQuantity isInteger and: [ each startQuantity >= 1 ]) ifFalse: [ self error: 'Activity startQuantity must be an integer greater than or equal to 1' ].
 			(each completionQuantity isInteger and: [ each completionQuantity >= 1 ]) ifFalse: [ self error: 'Activity completionQuantity must be an integer greater than or equal to 1' ] ].
 		(each isActivity and: [ each loopCharacteristics notNil ]) ifTrue: [

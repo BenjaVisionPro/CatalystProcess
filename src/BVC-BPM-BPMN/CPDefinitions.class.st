@@ -110,7 +110,7 @@ CPDefinitions >> rootElementsDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new
 		accessor: #rootElements;
-		classes: { CPProcess. CPCollaboration. CPItemDefinition. CPDataStore. CPMessage. CPError. CPInterface };
+		classes: { CPProcess. CPCollaboration. CPItemDefinition. CPDataStore. CPMessage. CPError. CPInterface. CPResource };
 		reference: self identifierDescription;
 		label: 'Root elements';
 		priority: 100;

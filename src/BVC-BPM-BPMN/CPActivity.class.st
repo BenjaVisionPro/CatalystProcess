@@ -11,7 +11,8 @@ Class {
 		'startQuantity',
 		'completionQuantity',
 		'default',
-		'boundaryEventRefs'
+		'boundaryEventRefs',
+		'resources'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -38,7 +39,8 @@ CPActivity >> initialize [
 	isForCompensation := false.
 	startQuantity := 1.
 	completionQuantity := 1.
-	boundaryEventRefs := OrderedCollection new
+	boundaryEventRefs := OrderedCollection new.
+	resources := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -188,4 +190,15 @@ CPActivity >> boundaryEventRefsDescription [
 		group: 'Relations';
 		beReadOnly;
 		yourself
+]
+
+
+{ #category : 'accessing' }
+CPActivity >> resources [ ^ resources ]
+{ #category : 'accessing' }
+CPActivity >> resources: aCollection [ resources := aCollection asOrderedCollection ]
+{ #category : 'descriptions' }
+CPActivity >> resourcesDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new accessor: #resources; classes: { CPResourceRole }; reference: CPResourceRole new identifierDescription; label: 'Resources'; priority: 185; group: 'Execution'; beModifiable; beOrdered; newItemClassStencil: [ :aClass | aClass new ]; yourself
 ]
