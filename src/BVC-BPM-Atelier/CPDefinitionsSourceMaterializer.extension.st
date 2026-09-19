@@ -33,26 +33,25 @@ CPDefinitionsSourceMaterializer >> saveMemento: aDefinitionsMemento in: aSourceC
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> saveSourceChangesFromMemento: aDefinitionsMemento in: aSourceClass [
-	| context processSaves |
+	| context saves |
 	context := CPDefinitionsMementoContext memento: aDefinitionsMemento.
 	self validateSourceBackedRelationsIn: context.
-	processSaves := OrderedCollection new.
+	saves := OrderedCollection new.
 	context rootElements do: [ :each |
 		each class = CPProcess ifTrue: [
 			| processMemento |
 			processMemento := context mementoForRootElement: each.
 			processMemento hasChangesToCommit ifTrue: [
-				processSaves add: {
-					processMemento.
-					(self processSourceSaveForMemento: processMemento in: aSourceClass) } ] ] ].
+				saves add: (self processSourceSaveForMemento: processMemento in: aSourceClass) ] ] ].
 	context diagrams do: [ :each |
 		| diagramMemento |
 		diagramMemento := context mementoForDiagram: each.
 		diagramMemento hasChangesToCommit ifTrue: [
-			self error: 'Atelier source saving does not yet support staged Diagram edits' ] ].
-	processSaves do: [ :each |
-		aSourceClass class compile: each second second ].
-	^ processSaves collect: [ :each | each second first ]
+			saves add: (self diagramSourceSaveForMemento: diagramMemento in: aSourceClass) ] ].
+	"Validate every staged source unit before mutating the class."
+	saves do: [ :each | aSourceClass class compiler source: each second; parse ].
+	saves do: [ :each | aSourceClass class compile: each second ].
+	^ saves collect: [ :each | each first ]
 ]
 
 { #category : '*BVC-BPM-Atelier' }
@@ -89,24 +88,32 @@ CPDefinitionsSourceMaterializer >> processSourceSaveForMemento: aProcessMemento 
 		ifNil: [ self initialSelectorFor: identifier in: aSourceClass ]
 		ifNotNil: [ pragma methodSelector ].
 	source := self
-		processSourceForIdentifier: identifier
-		label: (aProcessMemento readUsing: process labelDescription)
+		processSourceFor: process
 		selector: selector.
 	^ { selector. source }
 ]
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> validateProcessMementoForSourceSave: aProcessMemento [
-	| process |
-	process := aProcessMemento model.
-	(aProcessMemento readUsing: process flowElementsDescription) ifNotEmpty: [
-		self error: 'Process source saving does not yet support flow elements' ].
-	(aProcessMemento readUsing: process laneSetsDescription) ifNotEmpty: [
-		self error: 'Process source saving does not yet support lane sets' ].
-	(aProcessMemento readUsing: process propertiesDescription) ifNotEmpty: [
-		self error: 'Process source saving does not yet support properties' ].
-	(aProcessMemento readUsing: process ioSpecificationDescription) ifNotNil: [
-		self error: 'Process source saving does not yet support input/output specifications' ].
-	(aProcessMemento readUsing: process definitionalCollaborationRefDescription) ifNotNil: [
-		self error: 'Process source saving does not yet support definitional collaborations' ]
+	self validateProcessForSourceSave: aProcessMemento model
+]
+
+{ #category : '*BVC-BPM-Atelier' }
+CPDefinitionsSourceMaterializer >> diagramSourceSaveForMemento: aDiagramMemento in: aSourceClass [
+	| diagram processIdentifier pragma selector source |
+	diagram := aDiagramMemento model.
+	self validateDiagramForSourceSave: diagram.
+	processIdentifier := diagram plane modelElement identifier.
+	pragma := self
+		localPragmaNamed: #diagram:process:
+		identifier: diagram identifier
+		for: aSourceClass.
+	selector := pragma
+		ifNil: [ self initialSelectorFor: diagram identifier in: aSourceClass ]
+		ifNotNil: [ pragma methodSelector ].
+	source := self
+		diagramSourceFor: diagram
+		processIdentifier: processIdentifier
+		selector: selector.
+	^ { selector. source }
 ]

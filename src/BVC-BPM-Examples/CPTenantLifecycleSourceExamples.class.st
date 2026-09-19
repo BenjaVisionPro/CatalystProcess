@@ -445,3 +445,33 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionDiagramAndRever
 	] ensure: [
 		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle ]
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> sourceBackedMementoSavesProcessAndDiagramTogether [
+	<gtExample>
+	| definitions root context process processMemento diagram diagramMemento selectors reloaded |
+	[
+		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle.
+		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: definitions sourceClass: AdminTenantLifecycle.
+		context := CPDefinitionsMementoContext memento: root.
+		process := definitions rootElements detect: [ :each | each identifier = #startSubscription ].
+		processMemento := context mementoForRootElement: process.
+		processMemento write: 'Admin Start Subscription' using: process labelDescription.
+		diagram := definitions diagrams detect: [ :each | each identifier = #startSubscriptionOverview ].
+		diagramMemento := context mementoForDiagram: diagram.
+		diagramMemento write: diagram plane elements copy using: diagram plane elementsDescription.
+		selectors := CPDefinitionsSourceMaterializer new
+			saveSourceChangesFromMemento: root
+			in: AdminTenantLifecycle.
+		self assert: (selectors includes: #startSubscription).
+		self assert: (selectors includes: #startSubscriptionOverview).
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self assert: ((reloaded rootElements detect: [ :each | each identifier = #startSubscription ]) label)
+			equals: 'Admin Start Subscription'.
+		^ reloaded
+	] ensure: [
+		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
+		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle ]
+]
