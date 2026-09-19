@@ -1085,7 +1085,7 @@ CPExecutionKernelExamples >> processExecutionDeliversMessageToUniqueWaitingSubsc
 { #category : 'examples - subscriptions' }
 CPExecutionKernelExamples >> processExecutionRejectsAmbiguousMessageDeliveryWithoutCorrelation [
 	<gtExample>
-	| process message firstReceive secondReceive execution firstExecution secondExecution occurrence |
+	| process message firstReceive secondReceive execution firstExecution secondExecution occurrence rejected |
 	process := CPProcess new identifier: 'process'; yourself.
 	message := CPMessage new identifier: 'message'; yourself.
 	firstReceive := CPReceiveTask new identifier: 'firstReceive'; messageRef: message; yourself.
@@ -1096,9 +1096,11 @@ CPExecutionKernelExamples >> processExecutionRejectsAmbiguousMessageDeliveryWith
 	execution activateReceiveTaskExecution: firstExecution.
 	execution activateReceiveTaskExecution: secondExecution.
 	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #ambiguousMessage1; definition: message; yourself.
-	self
-		should: [ execution deliverMessageOccurrence: occurrence ]
-		raise: Error.
+	rejected := false.
+	[ execution deliverMessageOccurrence: occurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
 	self assert: firstExecution isWaitingForMessage.
 	self assert: secondExecution isWaitingForMessage.
 	self assert: firstExecution subscription isWaiting.
