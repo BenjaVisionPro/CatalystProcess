@@ -5,6 +5,13 @@ Class {
 	#package : 'BVC-BPM-Examples'
 }
 
+
+{ #category : 'private' }
+CPExecutionKernelExamples >> executionFor: aProcess [
+	^ CPProcessExecution
+		for: aProcess
+		environment: CPExampleExecutionEnvironment new
+]
 { #category : 'examples' }
 CPExecutionKernelExamples >> readyActivityExecution [
 	<gtExample>
@@ -34,7 +41,7 @@ CPExecutionKernelExamples >> processExecutionOwnsActivityExecution [
 	| processDefinition activityDefinition process activity |
 	processDefinition := CPProcess new identifier: 'process'; yourself.
 	activityDefinition := CPTask new identifier: 'task'; yourself.
-	process := CPProcessExecution for: processDefinition.
+	process := self executionFor: processDefinition.
 	activity := process createActivityExecutionFor: activityDefinition.
 	self assert: process definition == processDefinition.
 	self assert: activity definition == activityDefinition.
@@ -49,7 +56,7 @@ CPExecutionKernelExamples >> activityExecutionOwnsNestedScope [
 	| processDefinition subProcessDefinition process activity child |
 	processDefinition := CPProcess new identifier: 'process'; yourself.
 	subProcessDefinition := CPSubProcess new identifier: 'subProcess'; yourself.
-	process := CPProcessExecution for: processDefinition.
+	process := self executionFor: processDefinition.
 	activity := process createActivityExecutionFor: subProcessDefinition.
 	child := activity createSubScopeFor: subProcessDefinition.
 	self assert: child definition == subProcessDefinition.
@@ -83,7 +90,7 @@ CPExecutionKernelExamples >> activityConsumesIncomingControlFlow [
 	source := CPTask new identifier: 'source'; yourself.
 	target := CPTask new identifier: 'target'; yourself.
 	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	sourceExecution := execution createActivityExecutionFor: source.
 	sourceExecution activate; beginCompletion; complete.
 	activation := execution activateSequenceFlow: flow producedBy: sourceExecution.
@@ -104,7 +111,7 @@ CPExecutionKernelExamples >> completedActivityProducesOutgoingControlFlow [
 	source := CPTask new identifier: 'source'; yourself.
 	target := CPTask new identifier: 'target'; yourself.
 	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	activity := execution createActivityExecutionFor: source.
 	activity activate; beginCompletion; complete.
 	execution produceOutgoingControlFor: activity.
@@ -121,7 +128,7 @@ CPExecutionKernelExamples >> activityStartQuantityConsumesRequiredControl [
 	source := CPTask new identifier: 'source'; yourself.
 	target := CPTask new identifier: 'target'; startQuantity: 2; yourself.
 	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	sourceExecution := execution createActivityExecutionFor: source.
 	execution activateSequenceFlow: flow producedBy: sourceExecution.
 	self assert: (execution canReadyActivity: target) not.
@@ -140,7 +147,7 @@ CPExecutionKernelExamples >> completionQuantityProducesRequiredControl [
 	source := CPTask new identifier: 'source'; completionQuantity: 2; yourself.
 	target := CPTask new identifier: 'target'; yourself.
 	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	sourceExecution := execution createActivityExecutionFor: source.
 	sourceExecution activate; beginCompletion; complete.
 	execution produceOutgoingControlFor: sourceExecution.
@@ -160,7 +167,7 @@ CPExecutionKernelExamples >> parallelGatewaySynchronizesIncomingControl [
 	first := CPSequenceFlow new identifier: 'first'; sourceRef: left; targetRef: gateway; yourself.
 	second := CPSequenceFlow new identifier: 'second'; sourceRef: right; targetRef: gateway; yourself.
 	out := CPSequenceFlow new identifier: 'out'; sourceRef: gateway; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	leftExecution := execution createActivityExecutionFor: left.
 	rightExecution := execution createActivityExecutionFor: right.
 	execution activateSequenceFlow: first producedBy: leftExecution.
@@ -186,7 +193,7 @@ CPExecutionKernelExamples >> parallelGatewayLeavesExcessIncomingControl [
 	first := CPSequenceFlow new identifier: 'first'; sourceRef: left; targetRef: gateway; yourself.
 	second := CPSequenceFlow new identifier: 'second'; sourceRef: right; targetRef: gateway; yourself.
 	out := CPSequenceFlow new identifier: 'out'; sourceRef: gateway; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	leftExecution := execution createActivityExecutionFor: left.
 	rightExecution := execution createActivityExecutionFor: right.
 	execution activateSequenceFlow: first producedBy: leftExecution.
@@ -216,13 +223,15 @@ CPExecutionKernelExamples >> exclusiveGatewaySelectsFirstTrueCondition [
 	second := CPSequenceFlow new identifier: 'second'; sourceRef: gateway; targetRef: secondTarget; conditionExpression: secondCondition; yourself.
 	fallback := CPSequenceFlow new identifier: 'fallback'; sourceRef: gateway; targetRef: defaultTarget; yourself.
 	gateway default: fallback.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
+	execution environment
+		expression: firstCondition evaluatesTo: true;
+		expression: secondCondition evaluatesTo: true.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	gatewayExecution := execution
 		executeExclusiveGateway: gateway
-		consuming: activation
-		conditionEvaluator: [ :expression | expression == firstCondition or: [ expression == secondCondition ] ].
+		consuming: activation.
 	self assert: gatewayExecution producedFlowActivations first definition == first.
 	self assert: (execution availableFlowActivationsOn: first) size equals: 1.
 	self assert: (execution availableFlowActivationsOn: second) isEmpty.
@@ -244,13 +253,13 @@ CPExecutionKernelExamples >> exclusiveGatewayUsesDefaultWhenConditionsAreFalse [
 	conditional := CPSequenceFlow new identifier: 'conditional'; sourceRef: gateway; targetRef: target; conditionExpression: condition; yourself.
 	fallback := CPSequenceFlow new identifier: 'fallback'; sourceRef: gateway; targetRef: fallbackTarget; yourself.
 	gateway default: fallback.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: false.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	gatewayExecution := execution
 		executeExclusiveGateway: gateway
-		consuming: activation
-		conditionEvaluator: [ :expression | false ].
+		consuming: activation.
 	self assert: gatewayExecution producedFlowActivations first definition == fallback.
 	self assert: (execution availableFlowActivationsOn: conditional) isEmpty.
 	self assert: (execution availableFlowActivationsOn: fallback) size equals: 1.
@@ -273,7 +282,7 @@ CPExecutionKernelExamples >> eventBasedGatewayFirstOccurrenceWins [
 	timerFlow := CPSequenceFlow new identifier: 'timerFlow'; sourceRef: gateway; targetRef: timer; yourself.
 	CPSequenceFlow new identifier: 'afterMessageFlow'; sourceRef: message; targetRef: afterMessage; yourself.
 	CPSequenceFlow new identifier: 'afterTimerFlow'; sourceRef: timer; targetRef: afterTimer; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	gatewayExecution := execution beginExclusiveEventBasedGateway: gateway consuming: activation.
@@ -300,7 +309,7 @@ CPExecutionKernelExamples >> startEventProducesOutgoingControl [
 		sourceRef: startEvent;
 		targetRef: task;
 		yourself.
-	process := CPProcessExecution for: processDefinition.
+	process := self executionFor: processDefinition.
 	eventExecution := process executeStartEvent: startEvent occurrence: nil.
 	self assert: eventExecution producedFlowActivations size equals: 1.
 	self assert: eventExecution producedFlowActivations first definition == flow.
@@ -318,7 +327,7 @@ CPExecutionKernelExamples >> endEventConsumesIncomingControl [
 		sourceRef: task;
 		targetRef: endEvent;
 		yourself.
-	process := CPProcessExecution for: processDefinition.
+	process := self executionFor: processDefinition.
 	activation := process activateSequenceFlow: flow producedBy: nil.
 	eventExecution := process executeEndEvent: endEvent consuming: activation.
 	self assert: eventExecution consumedFlowActivation == activation.
@@ -343,12 +352,13 @@ CPExecutionKernelExamples >> inclusiveGatewaySelectsEveryTrueBranch [
 	second := CPSequenceFlow new identifier: 'second'; sourceRef: gateway; targetRef: secondTarget; conditionExpression: secondCondition; yourself.
 	fallback := CPSequenceFlow new identifier: 'fallback'; sourceRef: gateway; targetRef: fallbackTarget; yourself.
 	gateway default: fallback.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
+	execution environment
+		expression: firstCondition evaluatesTo: true;
+		expression: secondCondition evaluatesTo: true.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
-	gatewayExecution := execution
-		executeInclusiveGateway: gateway
-		conditionEvaluator: [ :expression | expression == firstCondition or: [ expression == secondCondition ] ].
+	gatewayExecution := execution executeInclusiveGateway: gateway.
 	self assert: gatewayExecution consumedFlowActivations size equals: 1.
 	self assert: gatewayExecution producedFlowActivations size equals: 2.
 	self assert: (execution availableFlowActivationsOn: first) size equals: 1.
@@ -371,7 +381,7 @@ CPExecutionKernelExamples >> inclusiveGatewayWaitsForReachableIncomingBranch [
 	upstreamFlow := CPSequenceFlow new identifier: 'upstreamFlow'; sourceRef: upstream; targetRef: right; yourself.
 	rightFlow := CPSequenceFlow new identifier: 'rightFlow'; sourceRef: right; targetRef: gateway; yourself.
 	out := CPSequenceFlow new identifier: 'out'; sourceRef: gateway; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	leftExecution := execution createActivityExecutionFor: left.
 	upstreamExecution := execution createActivityExecutionFor: upstream.
 	execution activateSequenceFlow: leftFlow producedBy: leftExecution.
@@ -393,7 +403,7 @@ CPExecutionKernelExamples >> intermediateCatchEventWaitsThenContinues [
 	after := CPTask new identifier: 'after'; yourself.
 	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: event; yourself.
 	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: event; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	eventExecution := execution beginIntermediateCatchEvent: event consuming: activation.
@@ -424,7 +434,7 @@ CPExecutionKernelExamples >> eventBasedGatewayWinningEventContinuesControlFlow [
 	timerFlow := CPSequenceFlow new identifier: 'timerFlow'; sourceRef: gateway; targetRef: timer; yourself.
 	afterMessageFlow := CPSequenceFlow new identifier: 'afterMessageFlow'; sourceRef: message; targetRef: afterMessage; yourself.
 	CPSequenceFlow new identifier: 'afterTimerFlow'; sourceRef: timer; targetRef: afterTimer; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	gatewayExecution := execution beginExclusiveEventBasedGateway: gateway consuming: activation.
@@ -450,7 +460,7 @@ CPExecutionKernelExamples >> intermediateThrowEventCompletesThenContinues [
 	after := CPTask new identifier: 'after'; yourself.
 	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: event; yourself.
 	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: event; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	eventExecution := execution beginIntermediateThrowEvent: event consuming: activation.
@@ -472,7 +482,7 @@ CPExecutionKernelExamples >> interruptingBoundaryEventTerminatesActivityAndConti
 	boundary := CPBoundaryEvent new identifier: 'timeout'; attachedToRef: activity; cancelActivity: true; yourself.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'timeoutFlow'; sourceRef: boundary; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	activityExecution := execution createActivityExecutionFor: activity.
 	activityExecution activate.
 	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
@@ -493,7 +503,7 @@ CPExecutionKernelExamples >> nonInterruptingBoundaryEventLeavesActivityActive [
 	boundary := CPBoundaryEvent new identifier: 'notice'; attachedToRef: activity; cancelActivity: false; yourself.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'noticeFlow'; sourceRef: boundary; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	activityExecution := execution createActivityExecutionFor: activity.
 	activityExecution activate.
 	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
@@ -516,7 +526,7 @@ CPExecutionKernelExamples >> errorBoundaryEventFailsActivityAndContinues [
 	boundary eventDefinitions add: errorDefinition.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'errorFlow'; sourceRef: boundary; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	activityExecution := execution createActivityExecutionFor: activity.
 	activityExecution activate.
 	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
@@ -539,7 +549,7 @@ CPExecutionKernelExamples >> subProcessCreatesOwnedExecutionScope [
 	subProcess addFlowElement: start.
 	subProcess addFlowElement: inner.
 	subProcess addFlowElement: flow.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	subProcessExecution := execution createActivityExecutionFor: subProcess.
 	execution activateSubProcessExecution: subProcessExecution.
 	self assert: subProcessExecution isActive.
@@ -564,7 +574,7 @@ CPExecutionKernelExamples >> completedSubProcessContinuesParentControlFlow [
 	subProcess addFlowElement: innerFlow.
 	after := CPTask new identifier: 'after'; yourself.
 	outerFlow := CPSequenceFlow new identifier: 'afterSubProcess'; sourceRef: subProcess; targetRef: after; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	subProcessExecution := execution createActivityExecutionFor: subProcess.
 	execution activateSubProcessExecution: subProcessExecution.
 	childScope := subProcessExecution subScope.
@@ -589,8 +599,9 @@ CPExecutionKernelExamples >> callActivityCreatesOwnedCalledProcessScope [
 	calledProcess addFlowElement: end.
 	calledProcess addFlowElement: innerFlow.
 	call := CPCallActivity new identifier: 'call'; calledElement: calledProcess; yourself.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	callExecution := execution createActivityExecutionFor: call.
+	execution environment callableElement: calledProcess resolvesTo: calledProcess.
 	execution activateCallActivityExecution: callExecution.
 	childScope := callExecution subScope.
 	self assert: callExecution isActive.
@@ -618,8 +629,9 @@ CPExecutionKernelExamples >> completedCallActivityContinuesCallerControlFlow [
 	outerFlow := CPSequenceFlow new identifier: 'afterCall'; sourceRef: call; targetRef: after; yourself.
 	call outgoing add: outerFlow.
 	after incoming add: outerFlow.
-	execution := CPProcessExecution for: process.
+	execution := self executionFor: process.
 	callExecution := execution createActivityExecutionFor: call.
+	execution environment callableElement: calledProcess resolvesTo: calledProcess.
 	execution activateCallActivityExecution: callExecution.
 	childScope := callExecution subScope.
 	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
@@ -627,5 +639,40 @@ CPExecutionKernelExamples >> completedCallActivityContinuesCallerControlFlow [
 	execution completeCallActivity: callExecution.
 	self assert: callExecution isCompleted.
 	self assert: (execution availableFlowActivationsOn: outerFlow) size equals: 1.
+	^ callExecution
+]
+
+{ #category : 'examples - environment' }
+CPExecutionKernelExamples >> nestedExecutionScopeUsesProcessEnvironment [
+	<gtExample>
+	| processDefinition subProcessDefinition execution activity child |
+	processDefinition := CPProcess new identifier: 'process'; yourself.
+	subProcessDefinition := CPSubProcess new identifier: 'subProcess'; yourself.
+	execution := self executionFor: processDefinition.
+	activity := execution createActivityExecutionFor: subProcessDefinition.
+	child := activity createSubScopeFor: subProcessDefinition.
+	self assert: child environment == execution environment.
+	^ child
+]
+
+{ #category : 'examples - environment' }
+CPExecutionKernelExamples >> callActivityUsesResolvedCallableProcess [
+	<gtExample>
+	| caller logicalCallable resolvedProcess call execution callExecution |
+	caller := CPProcess new identifier: 'caller'; yourself.
+	logicalCallable := CPCallableElement new identifier: 'logicalCallable'; yourself.
+	resolvedProcess := CPProcess new identifier: 'resolvedProcess'; yourself.
+	call := CPCallActivity new
+		identifier: 'call';
+		calledElement: logicalCallable;
+		yourself.
+	execution := self executionFor: caller.
+	execution environment
+		callableElement: logicalCallable
+		resolvesTo: resolvedProcess.
+	callExecution := execution createActivityExecutionFor: call.
+	execution activateCallActivityExecution: callExecution.
+	self assert: callExecution subScope definition == resolvedProcess.
+	self assert: callExecution subScope definition ~~ logicalCallable.
 	^ callExecution
 ]

@@ -4,16 +4,18 @@ Class {
 	#instVars : [
 		'deployment',
 		'tenant',
-		'startedBy'
+		'startedBy',
+		'environment'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
 
 { #category : 'instance creation' }
-CPProcessExecution class >> for: aProcess [
+CPProcessExecution class >> for: aProcess environment: anExecutionEnvironment [
 	^ self new
 		definition: aProcess;
+		environment: anExecutionEnvironment;
 		yourself
 ]
 
@@ -29,3 +31,8 @@ CPProcessExecution >> tenant: anObject [ tenant := anObject ]
 CPProcessExecution >> startedBy [ ^ startedBy ]
 { #category : 'accessing' }
 CPProcessExecution >> startedBy: anObject [ startedBy := anObject ]
+
+{ #category : 'accessing' }
+CPProcessExecution >> environment [ ^ environment ]
+{ #category : 'accessing' }
+CPProcessExecution >> environment: anExecutionEnvironment [ environment := anExecutionEnvironment ]

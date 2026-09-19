@@ -42,6 +42,12 @@ CPExecutionScope >> definition: anObject [ definition := anObject ]
 CPExecutionScope >> parentScope [ ^ parentScope ]
 { #category : 'accessing' }
 CPExecutionScope >> parentScope: anExecutionScope [ parentScope := anExecutionScope ]
+
+{ #category : 'accessing' }
+CPExecutionScope >> environment [
+	parentScope ifNil: [ self error: 'An execution scope requires a parent Process execution to resolve its environment.' ].
+	^ parentScope environment
+]
 { #category : 'accessing' }
 CPExecutionScope >> owningActivity [ ^ owningActivity ]
 { #category : 'accessing' }
@@ -187,13 +193,12 @@ CPExecutionScope >> executeParallelGateway: aGateway [
 ]
 
 { #category : 'gateways - exclusive' }
-CPExecutionScope >> executeExclusiveGateway: aGateway consuming: anActivation conditionEvaluator: anEvaluator [
+CPExecutionScope >> executeExclusiveGateway: aGateway consuming: anActivation [
 	| execution selectedFlow |
 	(anActivation isAvailable and: [ aGateway incoming identityIncludes: anActivation definition ]) ifFalse: [
 		self error: 'An Exclusive Gateway requires an available activation from one of its incoming Sequence Flows.' ].
 	selectedFlow := self
-		selectedOutgoingFlowForExclusiveGateway: aGateway
-		conditionEvaluator: anEvaluator.
+		selectedOutgoingFlowForExclusiveGateway: aGateway.
 	execution := self createGatewayExecutionFor: aGateway.
 	execution consumeFlowActivation: anActivation.
 	execution recordProducedFlowActivation:
@@ -202,11 +207,11 @@ CPExecutionScope >> executeExclusiveGateway: aGateway consuming: anActivation co
 ]
 
 { #category : 'gateways - exclusive' }
-CPExecutionScope >> selectedOutgoingFlowForExclusiveGateway: aGateway conditionEvaluator: anEvaluator [
+CPExecutionScope >> selectedOutgoingFlowForExclusiveGateway: aGateway [
 	aGateway outgoing do: [ :eachFlow |
 		(aGateway isDefaultFlow: eachFlow) ifFalse: [
 			eachFlow conditionExpression ifNotNil: [ :anExpression |
-				(anEvaluator value: anExpression) ifTrue: [ ^ eachFlow ] ] ] ].
+				(self environment evaluateExpression: anExpression in: self) ifTrue: [ ^ eachFlow ] ] ] ].
 	aGateway default ifNotNil: [ ^ aGateway default ].
 	self error: 'No Exclusive Gateway condition evaluated to true and no default Sequence Flow is defined.'
 ]
@@ -324,13 +329,12 @@ CPExecutionScope >> flowNode: aFlowNode canReach: aTargetNode withoutPassing: aG
 ]
 
 { #category : 'gateways - inclusive' }
-CPExecutionScope >> executeInclusiveGateway: aGateway conditionEvaluator: anEvaluator [
+CPExecutionScope >> executeInclusiveGateway: aGateway [
 	| execution selectedFlows |
 	(self canExecuteInclusiveGateway: aGateway) ifFalse: [
 		self error: 'The Inclusive Gateway cannot execute while an unrepresented incoming branch can still reach it.' ].
 	selectedFlows := self
-		selectedOutgoingFlowsForInclusiveGateway: aGateway
-		conditionEvaluator: anEvaluator.
+		selectedOutgoingFlowsForInclusiveGateway: aGateway.
 	execution := self createGatewayExecutionFor: aGateway.
 	aGateway incoming do: [ :eachFlow |
 		| available |
@@ -343,13 +347,13 @@ CPExecutionScope >> executeInclusiveGateway: aGateway conditionEvaluator: anEval
 ]
 
 { #category : 'gateways - inclusive' }
-CPExecutionScope >> selectedOutgoingFlowsForInclusiveGateway: aGateway conditionEvaluator: anEvaluator [
+CPExecutionScope >> selectedOutgoingFlowsForInclusiveGateway: aGateway [
 	| selected |
 	selected := OrderedCollection new.
 	aGateway outgoing do: [ :eachFlow |
 		(aGateway isDefaultFlow: eachFlow) ifFalse: [
 			eachFlow conditionExpression ifNotNil: [ :expression |
-				(anEvaluator value: expression) ifTrue: [ selected add: eachFlow ] ] ] ].
+				(self environment evaluateExpression: expression in: self) ifTrue: [ selected add: eachFlow ] ] ] ].
 	selected ifNotEmpty: [ ^ selected ].
 	aGateway default ifNotNil: [ :defaultFlow | ^ OrderedCollection with: defaultFlow ].
 	self error: 'No Inclusive Gateway condition evaluated to true and no default Sequence Flow is defined.'
@@ -516,10 +520,10 @@ CPExecutionScope >> activateCallActivityExecution: anActivityExecution [
 	anActivityExecution isReady ifFalse: [
 		self error: 'Only a Ready Call Activity can be activated.' ].
 	callActivity := anActivityExecution definition.
-	calledProcess := callActivity calledElement.
-	calledProcess ifNil: [ self error: 'A Call Activity requires a called element.' ].
-	calledProcess isProcessDefinition ifFalse: [
-		self error: 'The called element is not an executable Process definition.' ].
+	callActivity calledElement ifNil: [ self error: 'A Call Activity requires a called element.' ].
+	calledProcess := self environment
+		resolveCallableElement: callActivity calledElement
+		in: self.
 	startEvents := calledProcess flowElements select: [ :each | each isStartEvent ].
 	startEvents := startEvents select: [ :each | each eventDefinitions isEmpty ].
 	startEvents size > 1 ifTrue: [
