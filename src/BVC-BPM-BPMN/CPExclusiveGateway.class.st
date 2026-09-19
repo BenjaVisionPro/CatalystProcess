@@ -44,3 +44,13 @@ CPExclusiveGateway class >> gatewayTypeLabel [
 CPExclusiveGateway class >> gatewayTypeIcon [
 	^ #xmark
 ]
+
+{ #category : 'testing' }
+CPExclusiveGateway >> isDefaultFlow: aSequenceFlow [
+	^ default == aSequenceFlow
+]
+
+{ #category : 'validation' }
+CPExclusiveGateway >> hasValidDefaultFlow [
+	^ default isNil or: [ self outgoing identityIncludes: default ]
+]

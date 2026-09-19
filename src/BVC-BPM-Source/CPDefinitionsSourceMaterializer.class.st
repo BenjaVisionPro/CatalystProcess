@@ -279,13 +279,14 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 		out
 			nextPutAll: aSelector asString; cr;
 			nextPutAll: String tab; nextPutAll: '<process: '; nextPutAll: aProcess identifier storeString; nextPutAll: '>'; cr;
-			nextPutAll: String tab; nextPutAll: '| process nodes flow |'; cr;
+			nextPutAll: String tab; nextPutAll: '| process nodes flow flowByIdentifier |'; cr;
 			nextPutAll: String tab; nextPutAll: 'process := (CPProcess identifier: '; nextPutAll: aProcess identifier storeString; nextPutAll: ')'; cr.
 		aProcess label ifNotNil: [
 			out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: aProcess label storeString; nextPutAll: ';'; cr ].
 		out
 			nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'yourself.'; cr;
-			nextPutAll: String tab; nextPutAll: 'nodes := Dictionary new.'; cr.
+			nextPutAll: String tab; nextPutAll: 'nodes := Dictionary new.'; cr;
+			nextPutAll: String tab; nextPutAll: 'flowByIdentifier := Dictionary new.'; cr.
 		nodes do: [ :each |
 			out
 				nextPutAll: String tab; nextPutAll: 'nodes at: '; nextPutAll: each identifier storeString;
@@ -300,11 +301,34 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				nextPutAll: String tab; nextPutAll: 'flow := CPSequenceFlow identifier: '; nextPutAll: each identifier storeString; nextPutAll: '.'; cr.
 			each label ifNotNil: [
 				out nextPutAll: String tab; nextPutAll: 'flow label: '; nextPutAll: each label storeString; nextPutAll: '.'; cr ].
+			each conditionExpression ifNotNil: [ :anExpression |
+				out nextPutAll: String tab; nextPutAll: 'flow conditionExpression: '; nextPutAll: (self sourceForExpression: anExpression); nextPutAll: '.'; cr ].
 			out
 				nextPutAll: String tab; nextPutAll: 'flow sourceRef: (nodes at: '; nextPutAll: each sourceRef identifier storeString; nextPutAll: ').'; cr;
 				nextPutAll: String tab; nextPutAll: 'flow targetRef: (nodes at: '; nextPutAll: each targetRef identifier storeString; nextPutAll: ').'; cr;
-				nextPutAll: String tab; nextPutAll: 'process addFlowElement: flow.'; cr ].
+				nextPutAll: String tab; nextPutAll: 'process addFlowElement: flow.'; cr;
+				nextPutAll: String tab; nextPutAll: 'flowByIdentifier at: '; nextPutAll: each identifier storeString; nextPutAll: ' put: flow.'; cr ].
+		flows do: [ :each |
+			(each sourceRef isGateway and: [ each sourceRef isDefaultFlow: each ]) ifTrue: [
+				out
+					nextPutAll: String tab; nextPutAll: '(nodes at: '; nextPutAll: each sourceRef identifier storeString;
+					nextPutAll: ') default: (flowByIdentifier at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr ] ].
 		out nextPutAll: String tab; nextPutAll: '^ process' ].
+	^ stream
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> sourceForExpression: anExpression [
+	| stream |
+	anExpression evaluatesToTypeRef ifNotNil: [
+		self error: 'Process source saving does not yet support FormalExpression evaluatesToTypeRef' ].
+	stream := String streamContents: [ :out |
+		out nextPutAll: '((CPFormalExpression identifier: '; nextPutAll: anExpression identifier storeString; nextPutAll: ')'.
+		anExpression language ifNotNil: [
+			out nextPutAll: ' language: '; nextPutAll: anExpression language storeString; nextPutAll: ';' ].
+		anExpression body ifNotNil: [
+			out nextPutAll: ' body: '; nextPutAll: anExpression body storeString; nextPutAll: ';' ].
+		out nextPutAll: ' yourself)' ].
 	^ stream
 ]
 
@@ -314,12 +338,19 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 	self validateProcess: aProcess identifier: aProcess identifier.
 	identifiers := Set new.
 	aProcess flowElements do: [ :each |
+		(each isGateway and: [ each hasValidDefaultFlow not ]) ifTrue: [
+			self error: 'A Gateway default must reference one of its outgoing Sequence Flows' ].
 		each identifier ifNil: [
 			self error: 'Every source-backed flow element requires a stable identifier' ].
 		(identifiers includes: each identifier) ifTrue: [
 			self error: 'Flow element identifiers must be unique within a Process' ].
 		identifiers add: each identifier.
 		each isSequenceFlow ifTrue: [
+			each conditionExpression ifNotNil: [ :anExpression |
+				anExpression class = CPFormalExpression ifFalse: [
+					self error: 'Process source saving currently supports only FormalExpression conditions' ].
+				anExpression evaluatesToTypeRef ifNotNil: [
+					self error: 'Process source saving does not yet support FormalExpression evaluatesToTypeRef' ] ].
 			each sourceRef ifNil: [
 				self error: 'A Sequence Flow requires a sourceRef' ].
 			each targetRef ifNil: [
@@ -328,7 +359,10 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 				(aProcess flowElements identityIncludes: each sourceRef) ifFalse: [
 					self error: 'A Sequence Flow sourceRef must belong to its Process' ] ].
 			(aProcess flowElements identityIncludes: each targetRef) ifFalse: [
-				self error: 'A Sequence Flow targetRef must belong to its Process' ] ] ].
+				self error: 'A Sequence Flow targetRef must belong to its Process' ].
+			(each sourceRef isGateway and: [ each sourceRef isDefaultFlow: each ]) ifTrue: [
+				(each sourceRef outgoing identityIncludes: each) ifFalse: [
+					self error: 'A Gateway default must reference one of its outgoing Sequence Flows' ] ] ] ].
 	aProcess laneSets ifNotEmpty: [
 		self error: 'Process source saving does not yet support lane sets' ].
 	aProcess properties ifNotEmpty: [

@@ -20,3 +20,13 @@ CPGateway class >> gatewayTypes [
 		CPComplexGateway
 	}
 ]
+
+{ #category : 'testing' }
+CPGateway >> isDefaultFlow: aSequenceFlow [
+	^ false
+]
+
+{ #category : 'validation' }
+CPGateway >> hasValidDefaultFlow [
+	^ true
+]

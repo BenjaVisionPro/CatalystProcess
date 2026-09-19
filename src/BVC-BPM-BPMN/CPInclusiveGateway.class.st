@@ -44,3 +44,13 @@ CPInclusiveGateway class >> gatewayTypeLabel [
 CPInclusiveGateway class >> gatewayTypeIcon [
 	^ #circle
 ]
+
+{ #category : 'testing' }
+CPInclusiveGateway >> isDefaultFlow: aSequenceFlow [
+	^ default == aSequenceFlow
+]
+
+{ #category : 'validation' }
+CPInclusiveGateway >> hasValidDefaultFlow [
+	^ default isNil or: [ self outgoing identityIncludes: default ]
+]
