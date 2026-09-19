@@ -1010,3 +1010,49 @@ CPExecutionKernelExamples >> messageIntermediateCatchEventWaitingExecution [
 	self assert: eventExecution isWaiting.
 	^ eventExecution
 ]
+
+
+{ #category : 'examples - subscriptions' }
+CPExecutionKernelExamples >> processExecutionDiscoversWaitingMessageSubscriptionsInChildScopes [
+	<gtExample>
+	| process subProcess ownerDefinition message receive execution ownerExecution childScope receiveExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	ownerDefinition := CPTask new identifier: 'owner'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receive := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	execution := self executionFor: process.
+	ownerExecution := execution createActivityExecutionFor: ownerDefinition.
+	childScope := ownerExecution createSubScopeFor: subProcess.
+	receiveExecution := childScope createReceiveTaskExecutionFor: receive.
+	childScope activateReceiveTaskExecution: receiveExecution.
+	self assert: execution waitingMessageSubscriptions isEmpty.
+	self assert: execution allWaitingMessageSubscriptions size equals: 1.
+	self assert: execution allWaitingMessageSubscriptions first == receiveExecution subscription.
+	self assert: (execution allWaitingMessageSubscriptionsFor: message) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - subscriptions' }
+CPExecutionKernelExamples >> processExecutionDiscoversWaitingTimerSubscriptionsInChildScopes [
+	<gtExample>
+	| process subProcess ownerDefinition timer timerDefinition before incoming execution ownerExecution childScope producer activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	ownerDefinition := CPTask new identifier: 'owner'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; eventDefinitions: { timerDefinition } asOrderedCollection; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: timer; yourself.
+	execution := self executionFor: process.
+	ownerExecution := execution createActivityExecutionFor: ownerDefinition.
+	childScope := ownerExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	activation := childScope activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := childScope beginTimerIntermediateCatchEvent: timer consuming: activation.
+	self assert: execution waitingTimerSubscriptions isEmpty.
+	self assert: execution allWaitingTimerSubscriptions size equals: 1.
+	self assert: execution allWaitingTimerSubscriptions first == eventExecution subscription.
+	self assert: (execution allWaitingTimerSubscriptionsFor: timerDefinition) size equals: 1.
+	^ execution
+]

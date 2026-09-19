@@ -75,12 +75,40 @@ CPExecutionScope >> waitingTimerSubscriptions [
 	^ timerSubscriptions select: #isWaiting
 ]
 
+{ #category : 'events - timer' }
+CPExecutionScope >> allWaitingTimerSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingTimerSubscriptions asOrderedCollection.
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingTimerSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'events - timer' }
+CPExecutionScope >> allWaitingTimerSubscriptionsFor: aTimerDefinition [
+	^ self allWaitingTimerSubscriptions select: [ :each | each timerDefinition == aTimerDefinition ]
+]
+
 { #category : 'accessing' }
 CPExecutionScope >> messageSubscriptions [ ^ messageSubscriptions ]
 
 { #category : 'messages' }
 CPExecutionScope >> waitingMessageSubscriptions [
 	^ messageSubscriptions select: #isWaiting
+]
+
+{ #category : 'messages' }
+CPExecutionScope >> allWaitingMessageSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingMessageSubscriptions asOrderedCollection.
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingMessageSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'messages' }
+CPExecutionScope >> allWaitingMessageSubscriptionsFor: aMessage [
+	^ self allWaitingMessageSubscriptions select: [ :each | each message == aMessage ]
 ]
 
 
