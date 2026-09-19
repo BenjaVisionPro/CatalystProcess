@@ -265,3 +265,92 @@ CPExecutionScope >> executeEndEvent: anEndEvent consuming: anActivation [
 	execution consumeFlowActivation: anActivation.
 	^ execution
 ]
+
+{ #category : 'gateways - inclusive' }
+CPExecutionScope >> canExecuteInclusiveGateway: aGateway [
+	| availableIncoming |
+	availableIncoming := aGateway incoming select: [ :eachFlow |
+		(self availableFlowActivationsOn: eachFlow) notEmpty ].
+	availableIncoming isEmpty ifTrue: [ ^ false ].
+	^ aGateway incoming allSatisfy: [ :eachFlow |
+		(availableIncoming identityIncludes: eachFlow) or: [
+			(self controlCanStillReachInclusiveGateway: aGateway through: eachFlow) not ] ]
+]
+
+{ #category : 'gateways - inclusive' }
+CPExecutionScope >> controlCanStillReachInclusiveGateway: aGateway through: anIncomingFlow [
+	| targetSource |
+	targetSource := anIncomingFlow sourceRef.
+	flowActivations do: [ :activation |
+		activation isAvailable ifTrue: [
+			(self
+				flowNode: activation definition targetRef
+				canReach: targetSource
+				withoutPassing: aGateway)
+				ifTrue: [ ^ true ] ] ].
+	activityExecutions do: [ :activityExecution |
+		activityExecution isFinal ifFalse: [
+			(self
+				flowNode: activityExecution definition
+				canReach: targetSource
+				withoutPassing: aGateway)
+				ifTrue: [ ^ true ] ] ].
+	^ false
+]
+
+{ #category : 'gateways - inclusive' }
+CPExecutionScope >> flowNode: aFlowNode canReach: aTargetNode withoutPassing: aGateway [
+	^ self
+		flowNode: aFlowNode
+		canReach: aTargetNode
+		withoutPassing: aGateway
+		visited: IdentitySet new
+]
+
+{ #category : 'gateways - inclusive' }
+CPExecutionScope >> flowNode: aFlowNode canReach: aTargetNode withoutPassing: aGateway visited: visited [
+	aFlowNode == aTargetNode ifTrue: [ ^ true ].
+	aFlowNode == aGateway ifTrue: [ ^ false ].
+	(visited includes: aFlowNode) ifTrue: [ ^ false ].
+	visited add: aFlowNode.
+	aFlowNode outgoing do: [ :eachFlow |
+		(self
+			flowNode: eachFlow targetRef
+			canReach: aTargetNode
+			withoutPassing: aGateway
+			visited: visited)
+			ifTrue: [ ^ true ] ].
+	^ false
+]
+
+{ #category : 'gateways - inclusive' }
+CPExecutionScope >> executeInclusiveGateway: aGateway conditionEvaluator: anEvaluator [
+	| execution selectedFlows |
+	(self canExecuteInclusiveGateway: aGateway) ifFalse: [
+		self error: 'The Inclusive Gateway cannot execute while an unrepresented incoming branch can still reach it.' ].
+	selectedFlows := self
+		selectedOutgoingFlowsForInclusiveGateway: aGateway
+		conditionEvaluator: anEvaluator.
+	execution := self createGatewayExecutionFor: aGateway.
+	aGateway incoming do: [ :eachFlow |
+		| available |
+		available := self availableFlowActivationsOn: eachFlow.
+		available ifNotEmpty: [ execution consumeFlowActivation: available first ] ].
+	selectedFlows do: [ :eachFlow |
+		execution recordProducedFlowActivation:
+			(self activateSequenceFlow: eachFlow producedBy: execution) ].
+	^ execution
+]
+
+{ #category : 'gateways - inclusive' }
+CPExecutionScope >> selectedOutgoingFlowsForInclusiveGateway: aGateway conditionEvaluator: anEvaluator [
+	| selected |
+	selected := OrderedCollection new.
+	aGateway outgoing do: [ :eachFlow |
+		(aGateway isDefaultFlow: eachFlow) ifFalse: [
+			eachFlow conditionExpression ifNotNil: [ :expression |
+				(anEvaluator value: expression) ifTrue: [ selected add: eachFlow ] ] ] ].
+	selected ifNotEmpty: [ ^ selected ].
+	aGateway default ifNotNil: [ :defaultFlow | ^ OrderedCollection with: defaultFlow ].
+	self error: 'No Inclusive Gateway condition evaluated to true and no default Sequence Flow is defined.'
+]

@@ -329,3 +329,60 @@ CPExecutionKernelExamples >> endEventConsumesIncomingControl [
 	self assert: activation isAvailable not.
 	self assert: eventExecution producedFlowActivations isEmpty
 ]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> inclusiveGatewaySelectsEveryTrueBranch [
+	<gtExample>
+	| process before gateway firstTarget secondTarget fallbackTarget incoming first second fallback firstCondition secondCondition execution producer activation gatewayExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPInclusiveGateway new identifier: 'choice'; yourself.
+	firstTarget := CPTask new identifier: 'firstTarget'; yourself.
+	secondTarget := CPTask new identifier: 'secondTarget'; yourself.
+	fallbackTarget := CPTask new identifier: 'fallbackTarget'; yourself.
+	firstCondition := CPFormalExpression new identifier: 'firstCondition'; body: 'first'; yourself.
+	secondCondition := CPFormalExpression new identifier: 'secondCondition'; body: 'second'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	first := CPSequenceFlow new identifier: 'first'; sourceRef: gateway; targetRef: firstTarget; conditionExpression: firstCondition; yourself.
+	second := CPSequenceFlow new identifier: 'second'; sourceRef: gateway; targetRef: secondTarget; conditionExpression: secondCondition; yourself.
+	fallback := CPSequenceFlow new identifier: 'fallback'; sourceRef: gateway; targetRef: fallbackTarget; yourself.
+	gateway default: fallback.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution
+		executeInclusiveGateway: gateway
+		conditionEvaluator: [ :expression | expression == firstCondition or: [ expression == secondCondition ] ].
+	self assert: gatewayExecution consumedFlowActivations size equals: 1.
+	self assert: gatewayExecution producedFlowActivations size equals: 2.
+	self assert: (execution availableFlowActivationsOn: first) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: second) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: fallback) isEmpty.
+	^ execution
+]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> inclusiveGatewayWaitsForReachableIncomingBranch [
+	<gtExample>
+	| process left upstream right gateway after leftFlow upstreamFlow rightFlow out execution leftExecution upstreamExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	left := CPTask new identifier: 'left'; yourself.
+	upstream := CPTask new identifier: 'upstream'; yourself.
+	right := CPTask new identifier: 'right'; yourself.
+	gateway := CPInclusiveGateway new identifier: 'join'; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	leftFlow := CPSequenceFlow new identifier: 'leftFlow'; sourceRef: left; targetRef: gateway; yourself.
+	upstreamFlow := CPSequenceFlow new identifier: 'upstreamFlow'; sourceRef: upstream; targetRef: right; yourself.
+	rightFlow := CPSequenceFlow new identifier: 'rightFlow'; sourceRef: right; targetRef: gateway; yourself.
+	out := CPSequenceFlow new identifier: 'out'; sourceRef: gateway; targetRef: after; yourself.
+	execution := CPProcessExecution for: process.
+	leftExecution := execution createActivityExecutionFor: left.
+	upstreamExecution := execution createActivityExecutionFor: upstream.
+	execution activateSequenceFlow: leftFlow producedBy: leftExecution.
+	execution activateSequenceFlow: upstreamFlow producedBy: upstreamExecution.
+	self assert: (execution canExecuteInclusiveGateway: gateway) not.
+	(execution availableFlowActivationsOn: upstreamFlow) first consumeBy: (execution createActivityExecutionFor: right).
+	execution activateSequenceFlow: rightFlow producedBy: (execution activityExecutions last).
+	self assert: (execution canExecuteInclusiveGateway: gateway).
+	^ execution
+]
