@@ -653,10 +653,10 @@ CPTenantLifecycleSourceExamples >> sourceBackedCommitAddsProcessAndDiagramToMode
 		self assert: (definitions rootElements identityIncludes: process).
 		self assert: (definitions diagrams identityIncludes: diagram).
 		self assert: (CPDefinitionsSourceMaterializer
-			isSpecialisedProcess: #inspectTenantAccess
+			isLocalProcess: #inspectTenantAccess
 			in: AdminTenantLifecycle).
 		self assert: (CPDefinitionsSourceMaterializer
-			isSpecialisedDiagram: #inspectTenantAccessOverview
+			isLocalDiagram: #inspectTenantAccessOverview
 			in: AdminTenantLifecycle).
 
 		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
