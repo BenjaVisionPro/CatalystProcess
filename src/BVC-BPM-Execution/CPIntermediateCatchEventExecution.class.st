@@ -1,7 +1,7 @@
 Class {
 	#name : 'CPIntermediateCatchEventExecution',
 	#superclass : 'CPEventExecution',
-	#instVars : [ 'waiting' ],
+	#instVars : [ 'waiting', 'subscription' ],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
@@ -30,3 +30,9 @@ CPIntermediateCatchEventExecution >> triggerWithAcceptedOccurrence: anOccurrence
 			(self scope activateSequenceFlow: eachFlow producedBy: self) ].
 	^ anOccurrence
 ]
+
+{ #category : 'accessing' }
+CPIntermediateCatchEventExecution >> subscription [ ^ subscription ]
+
+{ #category : 'accessing' }
+CPIntermediateCatchEventExecution >> subscription: aSubscription [ subscription := aSubscription ]

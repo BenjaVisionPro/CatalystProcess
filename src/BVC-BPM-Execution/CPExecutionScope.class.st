@@ -629,3 +629,36 @@ CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOcc
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
 ]
+
+
+{ #category : 'events - timer' }
+CPExecutionScope >> beginTimerIntermediateCatchEvent: anEvent consuming: anActivation [
+	| execution timerDefinition subscription |
+	anEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Timer Intermediate Catch Event requires exactly one Timer Event Definition.' ].
+	timerDefinition := anEvent eventDefinitions first.
+	execution := self beginIntermediateCatchEvent: anEvent consuming: anActivation.
+	subscription := CPTimerSubscription new
+		eventExecution: execution;
+		timerDefinition: timerDefinition;
+		yourself.
+	execution subscription: subscription.
+	^ execution
+]
+
+{ #category : 'events - timer' }
+CPExecutionScope >> triggerTimerIntermediateCatchEventExecution: anEventExecution with: anOccurrence [
+	| subscription |
+	(eventExecutions identityIncludes: anEventExecution) ifFalse: [
+		self error: 'The Timer Intermediate Catch Event execution does not belong to this execution scope.' ].
+	anEventExecution isWaiting ifFalse: [
+		self error: 'Only a waiting Timer Intermediate Catch Event can accept an occurrence.' ].
+	subscription := anEventExecution subscription.
+	subscription ifNil: [ self error: 'The Timer Intermediate Catch Event has no Timer subscription.' ].
+	anOccurrence definition == subscription timerDefinition ifFalse: [
+		self error: 'The occurrence does not match this Timer subscription.' ].
+	self acceptOccurrence: anOccurrence.
+	subscription triggerWith: anOccurrence.
+	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ anEventExecution
+]

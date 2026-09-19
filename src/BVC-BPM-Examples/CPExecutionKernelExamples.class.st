@@ -857,3 +857,49 @@ CPExecutionKernelExamples >> receiveTaskRejectsOccurrenceForDifferentMessage [
 	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #other1) not.
 	^ receiveExecution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> timerIntermediateCatchEventCreatesDurableSubscription [
+	<gtExample>
+	| process before timer after timerDefinition incoming outgoing execution producer activation eventExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	timer := CPTimerIntermediateEvent new
+		identifier: 'timer';
+		eventDefinitions: { timerDefinition } asOrderedCollection;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: timer; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: timer; targetRef: after; yourself.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginTimerIntermediateCatchEvent: timer consuming: activation.
+	self assert: eventExecution isWaiting.
+	self assert: eventExecution subscription isWaiting.
+	self assert: eventExecution subscription timerDefinition == timerDefinition.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #timer1; definition: timerDefinition; yourself.
+	execution triggerTimerIntermediateCatchEventExecution: eventExecution with: occurrence.
+	self assert: eventExecution isTriggered.
+	self assert: eventExecution subscription isTriggered.
+	self assert: eventExecution subscription occurrence == occurrence.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> timerIntermediateCatchEventRejectsWrongOccurrence [
+	<gtExample>
+	| eventExecution execution otherTimer occurrence |
+	eventExecution := self timerIntermediateCatchEventCreatesDurableSubscription.
+	execution := eventExecution scope.
+	otherTimer := CPTimerEventDefinition new identifier: 'otherTimer'; yourself.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongTimer; definition: otherTimer; yourself.
+	[ execution triggerTimerIntermediateCatchEventExecution: eventExecution with: occurrence ]
+		on: Error
+		do: [ :error | self assert: error messageText notEmpty ].
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #wrongTimer) not.
+	^ eventExecution
+]
