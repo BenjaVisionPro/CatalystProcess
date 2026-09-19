@@ -1439,3 +1439,56 @@ CPExecutionKernelExamples >> callActivityCannotCompleteWhileCalledTimerWaits [
 	self assert: callExecution isActive.
 	^ callExecution
 ]
+
+
+{ #category : 'examples - completion' }
+CPExecutionKernelExamples >> processCannotCompleteWhileEventBasedGatewayWaits [
+	<gtExample>
+	| process start gateway message timer startFlow messageFlow timerFlow execution gatewayExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'wait'; yourself.
+	message := CPMessageCatchIntermediateEvent new identifier: 'message'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; yourself.
+	startFlow := CPSequenceFlow new identifier: 'toGateway'; sourceRef: start; targetRef: gateway; yourself.
+	messageFlow := CPSequenceFlow new identifier: 'messageAlternative'; sourceRef: gateway; targetRef: message; yourself.
+	timerFlow := CPSequenceFlow new identifier: 'timerAlternative'; sourceRef: gateway; targetRef: timer; yourself.
+	process addFlowElement: start; addFlowElement: gateway; addFlowElement: message; addFlowElement: timer;
+		addFlowElement: startFlow; addFlowElement: messageFlow; addFlowElement: timerFlow.
+	execution := self executionFor: process.
+	execution start.
+	gatewayExecution := execution
+		beginExclusiveEventBasedGateway: gateway
+		consuming: (execution availableFlowActivationsOn: startFlow) first.
+	self assert: gatewayExecution isWaiting.
+	self assert: execution allWaitingEventBasedGatewaySubscriptions size equals: 2.
+	self assert: execution canComplete not.
+	^ execution
+]
+
+{ #category : 'examples - termination' }
+CPExecutionKernelExamples >> terminationWithdrawsEventBasedGatewayWaits [
+	<gtExample>
+	| process before gateway message timer incoming messageFlow timerFlow execution producer gatewayExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'wait'; yourself.
+	message := CPMessageCatchIntermediateEvent new identifier: 'message'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	messageFlow := CPSequenceFlow new identifier: 'messageAlternative'; sourceRef: gateway; targetRef: message; yourself.
+	timerFlow := CPSequenceFlow new identifier: 'timerAlternative'; sourceRef: gateway; targetRef: timer; yourself.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	gatewayExecution := execution
+		beginExclusiveEventBasedGateway: gateway
+		consuming: (execution activateSequenceFlow: incoming producedBy: producer).
+	self assert: gatewayExecution isWaiting.
+	self assert: execution waitingEventBasedGatewaySubscriptions size equals: 2.
+	execution terminateRemainingWork.
+	self assert: gatewayExecution isWaiting not.
+	self assert: execution waitingEventBasedGatewaySubscriptions isEmpty.
+	self assert: gatewayExecution subscriptions size equals: 2.
+	self assert: (gatewayExecution subscriptions allSatisfy: #isWithdrawn).
+	^ gatewayExecution
+]

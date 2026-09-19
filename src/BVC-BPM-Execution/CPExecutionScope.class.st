@@ -67,6 +67,24 @@ CPExecutionScope >> eventExecutions [ ^ eventExecutions ]
 { #category : 'accessing' }
 CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
 
+{ #category : 'gateways - event based' }
+CPExecutionScope >> waitingEventBasedGatewaySubscriptions [
+	| subscriptions |
+	subscriptions := OrderedCollection new.
+	gatewayExecutions do: [ :eachExecution |
+		subscriptions addAll: (eachExecution subscriptions select: #isWaiting) ].
+	^ subscriptions
+]
+
+{ #category : 'gateways - event based' }
+CPExecutionScope >> allWaitingEventBasedGatewaySubscriptions [
+	| subscriptions |
+	subscriptions := self waitingEventBasedGatewaySubscriptions asOrderedCollection.
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingEventBasedGatewaySubscriptions ].
+	^ subscriptions
+]
+
 { #category : 'accessing' }
 CPExecutionScope >> timerSubscriptions [ ^ timerSubscriptions ]
 
@@ -561,6 +579,7 @@ CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
 	(subScope activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
 	subScope allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
+	subScope allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
 	^ true
 ]
 
@@ -787,6 +806,9 @@ CPExecutionScope >> terminateRemainingWork [
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	gatewayExecutions do: [ :eachExecution |
+		eachExecution subscriptions do: [ :eachSubscription |
+			eachSubscription isWaiting ifTrue: [ eachSubscription withdraw ] ] ].
 	^ self
 ]
 

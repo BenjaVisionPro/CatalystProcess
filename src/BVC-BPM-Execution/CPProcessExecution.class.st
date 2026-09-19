@@ -78,6 +78,7 @@ CPProcessExecution >> canComplete [
 	(self activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
 	self allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
 	^ true
 ]
 
