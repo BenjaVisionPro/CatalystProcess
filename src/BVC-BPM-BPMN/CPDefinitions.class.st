@@ -6,6 +6,7 @@ Class {
 	#superclass : 'CFIdentifiableObject',
 	#instVars : [
 		'targetNamespace',
+		'expressionLanguage',
 		'rootElements',
 		'diagrams'
 	],
@@ -28,6 +29,26 @@ CPDefinitions >> targetNamespace [
 { #category : 'accessing' }
 CPDefinitions >> targetNamespace: aString [
 	targetNamespace := aString
+]
+
+{ #category : 'accessing' }
+CPDefinitions >> expressionLanguage [
+	^ expressionLanguage
+]
+
+{ #category : 'accessing' }
+CPDefinitions >> expressionLanguage: aString [
+	expressionLanguage := aString
+]
+
+{ #category : 'descriptions' }
+CPDefinitions >> expressionLanguageDescription [
+	<magritteDescription>
+	^ MAStringDescription new
+		accessor: #expressionLanguage;
+		label: 'Expression language';
+		priority: 30;
+		yourself
 ]
 
 { #category : 'accessing' }

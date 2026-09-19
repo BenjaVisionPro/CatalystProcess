@@ -3,7 +3,8 @@ Class {
 	#superclass : 'CPFlowElement',
 	#instVars : [
 		'sourceRef',
-		'targetRef'
+		'targetRef',
+		'conditionExpression'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -33,6 +34,29 @@ CPSequenceFlow >> targetRef: aFlowNode [
 	targetRef ifNotNil: [ :aPreviousTarget | aPreviousTarget removeIncoming: self ].
 	targetRef := aFlowNode.
 	targetRef ifNotNil: [ :aTarget | aTarget addIncoming: self ]
+]
+
+{ #category : 'accessing' }
+CPSequenceFlow >> conditionExpression [
+	^ conditionExpression
+]
+
+{ #category : 'accessing' }
+CPSequenceFlow >> conditionExpression: anExpression [
+	conditionExpression := anExpression
+]
+
+{ #category : 'descriptions' }
+CPSequenceFlow >> conditionExpressionDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #conditionExpression;
+		classes: { CPExpression };
+		reference: CPExpression new identifierDescription;
+		label: 'Condition';
+		priority: 100;
+		group: 'Relations';
+		yourself
 ]
 
 { #category : 'descriptions' }
