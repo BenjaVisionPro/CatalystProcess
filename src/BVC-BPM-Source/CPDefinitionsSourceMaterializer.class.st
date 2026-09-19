@@ -294,7 +294,9 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				nextPutAll: ' put: (('; nextPutAll: each class name; nextPutAll: ' identifier: '; nextPutAll: each identifier storeString; nextPutAll: ')'; cr.
 			each label ifNotNil: [
 				out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: each label storeString; nextPutAll: ';'; cr ].
-			each isActivity ifTrue: [
+			(each isEvent and: [ each isCatchEvent or: [ each isThrowEvent ] ]) ifTrue: [
+			each eventDefinitions do: [ :aDefinition | self validateEventDefinitionForSourceSave: aDefinition in: aProcess ] ].
+		each isActivity ifTrue: [
 				each isForCompensation ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'isForCompensation: true;'; cr ].
 				each startQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'startQuantity: '; nextPutAll: each startQuantity storeString; nextPutAll: ';'; cr ].
 				each completionQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'completionQuantity: '; nextPutAll: each completionQuantity storeString; nextPutAll: ';'; cr ] ].
@@ -315,7 +317,12 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				nextPutAll: String tab; nextPutAll: 'process addFlowElement: (nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr.
 			(each isActivity and: [ each loopCharacteristics notNil ]) ifTrue: [
 				out nextPutAll: String tab; nextPutAll: '(nodes at: '; nextPutAll: each identifier storeString;
-					nextPutAll: ') loopCharacteristics: '; nextPutAll: (self sourceForLoopCharacteristics: each loopCharacteristics); nextPutAll: '.'; cr ] ].
+					nextPutAll: ') loopCharacteristics: '; nextPutAll: (self sourceForLoopCharacteristics: each loopCharacteristics); nextPutAll: '.'; cr ] .
+			(each isEvent and: [ each isCatchEvent or: [ each isThrowEvent ] ]) ifTrue: [
+				each eventDefinitions ifNotEmpty: [
+					out nextPutAll: String tab; nextPutAll: '(nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ') eventDefinitions: { '.
+					each eventDefinitions do: [ :aDefinition | out nextPutAll: (self sourceForEventDefinition: aDefinition) ] separatedBy: [ out nextPutAll: '. ' ].
+					out nextPutAll: ' } asOrderedCollection.'; cr ] ] ].
 		flows do: [ :each |
 			out
 				nextPutAll: String tab; nextPutAll: 'flow := CPSequenceFlow identifier: '; nextPutAll: each identifier storeString; nextPutAll: '.'; cr.
@@ -344,6 +351,30 @@ CPDefinitionsSourceMaterializer >> sourceSelectorForGatewayDirection: aDirection
 	aDirection = 'Mixed' ifTrue: [ ^ 'beMixed' ].
 	aDirection = 'Unspecified' ifTrue: [ ^ 'beUnspecified' ].
 	self error: 'Invalid BPMN gateway direction'
+]
+
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> sourceForEventDefinition: aDefinition [
+	| out |
+	out := String streamContents: [ :stream |
+		stream nextPutAll: '(('; nextPutAll: aDefinition class name; nextPutAll: ' identifier: '; nextPutAll: aDefinition identifier storeString; nextPutAll: ')'.
+		aDefinition class = CPTimerEventDefinition ifTrue: [
+			aDefinition timeDate ifNotNil: [ :each | stream nextPutAll: ' timeDate: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ].
+			aDefinition timeCycle ifNotNil: [ :each | stream nextPutAll: ' timeCycle: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ].
+			aDefinition timeDuration ifNotNil: [ :each | stream nextPutAll: ' timeDuration: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ] ].
+		aDefinition class = CPConditionalEventDefinition ifTrue: [ aDefinition condition ifNotNil: [ :each | stream nextPutAll: ' condition: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ] ].
+		aDefinition class = CPErrorEventDefinition ifTrue: [ aDefinition error ifNotNil: [ :each | stream nextPutAll: ' error: (CPError identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
+		aDefinition class = CPEscalationEventDefinition ifTrue: [ aDefinition escalationRef ifNotNil: [ :each | stream nextPutAll: ' escalationRef: (CPEscalation identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
+		aDefinition class = CPSignalEventDefinition ifTrue: [ aDefinition signalRef ifNotNil: [ :each | stream nextPutAll: ' signalRef: (CPSignal identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
+		aDefinition class = CPCompensationEventDefinition ifTrue: [
+			aDefinition activityRef ifNotNil: [ :each | stream nextPutAll: ' activityRef: (CPActivity identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ].
+			aDefinition waitForCompletion ifFalse: [ stream nextPutAll: ' waitForCompletion: false;' ] ].
+		aDefinition class = CPMessageEventDefinition ifTrue: [
+			aDefinition messageRef ifNotNil: [ :each | stream nextPutAll: ' messageRef: (CPMessage identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ].
+			aDefinition operationRef ifNotNil: [ :each | stream nextPutAll: ' operationRef: (CPOperation identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
+		stream nextPutAll: ' yourself)' ].
+	^ out
 ]
 
 { #category : 'private - saving' }
@@ -383,6 +414,26 @@ CPDefinitionsSourceMaterializer >> sourceForExpression: anExpression [
 			out nextPutAll: ' body: '; nextPutAll: anExpression body storeString; nextPutAll: ';' ].
 		out nextPutAll: ' yourself)' ].
 	^ stream
+]
+
+
+{ #category : 'private - validating' }
+CPDefinitionsSourceMaterializer >> validateEventDefinitionForSourceSave: aDefinition in: aProcess [
+	aDefinition identifier ifNil: [ self error: 'A source-backed EventDefinition requires a stable identifier' ].
+	(aDefinition class = CPTimerEventDefinition) ifTrue: [
+		aDefinition hasSingleTimerExpression ifFalse: [ self error: 'An executable TimerEventDefinition can specify only one timer expression' ].
+		{ aDefinition timeDate. aDefinition timeCycle. aDefinition timeDuration } do: [ :each | each ifNotNil: [ each class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression timer expressions' ] ] ].
+		^ self ].
+	(aDefinition class = CPConditionalEventDefinition) ifTrue: [
+		aDefinition condition ifNil: [ self error: 'A ConditionalEventDefinition requires a condition' ].
+		aDefinition condition class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression event conditions' ].
+		^ self ].
+	(aDefinition class = CPErrorEventDefinition) ifTrue: [ aDefinition error ifNotNil: [ :each | each identifier ifNil: [ self error: 'A referenced Error requires a stable identifier' ] ]. ^ self ].
+	(aDefinition class = CPEscalationEventDefinition) ifTrue: [ aDefinition escalationRef ifNotNil: [ :each | each identifier ifNil: [ self error: 'A referenced Escalation requires a stable identifier' ] ]. ^ self ].
+	(aDefinition class = CPSignalEventDefinition) ifTrue: [ aDefinition signalRef ifNotNil: [ :each | each identifier ifNil: [ self error: 'A referenced Signal requires a stable identifier' ] ]. ^ self ].
+	(aDefinition class = CPCompensationEventDefinition) ifTrue: [ aDefinition activityRef ifNotNil: [ :each | (aProcess flowElements identityIncludes: each) ifFalse: [ self error: 'A compensation activityRef must belong to its Process' ] ]. ^ self ].
+	(aDefinition class = CPMessageEventDefinition) ifTrue: [ ^ self ].
+	self error: 'Process source saving does not support this EventDefinition type'
 ]
 
 { #category : 'private - validating' }

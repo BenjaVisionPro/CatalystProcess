@@ -4136,7 +4136,7 @@ CPProcessAtelierExamples >> definitionsRootElementsUseStandardRelationCreation [
 
 	self assert: description definitive not.
 	self assert: description newItemClassStencil isNotNil.
-	self assert: description classes equals: { CPProcess. CPCollaboration. CPItemDefinition. CPDataStore. CPMessage. CPError. CPInterface. CPResource }.
+	self assert: description classes equals: { CPProcess. CPCollaboration. CPItemDefinition. CPDataStore. CPMessage. CPError. CPInterface. CPResource. CPSignal. CPEscalation }.
 	self assert: ((description newItemClassStencil asStencilBuilder: CFMaNewItemStencilBuilder)
 		itemClass: CPProcess;
 		description: description;
