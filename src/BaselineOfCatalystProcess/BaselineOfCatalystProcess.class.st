@@ -27,6 +27,8 @@ BaselineOfCatalystProcess >> baseline: spec [
 					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-Design') ];
 				package: 'BVC-BPM-Runtime'
 					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-Definition') ];
+				package: 'BVC-BPM-Execution'
+					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-BPMN') ];
 				package: 'BVC-BPM-Automation'
 					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-Runtime') ];
 				package: 'BVC-BPM-Magritte'
@@ -38,7 +40,7 @@ BaselineOfCatalystProcess >> baseline: spec [
 				package: 'BVC-BPM-GT-Examples'
 					with: [ spec requires: #('BVC-BPM-GT' 'BVC-BPM-Atelier') ];
 				package: 'BVC-BPM-Examples'
-					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-BPMN' 'BVC-BPM-Source' 'BVC-BPM-Design' 'BVC-BPM-Definition' 'BVC-BPM-Runtime' 'BVC-BPM-Automation' 'BVC-BPM-Atelier') ];
+					with: [ spec requires: #('BVC-BPM-Core' 'BVC-BPM-BPMN' 'BVC-BPM-Source' 'BVC-BPM-Design' 'BVC-BPM-Definition' 'BVC-BPM-Runtime' 'BVC-BPM-Execution' 'BVC-BPM-Automation' 'BVC-BPM-Atelier') ];
 				package: 'BVC-BPM-Tests'
 					with: [ spec requires: #('BVC-BPM-Examples') ].
 			spec group: 'atelier' with: #('BVC-BPM-Atelier' 'BVC-BPM-GT-Examples') ]
