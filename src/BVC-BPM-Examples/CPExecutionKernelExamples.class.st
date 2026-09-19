@@ -879,12 +879,16 @@ CPExecutionKernelExamples >> timerIntermediateCatchEventCreatesDurableSubscripti
 	self assert: eventExecution isWaiting.
 	self assert: eventExecution subscription isWaiting.
 	self assert: eventExecution subscription timerDefinition == timerDefinition.
+	self assert: (execution timerSubscriptions occurrencesOf: eventExecution subscription) equals: 1.
+	self assert: (execution waitingTimerSubscriptions occurrencesOf: eventExecution subscription) equals: 1.
 	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
 	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #timer1; definition: timerDefinition; yourself.
 	execution triggerTimerIntermediateCatchEventExecution: eventExecution with: occurrence.
 	self assert: eventExecution isTriggered.
 	self assert: eventExecution subscription isTriggered.
 	self assert: eventExecution subscription occurrence == occurrence.
+	self assert: (execution timerSubscriptions occurrencesOf: eventExecution subscription) equals: 1.
+	self assert: (execution waitingTimerSubscriptions includes: eventExecution subscription) not.
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ eventExecution
 ]

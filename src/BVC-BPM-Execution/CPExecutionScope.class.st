@@ -10,7 +10,8 @@ Class {
 		'gatewayExecutions',
 		'eventExecutions',
 		'flowActivations',
-		'acceptedOccurrences'
+		'acceptedOccurrences',
+		'timerSubscriptions'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -31,7 +32,8 @@ CPExecutionScope >> initialize [
 	gatewayExecutions := OrderedCollection new.
 	eventExecutions := OrderedCollection new.
 	flowActivations := OrderedCollection new.
-	acceptedOccurrences := OrderedCollection new
+	acceptedOccurrences := OrderedCollection new.
+	timerSubscriptions := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -62,6 +64,14 @@ CPExecutionScope >> gatewayExecutions [ ^ gatewayExecutions ]
 CPExecutionScope >> eventExecutions [ ^ eventExecutions ]
 { #category : 'accessing' }
 CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
+
+{ #category : 'accessing' }
+CPExecutionScope >> timerSubscriptions [ ^ timerSubscriptions ]
+
+{ #category : 'events - timer' }
+CPExecutionScope >> waitingTimerSubscriptions [
+	^ timerSubscriptions select: #isWaiting
+]
 
 
 { #category : 'accessing' }
@@ -643,6 +653,7 @@ CPExecutionScope >> beginTimerIntermediateCatchEvent: anEvent consuming: anActiv
 		timerDefinition: timerDefinition;
 		yourself.
 	execution subscription: subscription.
+	timerSubscriptions add: subscription.
 	^ execution
 ]
 
