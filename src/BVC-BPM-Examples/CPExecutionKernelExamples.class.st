@@ -300,8 +300,6 @@ CPExecutionKernelExamples >> startEventProducesOutgoingControl [
 		sourceRef: startEvent;
 		targetRef: task;
 		yourself.
-	startEvent outgoing add: flow.
-	task incoming add: flow.
 	process := CPProcessExecution for: processDefinition.
 	eventExecution := process executeStartEvent: startEvent occurrence: nil.
 	self assert: eventExecution producedFlowActivations size equals: 1.
@@ -320,8 +318,6 @@ CPExecutionKernelExamples >> endEventConsumesIncomingControl [
 		sourceRef: task;
 		targetRef: endEvent;
 		yourself.
-	task outgoing add: flow.
-	endEvent incoming add: flow.
 	process := CPProcessExecution for: processDefinition.
 	activation := process activateSequenceFlow: flow producedBy: nil.
 	eventExecution := process executeEndEvent: endEvent consuming: activation.
@@ -540,8 +536,6 @@ CPExecutionKernelExamples >> subProcessCreatesOwnedExecutionScope [
 	start := CPNoneStartEvent new identifier: 'start'; yourself.
 	inner := CPTask new identifier: 'inner'; yourself.
 	flow := CPSequenceFlow new identifier: 'startToInner'; sourceRef: start; targetRef: inner; yourself.
-	start outgoing add: flow.
-	inner incoming add: flow.
 	subProcess addFlowElement: start.
 	subProcess addFlowElement: inner.
 	subProcess addFlowElement: flow.
@@ -565,15 +559,11 @@ CPExecutionKernelExamples >> completedSubProcessContinuesParentControlFlow [
 	start := CPNoneStartEvent new identifier: 'start'; yourself.
 	end := CPNoneEndEvent new identifier: 'end'; yourself.
 	innerFlow := CPSequenceFlow new identifier: 'inner'; sourceRef: start; targetRef: end; yourself.
-	start outgoing add: innerFlow.
-	end incoming add: innerFlow.
 	subProcess addFlowElement: start.
 	subProcess addFlowElement: end.
 	subProcess addFlowElement: innerFlow.
 	after := CPTask new identifier: 'after'; yourself.
 	outerFlow := CPSequenceFlow new identifier: 'afterSubProcess'; sourceRef: subProcess; targetRef: after; yourself.
-	subProcess outgoing add: outerFlow.
-	after incoming add: outerFlow.
 	execution := CPProcessExecution for: process.
 	subProcessExecution := execution createActivityExecutionFor: subProcess.
 	execution activateSubProcessExecution: subProcessExecution.
