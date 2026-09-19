@@ -5,7 +5,8 @@ Class {
 		'deployment',
 		'tenant',
 		'startedBy',
-		'environment'
+		'environment',
+		'started'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -36,3 +37,27 @@ CPProcessExecution >> startedBy: anObject [ startedBy := anObject ]
 CPProcessExecution >> environment [ ^ environment ]
 { #category : 'accessing' }
 CPProcessExecution >> environment: anExecutionEnvironment [ environment := anExecutionEnvironment ]
+
+
+{ #category : 'initialization' }
+CPProcessExecution >> initialize [
+	super initialize.
+	started := false
+]
+
+{ #category : 'testing' }
+CPProcessExecution >> isStarted [
+	^ started
+]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> start [
+	| startEvents executions |
+	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
+	startEvents := self definition flowElements select: [ :each |
+		each isStartEvent and: [ each eventDefinitions isEmpty ] ].
+	startEvents ifEmpty: [ self error: 'Process instantiation requires at least one None Start Event.' ].
+	started := true.
+	executions := startEvents collect: [ :each | self executeStartEvent: each occurrence: nil ].
+	^ executions
+]

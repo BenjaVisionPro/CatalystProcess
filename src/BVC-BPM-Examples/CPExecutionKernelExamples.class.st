@@ -1163,3 +1163,40 @@ CPExecutionKernelExamples >> timerSubscriptionRejectsMismatchedOccurrenceBeforeA
 	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
 	^ execution
 ]
+
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> processExecutionStartsFromNoneStartEvents [
+	<gtExample>
+	| process firstStart secondStart firstTask secondTask firstFlow secondFlow execution startExecutions |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstStart := CPNoneStartEvent new identifier: 'firstStart'; yourself.
+	secondStart := CPNoneStartEvent new identifier: 'secondStart'; yourself.
+	firstTask := CPTask new identifier: 'firstTask'; yourself.
+	secondTask := CPTask new identifier: 'secondTask'; yourself.
+	firstFlow := CPSequenceFlow new identifier: 'firstFlow'; sourceRef: firstStart; targetRef: firstTask; yourself.
+	secondFlow := CPSequenceFlow new identifier: 'secondFlow'; sourceRef: secondStart; targetRef: secondTask; yourself.
+	process addFlowElement: firstStart; addFlowElement: secondStart; addFlowElement: firstTask; addFlowElement: secondTask; addFlowElement: firstFlow; addFlowElement: secondFlow.
+	execution := self executionFor: process.
+	self assert: execution isStarted not.
+	startExecutions := execution start.
+	self assert: execution isStarted.
+	self assert: startExecutions size equals: 2.
+	self assert: (execution availableFlowActivationsOn: firstFlow) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: secondFlow) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> processExecutionCannotStartTwice [
+	<gtExample>
+	| execution rejected |
+	execution := self processExecutionStartsFromNoneStartEvents.
+	rejected := false.
+	[ execution start ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isStarted.
+	^ execution
+]
