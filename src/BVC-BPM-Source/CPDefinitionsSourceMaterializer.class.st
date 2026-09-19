@@ -301,7 +301,8 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 			each label ifNotNil: [
 				out nextPutAll: String tab; nextPutAll: 'flow label: '; nextPutAll: each label storeString; nextPutAll: '.'; cr ].
 			out
-				nextPutAll: String tab; nextPutAll: 'flow sourceRef: (nodes at: '; nextPutAll: each sourceRef identifier storeString; nextPutAll: '); targetRef: (nodes at: '; nextPutAll: each targetRef identifier storeString; nextPutAll: ').'; cr;
+				nextPutAll: String tab; nextPutAll: 'flow sourceRef: (nodes at: '; nextPutAll: each sourceRef identifier storeString; nextPutAll: ').'; cr;
+				nextPutAll: String tab; nextPutAll: 'flow targetRef: (nodes at: '; nextPutAll: each targetRef identifier storeString; nextPutAll: ').'; cr;
 				nextPutAll: String tab; nextPutAll: 'process addFlowElement: flow.'; cr ].
 		out nextPutAll: String tab; nextPutAll: '^ process'; cr; nextPutAll: ']' ].
 	^ stream
