@@ -88,3 +88,9 @@ CPProcessExecution >> complete [
 	completed := true.
 	^ self
 ]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> finishTermination [
+	self complete.
+	^ self
+]

@@ -768,3 +768,45 @@ CPExecutionScope >> triggerMessageIntermediateCatchEventExecution: anEventExecut
 	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.
 	^ anEventExecution
 ]
+
+{ #category : 'lifecycle' }
+CPExecutionScope >> terminateRemainingWork [
+	childScopes do: [ :eachScope | eachScope terminateRemainingWork ].
+	activityExecutions do: [ :eachExecution |
+		eachExecution isFinal ifFalse: [
+			eachExecution isReady
+				ifTrue: [ eachExecution withdraw ]
+				ifFalse: [
+					eachExecution beginTermination.
+					eachExecution finishTermination ] ] ].
+	flowActivations do: [ :eachActivation |
+		eachActivation isAvailable ifTrue: [ eachActivation cancel ] ].
+	messageSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	timerSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	^ self
+]
+
+{ #category : 'lifecycle' }
+CPExecutionScope >> finishTermination [
+	owningActivity ifNil: [ self error: 'Only a nested execution scope can finish termination through an owning Activity.' ].
+	owningActivity isActive ifFalse: [ self error: 'A terminated nested scope requires an Active owning Activity.' ].
+	owningActivity beginCompletion.
+	owningActivity complete.
+	parentScope produceOutgoingControlFor: owningActivity.
+	^ self
+]
+
+{ #category : 'events - end' }
+CPExecutionScope >> executeTerminateEndEvent: aTerminateEndEvent consuming: anActivation [
+	| execution |
+	aTerminateEndEvent outgoing isEmpty ifFalse: [ self error: 'A Terminate End Event cannot produce outgoing Sequence Flow.' ].
+	(anActivation isAvailable and: [ aTerminateEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'A Terminate End Event requires an available activation from one of its incoming Sequence Flows.' ].
+	execution := self createEventExecutionFor: aTerminateEndEvent.
+	execution consumeFlowActivation: anActivation.
+	self terminateRemainingWork.
+	self finishTermination.
+	^ execution
+]

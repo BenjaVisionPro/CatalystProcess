@@ -1304,3 +1304,74 @@ CPExecutionKernelExamples >> cancelledSubscriptionsLeaveWaitingSet [
 	self assert: (execution waitingTimerSubscriptions identityIncludes: timerSubscription) not.
 	^ execution
 ]
+
+{ #category : 'examples - termination' }
+CPExecutionKernelExamples >> terminateEndEventCancelsRemainingProcessWork [
+	<gtExample>
+	| process start terminate receive message toTerminate toReceive execution terminateActivation receiveExecution terminateExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	terminate := CPTerminateEndEvent new identifier: 'terminate'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receive := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	toTerminate := CPSequenceFlow new identifier: 'toTerminate'; sourceRef: start; targetRef: terminate; yourself.
+	toReceive := CPSequenceFlow new identifier: 'toReceive'; sourceRef: start; targetRef: receive; yourself.
+	process
+		addFlowElement: start;
+		addFlowElement: terminate;
+		addFlowElement: receive;
+		addFlowElement: toTerminate;
+		addFlowElement: toReceive.
+	execution := self executionFor: process.
+	execution start.
+	receiveExecution := execution createReceiveTaskExecutionFor: receive.
+	receiveExecution consumeFlowActivation: (execution availableFlowActivationsOn: toReceive) first.
+	execution activateReceiveTaskExecution: receiveExecution.
+	self assert: receiveExecution isActive.
+	self assert: execution waitingMessageSubscriptions size equals: 1.
+	terminateActivation := (execution availableFlowActivationsOn: toTerminate) first.
+	terminateExecution := execution executeTerminateEndEvent: terminate consuming: terminateActivation.
+	self assert: receiveExecution state class equals: CPActivityTerminatedState.
+	self assert: execution waitingMessageSubscriptions isEmpty.
+	self assert: execution messageSubscriptions first isCancelled.
+	self assert: execution canComplete not.
+	self assert: execution isCompleted.
+	^ terminateExecution
+]
+
+{ #category : 'examples - termination' }
+CPExecutionKernelExamples >> terminateEndEventCompletesOnlyItsSubProcessScope [
+	<gtExample>
+	| process subProcess start terminate receive message innerTerminate innerReceive after outerFlow execution subExecution child terminateActivation receiveExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	terminate := CPTerminateEndEvent new identifier: 'terminate'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receive := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	innerTerminate := CPSequenceFlow new identifier: 'innerTerminate'; sourceRef: start; targetRef: terminate; yourself.
+	innerReceive := CPSequenceFlow new identifier: 'innerReceive'; sourceRef: start; targetRef: receive; yourself.
+	subProcess
+		addFlowElement: start;
+		addFlowElement: terminate;
+		addFlowElement: receive;
+		addFlowElement: innerTerminate;
+		addFlowElement: innerReceive.
+	after := CPTask new identifier: 'after'; yourself.
+	outerFlow := CPSequenceFlow new identifier: 'afterSubProcess'; sourceRef: subProcess; targetRef: after; yourself.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subExecution.
+	child := subExecution subScope.
+	receiveExecution := child createReceiveTaskExecutionFor: receive.
+	receiveExecution consumeFlowActivation: (child availableFlowActivationsOn: innerReceive) first.
+	child activateReceiveTaskExecution: receiveExecution.
+	terminateActivation := (child availableFlowActivationsOn: innerTerminate) first.
+	child executeTerminateEndEvent: terminate consuming: terminateActivation.
+	self assert: receiveExecution state class equals: CPActivityTerminatedState.
+	self assert: child waitingMessageSubscriptions isEmpty.
+	self assert: subExecution isCompleted.
+	self assert: execution isCompleted not.
+	self assert: (execution availableFlowActivationsOn: outerFlow) size equals: 1.
+	^ subExecution
+]
