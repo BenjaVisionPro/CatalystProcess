@@ -5,6 +5,7 @@ Class {
 		'definition',
 		'scope',
 		'subScope',
+		'consumedFlowActivations',
 		'state'
 	],
 	#category : 'BVC-BPM-Execution',
@@ -21,6 +22,7 @@ CPActivityExecution class >> for: anActivity in: anExecutionScope [
 { #category : 'initialization' }
 CPActivityExecution >> initialize [
 	super initialize.
+	consumedFlowActivations := OrderedCollection new.
 	state := CPActivityReadyState new
 ]
 
@@ -36,6 +38,15 @@ CPActivityExecution >> scope: anExecutionScope [ scope := anExecutionScope ]
 CPActivityExecution >> subScope [ ^ subScope ]
 { #category : 'accessing' }
 CPActivityExecution >> state [ ^ state ]
+{ #category : 'accessing' }
+CPActivityExecution >> consumedFlowActivations [ ^ consumedFlowActivations ]
+
+{ #category : 'control flow' }
+CPActivityExecution >> consumeFlowActivation: anActivation [
+	anActivation consumeBy: self.
+	consumedFlowActivations add: anActivation.
+	^ anActivation
+]
 
 { #category : 'building' }
 CPActivityExecution >> createSubScopeFor: aScopeDefinition [

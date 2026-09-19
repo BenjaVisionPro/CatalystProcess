@@ -7,6 +7,7 @@ Class {
 		'owningActivity',
 		'childScopes',
 		'activityExecutions',
+		'flowActivations',
 		'acceptedOccurrences'
 	],
 	#category : 'BVC-BPM-Execution',
@@ -25,6 +26,7 @@ CPExecutionScope >> initialize [
 	super initialize.
 	childScopes := OrderedCollection new.
 	activityExecutions := OrderedCollection new.
+	flowActivations := OrderedCollection new.
 	acceptedOccurrences := OrderedCollection new
 ]
 
@@ -46,6 +48,66 @@ CPExecutionScope >> childScopes [ ^ childScopes ]
 CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
 { #category : 'accessing' }
 CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
+
+
+{ #category : 'accessing' }
+CPExecutionScope >> flowActivations [ ^ flowActivations ]
+
+{ #category : 'control flow' }
+CPExecutionScope >> activateSequenceFlow: aSequenceFlow producedBy: anActivityExecution [
+	| activation |
+	anActivityExecution ifNotNil: [
+		anActivityExecution scope == self ifFalse: [ self error: 'Sequence Flow activation must be produced within this execution scope.' ] ].
+	activation := CPSequenceFlowActivation new
+		definition: aSequenceFlow;
+		scope: self;
+		producedBy: anActivityExecution;
+		yourself.
+	flowActivations add: activation.
+	^ activation
+]
+
+{ #category : 'control flow' }
+CPExecutionScope >> availableFlowActivationsOn: aSequenceFlow [
+	^ flowActivations select: [ :each |
+		each definition == aSequenceFlow and: [ each isAvailable ] ]
+]
+
+{ #category : 'control flow' }
+CPExecutionScope >> availableIncomingFlowActivationsFor: anActivity [
+	| available |
+	available := OrderedCollection new.
+	anActivity incoming do: [ :eachFlow |
+		available addAll: (self availableFlowActivationsOn: eachFlow) ].
+	^ available
+]
+
+{ #category : 'control flow' }
+CPExecutionScope >> canReadyActivity: anActivity [
+	^ (self availableIncomingFlowActivationsFor: anActivity) size >= anActivity startQuantity
+]
+
+{ #category : 'control flow' }
+CPExecutionScope >> readyActivityExecutionFor: anActivity [
+	| available execution |
+	available := self availableIncomingFlowActivationsFor: anActivity.
+	available size < anActivity startQuantity ifTrue: [
+		self error: 'The Activity does not have enough incoming control-flow activations to become Ready.' ].
+	execution := self createActivityExecutionFor: anActivity.
+	1 to: anActivity startQuantity do: [ :index |
+		execution consumeFlowActivation: (available at: index) ].
+	^ execution
+]
+
+{ #category : 'control flow' }
+CPExecutionScope >> produceOutgoingControlFor: anActivityExecution [
+	anActivityExecution scope == self ifFalse: [ self error: 'The Activity execution does not belong to this execution scope.' ].
+	anActivityExecution isCompleted ifFalse: [ self error: 'Only a Completed Activity can produce outgoing control flow.' ].
+	anActivityExecution definition outgoing do: [ :eachFlow |
+		1 to: anActivityExecution definition completionQuantity do: [ :index |
+			self activateSequenceFlow: eachFlow producedBy: anActivityExecution ] ].
+	^ anActivityExecution
+]
 
 { #category : 'building' }
 CPExecutionScope >> createActivityExecutionFor: anActivity [

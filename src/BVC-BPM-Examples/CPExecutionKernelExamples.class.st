@@ -74,3 +74,76 @@ CPExecutionKernelExamples >> acceptedOccurrence [
 	self assert: scope acceptedOccurrences size equals: 1.
 	^ scope
 ]
+
+{ #category : 'examples - control flow' }
+CPExecutionKernelExamples >> activityConsumesIncomingControlFlow [
+	<gtExample>
+	| process source target flow execution sourceExecution targetExecution activation |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
+	execution := CPProcessExecution for: process.
+	sourceExecution := execution createActivityExecutionFor: source.
+	sourceExecution activate; beginCompletion; complete.
+	activation := execution activateSequenceFlow: flow producedBy: sourceExecution.
+	self assert: (execution canReadyActivity: target).
+	targetExecution := execution readyActivityExecutionFor: target.
+	self assert: targetExecution isReady.
+	self assert: activation isAvailable not.
+	self assert: activation consumedBy == targetExecution.
+	self assert: targetExecution consumedFlowActivations size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - control flow' }
+CPExecutionKernelExamples >> completedActivityProducesOutgoingControlFlow [
+	<gtExample>
+	| process source target flow execution activity |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
+	execution := CPProcessExecution for: process.
+	activity := execution createActivityExecutionFor: source.
+	activity activate; beginCompletion; complete.
+	execution produceOutgoingControlFor: activity.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	self assert: (execution canReadyActivity: target).
+	^ execution
+]
+
+{ #category : 'examples - control flow' }
+CPExecutionKernelExamples >> activityStartQuantityConsumesRequiredControl [
+	<gtExample>
+	| process source target flow execution sourceExecution targetExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	target := CPTask new identifier: 'target'; startQuantity: 2; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
+	execution := CPProcessExecution for: process.
+	sourceExecution := execution createActivityExecutionFor: source.
+	execution activateSequenceFlow: flow producedBy: sourceExecution.
+	self assert: (execution canReadyActivity: target) not.
+	execution activateSequenceFlow: flow producedBy: sourceExecution.
+	self assert: (execution canReadyActivity: target).
+	targetExecution := execution readyActivityExecutionFor: target.
+	self assert: targetExecution consumedFlowActivations size equals: 2.
+	^ execution
+]
+
+{ #category : 'examples - control flow' }
+CPExecutionKernelExamples >> completionQuantityProducesRequiredControl [
+	<gtExample>
+	| process source target flow execution sourceExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; completionQuantity: 2; yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
+	execution := CPProcessExecution for: process.
+	sourceExecution := execution createActivityExecutionFor: source.
+	sourceExecution activate; beginCompletion; complete.
+	execution produceOutgoingControlFor: sourceExecution.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 2.
+	^ execution
+]
