@@ -450,3 +450,60 @@ CPExecutionScope >> triggerBoundaryEventExecution: aBoundaryEventExecution with:
 	aBoundaryEventExecution triggerWithAcceptedOccurrence: anOccurrence.
 	^ aBoundaryEventExecution
 ]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> activateSubProcessExecution: anActivityExecution [
+	| subProcess startEvents subScope |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Sub-Process Activity execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Sub-Process Activity can be activated.' ].
+	subProcess := anActivityExecution definition.
+	startEvents := subProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size > 1 ifTrue: [
+		self error: 'A control-flow Sub-Process can have at most one Start Event.' ].
+	startEvents ifNotEmpty: [
+		startEvents first eventDefinitions ifNotEmpty: [
+			self error: 'A control-flow Sub-Process Start Event must be empty.' ] ].
+	anActivityExecution activate.
+	subScope := anActivityExecution createSubScopeFor: subProcess.
+	startEvents
+		ifNotEmpty: [ subScope executeStartEvent: startEvents first occurrence: nil ]
+		ifEmpty: [ subScope activateImplicitSubProcessStart ].
+	^ anActivityExecution
+]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> activateImplicitSubProcessStart [
+	definition flowElements do: [ :each |
+		(each incoming isEmpty and: [ each isActivity ]) ifTrue: [
+			| activation |
+			activation := CPSequenceFlowActivation new
+				definition: nil;
+				scope: self;
+				producedBy: nil;
+				yourself.
+			flowActivations add: activation ] ].
+	^ self
+]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
+	| subScope |
+	anActivityExecution isActive ifFalse: [ ^ false ].
+	subScope := anActivityExecution subScope.
+	subScope ifNil: [ ^ false ].
+	(subScope flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
+	(subScope activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
+	^ true
+]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> completeSubProcessActivity: anActivityExecution [
+	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
+		self error: 'The Sub-Process cannot complete while nested control flow or Activities remain active.' ].
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]

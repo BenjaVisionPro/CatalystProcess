@@ -202,3 +202,8 @@ CPActivity >> resourcesDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new accessor: #resources; classes: { CPResourceRole }; reference: CPResourceRole new identifierDescription; label: 'Resources'; priority: 185; group: 'Execution'; beModifiable; beOrdered; newItemClassStencil: [ :aClass | aClass new ]; yourself
 ]
+
+{ #category : 'testing' }
+CPActivity >> isActivity [
+	^ true
+]

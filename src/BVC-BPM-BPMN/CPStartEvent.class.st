@@ -28,3 +28,8 @@ CPStartEvent class >> eventTypeLabel [
 CPStartEvent class >> eventTypeIcon [
 	^ #circle
 ]
+
+{ #category : 'testing' }
+CPStartEvent >> isStartEvent [
+	^ true
+]

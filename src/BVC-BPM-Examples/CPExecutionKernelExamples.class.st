@@ -530,3 +530,58 @@ CPExecutionKernelExamples >> errorBoundaryEventFailsActivityAndContinues [
 	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
 	^ boundaryExecution
 ]
+
+{ #category : 'examples - sub-process' }
+CPExecutionKernelExamples >> subProcessCreatesOwnedExecutionScope [
+	<gtExample>
+	| process subProcess start inner flow execution activation subProcessExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	inner := CPTask new identifier: 'inner'; yourself.
+	flow := CPSequenceFlow new identifier: 'startToInner'; sourceRef: start; targetRef: inner; yourself.
+	start outgoing add: flow.
+	inner incoming add: flow.
+	subProcess addFlowElement: start.
+	subProcess addFlowElement: inner.
+	subProcess addFlowElement: flow.
+	execution := CPProcessExecution for: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	self assert: subProcessExecution isActive.
+	self assert: subProcessExecution subScope parentScope == execution.
+	self assert: subProcessExecution subScope owningActivity == subProcessExecution.
+	activation := (subProcessExecution subScope availableFlowActivationsOn: flow) first.
+	self assert: activation isAvailable.
+	^ subProcessExecution
+]
+
+{ #category : 'examples - sub-process' }
+CPExecutionKernelExamples >> completedSubProcessContinuesParentControlFlow [
+	<gtExample>
+	| process subProcess start end innerFlow after outerFlow execution subProcessExecution childScope endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	end := CPNoneEndEvent new identifier: 'end'; yourself.
+	innerFlow := CPSequenceFlow new identifier: 'inner'; sourceRef: start; targetRef: end; yourself.
+	start outgoing add: innerFlow.
+	end incoming add: innerFlow.
+	subProcess addFlowElement: start.
+	subProcess addFlowElement: end.
+	subProcess addFlowElement: innerFlow.
+	after := CPTask new identifier: 'after'; yourself.
+	outerFlow := CPSequenceFlow new identifier: 'afterSubProcess'; sourceRef: subProcess; targetRef: after; yourself.
+	subProcess outgoing add: outerFlow.
+	after incoming add: outerFlow.
+	execution := CPProcessExecution for: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeEndEvent: end consuming: endActivation.
+	execution completeSubProcessActivity: subProcessExecution.
+	self assert: subProcessExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outerFlow) size equals: 1.
+	^ subProcessExecution
+]

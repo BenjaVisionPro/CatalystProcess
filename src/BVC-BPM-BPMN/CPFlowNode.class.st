@@ -132,3 +132,13 @@ CPFlowNode >> isDefaultFlow: aSequenceFlow [ ^ false ]
 
 { #category : 'validation' }
 CPFlowNode >> hasValidDefaultFlow [ ^ true ]
+
+{ #category : 'testing' }
+CPFlowNode >> isActivity [
+	^ false
+]
+
+{ #category : 'testing' }
+CPFlowNode >> isStartEvent [
+	^ false
+]
