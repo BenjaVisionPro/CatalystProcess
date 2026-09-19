@@ -443,3 +443,26 @@ CPExecutionKernelExamples >> eventBasedGatewayWinningEventContinuesControlFlow [
 	self assert: (gatewayExecution subscriptions detect: [ :each | each sequenceFlow == timerFlow ]) isWithdrawn.
 	^ eventExecution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> intermediateThrowEventCompletesThenContinues [
+	<gtExample>
+	| process before event after incoming outgoing execution producer activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	event := CPMessageThrowIntermediateEvent new identifier: 'message'; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: event; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: event; targetRef: after; yourself.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginIntermediateThrowEvent: event consuming: activation.
+	self assert: eventExecution isPending.
+	self assert: activation isAvailable not.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	execution completeIntermediateThrowEventExecution: eventExecution.
+	self assert: eventExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]

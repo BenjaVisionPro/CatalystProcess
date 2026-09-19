@@ -394,3 +394,30 @@ CPExecutionScope >> triggerEventBasedGatewayExecution: aGatewayExecution subscri
 	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
 	^ eventExecution
 ]
+
+{ #category : 'events - intermediate throw' }
+CPExecutionScope >> beginIntermediateThrowEvent: anEvent consuming: anActivation [
+	| execution |
+	(anActivation isAvailable and: [ anEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'An Intermediate Throw Event requires an available activation from one of its incoming Sequence Flows.' ].
+	execution := CPIntermediateThrowEventExecution new
+		definition: anEvent;
+		scope: self;
+		yourself.
+	eventExecutions add: execution.
+	execution consumeFlowActivation: anActivation.
+	^ execution
+]
+
+{ #category : 'events - intermediate throw' }
+CPExecutionScope >> completeIntermediateThrowEventExecution: anEventExecution [
+	(eventExecutions identityIncludes: anEventExecution) ifFalse: [
+		self error: 'The Intermediate Throw Event execution does not belong to this execution scope.' ].
+	anEventExecution isPending ifFalse: [
+		self error: 'Only a pending Intermediate Throw Event execution can complete.' ].
+	anEventExecution complete.
+	anEventExecution definition outgoing do: [ :eachFlow |
+		anEventExecution recordProducedFlowActivation:
+			(self activateSequenceFlow: eachFlow producedBy: anEventExecution) ].
+	^ anEventExecution
+]
