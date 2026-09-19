@@ -256,3 +256,35 @@ CPExecutionKernelExamples >> exclusiveGatewayUsesDefaultWhenConditionsAreFalse [
 	self assert: (execution availableFlowActivationsOn: fallback) size equals: 1.
 	^ execution
 ]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> eventBasedGatewayFirstOccurrenceWins [
+	<gtExample>
+	| process before gateway message timer afterMessage afterTimer incoming messageFlow timerFlow execution producer activation gatewayExecution messageSubscription occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'wait'; yourself.
+	message := CPMessageCatchIntermediateEvent new identifier: 'message'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; yourself.
+	afterMessage := CPTask new identifier: 'afterMessage'; yourself.
+	afterTimer := CPTask new identifier: 'afterTimer'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	messageFlow := CPSequenceFlow new identifier: 'messageFlow'; sourceRef: gateway; targetRef: message; yourself.
+	timerFlow := CPSequenceFlow new identifier: 'timerFlow'; sourceRef: gateway; targetRef: timer; yourself.
+	CPSequenceFlow new identifier: 'afterMessageFlow'; sourceRef: message; targetRef: afterMessage; yourself.
+	CPSequenceFlow new identifier: 'afterTimerFlow'; sourceRef: timer; targetRef: afterTimer; yourself.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution beginExclusiveEventBasedGateway: gateway consuming: activation.
+	self assert: gatewayExecution subscriptions size equals: 2.
+	self assert: gatewayExecution isWaiting.
+	messageSubscription := gatewayExecution subscriptions detect: [ :each | each sequenceFlow == messageFlow ].
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #message1; definition: message; yourself.
+	gatewayExecution acceptOccurrence: occurrence for: messageSubscription.
+	self assert: messageSubscription isTriggered.
+	self assert: (gatewayExecution subscriptions detect: [ :each | each sequenceFlow == timerFlow ]) isWithdrawn.
+	self assert: gatewayExecution isResolved.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #message1).
+	^ gatewayExecution
+]

@@ -206,3 +206,21 @@ CPExecutionScope >> selectedOutgoingFlowForExclusiveGateway: aGateway conditionE
 	aGateway default ifNotNil: [ ^ aGateway default ].
 	self error: 'No Exclusive Gateway condition evaluated to true and no default Sequence Flow is defined.'
 ]
+
+
+{ #category : 'gateways - event based' }
+CPExecutionScope >> beginExclusiveEventBasedGateway: aGateway consuming: anActivation [
+	| execution |
+	aGateway instantiate ifTrue: [ self error: 'An instantiating Event-Based Gateway belongs to Process instantiation, not an existing execution scope.' ].
+	aGateway eventGatewayType = 'Exclusive' ifFalse: [ self error: 'A non-instantiating Event-Based Gateway must be Exclusive.' ].
+	(anActivation isAvailable and: [ aGateway incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'An Event-Based Gateway requires an available activation from one of its incoming Sequence Flows.' ].
+	execution := CPEventBasedGatewayExecution new
+		definition: aGateway;
+		scope: self;
+		yourself.
+	gatewayExecutions add: execution.
+	execution consumeFlowActivation: anActivation.
+	aGateway outgoing do: [ :eachFlow | execution subscribeToOutgoingFlow: eachFlow ].
+	^ execution
+]
