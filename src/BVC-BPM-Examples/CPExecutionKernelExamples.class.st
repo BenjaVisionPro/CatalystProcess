@@ -147,3 +147,112 @@ CPExecutionKernelExamples >> completionQuantityProducesRequiredControl [
 	self assert: (execution availableFlowActivationsOn: flow) size equals: 2.
 	^ execution
 ]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> parallelGatewaySynchronizesIncomingControl [
+	<gtExample>
+	| process left right gateway after first second out execution leftExecution rightExecution gatewayExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	left := CPTask new identifier: 'left'; yourself.
+	right := CPTask new identifier: 'right'; yourself.
+	gateway := CPParallelGateway new identifier: 'join'; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	first := CPSequenceFlow new identifier: 'first'; sourceRef: left; targetRef: gateway; yourself.
+	second := CPSequenceFlow new identifier: 'second'; sourceRef: right; targetRef: gateway; yourself.
+	out := CPSequenceFlow new identifier: 'out'; sourceRef: gateway; targetRef: after; yourself.
+	execution := CPProcessExecution for: process.
+	leftExecution := execution createActivityExecutionFor: left.
+	rightExecution := execution createActivityExecutionFor: right.
+	execution activateSequenceFlow: first producedBy: leftExecution.
+	self assert: (execution canExecuteParallelGateway: gateway) not.
+	execution activateSequenceFlow: second producedBy: rightExecution.
+	self assert: (execution canExecuteParallelGateway: gateway).
+	gatewayExecution := execution executeParallelGateway: gateway.
+	self assert: gatewayExecution consumedFlowActivations size equals: 2.
+	self assert: gatewayExecution producedFlowActivations size equals: 1.
+	self assert: (execution availableFlowActivationsOn: out) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> parallelGatewayLeavesExcessIncomingControl [
+	<gtExample>
+	| process left right gateway after first second out execution leftExecution rightExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	left := CPTask new identifier: 'left'; yourself.
+	right := CPTask new identifier: 'right'; yourself.
+	gateway := CPParallelGateway new identifier: 'join'; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	first := CPSequenceFlow new identifier: 'first'; sourceRef: left; targetRef: gateway; yourself.
+	second := CPSequenceFlow new identifier: 'second'; sourceRef: right; targetRef: gateway; yourself.
+	out := CPSequenceFlow new identifier: 'out'; sourceRef: gateway; targetRef: after; yourself.
+	execution := CPProcessExecution for: process.
+	leftExecution := execution createActivityExecutionFor: left.
+	rightExecution := execution createActivityExecutionFor: right.
+	execution activateSequenceFlow: first producedBy: leftExecution.
+	execution activateSequenceFlow: first producedBy: leftExecution.
+	execution activateSequenceFlow: second producedBy: rightExecution.
+	execution executeParallelGateway: gateway.
+	self assert: (execution availableFlowActivationsOn: first) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: second) isEmpty.
+	self assert: (execution availableFlowActivationsOn: out) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> exclusiveGatewaySelectsFirstTrueCondition [
+	<gtExample>
+	| process before gateway firstTarget secondTarget defaultTarget incoming first second fallback firstCondition secondCondition execution producer activation gatewayExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPExclusiveGateway new identifier: 'choice'; yourself.
+	firstTarget := CPTask new identifier: 'firstTarget'; yourself.
+	secondTarget := CPTask new identifier: 'secondTarget'; yourself.
+	defaultTarget := CPTask new identifier: 'defaultTarget'; yourself.
+	firstCondition := CPFormalExpression new identifier: 'firstCondition'; body: 'first'; yourself.
+	secondCondition := CPFormalExpression new identifier: 'secondCondition'; body: 'second'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	first := CPSequenceFlow new identifier: 'first'; sourceRef: gateway; targetRef: firstTarget; conditionExpression: firstCondition; yourself.
+	second := CPSequenceFlow new identifier: 'second'; sourceRef: gateway; targetRef: secondTarget; conditionExpression: secondCondition; yourself.
+	fallback := CPSequenceFlow new identifier: 'fallback'; sourceRef: gateway; targetRef: defaultTarget; yourself.
+	gateway default: fallback.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution
+		executeExclusiveGateway: gateway
+		consuming: activation
+		conditionEvaluator: [ :expression | expression == firstCondition or: [ expression == secondCondition ] ].
+	self assert: gatewayExecution producedFlowActivations first definition == first.
+	self assert: (execution availableFlowActivationsOn: first) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: second) isEmpty.
+	self assert: (execution availableFlowActivationsOn: fallback) isEmpty.
+	^ execution
+]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> exclusiveGatewayUsesDefaultWhenConditionsAreFalse [
+	<gtExample>
+	| process before gateway target fallbackTarget incoming conditional fallback condition execution producer activation gatewayExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPExclusiveGateway new identifier: 'choice'; yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	fallbackTarget := CPTask new identifier: 'fallbackTarget'; yourself.
+	condition := CPFormalExpression new identifier: 'condition'; body: 'false'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	conditional := CPSequenceFlow new identifier: 'conditional'; sourceRef: gateway; targetRef: target; conditionExpression: condition; yourself.
+	fallback := CPSequenceFlow new identifier: 'fallback'; sourceRef: gateway; targetRef: fallbackTarget; yourself.
+	gateway default: fallback.
+	execution := CPProcessExecution for: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution
+		executeExclusiveGateway: gateway
+		consuming: activation
+		conditionEvaluator: [ :expression | false ].
+	self assert: gatewayExecution producedFlowActivations first definition == fallback.
+	self assert: (execution availableFlowActivationsOn: conditional) isEmpty.
+	self assert: (execution availableFlowActivationsOn: fallback) size equals: 1.
+	^ execution
+]

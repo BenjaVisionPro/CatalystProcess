@@ -7,6 +7,7 @@ Class {
 		'owningActivity',
 		'childScopes',
 		'activityExecutions',
+		'gatewayExecutions',
 		'flowActivations',
 		'acceptedOccurrences'
 	],
@@ -26,6 +27,7 @@ CPExecutionScope >> initialize [
 	super initialize.
 	childScopes := OrderedCollection new.
 	activityExecutions := OrderedCollection new.
+	gatewayExecutions := OrderedCollection new.
 	flowActivations := OrderedCollection new.
 	acceptedOccurrences := OrderedCollection new
 ]
@@ -47,6 +49,8 @@ CPExecutionScope >> childScopes [ ^ childScopes ]
 { #category : 'accessing' }
 CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
 { #category : 'accessing' }
+CPExecutionScope >> gatewayExecutions [ ^ gatewayExecutions ]
+{ #category : 'accessing' }
 CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
 
 
@@ -54,14 +58,14 @@ CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
 CPExecutionScope >> flowActivations [ ^ flowActivations ]
 
 { #category : 'control flow' }
-CPExecutionScope >> activateSequenceFlow: aSequenceFlow producedBy: anActivityExecution [
+CPExecutionScope >> activateSequenceFlow: aSequenceFlow producedBy: aFlowNodeExecution [
 	| activation |
-	anActivityExecution ifNotNil: [
-		anActivityExecution scope == self ifFalse: [ self error: 'Sequence Flow activation must be produced within this execution scope.' ] ].
+	aFlowNodeExecution ifNotNil: [
+		aFlowNodeExecution scope == self ifFalse: [ self error: 'Sequence Flow activation must be produced within this execution scope.' ] ].
 	activation := CPSequenceFlowActivation new
 		definition: aSequenceFlow;
 		scope: self;
-		producedBy: anActivityExecution;
+		producedBy: aFlowNodeExecution;
 		yourself.
 	flowActivations add: activation.
 	^ activation
@@ -144,4 +148,61 @@ CPExecutionScope >> acceptOccurrence: anOccurrence [
 		ifTrue: [ self error: 'This occurrence has already been accepted in the scope.' ].
 	acceptedOccurrences add: anOccurrence.
 	^ anOccurrence
+]
+
+
+{ #category : 'building' }
+CPExecutionScope >> createGatewayExecutionFor: aGateway [
+	| execution |
+	execution := CPGatewayExecution new
+		definition: aGateway;
+		scope: self;
+		yourself.
+	gatewayExecutions add: execution.
+	^ execution
+]
+
+{ #category : 'gateways - parallel' }
+CPExecutionScope >> canExecuteParallelGateway: aGateway [
+	^ aGateway incoming allSatisfy: [ :eachFlow |
+		(self availableFlowActivationsOn: eachFlow) notEmpty ]
+]
+
+{ #category : 'gateways - parallel' }
+CPExecutionScope >> executeParallelGateway: aGateway [
+	| execution |
+	(self canExecuteParallelGateway: aGateway) ifFalse: [
+		self error: 'A Parallel Gateway requires one available control-flow activation on every incoming Sequence Flow.' ].
+	execution := self createGatewayExecutionFor: aGateway.
+	aGateway incoming do: [ :eachFlow |
+		execution consumeFlowActivation: (self availableFlowActivationsOn: eachFlow) first ].
+	aGateway outgoing do: [ :eachFlow |
+		execution recordProducedFlowActivation:
+			(self activateSequenceFlow: eachFlow producedBy: execution) ].
+	^ execution
+]
+
+{ #category : 'gateways - exclusive' }
+CPExecutionScope >> executeExclusiveGateway: aGateway consuming: anActivation conditionEvaluator: anEvaluator [
+	| execution selectedFlow |
+	(anActivation isAvailable and: [ aGateway incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'An Exclusive Gateway requires an available activation from one of its incoming Sequence Flows.' ].
+	selectedFlow := self
+		selectedOutgoingFlowForExclusiveGateway: aGateway
+		conditionEvaluator: anEvaluator.
+	execution := self createGatewayExecutionFor: aGateway.
+	execution consumeFlowActivation: anActivation.
+	execution recordProducedFlowActivation:
+		(self activateSequenceFlow: selectedFlow producedBy: execution).
+	^ execution
+]
+
+{ #category : 'gateways - exclusive' }
+CPExecutionScope >> selectedOutgoingFlowForExclusiveGateway: aGateway conditionEvaluator: anEvaluator [
+	aGateway outgoing do: [ :eachFlow |
+		(aGateway isDefaultFlow: eachFlow) ifFalse: [
+			eachFlow conditionExpression ifNotNil: [ :anExpression |
+				(anEvaluator value: anExpression) ifTrue: [ ^ eachFlow ] ] ] ].
+	aGateway default ifNotNil: [ ^ aGateway default ].
+	self error: 'No Exclusive Gateway condition evaluated to true and no default Sequence Flow is defined.'
 ]

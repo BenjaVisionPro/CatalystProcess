@@ -22,16 +22,16 @@ CPSequenceFlowActivation >> scope: anExecutionScope [ scope := anExecutionScope 
 { #category : 'accessing' }
 CPSequenceFlowActivation >> producedBy [ ^ producedBy ]
 { #category : 'accessing' }
-CPSequenceFlowActivation >> producedBy: anActivityExecution [ producedBy := anActivityExecution ]
+CPSequenceFlowActivation >> producedBy: aFlowNodeExecution [ producedBy := aFlowNodeExecution ]
 { #category : 'accessing' }
 CPSequenceFlowActivation >> consumedBy [ ^ consumedBy ]
 { #category : 'testing' }
 CPSequenceFlowActivation >> isAvailable [ ^ consumedBy isNil ]
 
 { #category : 'control flow' }
-CPSequenceFlowActivation >> consumeBy: anActivityExecution [
+CPSequenceFlowActivation >> consumeBy: aFlowNodeExecution [
 	consumedBy ifNotNil: [ self error: 'A Sequence Flow activation can be consumed only once.' ].
-	anActivityExecution scope == scope ifFalse: [ self error: 'Control flow can only be consumed within its execution scope.' ].
-	consumedBy := anActivityExecution.
+	aFlowNodeExecution scope == scope ifFalse: [ self error: 'Control flow can only be consumed within its execution scope.' ].
+	consumedBy := aFlowNodeExecution.
 	^ self
 ]
