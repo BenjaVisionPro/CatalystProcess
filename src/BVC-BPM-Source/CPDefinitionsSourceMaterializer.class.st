@@ -298,6 +298,8 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				each isForCompensation ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'isForCompensation: true;'; cr ].
 				each startQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'startQuantity: '; nextPutAll: each startQuantity storeString; nextPutAll: ';'; cr ].
 				each completionQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'completionQuantity: '; nextPutAll: each completionQuantity storeString; nextPutAll: ';'; cr ] ].
+			each class = CPUserTask ifTrue: [
+				each implementation = '##unspecified' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'implementation: '; nextPutAll: each implementation storeString; nextPutAll: ';'; cr ] ].
 			each class = CPServiceTask ifTrue: [
 				each implementation = '##WebService' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'implementation: '; nextPutAll: each implementation storeString; nextPutAll: ';'; cr ].
 				each operationRef ifNotNil: [ :anOperation | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'operationRef: (CPOperation identifier: '; nextPutAll: anOperation identifier storeString; nextPutAll: ');'; cr ] ].
