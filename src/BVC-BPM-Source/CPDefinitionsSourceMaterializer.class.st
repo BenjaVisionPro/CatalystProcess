@@ -311,12 +311,7 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				each operationRef ifNotNil: [ :anOperation | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'operationRef: (CPOperation identifier: '; nextPutAll: anOperation identifier storeString; nextPutAll: ');'; cr ].
 				each class = CPReceiveTask ifTrue: [ each instantiate ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'instantiate: true;'; cr ] ] ].
 			each isGateway ifTrue: [
-				each gatewayDirection = 'Unspecified' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: (self sourceSelectorForGatewayDirection: each gatewayDirection); nextPutAll: ';'; cr ].
-				each class = CPEventBasedGateway ifTrue: [
-					each instantiate ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'instantiate: true;'; cr ].
-					each eventGatewayType = 'Parallel' ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'beParallel;'; cr ] ].
-				each class = CPComplexGateway ifTrue: [
-					each activationCondition ifNotNil: [ :anExpression | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'activationCondition: '; nextPutAll: (self sourceForExpression: anExpression); nextPutAll: ';'; cr ] ] ].
+				each gatewayDirection = 'Unspecified' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: (self sourceSelectorForGatewayDirection: each gatewayDirection); nextPutAll: ';'; cr ] ].
 			out
 				nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'yourself).'; cr;
 				nextPutAll: String tab; nextPutAll: 'process addFlowElement: (nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr.
@@ -451,12 +446,7 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 			each hasValidDefaultFlow ifFalse: [
 				self error: 'A default must reference one of its source node''s outgoing Sequence Flows' ] ].
 		each isGateway ifTrue: [
-			each hasValidGatewayDirection ifFalse: [ self error: 'Gateway direction is inconsistent with its incoming and outgoing Sequence Flows' ].
-			each class = CPEventBasedGateway ifTrue: [
-				each hasValidEventGatewayType ifFalse: [ self error: 'Event-Based Gateway type is inconsistent with its instantiate state or incoming Sequence Flows' ] ].
-			each class = CPComplexGateway ifTrue: [
-				each activationCondition ifNotNil: [ :anExpression |
-					anExpression class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression Complex Gateway activation conditions' ] ] ] ].
+			each hasValidGatewayDirection ifFalse: [ self error: 'Gateway direction is inconsistent with its incoming and outgoing Sequence Flows' ] ].
 		each class = CPServiceTask ifTrue: [
 			each operationRef ifNotNil: [ :anOperation | anOperation identifier ifNil: [ self error: 'A source-backed Service Task Operation requires a stable identifier' ] ] ].
 		(each class = CPSendTask or: [ each class = CPReceiveTask ]) ifTrue: [

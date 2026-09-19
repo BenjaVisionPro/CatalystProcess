@@ -1,6 +1,6 @@
 "I represent a BPMN Call Activity that invokes another callable Process.
 
-In the current Catalyst Process model the callable element is a CPProcess. Global Tasks are not yet modeled, so calledElement deliberately exposes the process-valued subset that the semantic model can currently represent."
+The called element is a BPMN CallableElement. A Call Activity transfers control to that reusable definition and uses the Activity input/output contract to exchange data with it."
 Class {
 	#name : 'CPCallActivity',
 	#superclass : 'CPActivity',
@@ -22,8 +22,8 @@ CPCallActivity >> calledElement [
 ]
 
 { #category : 'accessing' }
-CPCallActivity >> calledElement: aProcess [
-	calledElement := aProcess
+CPCallActivity >> calledElement: aCallableElement [
+	calledElement := aCallableElement
 ]
 
 { #category : 'descriptions' }
@@ -31,8 +31,8 @@ CPCallActivity >> calledElementDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new
 		accessor: #calledElement;
-		classes: { CPProcess };
-		reference: CPProcess new labelDescription;
+		classes: { CPCallableElement };
+		reference: CPCallableElement new labelDescription;
 		label: 'Called element';
 		priority: 100;
 		group: 'Call';

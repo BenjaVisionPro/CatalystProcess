@@ -45,31 +45,29 @@ CPBPMNActivityAndGatewayExamples >> divergingGatewayDirection [
 	^ gateway
 ]
 
-{ #category : 'examples - gateways' }
-CPBPMNActivityAndGatewayExamples >> complexGatewayContract [
+{ #category : 'examples - call activities' }
+CPBPMNActivityAndGatewayExamples >> callActivityUsesCallableElementContract [
 	<gtExample>
-	| gateway target defaultFlow condition |
-	gateway := CPComplexGateway identifier: #complexDecision.
-	target := CPTask identifier: #continue.
-	defaultFlow := (CPSequenceFlow identifier: #otherwise) sourceRef: gateway; targetRef: target; yourself.
-	condition := (CPFormalExpression identifier: #activation) body: 'ready'; yourself.
-	gateway activationCondition: condition; default: defaultFlow.
-	self assert: gateway activationCondition equals: condition.
-	self assert: (gateway isDefaultFlow: defaultFlow).
-	self assert: gateway hasValidDefaultFlow.
-	^ gateway
-]
-
-{ #category : 'examples - gateways' }
-CPBPMNActivityAndGatewayExamples >> eventBasedGatewayContract [
-	<gtExample>
-	| gateway |
-	gateway := CPEventBasedGateway identifier: #awaitEvent.
-	self assert: gateway instantiate not.
-	self assert: gateway eventGatewayType equals: 'Exclusive'.
-	self assert: gateway hasValidEventGatewayType.
-	gateway instantiate: true; beParallel.
-	self assert: gateway eventGatewayType equals: 'Parallel'.
-	self assert: gateway hasValidEventGatewayType.
-	^ gateway
+	| callable input output operation binding call |
+	callable := CPProcess identifier: #reusableProcess.
+	input := CPDataInput identifier: #request.
+	output := CPDataOutput identifier: #response.
+	callable ioSpecification: (CPInputOutputSpecification new
+		dataInputs: { input };
+		dataOutputs: { output };
+		yourself).
+	operation := CPOperation identifier: #invoke.
+	binding := (CPInputOutputBinding identifier: #invokeBinding)
+		inputDataRef: input;
+		outputDataRef: output;
+		operationRef: operation;
+		yourself.
+	callable ioBindings: { binding }.
+	call := (CPCallActivity identifier: #callReusableProcess)
+		calledElement: callable;
+		yourself.
+	self assert: call calledElement equals: callable.
+	self assert: callable ioSpecification dataInputs first equals: input.
+	self assert: callable ioBindings first equals: binding.
+	^ call
 ]

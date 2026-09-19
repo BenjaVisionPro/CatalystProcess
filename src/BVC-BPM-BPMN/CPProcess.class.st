@@ -1,12 +1,11 @@
 Class {
 	#name : 'CPProcess',
-	#superclass : 'CFLabelledObject',
+	#superclass : 'CPCallableElement',
 	#instVars : [
 		'flowElements',
 		'laneSets',
 		'diagram',
 		'definitionalCollaborationRef',
-		'ioSpecification',
 		'properties'
 	],
 	#category : 'BVC-BPM-BPMN',
@@ -174,18 +173,6 @@ CPProcess >> properties [ ^ properties ]
 { #category : 'accessing' }
 CPProcess >> properties: aCollection [ properties := aCollection asOrderedCollection ]
 
-{ #category : 'descriptions' }
-CPProcess >> ioSpecificationDescription [
-	<magritteDescription>
-	^ MAToOneRelationDescription new
-		accessor: #ioSpecification;
-		classes: { CPInputOutputSpecification };
-		reference: CPInputOutputSpecification new identifierDescription;
-		label: 'Input/output specification';
-		priority: 130;
-		group: 'Data';
-		yourself
-]
 { #category : 'descriptions' }
 CPProcess >> propertiesDescription [
 	<magritteDescription>
