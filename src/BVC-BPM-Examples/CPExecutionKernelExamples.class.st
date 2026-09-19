@@ -1553,8 +1553,10 @@ CPExecutionKernelExamples >> occurrenceIdentityIsUniqueAcrossNestedScopes [
 	ownerExecutionTwo := execution createActivityExecutionFor: ownerTwo.
 	scopeOne := CPExecutionScope for: ownerOne ownedBy: ownerExecutionOne.
 	scopeTwo := CPExecutionScope for: ownerTwo ownedBy: ownerExecutionTwo.
-	execution addChildScope: scopeOne.
-	execution addChildScope: scopeTwo.
+	self assert: scopeOne parentScope == execution.
+	self assert: scopeTwo parentScope == execution.
+	self assert: (execution childScopes identityIncludes: scopeOne).
+	self assert: (execution childScopes identityIncludes: scopeTwo).
 	firstOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #delivery42; definition: #first; yourself.
 	duplicateOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #delivery42; definition: #second; yourself.
 	scopeOne acceptOccurrence: firstOccurrence.
