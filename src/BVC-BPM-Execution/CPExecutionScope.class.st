@@ -231,10 +231,25 @@ CPExecutionScope >> hasAcceptedOccurrenceIdentifiedBy: anIdentifier [
 ]
 
 { #category : 'occurrences' }
+CPExecutionScope >> hasAcceptedOccurrenceIdentifiedByAnywhere: anIdentifier [
+	(self hasAcceptedOccurrenceIdentifiedBy: anIdentifier) ifTrue: [ ^ true ].
+	^ childScopes anySatisfy: [ :eachScope |
+		eachScope hasAcceptedOccurrenceIdentifiedByAnywhere: anIdentifier ]
+]
+
+{ #category : 'occurrences' }
+CPExecutionScope >> processExecution [
+	parentScope ifNil: [ self error: 'A nested execution scope requires a parent Process execution.' ].
+	^ parentScope processExecution
+]
+
+{ #category : 'occurrences' }
 CPExecutionScope >> acceptOccurrence: anOccurrence [
+	| rootExecution |
 	anOccurrence occurrenceIdentifier ifNil: [ self error: 'An occurrence requires an occurrence identifier.' ].
-	(self hasAcceptedOccurrenceIdentifiedBy: anOccurrence occurrenceIdentifier)
-		ifTrue: [ self error: 'This occurrence has already been accepted in the scope.' ].
+	rootExecution := self processExecution.
+	(rootExecution hasAcceptedOccurrenceIdentifiedByAnywhere: anOccurrence occurrenceIdentifier)
+		ifTrue: [ self error: 'This occurrence has already been accepted by the Process execution.' ].
 	acceptedOccurrences add: anOccurrence.
 	^ anOccurrence
 ]

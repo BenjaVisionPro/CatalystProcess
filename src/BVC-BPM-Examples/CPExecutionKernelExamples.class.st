@@ -1539,3 +1539,32 @@ CPExecutionKernelExamples >> interruptingBoundaryEventWithdrawsSiblingBoundaryWa
 	self assert: activityExecution state class equals: CPActivityTerminatedState.
 	^ escalationExecution
 ]
+
+
+{ #category : 'examples - occurrences' }
+CPExecutionKernelExamples >> occurrenceIdentityIsUniqueAcrossNestedScopes [
+	<gtExample>
+	| process ownerOne ownerTwo execution ownerExecutionOne ownerExecutionTwo scopeOne scopeTwo firstOccurrence duplicateOccurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	ownerOne := CPSubProcess new identifier: 'one'; yourself.
+	ownerTwo := CPSubProcess new identifier: 'two'; yourself.
+	execution := self executionFor: process.
+	ownerExecutionOne := execution createActivityExecutionFor: ownerOne.
+	ownerExecutionTwo := execution createActivityExecutionFor: ownerTwo.
+	scopeOne := CPExecutionScope for: ownerOne ownedBy: ownerExecutionOne.
+	scopeTwo := CPExecutionScope for: ownerTwo ownedBy: ownerExecutionTwo.
+	execution addChildScope: scopeOne.
+	execution addChildScope: scopeTwo.
+	firstOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #delivery42; definition: #first; yourself.
+	duplicateOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #delivery42; definition: #second; yourself.
+	scopeOne acceptOccurrence: firstOccurrence.
+	rejected := false.
+	[ scopeTwo acceptOccurrence: duplicateOccurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: (scopeOne acceptedOccurrences identityIncludes: firstOccurrence).
+	self assert: (scopeTwo acceptedOccurrences identityIncludes: duplicateOccurrence) not.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedByAnywhere: #delivery42).
+	^ execution
+]

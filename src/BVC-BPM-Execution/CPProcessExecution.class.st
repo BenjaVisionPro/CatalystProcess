@@ -95,3 +95,9 @@ CPProcessExecution >> finishTermination [
 	self complete.
 	^ self
 ]
+
+
+{ #category : 'occurrences' }
+CPProcessExecution >> processExecution [
+	^ self
+]
