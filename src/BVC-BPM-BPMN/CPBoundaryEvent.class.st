@@ -67,3 +67,8 @@ CPBoundaryEvent class >> eventDefinitionTypes [
 
 { #category : 'defaults' }
 CPBoundaryEvent class >> defaultIcon [ ^ #circleDot ]
+
+{ #category : 'execution semantics' }
+CPBoundaryEvent >> interruptsActivityWithFailure [
+	^ self eventDefinitions anySatisfy: [ :each | each interruptsActivityWithFailure ]
+]

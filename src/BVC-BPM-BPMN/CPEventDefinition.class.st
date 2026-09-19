@@ -31,3 +31,8 @@ CPEventDefinition >> eventTypeLabelDescription [
 		beReadOnly;
 		yourself
 ]
+
+{ #category : 'execution semantics' }
+CPEventDefinition >> interruptsActivityWithFailure [
+	^ false
+]

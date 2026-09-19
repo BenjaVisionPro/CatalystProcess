@@ -421,3 +421,32 @@ CPExecutionScope >> completeIntermediateThrowEventExecution: anEventExecution [
 			(self activateSequenceFlow: eachFlow producedBy: anEventExecution) ].
 	^ anEventExecution
 ]
+
+{ #category : 'events - boundary' }
+CPExecutionScope >> beginBoundaryEvent: aBoundaryEvent attachedTo: anActivityExecution [
+	| execution |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The attached Activity execution does not belong to this execution scope.' ].
+	aBoundaryEvent attachedToRef == anActivityExecution definition ifFalse: [
+		self error: 'The Boundary Event is not attached to this Activity definition.' ].
+	anActivityExecution isActive ifFalse: [
+		self error: 'A Boundary Event can wait only while its attached Activity is Active.' ].
+	execution := CPBoundaryEventExecution new
+		definition: aBoundaryEvent;
+		scope: self;
+		attachedActivityExecution: anActivityExecution;
+		yourself.
+	eventExecutions add: execution.
+	^ execution
+]
+
+{ #category : 'events - boundary' }
+CPExecutionScope >> triggerBoundaryEventExecution: aBoundaryEventExecution with: anOccurrence [
+	(eventExecutions identityIncludes: aBoundaryEventExecution) ifFalse: [
+		self error: 'The Boundary Event execution does not belong to this execution scope.' ].
+	aBoundaryEventExecution isWaiting ifFalse: [
+		self error: 'Only a waiting Boundary Event can accept an occurrence.' ].
+	self acceptOccurrence: anOccurrence.
+	aBoundaryEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ aBoundaryEventExecution
+]

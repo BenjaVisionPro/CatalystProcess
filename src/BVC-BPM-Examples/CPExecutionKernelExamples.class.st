@@ -466,3 +466,73 @@ CPExecutionKernelExamples >> intermediateThrowEventCompletesThenContinues [
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ eventExecution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> interruptingBoundaryEventTerminatesActivityAndContinues [
+	<gtExample>
+	| process activity boundary after flow execution activityExecution boundaryExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'activity'; yourself.
+	boundary := CPBoundaryEvent new identifier: 'timeout'; attachedToRef: activity; cancelActivity: true; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	flow := CPSequenceFlow new identifier: 'timeoutFlow'; sourceRef: boundary; targetRef: after; yourself.
+	boundary outgoing add: flow.
+	after incoming add: flow.
+	execution := CPProcessExecution for: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #timeout1; definition: boundary; yourself.
+	execution triggerBoundaryEventExecution: boundaryExecution with: occurrence.
+	self assert: activityExecution state class equals: CPActivityTerminatedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> nonInterruptingBoundaryEventLeavesActivityActive [
+	<gtExample>
+	| process activity boundary after flow execution activityExecution boundaryExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'activity'; yourself.
+	boundary := CPBoundaryEvent new identifier: 'notice'; attachedToRef: activity; cancelActivity: false; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	flow := CPSequenceFlow new identifier: 'noticeFlow'; sourceRef: boundary; targetRef: after; yourself.
+	boundary outgoing add: flow.
+	after incoming add: flow.
+	execution := CPProcessExecution for: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #notice1; definition: boundary; yourself.
+	execution triggerBoundaryEventExecution: boundaryExecution with: occurrence.
+	self assert: activityExecution isActive.
+	self assert: boundaryExecution isTriggered.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> errorBoundaryEventFailsActivityAndContinues [
+	<gtExample>
+	| process activity boundary errorDefinition after flow execution activityExecution boundaryExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'activity'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'errorDefinition'; yourself.
+	boundary := CPBoundaryEvent new identifier: 'error'; attachedToRef: activity; cancelActivity: true; yourself.
+	boundary eventDefinitions add: errorDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	flow := CPSequenceFlow new identifier: 'errorFlow'; sourceRef: boundary; targetRef: after; yourself.
+	boundary outgoing add: flow.
+	after incoming add: flow.
+	execution := CPProcessExecution for: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #error1; definition: boundary; yourself.
+	execution triggerBoundaryEventExecution: boundaryExecution with: occurrence.
+	self assert: activityExecution state class equals: CPActivityFailedState.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ boundaryExecution
+]

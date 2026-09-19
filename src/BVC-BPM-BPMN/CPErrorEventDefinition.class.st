@@ -9,3 +9,8 @@ CPErrorEventDefinition >> error [ ^ error ]
 CPErrorEventDefinition >> error: anError [ error := anError ]
 { #category : 'descriptions' }
 CPErrorEventDefinition >> errorDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #error; classes: { CPError }; reference: CPError new labelDescription; label: 'Error'; priority: 100; group: 'Relations'; yourself ]
+
+{ #category : 'execution semantics' }
+CPErrorEventDefinition >> interruptsActivityWithFailure [
+	^ true
+]
