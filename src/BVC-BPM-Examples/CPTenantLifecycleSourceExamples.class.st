@@ -412,3 +412,36 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionGraphAndRevert 
 	] ensure: [
 		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle ]
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionDiagramAndRevert [
+	<gtExample>
+	| definitions diagram selector reloaded restored |
+	[
+		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		diagram := definitions diagrams
+			detect: [ :each | each identifier = #startSubscriptionOverview ].
+		selector := CPDefinitionsSourceMaterializer
+			saveDiagram: diagram
+			in: AdminTenantLifecycle.
+		self assert: selector equals: #startSubscriptionOverview.
+		self assert: (CPDefinitionsSourceMaterializer
+			isSpecialisedDiagram: #startSubscriptionOverview
+			in: AdminTenantLifecycle).
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		diagram := reloaded diagrams
+			detect: [ :each | each identifier = #startSubscriptionOverview ].
+		self assert: diagram plane elements size > 0.
+		self assert: diagram plane elements size equals:
+			((definitions diagrams detect: [ :each | each identifier = #startSubscriptionOverview ]) plane elements size).
+		CPDefinitionsSourceMaterializer
+			revertDiagram: #startSubscriptionOverview
+			in: AdminTenantLifecycle.
+		restored := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self assert: (restored diagrams anySatisfy: [ :each |
+			each identifier = #startSubscriptionOverview ]).
+		^ restored
+	] ensure: [
+		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle ]
+]

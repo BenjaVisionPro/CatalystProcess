@@ -394,35 +394,54 @@ CPDefinitionsSourceMaterializer >> saveDiagram: aDiagram in: aSourceClass [
 
 { #category : 'private - saving' }
 CPDefinitionsSourceMaterializer >> diagramSourceFor: aDiagram processIdentifier: aProcessIdentifier selector: aSelector [
+	| shapes edges |
+	shapes := aDiagram plane elements select: [ :each | each isShape ].
+	edges := aDiagram plane elements select: [ :each | each isEdge ].
 	^ String streamContents: [ :stream |
 		stream
-			nextPutAll: aSelector asString;
-			cr;
-			tab;
-			nextPutAll: '<diagram: ';
-			nextPutAll: aDiagram identifier storeString;
-			nextPutAll: ' process: ';
-			nextPutAll: aProcessIdentifier storeString;
-			nextPutAll: '>';
-			cr;
-			tab;
-			nextPutAll: '^ CPDiagram identifier: ';
-			nextPutAll: aDiagram identifier storeString ]
+			nextPutAll: aSelector asString; cr;
+			tab; nextPutAll: '<diagram: '; nextPutAll: aDiagram identifier storeString;
+			nextPutAll: ' process: '; nextPutAll: aProcessIdentifier storeString; nextPutAll: '>'; cr;
+			tab; nextPutAll: '| diagram process elements shape edge |'; cr;
+			tab; nextPutAll: 'process := self '; nextPutAll: aProcessIdentifier asString; nextPutAll: '.'; cr;
+			tab; nextPutAll: 'elements := Dictionary new.'; cr;
+			tab; nextPutAll: 'process flowElements do: [ :each | elements at: each identifier put: each ].'; cr;
+			tab; nextPutAll: 'diagram := CPDiagram identifier: '; nextPutAll: aDiagram identifier storeString; nextPutAll: '.'; cr.
+		shapes do: [ :each |
+			stream
+				tab; nextPutAll: 'shape := CPShape new modelElement: (elements at: '; nextPutAll: each modelElement identifier storeString;
+				nextPutAll: '); bounds: ('; nextPutAll: each bounds storeString; nextPutAll: '); yourself.'; cr;
+				tab; nextPutAll: 'diagram addElement: shape.'; cr ].
+		edges do: [ :each |
+			stream
+				tab; nextPutAll: 'edge := CPEdge new modelElement: (elements at: '; nextPutAll: each modelElement identifier storeString;
+				nextPutAll: '); yourself.'; cr.
+			each waypoints do: [ :point |
+				stream tab; nextPutAll: 'edge addWaypoint: '; nextPutAll: point storeString; nextPutAll: '.'; cr ].
+			stream tab; nextPutAll: 'diagram addElement: edge.'; cr ].
+		stream tab; nextPutAll: '^ diagram' ]
 ]
 
 { #category : 'private - validating' }
 CPDefinitionsSourceMaterializer >> validateDiagramForSourceSave: aDiagram [
-	| modelElement |
+	| modelElement processElements |
 	self validateDiagram: aDiagram identifier: aDiagram identifier.
 	aDiagram labelStyles ifNotEmpty: [
 		self error: 'Diagram source saving does not yet support label styles' ].
-	aDiagram plane elements ifNotEmpty: [
-		self error: 'Diagram source saving does not yet support diagram elements' ].
 	modelElement := aDiagram plane modelElement.
 	modelElement ifNil: [
-		self error: 'A source-backed Diagram must depict a Process' ].
+		self error: 'A source-backed Diagram must reference a Process' ].
 	modelElement class = CPProcess ifFalse: [
-		self error: 'Diagram source saving currently supports Process diagrams only' ]
+		self error: 'Diagram source saving currently supports Process diagrams only' ].
+	processElements := modelElement flowElements.
+	aDiagram plane elements do: [ :each |
+		each modelElement ifNil: [
+			self error: 'Every Diagram element requires a modelElement' ].
+		(processElements identityIncludes: each modelElement) ifFalse: [
+			self error: 'Every Diagram element must reference an element of its Process' ].
+		each isEdge ifTrue: [
+			each waypoints size < 2 ifTrue: [
+				self error: 'A Diagram edge requires at least two waypoints' ] ] ]
 ]
 
 { #category : 'reverting - diagrams' }
