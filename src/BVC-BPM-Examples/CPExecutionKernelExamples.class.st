@@ -700,3 +700,71 @@ CPExecutionKernelExamples >> serviceTaskResolvesOperationBeforeExternalWork [
 	self assert: execution flowActivations isEmpty.
 	^ serviceExecution
 ]
+
+
+{ #category : 'examples - service task' }
+CPExecutionKernelExamples >> serviceTaskExternalResultCompletesExactlyOnce [
+	<gtExample>
+	| process serviceTask operation implementation after outgoing execution environment serviceExecution invocation result |
+	process := CPProcess new identifier: 'process'; yourself.
+	operation := CPOperation new identifier: 'chargeAccount'; yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'charge';
+		operationRef: operation;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	outgoing := CPSequenceFlow new
+		identifier: 'afterCharge';
+		sourceRef: serviceTask;
+		targetRef: after;
+		yourself.
+	process addFlowElement: serviceTask.
+	process addFlowElement: after.
+	process addFlowElement: outgoing.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	execution activateServiceTaskExecution: serviceExecution.
+	invocation := serviceExecution prepareExternalInvocationIdentifiedBy: #chargeInvocation1.
+	self assert: invocation invocationIdentifier equals: #chargeInvocation1.
+	self assert: invocation activityExecution == serviceExecution.
+	self assert: invocation implementation == implementation.
+	self assert: invocation isPending.
+	self assert: execution flowActivations isEmpty.
+	result := CPExecutionOccurrence new
+		occurrenceIdentifier: #chargeResult1;
+		definition: invocation;
+		yourself.
+	execution completeServiceTaskExecution: serviceExecution withResultOccurrence: result.
+	self assert: invocation resultOccurrence == result.
+	self assert: invocation isCompleted.
+	self assert: serviceExecution isCompleted.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #chargeResult1).
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ serviceExecution
+]
+
+{ #category : 'examples - service task' }
+CPExecutionKernelExamples >> serviceTaskRejectsDuplicateExternalResult [
+	<gtExample>
+	| serviceExecution execution invocation duplicateRejected |
+	serviceExecution := self serviceTaskExternalResultCompletesExactlyOnce.
+	execution := serviceExecution scope.
+	invocation := serviceExecution externalInvocation.
+	duplicateRejected := false.
+	[ execution
+		completeServiceTaskExecution: serviceExecution
+		withResultOccurrence: (CPExecutionOccurrence new
+			occurrenceIdentifier: invocation resultOccurrence occurrenceIdentifier;
+			definition: invocation;
+			yourself) ]
+		on: Error
+		do: [ :error | duplicateRejected := true ].
+	self assert: duplicateRejected.
+	self assert: serviceExecution isCompleted.
+	self assert: invocation isCompleted.
+	^ serviceExecution
+]

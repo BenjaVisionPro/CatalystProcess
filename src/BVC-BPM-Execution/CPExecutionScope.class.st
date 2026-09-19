@@ -573,3 +573,22 @@ CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
 	anActivityExecution activate.
 	^ anActivityExecution
 ]
+
+
+{ #category : 'activities - service' }
+CPExecutionScope >> completeServiceTaskExecution: anActivityExecution withResultOccurrence: anOccurrence [
+	| invocation |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Service Task execution does not belong to this execution scope.' ].
+	anActivityExecution isActive ifFalse: [
+		self error: 'Only an Active Service Task execution can accept an external result.' ].
+	invocation := anActivityExecution externalInvocation.
+	invocation ifNil: [ self error: 'The Service Task has no pending external invocation.' ].
+	invocation isPending ifFalse: [ self error: 'The Service Task external invocation has already accepted a result.' ].
+	self acceptOccurrence: anOccurrence.
+	invocation acceptResultOccurrence: anOccurrence.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
