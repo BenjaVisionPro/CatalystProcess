@@ -43,3 +43,10 @@ CPIntermediateCatchEventExecution >> acceptMessageSubscription: aSubscription oc
 	subscription == aSubscription ifFalse: [ self error: 'The Message subscription does not belong to this Intermediate Catch Event execution.' ].
 	^ self scope triggerMessageIntermediateCatchEventExecution: self with: anOccurrence
 ]
+
+
+{ #category : 'events - timer' }
+CPIntermediateCatchEventExecution >> acceptTimerSubscription: aSubscription occurrence: anOccurrence [
+	subscription == aSubscription ifFalse: [ self error: 'The Timer subscription does not belong to this Intermediate Catch Event execution.' ].
+	^ self scope triggerTimerIntermediateCatchEventExecution: self with: anOccurrence
+]

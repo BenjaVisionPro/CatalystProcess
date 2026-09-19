@@ -28,3 +28,12 @@ CPTimerSubscription >> triggerWith: anOccurrence [
 	occurrence := anOccurrence.
 	^ self
 ]
+
+
+{ #category : 'occurrences' }
+CPTimerSubscription >> deliverOccurrence: anOccurrence [
+	self isWaiting ifFalse: [ self error: 'Only a waiting Timer subscription can receive an occurrence.' ].
+	anOccurrence definition == timerDefinition ifFalse: [
+		self error: 'The occurrence does not match this Timer subscription.' ].
+	^ eventExecution acceptTimerSubscription: self occurrence: anOccurrence
+]

@@ -1108,3 +1108,58 @@ CPExecutionKernelExamples >> processExecutionRejectsAmbiguousMessageDeliveryWith
 	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
 	^ execution
 ]
+
+
+{ #category : 'examples - subscriptions' }
+CPExecutionKernelExamples >> timerSubscriptionDeliversOccurrenceToOwningEventExecution [
+	<gtExample>
+	| process before timerDefinition timer outgoing after execution producer activation eventExecution occurrence subscription |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; eventDefinitions: { timerDefinition } asOrderedCollection; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: timer; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: timer; targetRef: after; yourself.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: timer incoming first producedBy: producer.
+	eventExecution := execution beginTimerIntermediateCatchEvent: timer consuming: activation.
+	subscription := eventExecution subscription.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #timerDelivery1; definition: timerDefinition; yourself.
+	subscription deliverOccurrence: occurrence.
+	self assert: subscription isTriggered.
+	self assert: subscription occurrence == occurrence.
+	self assert: eventExecution isTriggered.
+	self assert: eventExecution occurrence == occurrence.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence).
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - subscriptions' }
+CPExecutionKernelExamples >> timerSubscriptionRejectsMismatchedOccurrenceBeforeAcceptance [
+	<gtExample>
+	| process before timerDefinition otherTimerDefinition timer execution producer activation eventExecution occurrence subscription rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	otherTimerDefinition := CPTimerEventDefinition new identifier: 'otherTimerDefinition'; yourself.
+	timer := CPTimerIntermediateEvent new identifier: 'timer'; eventDefinitions: { timerDefinition } asOrderedCollection; yourself.
+	CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: timer; yourself.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: timer incoming first producedBy: producer.
+	eventExecution := execution beginTimerIntermediateCatchEvent: timer consuming: activation.
+	subscription := eventExecution subscription.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongTimerDelivery1; definition: otherTimerDefinition; yourself.
+	rejected := false.
+	[ subscription deliverOccurrence: occurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: subscription isWaiting.
+	self assert: eventExecution isWaiting.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
+	^ execution
+]
