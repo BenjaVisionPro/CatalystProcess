@@ -5,7 +5,8 @@ Class {
 		'ioSpecification',
 		'properties',
 		'dataInputAssociations',
-		'dataOutputAssociations'
+		'dataOutputAssociations',
+		'loopCharacteristics'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -80,4 +81,27 @@ CPActivity >> dataOutputAssociationsDescription [
 { #category : 'data' }
 CPActivity >> dataAssociationDescriptions [
 	^ { self dataInputAssociationsDescription. self dataOutputAssociationsDescription }
+]
+
+{ #category : 'accessing' }
+CPActivity >> loopCharacteristics [
+	^ loopCharacteristics
+]
+
+{ #category : 'accessing' }
+CPActivity >> loopCharacteristics: aLoopCharacteristics [
+	loopCharacteristics := aLoopCharacteristics
+]
+
+{ #category : 'descriptions' }
+CPActivity >> loopCharacteristicsDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #loopCharacteristics;
+		classes: { CPLoopCharacteristics };
+		reference: CPLoopCharacteristics new identifierDescription;
+		label: 'Loop characteristics';
+		priority: 180;
+		group: 'Execution';
+		yourself
 ]

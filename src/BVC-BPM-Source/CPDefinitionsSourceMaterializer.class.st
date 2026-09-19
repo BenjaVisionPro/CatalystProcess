@@ -295,7 +295,10 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: each label storeString; nextPutAll: ';'; cr ].
 			out
 				nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'yourself).'; cr;
-				nextPutAll: String tab; nextPutAll: 'process addFlowElement: (nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr ].
+				nextPutAll: String tab; nextPutAll: 'process addFlowElement: (nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr.
+			(each isActivity and: [ each loopCharacteristics notNil ]) ifTrue: [
+				out nextPutAll: String tab; nextPutAll: '(nodes at: '; nextPutAll: each identifier storeString;
+					nextPutAll: ') loopCharacteristics: '; nextPutAll: (self sourceForLoopCharacteristics: each loopCharacteristics); nextPutAll: '.'; cr ] ].
 		flows do: [ :each |
 			out
 				nextPutAll: String tab; nextPutAll: 'flow := CPSequenceFlow identifier: '; nextPutAll: each identifier storeString; nextPutAll: '.'; cr.
@@ -315,6 +318,30 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 					nextPutAll: ') default: (flowByIdentifier at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr ] ].
 		out nextPutAll: String tab; nextPutAll: '^ process' ].
 	^ stream
+]
+
+{ #category : 'private - saving' }
+CPDefinitionsSourceMaterializer >> sourceForLoopCharacteristics: loopCharacteristics [
+	loopCharacteristics class = CPStandardLoopCharacteristics ifTrue: [
+		^ String streamContents: [ :out |
+			out nextPutAll: '((CPStandardLoopCharacteristics identifier: '; nextPutAll: loopCharacteristics identifier storeString; nextPutAll: ')'.
+			loopCharacteristics testBefore ifTrue: [ out nextPutAll: ' testBefore: true;' ].
+			loopCharacteristics loopMaximum ifNotNil: [ :maximum | out nextPutAll: ' loopMaximum: '; nextPutAll: maximum storeString; nextPutAll: ';' ].
+			loopCharacteristics loopCondition ifNotNil: [ :condition | out nextPutAll: ' loopCondition: '; nextPutAll: (self sourceForExpression: condition); nextPutAll: ';' ].
+			out nextPutAll: ' yourself)' ] ].
+	loopCharacteristics class = CPMultiInstanceLoopCharacteristics ifTrue: [
+		(loopCharacteristics loopDataInputRef notNil or: [ loopCharacteristics loopDataOutputRef notNil or: [ loopCharacteristics inputDataItem notNil or: [ loopCharacteristics outputDataItem notNil ] ] ]) ifTrue: [
+			self error: 'Process source saving does not yet support multi-instance data item references' ].
+		(loopCharacteristics complexBehaviorDefinitions notEmpty or: [ loopCharacteristics oneBehaviorEventRef notNil or: [ loopCharacteristics noneBehaviorEventRef notNil ] ]) ifTrue: [
+			self error: 'Process source saving does not yet support multi-instance completion events' ].
+		^ String streamContents: [ :out |
+			out nextPutAll: '((CPMultiInstanceLoopCharacteristics identifier: '; nextPutAll: loopCharacteristics identifier storeString; nextPutAll: ')'.
+			loopCharacteristics isSequential ifTrue: [ out nextPutAll: ' isSequential: true;' ].
+			loopCharacteristics loopCardinality ifNotNil: [ :cardinality | out nextPutAll: ' loopCardinality: '; nextPutAll: (self sourceForExpression: cardinality); nextPutAll: ';' ].
+			loopCharacteristics behavior = 'All' ifFalse: [ out nextPutAll: ' behavior: '; nextPutAll: loopCharacteristics behavior storeString; nextPutAll: ';' ].
+			loopCharacteristics completionCondition ifNotNil: [ :condition | out nextPutAll: ' completionCondition: '; nextPutAll: (self sourceForExpression: condition); nextPutAll: ';' ].
+			out nextPutAll: ' yourself)' ] ].
+	self error: 'Process source saving does not support this LoopCharacteristics type'
 ]
 
 { #category : 'private - saving' }
@@ -340,6 +367,8 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 	aProcess flowElements do: [ :each |
 		(each isGateway and: [ each hasValidDefaultFlow not ]) ifTrue: [
 			self error: 'A Gateway default must reference one of its outgoing Sequence Flows' ].
+		(each isActivity and: [ each loopCharacteristics notNil ]) ifTrue: [
+			self validateLoopCharacteristicsForSourceSave: each loopCharacteristics ].
 		each identifier ifNil: [
 			self error: 'Every source-backed flow element requires a stable identifier' ].
 		(identifiers includes: each identifier) ifTrue: [
@@ -371,6 +400,24 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 		self error: 'Process source saving does not yet support input/output specifications' ].
 	aProcess definitionalCollaborationRef ifNotNil: [
 		self error: 'Process source saving does not yet support definitional collaborations' ]
+]
+
+{ #category : 'private - validating' }
+CPDefinitionsSourceMaterializer >> validateLoopCharacteristicsForSourceSave: loopCharacteristics [
+	loopCharacteristics class = CPStandardLoopCharacteristics ifTrue: [
+		loopCharacteristics loopCondition ifNotNil: [ :condition |
+			condition class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression loop conditions' ] ].
+		^ self ].
+	loopCharacteristics class = CPMultiInstanceLoopCharacteristics ifTrue: [
+		(loopCharacteristics loopCardinality isNil and: [ loopCharacteristics loopDataInputRef isNil ]) ifTrue: [
+			self error: 'A MultiInstanceLoopCharacteristics requires loopCardinality or loopDataInputRef' ].
+		loopCharacteristics loopCardinality ifNotNil: [ :cardinality |
+			cardinality class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression loop cardinality' ] ].
+		loopCharacteristics completionCondition ifNotNil: [ :condition |
+			condition class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression completion conditions' ] ].
+		(#('None' 'One' 'All' 'Complex') includes: loopCharacteristics behavior) ifFalse: [ self error: 'Invalid BPMN multi-instance behavior' ].
+		^ self ].
+	self error: 'Process source saving does not support this LoopCharacteristics type'
 ]
 
 { #category : 'reverting - processes' }
