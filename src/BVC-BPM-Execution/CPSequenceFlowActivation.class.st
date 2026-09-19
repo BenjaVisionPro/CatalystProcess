@@ -5,11 +5,18 @@ Class {
 		'definition',
 		'scope',
 		'producedBy',
-		'consumedBy'
+		'consumedBy',
+		'cancelled'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
+
+{ #category : 'initialization' }
+CPSequenceFlowActivation >> initialize [
+	super initialize.
+	cancelled := false
+]
 
 { #category : 'accessing' }
 CPSequenceFlowActivation >> definition [ ^ definition ]
@@ -26,12 +33,24 @@ CPSequenceFlowActivation >> producedBy: aFlowNodeExecution [ producedBy := aFlow
 { #category : 'accessing' }
 CPSequenceFlowActivation >> consumedBy [ ^ consumedBy ]
 { #category : 'testing' }
-CPSequenceFlowActivation >> isAvailable [ ^ consumedBy isNil ]
+CPSequenceFlowActivation >> isAvailable [ ^ consumedBy isNil and: [ cancelled not ] ]
+
+{ #category : 'testing' }
+CPSequenceFlowActivation >> isCancelled [ ^ cancelled ]
 
 { #category : 'control flow' }
 CPSequenceFlowActivation >> consumeBy: aFlowNodeExecution [
+	cancelled ifTrue: [ self error: 'A cancelled Sequence Flow activation cannot be consumed.' ].
 	consumedBy ifNotNil: [ self error: 'A Sequence Flow activation can be consumed only once.' ].
 	aFlowNodeExecution scope == scope ifFalse: [ self error: 'Control flow can only be consumed within its execution scope.' ].
 	consumedBy := aFlowNodeExecution.
+	^ self
+]
+
+{ #category : 'control flow' }
+CPSequenceFlowActivation >> cancel [
+	consumedBy ifNotNil: [ self error: 'A consumed Sequence Flow activation cannot be cancelled.' ].
+	cancelled ifTrue: [ self error: 'A Sequence Flow activation can be cancelled only once.' ].
+	cancelled := true.
 	^ self
 ]

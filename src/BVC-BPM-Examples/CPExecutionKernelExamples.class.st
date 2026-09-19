@@ -1246,3 +1246,61 @@ CPExecutionKernelExamples >> processExecutionCannotCompleteWhileMessageWaits [
 	self assert: receiveExecution isWaitingForMessage.
 	^ execution
 ]
+
+
+{ #category : 'examples - cancellation' }
+CPExecutionKernelExamples >> cancelledSequenceFlowActivationIsNoLongerAvailable [
+	<gtExample>
+	| process source target flow execution producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: target; yourself.
+	process addFlowElement: source; addFlowElement: target; addFlowElement: flow.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: source.
+	activation := execution activateSequenceFlow: flow producedBy: producer.
+	self assert: activation isAvailable.
+	activation cancel.
+	self assert: activation isCancelled.
+	self assert: activation isAvailable not.
+	rejected := false.
+	[ (execution createActivityExecutionFor: target) consumeFlowActivation: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	^ activation
+]
+
+{ #category : 'examples - cancellation' }
+CPExecutionKernelExamples >> cancelledSubscriptionsLeaveWaitingSet [
+	<gtExample>
+	| process before message receive timer timerDefinition incoming execution producer activation receiveExecution messageSubscription timerExecution timerSubscription |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receive := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	timer := CPTimerIntermediateEvent new
+		identifier: 'timer';
+		eventDefinitions: { timerDefinition } asOrderedCollection;
+		yourself.
+	incoming := CPSequenceFlow new identifier: 'toTimer'; sourceRef: before; targetRef: timer; yourself.
+	execution := self executionFor: process.
+	receiveExecution := execution createReceiveTaskExecutionFor: receive.
+	execution activateReceiveTaskExecution: receiveExecution.
+	messageSubscription := receiveExecution subscription.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	timerExecution := execution beginTimerIntermediateCatchEvent: timer consuming: activation.
+	timerSubscription := timerExecution subscription.
+	self assert: messageSubscription isWaiting.
+	self assert: timerSubscription isWaiting.
+	messageSubscription cancel.
+	timerSubscription cancel.
+	self assert: messageSubscription isCancelled.
+	self assert: timerSubscription isCancelled.
+	self assert: (execution waitingMessageSubscriptions identityIncludes: messageSubscription) not.
+	self assert: (execution waitingTimerSubscriptions identityIncludes: timerSubscription) not.
+	^ execution
+]
