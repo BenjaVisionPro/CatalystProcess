@@ -25,6 +25,7 @@ CPDefinitionsSourceMaterializer >> materialize: aSourceClass [
 			identifier := aPragma argumentAt: 1.
 			process := aPragma methodClass instanceSide perform: aPragma methodSelector.
 			self validateProcess: process identifier: identifier.
+			self canonicalizeExternalReferencesIn: process from: definitions.
 			processesByIdentifier at: identifier put: process.
 			definitions addRootElement: process ].
 
@@ -297,6 +298,9 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				each isForCompensation ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'isForCompensation: true;'; cr ].
 				each startQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'startQuantity: '; nextPutAll: each startQuantity storeString; nextPutAll: ';'; cr ].
 				each completionQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'completionQuantity: '; nextPutAll: each completionQuantity storeString; nextPutAll: ';'; cr ] ].
+			each class = CPServiceTask ifTrue: [
+				each implementation = '##WebService' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'implementation: '; nextPutAll: each implementation storeString; nextPutAll: ';'; cr ].
+				each operationRef ifNotNil: [ :anOperation | out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'operationRef: (CPOperation identifier: '; nextPutAll: anOperation identifier storeString; nextPutAll: ');'; cr ] ].
 			each isGateway ifTrue: [
 				each gatewayDirection = 'Unspecified' ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: (self sourceSelectorForGatewayDirection: each gatewayDirection); nextPutAll: ';'; cr ] ].
 			out
@@ -385,6 +389,8 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 				self error: 'A default must reference one of its source node''s outgoing Sequence Flows' ] ].
 		each isGateway ifTrue: [
 			each hasValidGatewayDirection ifFalse: [ self error: 'Gateway direction is inconsistent with its incoming and outgoing Sequence Flows' ] ].
+		each class = CPServiceTask ifTrue: [
+			each operationRef ifNotNil: [ :anOperation | anOperation identifier ifNil: [ self error: 'A source-backed Service Task Operation requires a stable identifier' ] ] ].
 		each isActivity ifTrue: [
 			(each startQuantity isInteger and: [ each startQuantity >= 1 ]) ifFalse: [ self error: 'Activity startQuantity must be an integer greater than or equal to 1' ].
 			(each completionQuantity isInteger and: [ each completionQuantity >= 1 ]) ifFalse: [ self error: 'Activity completionQuantity must be an integer greater than or equal to 1' ] ].
@@ -714,4 +720,20 @@ CPDefinitionsSourceMaterializer >> versionOfSourceFor: aSourceClass [
 		stream
 			nextPutAll: 'versionOf'; cr;
 			tab; nextPutAll: '^ '; nextPutAll: aSourceClass name ]
+]
+
+
+{ #category : 'private - materializing' }
+CPDefinitionsSourceMaterializer >> canonicalizeExternalReferencesIn: aProcess from: definitions [
+	| operationsByIdentifier |
+	operationsByIdentifier := Dictionary new.
+	definitions rootElements do: [ :aRoot |
+		aRoot class = CPInterface ifTrue: [
+			aRoot operations do: [ :anOperation |
+				(operationsByIdentifier includesKey: anOperation identifier) ifTrue: [ self error: 'Operation identifiers must be unique within Definitions' ].
+				operationsByIdentifier at: anOperation identifier put: anOperation ] ] ].
+	aProcess flowElements do: [ :each |
+		each class = CPServiceTask ifTrue: [
+			each operationRef ifNotNil: [ :anOperation |
+				each operationRef: (operationsByIdentifier at: anOperation identifier ifAbsent: [ self error: 'Service Task references an Operation that is not present in its Definitions' ]) ] ] ]
 ]

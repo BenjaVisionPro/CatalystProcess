@@ -10,7 +10,8 @@ Class {
 		'isForCompensation',
 		'startQuantity',
 		'completionQuantity',
-		'default'
+		'default',
+		'boundaryEventRefs'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -36,7 +37,8 @@ CPActivity >> initialize [
 	dataOutputAssociations := OrderedCollection new.
 	isForCompensation := false.
 	startQuantity := 1.
-	completionQuantity := 1
+	completionQuantity := 1.
+	boundaryEventRefs := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -156,4 +158,34 @@ CPActivity >> completionQuantityDescription [
 CPActivity >> defaultDescription [
 	<magritteDescription>
 	^ MAToOneRelationDescription new accessor: #default; classes: { CPSequenceFlow }; reference: CPSequenceFlow new labelDescription; label: 'Default'; priority: 130; group: 'Relations'; yourself
+]
+
+
+{ #category : 'accessing' }
+CPActivity >> boundaryEventRefs [
+	^ boundaryEventRefs
+]
+
+{ #category : 'private - events' }
+CPActivity >> addBoundaryEvent: aBoundaryEvent [
+	(boundaryEventRefs identityIncludes: aBoundaryEvent) ifFalse: [ boundaryEventRefs add: aBoundaryEvent ]
+]
+
+{ #category : 'private - events' }
+CPActivity >> removeBoundaryEvent: aBoundaryEvent [
+	boundaryEventRefs remove: aBoundaryEvent ifAbsent: [ ]
+]
+
+{ #category : 'descriptions' }
+CPActivity >> boundaryEventRefsDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new
+		accessor: #boundaryEventRefs;
+		classes: { CPBoundaryEvent };
+		reference: CPBoundaryEvent new labelDescription;
+		label: 'Boundary events';
+		priority: 125;
+		group: 'Relations';
+		beReadOnly;
+		yourself
 ]

@@ -19,7 +19,12 @@ CPBoundaryEvent >> initialize [
 { #category : 'accessing' }
 CPBoundaryEvent >> attachedToRef [ ^ attachedToRef ]
 { #category : 'accessing' }
-CPBoundaryEvent >> attachedToRef: anActivity [ attachedToRef := anActivity ]
+CPBoundaryEvent >> attachedToRef: anActivity [
+	attachedToRef == anActivity ifTrue: [ ^ self ].
+	attachedToRef ifNotNil: [ :aPreviousActivity | aPreviousActivity removeBoundaryEvent: self ].
+	attachedToRef := anActivity.
+	attachedToRef ifNotNil: [ :anAttachedActivity | anAttachedActivity addBoundaryEvent: self ]
+]
 { #category : 'accessing' }
 CPBoundaryEvent >> cancelActivity [ ^ cancelActivity ]
 { #category : 'accessing' }
