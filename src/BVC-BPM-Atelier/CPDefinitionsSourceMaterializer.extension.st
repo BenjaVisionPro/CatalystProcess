@@ -80,6 +80,7 @@ CPDefinitionsSourceMaterializer >> saveSourceChangesFromMemento: aDefinitionsMem
 	removals do: [ :selector | aSourceClass class removeSelector: selector ].
 	saves do: [ :each | aSourceClass class compile: each second ].
 	^ saves collect: [ :each | each first ]
+]
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> validateSourceBackedRelationsIn: aDocumentContext [
