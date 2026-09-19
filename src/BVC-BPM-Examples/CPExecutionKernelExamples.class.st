@@ -1375,3 +1375,67 @@ CPExecutionKernelExamples >> terminateEndEventCompletesOnlyItsSubProcessScope [
 	self assert: (execution availableFlowActivationsOn: outerFlow) size equals: 1.
 	^ subExecution
 ]
+
+
+{ #category : 'examples - sub-process' }
+CPExecutionKernelExamples >> subProcessCannotCompleteWhileMessageCatchWaits [
+	<gtExample>
+	| process subProcess start catch message messageDefinition flow execution subExecution child catchExecution rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	catch := CPMessageCatchIntermediateEvent new
+		identifier: 'waitForMessage';
+		eventDefinitions: { messageDefinition };
+		yourself.
+	flow := CPSequenceFlow new identifier: 'toCatch'; sourceRef: start; targetRef: catch; yourself.
+	subProcess addFlowElement: start; addFlowElement: catch; addFlowElement: flow.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subExecution.
+	child := subExecution subScope.
+	catchExecution := child beginMessageIntermediateCatchEvent: catch consuming: (child availableFlowActivationsOn: flow) first.
+	self assert: catchExecution isWaiting.
+	self assert: child allWaitingMessageSubscriptions size equals: 1.
+	self assert: (execution canCompleteSubProcessActivity: subExecution) not.
+	rejected := false.
+	[ execution completeSubProcessActivity: subExecution ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: subExecution isActive.
+	^ subExecution
+]
+
+{ #category : 'examples - call' }
+CPExecutionKernelExamples >> callActivityCannotCompleteWhileCalledTimerWaits [
+	<gtExample>
+	| process call calledProcess start timer timerDefinition flow environment execution callExecution child timerExecution rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	call := CPCallActivity new identifier: 'call'; yourself.
+	calledProcess := CPProcess new identifier: 'calledProcess'; yourself.
+	call calledElement: calledProcess.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	timerDefinition := CPTimerEventDefinition new.
+	timer := CPTimerIntermediateEvent new
+		identifier: 'waitForTimer';
+		eventDefinitions: { timerDefinition };
+		yourself.
+	flow := CPSequenceFlow new identifier: 'toTimer'; sourceRef: start; targetRef: timer; yourself.
+	calledProcess addFlowElement: start; addFlowElement: timer; addFlowElement: flow.
+	environment := CPExampleExecutionEnvironment new.
+	environment callableElement: calledProcess resolvesTo: calledProcess.
+	execution := CPProcessExecution for: process environment: environment.
+	callExecution := execution createActivityExecutionFor: call.
+	execution activateCallActivityExecution: callExecution.
+	child := callExecution subScope.
+	timerExecution := child beginTimerIntermediateCatchEvent: timer consuming: (child availableFlowActivationsOn: flow) first.
+	self assert: timerExecution isWaiting.
+	self assert: child allWaitingTimerSubscriptions size equals: 1.
+	self assert: (execution canCompleteCallActivity: callExecution) not.
+	rejected := false.
+	[ execution completeCallActivity: callExecution ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: callExecution isActive.
+	^ callExecution
+]

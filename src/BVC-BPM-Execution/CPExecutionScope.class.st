@@ -559,6 +559,8 @@ CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
 	subScope ifNil: [ ^ false ].
 	(subScope flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
 	(subScope activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
+	subScope allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
+	subScope allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
 	^ true
 ]
 
