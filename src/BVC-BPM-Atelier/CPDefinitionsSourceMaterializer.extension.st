@@ -17,21 +17,6 @@ CPDefinitionsSourceMaterializer class >> open: aSourceClass [
 ]
 
 { #category : '*BVC-BPM-Atelier' }
-CPDefinitionsSourceMaterializer class >> saveMemento: aDefinitionsMemento in: aSourceClass [
-	^ self new saveMemento: aDefinitionsMemento in: aSourceClass
-]
-
-{ #category : '*BVC-BPM-Atelier' }
-CPDefinitionsSourceMaterializer >> saveMemento: aDefinitionsMemento in: aSourceClass [
-	| selectors |
-	selectors := self
-		saveSourceChangesFromMemento: aDefinitionsMemento
-		in: aSourceClass.
-	aDefinitionsMemento commit.
-	^ selectors
-]
-
-{ #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> saveSourceChangesFromMemento: aDefinitionsMemento in: aSourceClass [
 	| context definitions stagedRoots stagedDiagrams saves removals |
 	context := CPDefinitionsMementoContext memento: aDefinitionsMemento.
@@ -96,14 +81,6 @@ CPDefinitionsSourceMaterializer >> validateSourceBackedRelationsIn: aDocumentCon
 		(each plane modelElement notNil
 			and: [ stagedRoots identityIncludes: each plane modelElement ]) ifFalse: [
 			self error: 'Every source-backed Diagram must reference a staged Process' ] ]
-]
-
-{ #category : '*BVC-BPM-Atelier' }
-CPDefinitionsSourceMaterializer >> sameIdentities: left as: right [
-	left size = right size ifFalse: [ ^ false ].
-	1 to: left size do: [ :index |
-		(left at: index) == (right at: index) ifFalse: [ ^ false ] ].
-	^ true
 ]
 
 { #category : '*BVC-BPM-Atelier' }

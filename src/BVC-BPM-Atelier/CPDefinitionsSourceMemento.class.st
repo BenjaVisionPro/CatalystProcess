@@ -31,12 +31,14 @@ CPDefinitionsSourceMemento >> sourceClass: aSourceClass [
 
 { #category : 'actions' }
 CPDefinitionsSourceMemento >> commit [
+	| selectors |
 	(CPDefinitionsSourceMaterializer isPublishedVersion: sourceClass) ifTrue: [
 		self error: 'Published Definition versions are immutable' ].
-	CPDefinitionsSourceMaterializer new
+	selectors := CPDefinitionsSourceMaterializer new
 		saveSourceChangesFromMemento: self
 		in: sourceClass.
-	^ super commit
+	super commit.
+	^ selectors
 ]
 
 { #category : 'private - children' }

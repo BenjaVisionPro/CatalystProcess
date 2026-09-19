@@ -648,8 +648,7 @@ CPTenantLifecycleSourceExamples >> sourceBackedCommitAddsProcessAndDiagramToMode
 		self assert: (definitions rootElements identityIncludes: process) not.
 		self assert: (definitions diagrams identityIncludes: diagram) not.
 
-		root commit.
-
+		self assert: ((root commit) includes: #inspectTenantAccess).
 		self assert: (definitions rootElements identityIncludes: process).
 		self assert: (definitions diagrams identityIncludes: diagram).
 		self assert: (CPDefinitionsSourceMaterializer
