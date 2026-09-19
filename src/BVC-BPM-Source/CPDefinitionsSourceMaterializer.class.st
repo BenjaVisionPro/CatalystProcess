@@ -277,7 +277,7 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 
 	stream := String streamContents: [ :out |
 		out
-			nextPutAll: aSelector asString; nextPutAll: ' ['; cr;
+			nextPutAll: aSelector asString; cr;
 			nextPutAll: String tab; nextPutAll: '<process: '; nextPutAll: aProcess identifier storeString; nextPutAll: '>'; cr;
 			nextPutAll: String tab; nextPutAll: '| process nodes flow |'; cr;
 			nextPutAll: String tab; nextPutAll: 'process := (CPProcess identifier: '; nextPutAll: aProcess identifier storeString; nextPutAll: ')'; cr.
@@ -304,7 +304,7 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 				nextPutAll: String tab; nextPutAll: 'flow sourceRef: (nodes at: '; nextPutAll: each sourceRef identifier storeString; nextPutAll: ').'; cr;
 				nextPutAll: String tab; nextPutAll: 'flow targetRef: (nodes at: '; nextPutAll: each targetRef identifier storeString; nextPutAll: ').'; cr;
 				nextPutAll: String tab; nextPutAll: 'process addFlowElement: flow.'; cr ].
-		out nextPutAll: String tab; nextPutAll: '^ process'; cr; nextPutAll: ']' ].
+		out nextPutAll: String tab; nextPutAll: '^ process' ].
 	^ stream
 ]
 
