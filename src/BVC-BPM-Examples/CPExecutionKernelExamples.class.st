@@ -1492,3 +1492,50 @@ CPExecutionKernelExamples >> terminationWithdrawsEventBasedGatewayWaits [
 	self assert: (gatewayExecution subscriptions allSatisfy: #isWithdrawn).
 	^ gatewayExecution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> boundaryEventWithdrawsWhenAttachedActivityCompletes [
+	<gtExample>
+	| process activity boundary after flow execution activityExecution boundaryExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'activity'; yourself.
+	boundary := CPBoundaryEvent new identifier: 'timeout'; attachedToRef: activity; cancelActivity: true; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	flow := CPSequenceFlow new identifier: 'afterActivity'; sourceRef: activity; targetRef: after; yourself.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: activityExecution.
+	self assert: boundaryExecution isWaiting.
+	activityExecution beginCompletion.
+	activityExecution complete.
+	execution produceOutgoingControlFor: activityExecution.
+	self assert: boundaryExecution isWaiting not.
+	self assert: boundaryExecution isWithdrawn.
+	self assert: boundaryExecution isTriggered not.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> interruptingBoundaryEventWithdrawsSiblingBoundaryWaits [
+	<gtExample>
+	| process activity timeout escalation execution activityExecution timeoutExecution escalationExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'activity'; yourself.
+	timeout := CPBoundaryEvent new identifier: 'timeout'; attachedToRef: activity; cancelActivity: true; yourself.
+	escalation := CPBoundaryEvent new identifier: 'escalation'; attachedToRef: activity; cancelActivity: false; yourself.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	timeoutExecution := execution beginBoundaryEvent: timeout attachedTo: activityExecution.
+	escalationExecution := execution beginBoundaryEvent: escalation attachedTo: activityExecution.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #timeout; definition: timeout; yourself.
+	execution triggerBoundaryEventExecution: timeoutExecution with: occurrence.
+	self assert: timeoutExecution isTriggered.
+	self assert: escalationExecution isWaiting not.
+	self assert: escalationExecution isWithdrawn.
+	self assert: escalationExecution isTriggered not.
+	self assert: activityExecution state class equals: CPActivityTerminatedState.
+	^ escalationExecution
+]

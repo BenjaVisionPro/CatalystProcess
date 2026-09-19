@@ -49,3 +49,6 @@ CPEventExecution >> recordProducedFlowActivation: anActivation [
 	producedFlowActivations add: anActivation.
 	^ anActivation
 ]
+
+{ #category : 'testing' }
+CPEventExecution >> isBoundaryEventExecution [ ^ false ]

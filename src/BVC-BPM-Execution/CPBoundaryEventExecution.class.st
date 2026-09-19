@@ -3,7 +3,8 @@ Class {
 	#superclass : 'CPEventExecution',
 	#instVars : [
 		'attachedActivityExecution',
-		'waiting'
+		'waiting',
+	'withdrawn'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -12,7 +13,8 @@ Class {
 { #category : 'initialization' }
 CPBoundaryEventExecution >> initialize [
 	super initialize.
-	waiting := true
+	waiting := true.
+	withdrawn := false
 ]
 
 { #category : 'accessing' }
@@ -27,7 +29,18 @@ CPBoundaryEventExecution >> attachedActivityExecution: anActivityExecution [
 CPBoundaryEventExecution >> isWaiting [ ^ waiting ]
 
 { #category : 'testing' }
-CPBoundaryEventExecution >> isTriggered [ ^ waiting not ]
+CPBoundaryEventExecution >> isTriggered [ ^ self occurrence notNil ]
+
+{ #category : 'testing' }
+CPBoundaryEventExecution >> isWithdrawn [ ^ withdrawn ]
+
+{ #category : 'lifecycle' }
+CPBoundaryEventExecution >> withdraw [
+	waiting ifFalse: [ self error: 'Only a waiting Boundary Event can be withdrawn.' ].
+	waiting := false.
+	withdrawn := true.
+	^ self
+]
 
 { #category : 'occurrences' }
 CPBoundaryEventExecution >> triggerWithAcceptedOccurrence: anOccurrence [
@@ -51,3 +64,6 @@ CPBoundaryEventExecution >> triggerWithAcceptedOccurrence: anOccurrence [
 			(self scope activateSequenceFlow: eachFlow producedBy: self) ].
 	^ anOccurrence
 ]
+
+{ #category : 'testing' }
+CPBoundaryEventExecution >> isBoundaryEventExecution [ ^ true ]

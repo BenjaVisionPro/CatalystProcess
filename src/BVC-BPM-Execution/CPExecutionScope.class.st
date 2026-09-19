@@ -195,6 +195,7 @@ CPExecutionScope >> readyActivityExecutionFor: anActivity [
 CPExecutionScope >> produceOutgoingControlFor: anActivityExecution [
 	anActivityExecution scope == self ifFalse: [ self error: 'The Activity execution does not belong to this execution scope.' ].
 	anActivityExecution isCompleted ifFalse: [ self error: 'Only a Completed Activity can produce outgoing control flow.' ].
+	self withdrawBoundaryEventsAttachedTo: anActivityExecution.
 	anActivityExecution definition outgoing do: [ :eachFlow |
 		1 to: anActivityExecution definition completionQuantity do: [ :index |
 			self activateSequenceFlow: eachFlow producedBy: anActivityExecution ] ].
@@ -505,6 +506,15 @@ CPExecutionScope >> completeIntermediateThrowEventExecution: anEventExecution [
 ]
 
 { #category : 'events - boundary' }
+CPExecutionScope >> withdrawBoundaryEventsAttachedTo: anActivityExecution [
+	eventExecutions do: [ :eachExecution |
+		(eachExecution isBoundaryEventExecution
+			and: [ eachExecution attachedActivityExecution == anActivityExecution
+			and: [ eachExecution isWaiting ] ]) ifTrue: [ eachExecution withdraw ] ].
+	^ anActivityExecution
+]
+
+{ #category : 'events - boundary' }
 CPExecutionScope >> beginBoundaryEvent: aBoundaryEvent attachedTo: anActivityExecution [
 	| execution |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
@@ -530,6 +540,8 @@ CPExecutionScope >> triggerBoundaryEventExecution: aBoundaryEventExecution with:
 		self error: 'Only a waiting Boundary Event can accept an occurrence.' ].
 	self acceptOccurrence: anOccurrence.
 	aBoundaryEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	aBoundaryEventExecution definition cancelActivity ifTrue: [
+		self withdrawBoundaryEventsAttachedTo: aBoundaryEventExecution attachedActivityExecution ].
 	^ aBoundaryEventExecution
 ]
 
@@ -809,6 +821,9 @@ CPExecutionScope >> terminateRemainingWork [
 	gatewayExecutions do: [ :eachExecution |
 		eachExecution subscriptions do: [ :eachSubscription |
 			eachSubscription isWaiting ifTrue: [ eachSubscription withdraw ] ] ].
+	eventExecutions do: [ :eachExecution |
+		(eachExecution isBoundaryEventExecution and: [ eachExecution isWaiting ]) ifTrue: [
+			eachExecution withdraw ] ].
 	^ self
 ]
 
