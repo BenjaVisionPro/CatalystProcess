@@ -461,7 +461,7 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoSavesProcessAndDiagramToge
 		processMemento write: 'Admin Start Subscription' using: process labelDescription.
 		diagram := definitions diagrams detect: [ :each | each identifier = #startSubscriptionOverview ].
 		diagramMemento := context mementoForDiagram: diagram.
-		diagramMemento write: diagram plane elements copy using: diagram plane elementsDescription.
+		diagramMemento write: diagram identifier using: diagram identifierDescription.
 		selectors := CPDefinitionsSourceMaterializer new
 			saveSourceChangesFromMemento: root
 			in: AdminTenantLifecycle.
