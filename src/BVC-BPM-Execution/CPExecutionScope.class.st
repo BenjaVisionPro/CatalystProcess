@@ -631,7 +631,7 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 		self error: 'A Receive Task requires a Message.' ].
 	anActivityExecution activate.
 	subscription := CPMessageSubscription new
-		receiveTaskExecution: anActivityExecution;
+		waitingExecution: anActivityExecution;
 		message: anActivityExecution definition messageRef;
 		yourself.
 	anActivityExecution subscription: subscription.
@@ -687,6 +687,42 @@ CPExecutionScope >> triggerTimerIntermediateCatchEventExecution: anEventExecutio
 	subscription ifNil: [ self error: 'The Timer Intermediate Catch Event has no Timer subscription.' ].
 	anOccurrence definition == subscription timerDefinition ifFalse: [
 		self error: 'The occurrence does not match this Timer subscription.' ].
+	self acceptOccurrence: anOccurrence.
+	subscription triggerWith: anOccurrence.
+	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ anEventExecution
+]
+
+
+{ #category : 'events - message' }
+CPExecutionScope >> beginMessageIntermediateCatchEvent: anEvent consuming: anActivation [
+	| execution messageDefinition subscription |
+	anEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Message Intermediate Catch Event requires exactly one Message Event Definition.' ].
+	messageDefinition := anEvent eventDefinitions first.
+	messageDefinition messageRef ifNil: [
+		self error: 'A Message Intermediate Catch Event requires a Message.' ].
+	execution := self beginIntermediateCatchEvent: anEvent consuming: anActivation.
+	subscription := CPMessageSubscription new
+		waitingExecution: execution;
+		message: messageDefinition messageRef;
+		yourself.
+	execution subscription: subscription.
+	messageSubscriptions add: subscription.
+	^ execution
+]
+
+{ #category : 'events - message' }
+CPExecutionScope >> triggerMessageIntermediateCatchEventExecution: anEventExecution with: anOccurrence [
+	| subscription |
+	(eventExecutions identityIncludes: anEventExecution) ifFalse: [
+		self error: 'The Message Intermediate Catch Event execution does not belong to this execution scope.' ].
+	anEventExecution isWaiting ifFalse: [
+		self error: 'Only a waiting Message Intermediate Catch Event can accept an occurrence.' ].
+	subscription := anEventExecution subscription.
+	subscription ifNil: [ self error: 'The Message Intermediate Catch Event has no Message subscription.' ].
+	anOccurrence definition == subscription message ifFalse: [
+		self error: 'The occurrence does not match this Message subscription.' ].
 	self acceptOccurrence: anOccurrence.
 	subscription triggerWith: anOccurrence.
 	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.

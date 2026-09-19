@@ -2,7 +2,7 @@ Class {
 	#name : 'CPMessageSubscription',
 	#superclass : 'CFIdentifiableObject',
 	#instVars : [
-		'receiveTaskExecution',
+		'waitingExecution',
 		'message',
 		'occurrence'
 	],
@@ -11,10 +11,10 @@ Class {
 }
 
 { #category : 'accessing' }
-CPMessageSubscription >> receiveTaskExecution [ ^ receiveTaskExecution ]
+CPMessageSubscription >> waitingExecution [ ^ waitingExecution ]
 
 { #category : 'accessing' }
-CPMessageSubscription >> receiveTaskExecution: anExecution [ receiveTaskExecution := anExecution ]
+CPMessageSubscription >> waitingExecution: anExecution [ waitingExecution := anExecution ]
 
 { #category : 'accessing' }
 CPMessageSubscription >> message [ ^ message ]

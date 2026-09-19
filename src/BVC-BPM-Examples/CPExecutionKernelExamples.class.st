@@ -817,7 +817,7 @@ CPExecutionKernelExamples >> receiveTaskCreatesDurableMessageSubscription [
 	execution := receiveExecution scope.
 	subscription := receiveExecution subscription.
 	self assert: subscription notNil.
-	self assert: subscription receiveTaskExecution == receiveExecution.
+	self assert: subscription waitingExecution == receiveExecution.
 	self assert: subscription message == receiveExecution definition messageRef.
 	self assert: subscription isTriggered.
 	self assert: subscription occurrence == receiveExecution receivedOccurrence.
@@ -925,5 +925,88 @@ CPExecutionKernelExamples >> timerIntermediateCatchEventRejectsWrongOccurrence [
 		on: Error
 		do: [ :error | self assert: error messageText notEmpty ].
 	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #wrongTimer) not.
+	^ eventExecution
+]
+
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> messageIntermediateCatchEventCreatesDurableSubscription [
+	<gtExample>
+	| process before messageEvent after message messageDefinition incoming outgoing execution producer activation eventExecution occurrence subscription |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	message := CPMessage new identifier: 'request'; yourself.
+	messageDefinition := CPMessageEventDefinition new
+		identifier: 'requestDefinition';
+		messageRef: message;
+		yourself.
+	messageEvent := CPMessageCatchIntermediateEvent new
+		identifier: 'waitForRequest';
+		eventDefinitions: { messageDefinition } asOrderedCollection;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toMessage'; sourceRef: before; targetRef: messageEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterMessage'; sourceRef: messageEvent; targetRef: after; yourself.
+	process addFlowElement: before; addFlowElement: messageEvent; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginMessageIntermediateCatchEvent: messageEvent consuming: activation.
+	subscription := eventExecution subscription.
+	self assert: eventExecution isWaiting.
+	self assert: subscription waitingExecution == eventExecution.
+	self assert: subscription message == message.
+	self assert: subscription isWaiting.
+	self assert: (execution messageSubscriptions occurrencesOf: subscription) equals: 1.
+	self assert: (execution waitingMessageSubscriptions occurrencesOf: subscription) equals: 1.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #requestMessage1; definition: message; yourself.
+	execution triggerMessageIntermediateCatchEventExecution: eventExecution with: occurrence.
+	self assert: eventExecution isTriggered.
+	self assert: subscription isTriggered.
+	self assert: subscription occurrence == occurrence.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #requestMessage1).
+	self assert: (execution waitingMessageSubscriptions includes: subscription) not.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> messageIntermediateCatchEventRejectsDifferentMessage [
+	<gtExample>
+	| eventExecution execution subscription otherMessage occurrence rejected |
+	eventExecution := self messageIntermediateCatchEventCreatesDurableSubscription.
+	execution := eventExecution scope.
+	"Build a fresh waiting execution because the example above has already triggered its subscription."
+	eventExecution := self messageIntermediateCatchEventWaitingExecution.
+	execution := eventExecution scope.
+	subscription := eventExecution subscription.
+	otherMessage := CPMessage new identifier: 'other'; yourself.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongMessage1; definition: otherMessage; yourself.
+	rejected := false.
+	[ execution triggerMessageIntermediateCatchEventExecution: eventExecution with: occurrence ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: eventExecution isWaiting.
+	self assert: subscription isWaiting.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #wrongMessage1) not.
+	^ eventExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> messageIntermediateCatchEventWaitingExecution [
+	<gtExample>
+	| process before messageEvent message messageDefinition incoming execution producer activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	message := CPMessage new identifier: 'expected'; yourself.
+	messageDefinition := CPMessageEventDefinition new identifier: 'expectedDefinition'; messageRef: message; yourself.
+	messageEvent := CPMessageCatchIntermediateEvent new identifier: 'wait'; eventDefinitions: { messageDefinition } asOrderedCollection; yourself.
+	incoming := CPSequenceFlow new identifier: 'toWait'; sourceRef: before; targetRef: messageEvent; yourself.
+	process addFlowElement: before; addFlowElement: messageEvent; addFlowElement: incoming.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginMessageIntermediateCatchEvent: messageEvent consuming: activation.
+	self assert: eventExecution isWaiting.
 	^ eventExecution
 ]
