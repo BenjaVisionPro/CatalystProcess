@@ -266,17 +266,68 @@ CPDefinitionsSourceMaterializer >> initialSelectorFor: anIdentifier in: aSourceC
 
 { #category : 'private - saving' }
 CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelector [
-	^ self
-		processSourceForIdentifier: aProcess identifier
-		label: aProcess label
-		selector: aSelector
+	| nodes flows stream |
+	nodes := aProcess flowElements reject: [ :each | each isSequenceFlow ].
+	flows := aProcess flowElements select: [ :each | each isSequenceFlow ].
+	(nodes isEmpty and: [ flows isEmpty ]) ifTrue: [
+		^ self
+			processSourceForIdentifier: aProcess identifier
+			label: aProcess label
+			selector: aSelector ].
+
+	stream := String streamContents: [ :out |
+		out
+			nextPutAll: aSelector asString; nextPutAll: ' ['; cr;
+			nextPutAll: String tab; nextPutAll: '<process: '; nextPutAll: aProcess identifier storeString; nextPutAll: '>'; cr;
+			nextPutAll: String tab; nextPutAll: '| process nodes flow |'; cr;
+			nextPutAll: String tab; nextPutAll: 'process := (CPProcess identifier: '; nextPutAll: aProcess identifier storeString; nextPutAll: ')'; cr.
+		aProcess label ifNotNil: [
+			out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: aProcess label storeString; nextPutAll: ';'; cr ].
+		out
+			nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'yourself.'; cr;
+			nextPutAll: String tab; nextPutAll: 'nodes := Dictionary new.'; cr.
+		nodes do: [ :each |
+			out
+				nextPutAll: String tab; nextPutAll: 'nodes at: '; nextPutAll: each identifier storeString;
+				nextPutAll: ' put: (('; nextPutAll: each class name; nextPutAll: ' identifier: '; nextPutAll: each identifier storeString; nextPutAll: ')'; cr.
+			each label ifNotNil: [
+				out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: each label storeString; nextPutAll: ';'; cr ].
+			out
+				nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'yourself).'; cr;
+				nextPutAll: String tab; nextPutAll: 'process addFlowElement: (nodes at: '; nextPutAll: each identifier storeString; nextPutAll: ').'; cr ].
+		flows do: [ :each |
+			out
+				nextPutAll: String tab; nextPutAll: 'flow := CPSequenceFlow identifier: '; nextPutAll: each identifier storeString; nextPutAll: '.'; cr.
+			each label ifNotNil: [
+				out nextPutAll: String tab; nextPutAll: 'flow label: '; nextPutAll: each label storeString; nextPutAll: '.'; cr ].
+			out
+				nextPutAll: String tab; nextPutAll: 'flow sourceRef: (nodes at: '; nextPutAll: each sourceRef identifier storeString; nextPutAll: '); targetRef: (nodes at: '; nextPutAll: each targetRef identifier storeString; nextPutAll: ').'; cr;
+				nextPutAll: String tab; nextPutAll: 'process addFlowElement: flow.'; cr ].
+		out nextPutAll: String tab; nextPutAll: '^ process'; cr; nextPutAll: ']' ].
+	^ stream
 ]
 
 { #category : 'private - validating' }
 CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
+	| identifiers |
 	self validateProcess: aProcess identifier: aProcess identifier.
-	aProcess flowElements ifNotEmpty: [
-		self error: 'Process source saving does not yet support flow elements' ].
+	identifiers := Set new.
+	aProcess flowElements do: [ :each |
+		each identifier ifNil: [
+			self error: 'Every source-backed flow element requires a stable identifier' ].
+		(identifiers includes: each identifier) ifTrue: [
+			self error: 'Flow element identifiers must be unique within a Process' ].
+		identifiers add: each identifier.
+		each isSequenceFlow ifTrue: [
+			each sourceRef ifNil: [
+				self error: 'A Sequence Flow requires a sourceRef' ].
+			each targetRef ifNil: [
+				self error: 'A Sequence Flow requires a targetRef' ].
+			(identifiers includes: each sourceRef identifier) ifFalse: [
+				(aProcess flowElements identityIncludes: each sourceRef) ifFalse: [
+					self error: 'A Sequence Flow sourceRef must belong to its Process' ] ].
+			(aProcess flowElements identityIncludes: each targetRef) ifFalse: [
+				self error: 'A Sequence Flow targetRef must belong to its Process' ] ] ].
 	aProcess laneSets ifNotEmpty: [
 		self error: 'Process source saving does not yet support lane sets' ].
 	aProcess properties ifNotEmpty: [

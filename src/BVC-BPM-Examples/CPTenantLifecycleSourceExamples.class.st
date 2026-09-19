@@ -374,3 +374,41 @@ CPTenantLifecycleSourceExamples >> startSubscriptionIsMaterialisedAsBpmn [
 	self assert: diagram plane modelElement == process.
 	^ diagram
 ]
+
+{ #category : 'examples - marketplace source' }
+CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionGraphAndRevert [
+	<gtExample>
+	| definitions subscription selector reloaded restored |
+	[
+		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		subscription := definitions rootElements
+			detect: [ :each | each identifier = #startSubscription ].
+		subscription label: 'Admin Start Subscription'.
+
+		selector := CPDefinitionsSourceMaterializer
+			saveProcess: subscription
+			in: AdminTenantLifecycle.
+		self assert: selector equals: #startSubscription.
+		self assert: (CPDefinitionsSourceMaterializer
+			isSpecialisedProcess: #startSubscription
+			in: AdminTenantLifecycle).
+
+		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		subscription := reloaded rootElements
+			detect: [ :each | each identifier = #startSubscription ].
+		self assert: subscription label equals: 'Admin Start Subscription'.
+		self assert: subscription flowElements size equals: 22.
+		self assert: (subscription flowElements count: [ :each | each isSequenceFlow ]) equals: 11.
+
+		CPDefinitionsSourceMaterializer
+			revertProcess: #startSubscription
+			in: AdminTenantLifecycle.
+		restored := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		subscription := restored rootElements
+			detect: [ :each | each identifier = #startSubscription ].
+		self assert: subscription label equals: 'Start Subscription'.
+		^ restored
+	] ensure: [
+		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle ]
+]
