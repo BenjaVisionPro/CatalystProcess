@@ -607,6 +607,7 @@ CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
 	subScope allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
+	subScope hasPendingEventWork ifTrue: [ ^ false ].
 	^ true
 ]
 
@@ -863,4 +864,10 @@ CPExecutionScope >> executeTerminateEndEvent: aTerminateEndEvent consuming: anAc
 	self terminateRemainingWork.
 	self finishTermination.
 	^ execution
+]
+
+{ #category : 'testing' }
+CPExecutionScope >> hasPendingEventWork [
+	(eventExecutions anySatisfy: [ :eachExecution | eachExecution isPendingWork ]) ifTrue: [ ^ true ].
+	^ childScopes anySatisfy: [ :eachScope | eachScope hasPendingEventWork ]
 ]

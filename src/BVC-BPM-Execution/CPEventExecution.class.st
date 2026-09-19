@@ -52,3 +52,8 @@ CPEventExecution >> recordProducedFlowActivation: anActivation [
 
 { #category : 'testing' }
 CPEventExecution >> isBoundaryEventExecution [ ^ false ]
+
+{ #category : 'testing' }
+CPEventExecution >> isPendingWork [
+	^ false
+]

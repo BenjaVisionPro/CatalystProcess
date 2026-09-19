@@ -25,3 +25,8 @@ CPIntermediateThrowEventExecution >> complete [
 	completed ifTrue: [ self error: 'The Intermediate Throw Event execution is already completed.' ].
 	completed := true
 ]
+
+{ #category : 'testing' }
+CPIntermediateThrowEventExecution >> isPendingWork [
+	^ self isPending
+]

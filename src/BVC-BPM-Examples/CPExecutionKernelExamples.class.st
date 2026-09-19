@@ -1570,3 +1570,26 @@ CPExecutionKernelExamples >> occurrenceIdentityIsUniqueAcrossNestedScopes [
 	self assert: (execution hasAcceptedOccurrenceIdentifiedByAnywhere: #delivery42).
 	^ execution
 ]
+
+{ #category : 'examples - lifecycle' }
+CPExecutionKernelExamples >> processCannotCompleteWhileIntermediateThrowEventIsPending [
+	<gtExample>
+	| process start event incoming execution activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	event := CPMessageThrowIntermediateEvent new identifier: 'message'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toMessage'; sourceRef: start; targetRef: event; yourself.
+	process flowElements addAll: { start. event. incoming }.
+	execution := self executionFor: process.
+	execution start.
+	activation := (execution availableFlowActivationsOn: incoming) first.
+	eventExecution := execution beginIntermediateThrowEvent: event consuming: activation.
+	self assert: eventExecution isPending.
+	self assert: execution hasPendingEventWork.
+	self assert: execution canComplete not.
+	execution completeIntermediateThrowEventExecution: eventExecution.
+	self assert: eventExecution isCompleted.
+	self assert: execution hasPendingEventWork not.
+	self assert: execution canComplete.
+	^ execution
+]

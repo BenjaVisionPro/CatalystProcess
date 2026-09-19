@@ -79,6 +79,7 @@ CPProcessExecution >> canComplete [
 	self allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
+	self hasPendingEventWork ifTrue: [ ^ false ].
 	^ true
 ]
 
