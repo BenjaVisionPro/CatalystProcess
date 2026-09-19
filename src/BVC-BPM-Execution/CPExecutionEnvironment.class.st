@@ -14,3 +14,8 @@ CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope 
 CPExecutionEnvironment >> resolveCallableElement: aCallableElement in: anExecutionScope [
 	self subclassResponsibility
 ]
+
+{ #category : 'resolution' }
+CPExecutionEnvironment >> resolveOperation: anOperation in: anExecutionScope [
+	self subclassResponsibility
+]

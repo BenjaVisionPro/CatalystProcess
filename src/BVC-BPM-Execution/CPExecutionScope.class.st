@@ -550,3 +550,26 @@ CPExecutionScope >> completeCallActivity: anActivityExecution [
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
 ]
+
+{ #category : 'building' }
+CPExecutionScope >> createServiceTaskExecutionFor: aServiceTask [
+	^ self addActivityExecution: (CPServiceTaskExecution new
+		definition: aServiceTask;
+		yourself)
+]
+
+{ #category : 'activities - service' }
+CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
+	| serviceTask operation implementation |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Service Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Service Task execution can become Active.' ].
+	serviceTask := anActivityExecution definition.
+	operation := serviceTask operationRef.
+	operation ifNil: [ self error: 'A Service Task requires an Operation.' ].
+	implementation := self environment resolveOperation: operation in: self.
+	anActivityExecution resolvedImplementation: implementation.
+	anActivityExecution activate.
+	^ anActivityExecution
+]

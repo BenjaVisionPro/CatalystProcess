@@ -676,3 +676,27 @@ CPExecutionKernelExamples >> callActivityUsesResolvedCallableProcess [
 	self assert: callExecution subScope definition ~~ logicalCallable.
 	^ callExecution
 ]
+
+{ #category : 'examples - service task' }
+CPExecutionKernelExamples >> serviceTaskResolvesOperationBeforeExternalWork [
+	<gtExample>
+	| process serviceTask operation implementation execution environment serviceExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	operation := CPOperation new identifier: 'chargeAccount'; yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'charge';
+		operationRef: operation;
+		yourself.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	execution activateServiceTaskExecution: serviceExecution.
+	self assert: serviceExecution isActive.
+	self assert: serviceExecution resolvedImplementation == implementation.
+	self assert: serviceExecution isCompleted not.
+	self assert: execution flowActivations isEmpty.
+	^ serviceExecution
+]

@@ -3,7 +3,8 @@ Class {
 	#superclass : 'CPExecutionEnvironment',
 	#instVars : [
 		'expressionResults',
-		'callableResolutions'
+		'callableResolutions',
+		'operationResolutions'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -13,7 +14,8 @@ Class {
 CPExampleExecutionEnvironment >> initialize [
 	super initialize.
 	expressionResults := IdentityDictionary new.
-	callableResolutions := IdentityDictionary new
+	callableResolutions := IdentityDictionary new.
+	operationResolutions := IdentityDictionary new
 ]
 
 { #category : 'configuration' }
@@ -40,4 +42,18 @@ CPExampleExecutionEnvironment >> resolveCallableElement: aCallableElement in: an
 	^ callableResolutions
 		at: aCallableElement
 		ifAbsent: [ self error: 'No example callable resolution has been configured.' ]
+]
+
+
+{ #category : 'configuration' }
+CPExampleExecutionEnvironment >> operation: anOperation resolvesTo: anImplementation [
+	operationResolutions at: anOperation put: anImplementation.
+	^ self
+]
+
+{ #category : 'resolution' }
+CPExampleExecutionEnvironment >> resolveOperation: anOperation in: anExecutionScope [
+	^ operationResolutions
+		at: anOperation
+		ifAbsent: [ self error: 'No example Operation resolution has been configured.' ]
 ]
