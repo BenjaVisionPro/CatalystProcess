@@ -8,6 +8,7 @@ Class {
 		'childScopes',
 		'activityExecutions',
 		'gatewayExecutions',
+		'eventExecutions',
 		'flowActivations',
 		'acceptedOccurrences'
 	],
@@ -28,6 +29,7 @@ CPExecutionScope >> initialize [
 	childScopes := OrderedCollection new.
 	activityExecutions := OrderedCollection new.
 	gatewayExecutions := OrderedCollection new.
+	eventExecutions := OrderedCollection new.
 	flowActivations := OrderedCollection new.
 	acceptedOccurrences := OrderedCollection new
 ]
@@ -50,6 +52,8 @@ CPExecutionScope >> childScopes [ ^ childScopes ]
 CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
 { #category : 'accessing' }
 CPExecutionScope >> gatewayExecutions [ ^ gatewayExecutions ]
+{ #category : 'accessing' }
+CPExecutionScope >> eventExecutions [ ^ eventExecutions ]
 { #category : 'accessing' }
 CPExecutionScope >> acceptedOccurrences [ ^ acceptedOccurrences ]
 
@@ -222,5 +226,42 @@ CPExecutionScope >> beginExclusiveEventBasedGateway: aGateway consuming: anActiv
 	gatewayExecutions add: execution.
 	execution consumeFlowActivation: anActivation.
 	aGateway outgoing do: [ :eachFlow | execution subscribeToOutgoingFlow: eachFlow ].
+	^ execution
+]
+
+
+{ #category : 'building' }
+CPExecutionScope >> createEventExecutionFor: anEvent [
+	| execution |
+	execution := CPEventExecution new
+		definition: anEvent;
+		scope: self;
+		yourself.
+	eventExecutions add: execution.
+	^ execution
+]
+
+{ #category : 'events - start' }
+CPExecutionScope >> executeStartEvent: aStartEvent occurrence: anOccurrence [
+	| execution |
+	aStartEvent incoming isEmpty ifFalse: [ self error: 'A Start Event cannot consume incoming Sequence Flow.' ].
+	anOccurrence ifNotNil: [
+		(self acceptedOccurrences identityIncludes: anOccurrence) ifFalse: [ self acceptOccurrence: anOccurrence ] ].
+	execution := self createEventExecutionFor: aStartEvent.
+	execution occurrence: anOccurrence.
+	aStartEvent outgoing do: [ :eachFlow |
+		execution recordProducedFlowActivation:
+			(self activateSequenceFlow: eachFlow producedBy: execution) ].
+	^ execution
+]
+
+{ #category : 'events - end' }
+CPExecutionScope >> executeEndEvent: anEndEvent consuming: anActivation [
+	| execution |
+	anEndEvent outgoing isEmpty ifFalse: [ self error: 'An End Event cannot produce outgoing Sequence Flow.' ].
+	(anActivation isAvailable and: [ anEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'An End Event requires an available activation from one of its incoming Sequence Flows.' ].
+	execution := self createEventExecutionFor: anEndEvent.
+	execution consumeFlowActivation: anActivation.
 	^ execution
 ]

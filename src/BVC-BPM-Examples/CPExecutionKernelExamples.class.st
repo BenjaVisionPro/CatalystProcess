@@ -288,3 +288,44 @@ CPExecutionKernelExamples >> eventBasedGatewayFirstOccurrenceWins [
 	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #message1).
 	^ gatewayExecution
 ]
+
+{ #category : 'examples - execution' }
+CPExecutionKernelExamples >> startEventProducesOutgoingControl [
+	| processDefinition startEvent task flow process eventExecution |
+	processDefinition := CPProcess new identifier: 'process'; yourself.
+	startEvent := CPNoneStartEvent new identifier: 'start'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	flow := CPSequenceFlow new
+		identifier: 'startToTask';
+		sourceRef: startEvent;
+		targetRef: task;
+		yourself.
+	startEvent outgoing add: flow.
+	task incoming add: flow.
+	process := CPProcessExecution for: processDefinition.
+	eventExecution := process executeStartEvent: startEvent occurrence: nil.
+	self assert: eventExecution producedFlowActivations size equals: 1.
+	self assert: eventExecution producedFlowActivations first definition == flow.
+	self assert: eventExecution producedFlowActivations first isAvailable
+]
+
+{ #category : 'examples - execution' }
+CPExecutionKernelExamples >> endEventConsumesIncomingControl [
+	| processDefinition task endEvent flow process activation eventExecution |
+	processDefinition := CPProcess new identifier: 'process'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	endEvent := CPNoneEndEvent new identifier: 'end'; yourself.
+	flow := CPSequenceFlow new
+		identifier: 'taskToEnd';
+		sourceRef: task;
+		targetRef: endEvent;
+		yourself.
+	task outgoing add: flow.
+	endEvent incoming add: flow.
+	process := CPProcessExecution for: processDefinition.
+	activation := process activateSequenceFlow: flow producedBy: nil.
+	eventExecution := process executeEndEvent: endEvent consuming: activation.
+	self assert: eventExecution consumedFlowActivation == activation.
+	self assert: activation isAvailable not.
+	self assert: eventExecution producedFlowActivations isEmpty
+]
