@@ -30,3 +30,10 @@ CPReceiveTaskExecution >> acceptReceivedOccurrence: anOccurrence [
 	receivedOccurrence := anOccurrence.
 	^ anOccurrence
 ]
+
+
+{ #category : 'messages' }
+CPReceiveTaskExecution >> acceptMessageSubscription: aSubscription occurrence: anOccurrence [
+	subscription == aSubscription ifFalse: [ self error: 'The Message subscription does not belong to this Receive Task execution.' ].
+	^ scope triggerReceiveTaskExecution: self with: anOccurrence
+]

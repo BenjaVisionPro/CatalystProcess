@@ -36,3 +36,10 @@ CPIntermediateCatchEventExecution >> subscription [ ^ subscription ]
 
 { #category : 'accessing' }
 CPIntermediateCatchEventExecution >> subscription: aSubscription [ subscription := aSubscription ]
+
+
+{ #category : 'messages' }
+CPIntermediateCatchEventExecution >> acceptMessageSubscription: aSubscription occurrence: anOccurrence [
+	subscription == aSubscription ifFalse: [ self error: 'The Message subscription does not belong to this Intermediate Catch Event execution.' ].
+	^ self scope triggerMessageIntermediateCatchEventExecution: self with: anOccurrence
+]

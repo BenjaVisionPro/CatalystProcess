@@ -38,3 +38,11 @@ CPMessageSubscription >> triggerWith: anOccurrence [
 	occurrence := anOccurrence.
 	^ anOccurrence
 ]
+
+
+{ #category : 'messages' }
+CPMessageSubscription >> deliverOccurrence: anOccurrence [
+	self isWaiting ifFalse: [ self error: 'A Message subscription can be delivered only once.' ].
+	anOccurrence definition == message ifFalse: [ self error: 'The occurrence does not match this Message subscription.' ].
+	^ waitingExecution acceptMessageSubscription: self occurrence: anOccurrence
+]

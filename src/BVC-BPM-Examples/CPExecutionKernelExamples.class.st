@@ -1056,3 +1056,53 @@ CPExecutionKernelExamples >> processExecutionDiscoversWaitingTimerSubscriptionsI
 	self assert: (execution allWaitingTimerSubscriptionsFor: timerDefinition) size equals: 1.
 	^ execution
 ]
+
+
+{ #category : 'examples - subscriptions' }
+CPExecutionKernelExamples >> processExecutionDeliversMessageToUniqueWaitingSubscription [
+	<gtExample>
+	| process subProcess ownerDefinition message receive execution ownerExecution childScope receiveExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	ownerDefinition := CPTask new identifier: 'owner'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receive := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	execution := self executionFor: process.
+	ownerExecution := execution createActivityExecutionFor: ownerDefinition.
+	childScope := ownerExecution createSubScopeFor: subProcess.
+	receiveExecution := childScope createReceiveTaskExecutionFor: receive.
+	childScope activateReceiveTaskExecution: receiveExecution.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #messageDelivery1; definition: message; yourself.
+	execution deliverMessageOccurrence: occurrence.
+	self assert: receiveExecution isCompleted.
+	self assert: receiveExecution receivedOccurrence == occurrence.
+	self assert: receiveExecution subscription isTriggered.
+	self assert: (childScope acceptedOccurrences identityIncludes: occurrence).
+	self assert: execution allWaitingMessageSubscriptions isEmpty.
+	^ execution
+]
+
+{ #category : 'examples - subscriptions' }
+CPExecutionKernelExamples >> processExecutionRejectsAmbiguousMessageDeliveryWithoutCorrelation [
+	<gtExample>
+	| process message firstReceive secondReceive execution firstExecution secondExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	firstReceive := CPReceiveTask new identifier: 'firstReceive'; messageRef: message; yourself.
+	secondReceive := CPReceiveTask new identifier: 'secondReceive'; messageRef: message; yourself.
+	execution := self executionFor: process.
+	firstExecution := execution createReceiveTaskExecutionFor: firstReceive.
+	secondExecution := execution createReceiveTaskExecutionFor: secondReceive.
+	execution activateReceiveTaskExecution: firstExecution.
+	execution activateReceiveTaskExecution: secondExecution.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #ambiguousMessage1; definition: message; yourself.
+	self
+		should: [ execution deliverMessageOccurrence: occurrence ]
+		raise: Error.
+	self assert: firstExecution isWaitingForMessage.
+	self assert: secondExecution isWaitingForMessage.
+	self assert: firstExecution subscription isWaiting.
+	self assert: secondExecution subscription isWaiting.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
+	^ execution
+]

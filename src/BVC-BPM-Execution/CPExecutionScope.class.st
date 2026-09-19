@@ -112,6 +112,18 @@ CPExecutionScope >> allWaitingMessageSubscriptionsFor: aMessage [
 ]
 
 
+{ #category : 'messages' }
+CPExecutionScope >> deliverMessageOccurrence: anOccurrence [
+	| matches |
+	matches := self allWaitingMessageSubscriptionsFor: anOccurrence definition.
+	matches isEmpty ifTrue: [
+		self error: 'No waiting Message subscription matches this occurrence.' ].
+	matches size = 1 ifFalse: [
+		self error: 'More than one waiting Message subscription matches this occurrence; correlation is required.' ].
+	^ matches first deliverOccurrence: anOccurrence
+]
+
+
 { #category : 'accessing' }
 CPExecutionScope >> flowActivations [ ^ flowActivations ]
 
