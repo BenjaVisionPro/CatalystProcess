@@ -380,8 +380,9 @@ CPDefinitionsSourceMaterializer >> validateProcessForSourceSave: aProcess [
 	self validateProcess: aProcess identifier: aProcess identifier.
 	identifiers := Set new.
 	aProcess flowElements do: [ :each |
-		each hasValidDefaultFlow ifFalse: [
-			self error: 'A default must reference one of its source node''s outgoing Sequence Flows' ].
+		each isFlowNode ifTrue: [
+			each hasValidDefaultFlow ifFalse: [
+				self error: 'A default must reference one of its source node''s outgoing Sequence Flows' ] ].
 		each isGateway ifTrue: [
 			each hasValidGatewayDirection ifFalse: [ self error: 'Gateway direction is inconsistent with its incoming and outgoing Sequence Flows' ] ].
 		each isActivity ifTrue: [
