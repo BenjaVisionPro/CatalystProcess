@@ -6726,3 +6726,64 @@ CPExecutionKernelExamples >> multiInstanceReceiveTaskWaitsPerInstance [
 		'first result'. 'second result' }).
 	^ receiveExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceSendTaskDispatchesPerInstance [
+	<gtExample>
+	| process message sendTask loopDataInput activityInput inputDataItem inputSet outerInputSet specification inputAssociation loop execution sendExecution firstInstance secondInstance firstDispatch secondDispatch |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'notification'; yourself.
+	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
+	activityInput := CPDataInput new identifier: 'activityInput'; yourself.
+	inputDataItem := CPDataInput new identifier: 'instanceInput'; yourself.
+	inputSet := CPInputSet new dataInputRefs: { activityInput }; yourself.
+	outerInputSet := CPInputSet new dataInputRefs: { loopDataInput }; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput. activityInput };
+		inputSets: { inputSet. outerInputSet };
+		outputSets: { CPOutputSet new };
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { inputDataItem };
+		targetRef: activityInput;
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopDataInputRef: loopDataInput;
+		inputDataItem: inputDataItem;
+		yourself.
+	sendTask := CPSendTask new
+		identifier: 'multiSend';
+		messageRef: message;
+		ioSpecification: specification;
+		dataInputAssociations: { inputAssociation };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: sendTask.
+	execution := CPProcessExecution for: process environment: CPExampleExecutionEnvironment new.
+	sendExecution := execution createSendTaskExecutionFor: sendTask.
+	sendExecution itemValueFor: loopDataInput put: (OrderedCollection withAll: { 'first'. 'second' }).
+	execution activateSendTaskExecution: sendExecution.
+	firstInstance := sendExecution multiInstanceActivityExecutions first.
+	secondInstance := sendExecution multiInstanceActivityExecutions second.
+	firstDispatch := firstInstance messageDispatch.
+	secondDispatch := secondInstance messageDispatch.
+	self assert: firstDispatch activityExecution == firstInstance.
+	self assert: secondDispatch activityExecution == secondInstance.
+	self assert: firstDispatch message == message.
+	self assert: secondDispatch message == message.
+	self assert: firstDispatch payload equals: 'first'.
+	self assert: secondDispatch payload equals: 'second'.
+	self assert: firstDispatch isPending.
+	self assert: secondDispatch isPending.
+	execution completeMultiInstanceSendTaskExecution: firstInstance.
+	self assert: firstDispatch isSent.
+	self assert: firstInstance isCompleted.
+	self assert: secondInstance isActive.
+	self assert: sendExecution isActive.
+	execution completeMultiInstanceSendTaskExecution: secondInstance.
+	self assert: secondDispatch isSent.
+	self assert: secondInstance isCompleted.
+	self assert: sendExecution isCompleted.
+	^ sendExecution
+]

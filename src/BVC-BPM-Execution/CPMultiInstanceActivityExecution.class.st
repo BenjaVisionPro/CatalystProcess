@@ -15,6 +15,7 @@ Class {
 		'externalInvocation',
 		'messageSubscription',
 		'receivedOccurrence',
+		'messageDispatch',
 		'completed',
 		'cancelled'
 	],
@@ -494,4 +495,34 @@ CPMultiInstanceActivityExecution >> thrownOccurrences [
 CPMultiInstanceActivityExecution >> recordThrownOccurrence: anOccurrence [
 	thrownOccurrences add: anOccurrence.
 	^ anOccurrence
+]
+
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> messageDispatch [ ^ messageDispatch ]
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> prepareMessageDispatch [
+	| definition specification loop inputs input |
+	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Send Task instance can prepare a Message dispatch.' ].
+	messageDispatch ifNotNil: [ self error: 'A Multi-Instance Send Task instance can prepare only one Message dispatch.' ].
+	definition := activityExecution definition.
+	definition messageRef ifNil: [ self error: 'A Send Task requires a Message.' ].
+	messageDispatch := CPMessageDispatch new
+		message: definition messageRef;
+		activityExecution: self;
+		yourself.
+	specification := definition ioSpecification.
+	specification ifNil: [ ^ messageDispatch ].
+	loop := definition loopCharacteristics.
+	inputs := specification dataInputs select: [ :each |
+		loop loopDataInputRef ~~ each and: [ self ownsItemValueFor: each ] ].
+	inputs ifEmpty: [ ^ messageDispatch ].
+	inputs size = 1 ifFalse: [
+		self error: 'A Multi-Instance Send Task Message input requires at most one per-instance Data Input.' ].
+	input := inputs first.
+	(self hasItemValueFor: input) ifFalse: [
+		self error: 'The Multi-Instance Send Task Data Input is unavailable for the Message dispatch.' ].
+	messageDispatch payload: (self itemValueFor: input).
+	^ messageDispatch
 ]

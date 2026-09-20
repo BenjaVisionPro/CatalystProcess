@@ -2243,3 +2243,65 @@ CPExecutionScope >> completeStandardLoopExecution: anActivityExecution [
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
 ]
+
+
+{ #category : 'building' }
+CPExecutionScope >> createSendTaskExecutionFor: aSendTask [
+	^ self addActivityExecution: (CPSendTaskExecution new
+		definition: aSendTask;
+		yourself)
+]
+
+{ #category : 'activities - send' }
+CPExecutionScope >> activateSendTaskExecution: anActivityExecution [
+	| loop |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Send Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Send Task execution can become Active.' ].
+	anActivityExecution definition messageRef ifNil: [
+		self error: 'A Send Task requires a Message.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	loop := anActivityExecution definition loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	anActivityExecution prepareMessageDispatch.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - send' }
+CPExecutionScope >> completeSendTaskExecution: anActivityExecution [
+	| dispatch |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Send Task execution does not belong to this execution scope.' ].
+	anActivityExecution isActive ifFalse: [
+		self error: 'Only an Active Send Task execution can complete its Message dispatch.' ].
+	dispatch := anActivityExecution messageDispatch.
+	dispatch ifNil: [ self error: 'The Send Task has no pending Message dispatch.' ].
+	dispatch isPending ifFalse: [ self error: 'The Send Task Message has already been sent.' ].
+	dispatch markSent.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - send' }
+CPExecutionScope >> completeMultiInstanceSendTaskExecution: anInstance [
+	| dispatch outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Send Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Send Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Send Task instance can complete its Message dispatch.' ].
+	dispatch := anInstance messageDispatch.
+	dispatch ifNil: [ self error: 'The Multi-Instance Send Task instance has no pending Message dispatch.' ].
+	dispatch isPending ifFalse: [ self error: 'The Multi-Instance Send Task Message has already been sent.' ].
+	dispatch markSent.
+	anInstance complete.
+	^ anInstance
+]
