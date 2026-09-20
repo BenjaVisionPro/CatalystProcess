@@ -539,3 +539,28 @@ CPMultiInstanceActivityExecution >> userTaskWorkItem: aWorkItem [
     userTaskWorkItem ifNotNil: [ self error: 'A Multi-Instance User Task instance can have only one work item.' ].
     userTaskWorkItem := aWorkItem
 ]
+
+
+{ #category : 'user task - assignment' }
+CPMultiInstanceActivityExecution >> userTaskActualOwner [
+    userTaskWorkItem ifNil: [ ^ nil ].
+    ^ userTaskWorkItem actualOwner
+]
+
+{ #category : 'user task - assignment' }
+CPMultiInstanceActivityExecution >> claimUserTaskBy: anOwnerIdentifier [
+    userTaskWorkItem ifNil: [ self error: 'The Multi-Instance User Task instance has no distributed work item.' ].
+    ^ userTaskWorkItem claimBy: anOwnerIdentifier
+]
+
+{ #category : 'user task - assignment' }
+CPMultiInstanceActivityExecution >> userTaskPriority [
+    userTaskWorkItem ifNil: [ ^ nil ].
+    ^ userTaskWorkItem taskPriority
+]
+
+{ #category : 'user task - assignment' }
+CPMultiInstanceActivityExecution >> userTaskPriority: anInteger [
+    userTaskWorkItem ifNil: [ self error: 'The Multi-Instance User Task instance has no distributed work item.' ].
+    ^ userTaskWorkItem taskPriority: anInteger
+]

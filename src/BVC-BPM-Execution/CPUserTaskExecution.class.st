@@ -23,3 +23,28 @@ CPUserTaskExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
     scope distributeMultiInstanceUserTaskExecution: anInstance.
     ^ anInstance
 ]
+
+
+{ #category : 'assignment' }
+CPUserTaskExecution >> actualOwner [
+    workItem ifNil: [ ^ nil ].
+    ^ workItem actualOwner
+]
+
+{ #category : 'assignment' }
+CPUserTaskExecution >> claimBy: anOwnerIdentifier [
+    workItem ifNil: [ self error: 'The User Task execution has no distributed work item.' ].
+    ^ workItem claimBy: anOwnerIdentifier
+]
+
+{ #category : 'assignment' }
+CPUserTaskExecution >> taskPriority [
+    workItem ifNil: [ ^ nil ].
+    ^ workItem taskPriority
+]
+
+{ #category : 'assignment' }
+CPUserTaskExecution >> taskPriority: anInteger [
+    workItem ifNil: [ self error: 'The User Task execution has no distributed work item.' ].
+    ^ workItem taskPriority: anInteger
+]

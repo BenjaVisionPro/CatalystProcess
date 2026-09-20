@@ -6970,3 +6970,71 @@ CPExecutionKernelExamples >> multiInstanceUserTaskDistributesWorkPerInstance [
     self assert: taskExecution isCompleted.
     ^ taskExecution
 ]
+
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> userTaskExposesBPMNInstanceAssignmentAttributes [
+    <gtExample>
+    | process task environment execution taskExecution workItem duplicateClaim |
+    process := CPProcess new identifier: 'process'; yourself.
+    task := CPUserTask new identifier: 'review'; yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    workItem := taskExecution workItem.
+    self assert: taskExecution actualOwner isNil.
+    self assert: taskExecution taskPriority isNil.
+    taskExecution taskPriority: 40.
+    taskExecution claimBy: 'reviewer@example.test'.
+    self assert: workItem actualOwner equals: 'reviewer@example.test'.
+    self assert: taskExecution actualOwner equals: 'reviewer@example.test'.
+    self assert: workItem taskPriority equals: 40.
+    self assert: taskExecution taskPriority equals: 40.
+    duplicateClaim := false.
+    [ taskExecution claimBy: 'other@example.test' ]
+        on: Error
+        do: [ :error | duplicateClaim := true ].
+    self assert: duplicateClaim.
+    execution completeUserTaskExecution: taskExecution.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> multiInstanceUserTaskMaintainsAssignmentPerInstance [
+    <gtExample>
+    | process task loop cardinality environment execution taskExecution firstInstance secondInstance |
+    process := CPProcess new identifier: 'process'; yourself.
+    cardinality := CPExpression new identifier: 'cardinality'; yourself.
+    loop := CPMultiInstanceLoopCharacteristics new
+        loopCardinality: cardinality;
+        yourself.
+    task := CPUserTask new
+        identifier: 'review';
+        loopCharacteristics: loop;
+        yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new
+        expression: cardinality evaluatesTo: 2;
+        yourself.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    firstInstance := taskExecution multiInstanceActivityExecutions first.
+    secondInstance := taskExecution multiInstanceActivityExecutions second.
+    firstInstance userTaskPriority: 10.
+    secondInstance userTaskPriority: 20.
+    firstInstance claimUserTaskBy: 'first@example.test'.
+    secondInstance claimUserTaskBy: 'second@example.test'.
+    self assert: firstInstance userTaskActualOwner equals: 'first@example.test'.
+    self assert: secondInstance userTaskActualOwner equals: 'second@example.test'.
+    self assert: firstInstance userTaskPriority equals: 10.
+    self assert: secondInstance userTaskPriority equals: 20.
+    execution completeMultiInstanceUserTaskExecution: firstInstance.
+    self assert: secondInstance isActive.
+    execution completeMultiInstanceUserTaskExecution: secondInstance.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]

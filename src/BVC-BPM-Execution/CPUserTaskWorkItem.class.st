@@ -5,7 +5,9 @@ Class {
         'userTask',
         'activityExecution',
         'distributed',
-        'completed'
+        'completed',
+        'actualOwner',
+        'taskPriority'
     ],
     #category : 'BVC-BPM-Execution',
     #package : 'BVC-BPM-Execution'
@@ -59,4 +61,31 @@ CPUserTaskWorkItem >> complete [
     completed ifTrue: [ self error: 'A User Task work item can complete only once.' ].
     completed := true.
     ^ self
+]
+
+
+{ #category : 'assignment' }
+CPUserTaskWorkItem >> actualOwner [
+    ^ actualOwner
+]
+
+{ #category : 'assignment' }
+CPUserTaskWorkItem >> claimBy: anOwnerIdentifier [
+    self isPending ifFalse: [ self error: 'Only a pending User Task work item can be claimed.' ].
+    actualOwner ifNotNil: [ self error: 'A User Task work item can be claimed only once.' ].
+    anOwnerIdentifier ifNil: [ self error: 'A User Task work item requires an actual owner when claimed.' ].
+    actualOwner := anOwnerIdentifier.
+    ^ actualOwner
+]
+
+{ #category : 'assignment' }
+CPUserTaskWorkItem >> taskPriority [
+    ^ taskPriority
+]
+
+{ #category : 'assignment' }
+CPUserTaskWorkItem >> taskPriority: anInteger [
+    self isCompleted ifTrue: [ self error: 'A completed User Task work item cannot change priority.' ].
+    taskPriority := anInteger.
+    ^ taskPriority
 ]
