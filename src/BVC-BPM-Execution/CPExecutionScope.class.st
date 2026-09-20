@@ -13,7 +13,8 @@ Class {
 		'acceptedOccurrences',
 		'timerSubscriptions',
 		'messageSubscriptions',
-		'signalSubscriptions'
+		'signalSubscriptions',
+		'conditionalSubscriptions'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -37,7 +38,8 @@ CPExecutionScope >> initialize [
 	acceptedOccurrences := OrderedCollection new.
 	timerSubscriptions := OrderedCollection new.
 	messageSubscriptions := OrderedCollection new.
-	signalSubscriptions := OrderedCollection new
+	signalSubscriptions := OrderedCollection new.
+	conditionalSubscriptions := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -146,6 +148,36 @@ CPExecutionScope >> deliverMessageOccurrence: anOccurrence [
 
 { #category : 'accessing' }
 CPExecutionScope >> signalSubscriptions [ ^ signalSubscriptions ]
+
+{ #category : 'accessing' }
+CPExecutionScope >> conditionalSubscriptions [ ^ conditionalSubscriptions ]
+
+{ #category : 'conditional events' }
+CPExecutionScope >> waitingConditionalSubscriptions [
+	^ conditionalSubscriptions select: #isWaiting
+]
+
+{ #category : 'conditional events' }
+CPExecutionScope >> allWaitingConditionalSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingConditionalSubscriptions asOrderedCollection.
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingConditionalSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'conditional events' }
+CPExecutionScope >> evaluateConditionalSubscription: aSubscription [
+	(conditionalSubscriptions identityIncludes: aSubscription) ifFalse: [
+		self error: 'The Conditional subscription does not belong to this execution scope.' ].
+	aSubscription isWaiting ifFalse: [
+		self error: 'Only a waiting Conditional subscription can be evaluated.' ].
+	(self environment evaluateExpression: aSubscription condition in: self) ifFalse: [ ^ false ].
+	aSubscription trigger.
+	aSubscription waitingExecution triggerWithoutOccurrence.
+	^ true
+]
+
 
 { #category : 'signals' }
 CPExecutionScope >> waitingSignalSubscriptions [
@@ -656,6 +688,7 @@ CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
 	subScope allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingSignalSubscriptions ifNotEmpty: [ ^ false ].
+	subScope allWaitingConditionalSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
 	subScope hasPendingEventWork ifTrue: [ ^ false ].
 	^ true
@@ -799,6 +832,25 @@ CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOcc
 ]
 
 
+{ #category : 'events - conditional' }
+CPExecutionScope >> beginConditionalIntermediateCatchEvent: anEvent consuming: anActivation [
+	| execution conditionalDefinition subscription |
+	anEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Conditional Intermediate Catch Event requires exactly one Conditional Event Definition.' ].
+	conditionalDefinition := anEvent eventDefinitions first.
+	conditionalDefinition condition ifNil: [
+		self error: 'A Conditional Intermediate Catch Event requires a condition.' ].
+	execution := self beginIntermediateCatchEvent: anEvent consuming: anActivation.
+	subscription := CPConditionalSubscription new
+		waitingExecution: execution;
+		condition: conditionalDefinition condition;
+		yourself.
+	execution subscription: subscription.
+	conditionalSubscriptions add: subscription.
+	self evaluateConditionalSubscription: subscription.
+	^ execution
+]
+
 { #category : 'events - timer' }
 CPExecutionScope >> beginTimerIntermediateCatchEvent: anEvent consuming: anActivation [
 	| execution timerDefinition subscription |
@@ -920,6 +972,8 @@ CPExecutionScope >> terminateRemainingWork [
 	timerSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	signalSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	conditionalSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	gatewayExecutions do: [ :eachExecution |
 		eachExecution subscriptions do: [ :eachSubscription |

@@ -2059,3 +2059,39 @@ CPExecutionKernelExamples >> ambiguousErrorBoundaryMatchIsRejectedBeforeMutation
 	self assert: childScope acceptedOccurrences isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - conditional events' }
+CPExecutionKernelExamples >> conditionalIntermediateCatchEventWaitsUntilConditionIsSatisfied [
+	<gtExample>
+	| process before conditional after condition definition incoming outgoing environment execution producer activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	condition := CPExpression new identifier: 'condition'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'conditionalDefinition'; condition: condition; yourself.
+	conditional := CPIntermediateCatchEvent new
+		identifier: 'conditional';
+		eventDefinitions: { definition } asOrderedCollection;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: conditional; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: conditional; targetRef: after; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	environment expression: condition evaluatesTo: false.
+	execution := CPProcessExecution for: process environment: environment.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginConditionalIntermediateCatchEvent: conditional consuming: activation.
+	self assert: eventExecution isWaiting.
+	self assert: eventExecution subscription isWaiting.
+	self assert: eventExecution subscription condition == condition.
+	self assert: (execution conditionalSubscriptions occurrencesOf: eventExecution subscription) equals: 1.
+	self assert: (execution waitingConditionalSubscriptions occurrencesOf: eventExecution subscription) equals: 1.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	environment expression: condition evaluatesTo: true.
+	self assert: (execution evaluateConditionalSubscription: eventExecution subscription).
+	self assert: eventExecution isTriggered.
+	self assert: eventExecution subscription isTriggered.
+	self assert: (execution waitingConditionalSubscriptions includes: eventExecution subscription) not.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]

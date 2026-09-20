@@ -63,3 +63,14 @@ CPIntermediateCatchEventExecution >> acceptSignalSubscription: aSubscription acc
 	subscription == aSubscription ifFalse: [ self error: 'The Signal subscription does not belong to this Intermediate Catch Event execution.' ].
 	^ self scope triggerSignalIntermediateCatchEventExecution: self withAcceptedOccurrence: anOccurrence
 ]
+
+
+{ #category : 'conditional events' }
+CPIntermediateCatchEventExecution >> triggerWithoutOccurrence [
+	waiting ifFalse: [ self error: 'This Intermediate Catch Event has already been triggered.' ].
+	waiting := false.
+	self definition outgoing do: [ :eachFlow |
+		self recordProducedFlowActivation:
+			(self scope activateSequenceFlow: eachFlow producedBy: self) ].
+	^ self
+]
