@@ -7,7 +7,9 @@ Class {
 		'subScope',
 		'consumedFlowActivations',
 		'state',
-		'itemValues'
+		'itemValues',
+		'selectedInputSet',
+		'selectedOutputSet'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -42,6 +44,10 @@ CPActivityExecution >> subScope [ ^ subScope ]
 CPActivityExecution >> state [ ^ state ]
 { #category : 'accessing' }
 CPActivityExecution >> consumedFlowActivations [ ^ consumedFlowActivations ]
+{ #category : 'accessing' }
+CPActivityExecution >> selectedInputSet [ ^ selectedInputSet ]
+{ #category : 'accessing' }
+CPActivityExecution >> selectedOutputSet [ ^ selectedOutputSet ]
 
 
 { #category : 'data' }
@@ -119,11 +125,51 @@ CPActivityExecution >> prepareInputs [
 	definition ioSpecification ifNil: [ ^ true ].
 	inputSet := self firstAvailableInputSet.
 	inputSet ifNil: [ ^ false ].
+	selectedInputSet := inputSet.
 	inputSet dataInputRefs do: [ :eachInput |
 		associations := self dataInputAssociationsTargeting: eachInput.
 		associations do: [ :each |
 			(self canExecuteDataAssociation: each)
 				ifTrue: [ self executeDataAssociation: each ] ] ].
+	^ true
+]
+
+
+
+{ #category : 'data associations' }
+CPActivityExecution >> dataOutputAssociationsSourcedBy: aDataOutput [
+	^ definition dataOutputAssociations select: [ :each |
+		each sourceRefs identityIncludes: aDataOutput ]
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> outputSetIsAvailable: anOutputSet [
+	| requiredOutputs |
+	requiredOutputs := anOutputSet dataOutputRefs reject: [ :each |
+		anOutputSet optionalOutputRefs identityIncludes: each ].
+	^ requiredOutputs allSatisfy: [ :eachOutput |
+		self hasItemValueFor: eachOutput ]
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> firstAvailableOutputSet [
+	definition ioSpecification ifNil: [ ^ nil ].
+	definition ioSpecification outputSets do: [ :each |
+		(self outputSetIsAvailable: each) ifTrue: [ ^ each ] ].
+	^ nil
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> prepareOutputs [
+	| outputSet associations |
+	definition ioSpecification ifNil: [ ^ true ].
+	outputSet := self firstAvailableOutputSet.
+	outputSet ifNil: [ self error: 'The Activity has no available OutputSet.' ].
+	selectedOutputSet := outputSet.
+	outputSet dataOutputRefs do: [ :eachOutput |
+		(self hasItemValueFor: eachOutput) ifTrue: [
+			associations := self dataOutputAssociationsSourcedBy: eachOutput.
+			associations do: [ :each | self executeDataAssociation: each ] ] ].
 	^ true
 ]
 
@@ -240,6 +286,7 @@ CPActivityExecution >> beginCompletion [
 { #category : 'lifecycle' }
 CPActivityExecution >> complete [
 	self isCompleting ifFalse: [ self error: 'Only a Completing Activity can become Completed.' ].
+	self prepareOutputs.
 	state := CPActivityCompletedState new.
 	scope ifNotNil: [ scope activityExecutionDidComplete: self ]
 ]

@@ -4560,3 +4560,95 @@ CPExecutionKernelExamples >> receiveTaskWaitsForRequiredInputBeforeCreatingSubsc
 	self assert: (receiveExecution itemValueFor: input) equals: 'customer-1'.
 	^ receiveExecution
 ]
+
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityCompletionSelectsFirstAvailableOutputSetAndPushesData [
+	<gtExample>
+	| process firstTarget secondTarget task specification firstOutput secondOutput firstSet secondSet firstAssociation secondAssociation execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstTarget := CPDataObject new identifier: 'firstTarget'; yourself.
+	secondTarget := CPDataObject new identifier: 'secondTarget'; yourself.
+	process addFlowElement: firstTarget.
+	process addFlowElement: secondTarget.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	firstOutput := CPDataOutput new identifier: 'first'; yourself.
+	secondOutput := CPDataOutput new identifier: 'second'; yourself.
+	specification dataOutputs: { firstOutput. secondOutput }.
+	firstSet := CPOutputSet new dataOutputRefs: { firstOutput }; yourself.
+	secondSet := CPOutputSet new dataOutputRefs: { secondOutput }; yourself.
+	specification outputSets: { firstSet. secondSet }.
+	task ioSpecification: specification.
+	firstAssociation := CPDataOutputAssociation new sourceRefs: { firstOutput }; targetRef: firstTarget; yourself.
+	secondAssociation := CPDataOutputAssociation new sourceRefs: { secondOutput }; targetRef: secondTarget; yourself.
+	task dataOutputAssociations: { firstAssociation. secondAssociation }.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	taskExecution activate.
+	taskExecution itemValueFor: secondOutput put: 'second-value'.
+	taskExecution beginCompletion.
+	taskExecution complete.
+	self assert: taskExecution selectedOutputSet == secondSet.
+	self assert: (execution itemValueFor: secondTarget) equals: 'second-value'.
+	self assert: (execution hasItemValueFor: firstTarget) = false.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> optionalUnavailableActivityOutputDoesNotBlockCompletion [
+	<gtExample>
+	| process target task specification requiredOutput optionalOutput outputSet association execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	target := CPDataObject new identifier: 'target'; yourself.
+	process addFlowElement: target.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	requiredOutput := CPDataOutput new identifier: 'required'; yourself.
+	optionalOutput := CPDataOutput new identifier: 'optional'; yourself.
+	specification dataOutputs: { requiredOutput. optionalOutput }.
+	outputSet := CPOutputSet new
+		dataOutputRefs: { requiredOutput. optionalOutput };
+		optionalOutputRefs: { optionalOutput };
+		yourself.
+	specification outputSets: { outputSet }.
+	task ioSpecification: specification.
+	association := CPDataOutputAssociation new sourceRefs: { requiredOutput }; targetRef: target; yourself.
+	task dataOutputAssociations: { association }.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	taskExecution activate.
+	taskExecution itemValueFor: requiredOutput put: 'produced'.
+	taskExecution beginCompletion.
+	taskExecution complete.
+	self assert: taskExecution isCompleted.
+	self assert: (taskExecution hasItemValueFor: optionalOutput) = false.
+	self assert: (execution itemValueFor: target) equals: 'produced'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityCompletionRejectsMissingRequiredOutput [
+	<gtExample>
+	| process task specification output outputSet execution taskExecution errorRaised |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	output := CPDataOutput new identifier: 'required'; yourself.
+	specification dataOutputs: { output }.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
+	specification outputSets: { outputSet }.
+	task ioSpecification: specification.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	taskExecution activate.
+	taskExecution beginCompletion.
+	errorRaised := false.
+	[ taskExecution complete ] on: Error do: [ :error | errorRaised := true ].
+	self assert: errorRaised.
+	self assert: taskExecution isCompleting.
+	^ taskExecution
+]
