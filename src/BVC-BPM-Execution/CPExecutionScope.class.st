@@ -1644,7 +1644,8 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 						ifEmpty: [ self completeIntermediateThrowEventExecution: throwExecution ]
 						ifNotEmpty: [
 							throwExecution compensationRecords: records.
-							handlerExecution := self beginCompensationFor: throwExecution currentCompensationRecord ] ]
+							(self readyDefaultCompensationRecordsIn: records) do: [ :eachRecord |
+								self beginCompensationFor: eachRecord ] ] ]
 				ifNotNil: [
 					throwExecution compensationRecord: record.
 					handlerExecution := self beginCompensationFor: record ] ]
@@ -1713,10 +1714,14 @@ CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isCompensationThrowEventExecution) ifTrue: [
 			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
-				nextRecord := eachExecution advanceAfterCompensationRecord: aCompensationRecord.
-				nextRecord
-					ifNil: [ self completeIntermediateThrowEventExecution: eachExecution ]
-					ifNotNil: [ self beginCompensationFor: nextRecord ] ] ] ].
+				| remaining ready |
+				remaining := eachExecution compensationRecords reject: [ :each | each isHandled ].
+				remaining
+					ifEmpty: [ self completeIntermediateThrowEventExecution: eachExecution ]
+					ifNotEmpty: [
+						ready := self readyDefaultCompensationRecordsIn: remaining.
+						ready do: [ :eachRecord |
+							eachRecord isAvailable ifTrue: [ self beginCompensationFor: eachRecord ] ] ] ] ] ].
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isErrorEndEventExecution) ifTrue: [
 			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [

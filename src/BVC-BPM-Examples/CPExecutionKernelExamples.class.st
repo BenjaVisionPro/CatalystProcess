@@ -2783,9 +2783,9 @@ CPExecutionKernelExamples >> asynchronousScopeCompensationBeginsHandlersInRevers
 ]
 
 { #category : 'examples - compensation events' }
-CPExecutionKernelExamples >> synchronousScopeCompensationRunsHandlersSequentiallyInReverseCompletionOrder [
+CPExecutionKernelExamples >> synchronousScopeCompensationStartsIndependentHandlersTogetherAndWaitsForAll [
 	<gtExample>
-	| process firstWork firstBoundary firstDefinition firstHandler firstAssociation secondWork secondBoundary secondDefinition secondHandler secondAssociation before throwDefinition throwEvent after incoming outgoing execution firstExecution secondExecution ordered producer activation throwExecution secondHandlerExecution firstHandlerExecution |
+	| process firstWork firstBoundary firstDefinition firstHandler firstAssociation secondWork secondBoundary secondDefinition secondHandler secondAssociation before throwDefinition throwEvent after incoming outgoing execution firstExecution secondExecution records firstRecord secondRecord producer activation throwExecution firstHandlerExecution secondHandlerExecution |
 	process := CPProcess new identifier: 'process'; yourself.
 	firstWork := CPTask new identifier: 'firstWork'; yourself.
 	firstDefinition := CPCompensationEventDefinition new identifier: 'firstCompensation'; yourself.
@@ -2813,35 +2813,33 @@ CPExecutionKernelExamples >> synchronousScopeCompensationRunsHandlersSequentiall
 	firstExecution activate; beginCompletion; complete.
 	secondExecution := execution createActivityExecutionFor: secondWork.
 	secondExecution activate; beginCompletion; complete.
-	ordered := execution allAvailableCompensationRecordsInReverseCompletionOrder.
+	records := execution defaultCompensationRecords.
+	firstRecord := records detect: [ :each | each activityExecution == firstExecution ].
+	secondRecord := records detect: [ :each | each activityExecution == secondExecution ].
 	producer := execution createActivityExecutionFor: before.
 	activation := execution activateSequenceFlow: incoming producedBy: producer.
 	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
-	secondHandlerExecution := ordered first handlerExecution.
+	firstHandlerExecution := firstRecord handlerExecution.
+	secondHandlerExecution := secondRecord handlerExecution.
 	self assert: throwExecution isPending.
-	self assert: throwExecution compensationRecords size equals: 2.
-	self assert: throwExecution currentCompensationRecord == ordered first.
-	self assert: ordered first isHandling.
-	self assert: ordered second isAvailable.
-	self assert: ordered second handlerExecution isNil.
+	self assert: firstRecord isHandling.
+	self assert: secondRecord isHandling.
+	self assert: firstHandlerExecution definition == firstHandler.
 	self assert: secondHandlerExecution definition == secondHandler.
+	self assert: firstHandlerExecution isActive.
+	self assert: secondHandlerExecution isActive.
 	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
 	secondHandlerExecution beginCompletion; complete.
-	firstHandlerExecution := ordered second handlerExecution.
-	self assert: ordered first isHandled.
+	self assert: secondRecord isHandled.
+	self assert: firstRecord isHandling.
 	self assert: throwExecution isPending.
-	self assert: throwExecution currentCompensationRecord == ordered second.
-	self assert: ordered second isHandling.
-	self assert: firstHandlerExecution definition == firstHandler.
-	self assert: firstHandlerExecution isActive.
 	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
 	firstHandlerExecution beginCompletion; complete.
-	self assert: ordered second isHandled.
+	self assert: firstRecord isHandled.
 	self assert: throwExecution isCompleted.
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ throwExecution
 ]
-
 
 { #category : 'examples - compensation events' }
 CPExecutionKernelExamples >> compensationHandlerCompletionDoesNotCreateCompensationHistory [

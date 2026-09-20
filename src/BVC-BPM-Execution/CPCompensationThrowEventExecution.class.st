@@ -2,8 +2,7 @@ Class {
 	#name : 'CPCompensationThrowEventExecution',
 	#superclass : 'CPIntermediateThrowEventExecution',
 	#instVars : [
-		'compensationRecords',
-		'currentCompensationRecordIndex'
+		'compensationRecords'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -12,8 +11,7 @@ Class {
 { #category : 'initialization' }
 CPCompensationThrowEventExecution >> initialize [
 	super initialize.
-	compensationRecords := OrderedCollection new.
-	currentCompensationRecordIndex := 0
+	compensationRecords := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -37,40 +35,27 @@ CPCompensationThrowEventExecution >> compensationRecords: aCollection [
 		self error: 'A Compensation Throw Event execution can establish its compensation work only once.' ].
 	aCollection isEmpty ifTrue: [
 		self error: 'A synchronous Compensation Throw Event requires at least one compensation record.' ].
-	compensationRecords addAll: aCollection.
-	currentCompensationRecordIndex := 1
+	compensationRecords addAll: aCollection
 ]
 
 { #category : 'accessing' }
 CPCompensationThrowEventExecution >> currentCompensationRecord [
-	currentCompensationRecordIndex = 0 ifTrue: [ ^ nil ].
-	^ compensationRecords at: currentCompensationRecordIndex
-]
-
-{ #category : 'testing' }
-CPCompensationThrowEventExecution >> hasMoreCompensationRecords [
-	^ currentCompensationRecordIndex > 0
-		and: [ currentCompensationRecordIndex < compensationRecords size ]
-]
-
-{ #category : 'lifecycle' }
-CPCompensationThrowEventExecution >> advanceAfterCompensationRecord: aCompensationRecord [
-	(self isWaitingForCompensationRecord: aCompensationRecord) ifFalse: [
-		self error: 'Only completion of the current compensation record can advance a synchronous Compensation Throw Event.' ].
-	self hasMoreCompensationRecords ifFalse: [ ^ nil ].
-	currentCompensationRecordIndex := currentCompensationRecordIndex + 1.
-	^ self currentCompensationRecord
+	^ compensationRecords
+		detect: [ :each | each isHandled not ]
+		ifNone: [ nil ]
 ]
 
 { #category : 'testing' }
 CPCompensationThrowEventExecution >> isWaitingForCompensation [
-	^ self isPending and: [ self currentCompensationRecord notNil ]
+	^ self isPending and: [
+		compensationRecords anySatisfy: [ :each | each isHandled not ] ]
 ]
 
 { #category : 'testing' }
 CPCompensationThrowEventExecution >> isWaitingForCompensationRecord: aCompensationRecord [
-	^ self isWaitingForCompensation
-		and: [ self currentCompensationRecord == aCompensationRecord ]
+	^ self isPending
+		and: [ (compensationRecords identityIncludes: aCompensationRecord)
+			and: [ aCompensationRecord isHandled ] ]
 ]
 
 { #category : 'testing' }
