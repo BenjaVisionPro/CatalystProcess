@@ -6005,3 +6005,81 @@ CPExecutionKernelExamples >> multiInstanceCompletionConditionRequiresBooleanResu
 	self assert: error messageText equals: 'A Multi-Instance completionCondition must evaluate to a boolean.'.
 	^ taskExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceRuntimeAttributesTrackGeneratedInstances [
+	<gtExample>
+	| process task loop execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		isSequential: true;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 3;
+			yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	self assert: taskExecution numberOfInstances equals: 1.
+	self assert: taskExecution numberOfActiveInstances equals: 1.
+	self assert: taskExecution numberOfCompletedInstances equals: 0.
+	self assert: taskExecution numberOfTerminatedInstances equals: 0.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	self assert: firstInstance loopCounter equals: 1.
+	firstInstance complete.
+	self assert: taskExecution numberOfInstances equals: 2.
+	self assert: taskExecution numberOfActiveInstances equals: 1.
+	self assert: taskExecution numberOfCompletedInstances equals: 1.
+	self assert: taskExecution numberOfTerminatedInstances equals: 0.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	self assert: secondInstance loopCounter equals: 2.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceRuntimeAttributesTrackTerminatedInstances [
+	<gtExample>
+	| process task loop condition execution taskExecution firstInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 3;
+			expression: condition evaluatesTo: true;
+			yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	firstInstance complete.
+	self assert: taskExecution numberOfInstances equals: 3.
+	self assert: taskExecution numberOfActiveInstances equals: 0.
+	self assert: taskExecution numberOfCompletedInstances equals: 1.
+	self assert: taskExecution numberOfTerminatedInstances equals: 2.
+	self assert: (taskExecution numberOfActiveInstances
+		+ taskExecution numberOfCompletedInstances
+		+ taskExecution numberOfTerminatedInstances) equals: taskExecution numberOfInstances.
+	^ taskExecution
+]

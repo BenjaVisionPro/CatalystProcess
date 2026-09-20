@@ -156,3 +156,8 @@ CPMultiInstanceActivityExecution >> restoreCompensationDataSnapshot [
 	subScope restoreItemValuesFromSnapshot: scopeItemValuesSnapshot.
 	^ self
 ]
+
+{ #category : 'multi-instance - runtime attributes' }
+CPMultiInstanceActivityExecution >> loopCounter [
+	^ index
+]

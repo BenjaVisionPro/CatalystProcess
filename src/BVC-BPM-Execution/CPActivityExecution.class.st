@@ -673,3 +673,23 @@ CPActivityExecution >> isCompensationEligibleCompletion [
 	^ multiInstanceCardinality notNil
 		and: [ self multiInstanceCompletedCount = multiInstanceCardinality ]
 ]
+
+{ #category : 'multi-instance - runtime attributes' }
+CPActivityExecution >> numberOfInstances [
+	^ multiInstanceActivityExecutions size
+]
+
+{ #category : 'multi-instance - runtime attributes' }
+CPActivityExecution >> numberOfActiveInstances [
+	^ self multiInstanceActiveCount
+]
+
+{ #category : 'multi-instance - runtime attributes' }
+CPActivityExecution >> numberOfCompletedInstances [
+	^ self multiInstanceCompletedCount
+]
+
+{ #category : 'multi-instance - runtime attributes' }
+CPActivityExecution >> numberOfTerminatedInstances [
+	^ self multiInstanceCancelledCount
+]
