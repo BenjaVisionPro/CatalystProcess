@@ -6,6 +6,8 @@ Class {
 		'index',
 		'itemValues',
 		'subScope',
+		'activityItemValuesSnapshot',
+		'scopeItemValuesSnapshot',
 		'completed',
 		'cancelled'
 	],
@@ -110,6 +112,7 @@ CPMultiInstanceActivityExecution >> complete [
 	completed ifTrue: [ self error: 'A Multi-Instance Activity instance cannot complete twice.' ].
 	cancelled ifTrue: [ self error: 'A cancelled Multi-Instance Activity instance cannot complete.' ].
 	activityExecution prepareMultiInstanceActivityExecutionCompletion: self.
+	activityExecution definition isSubProcess ifTrue: [ self captureCompensationDataSnapshot ].
 	completed := true.
 	activityExecution multiInstanceActivityExecutionDidComplete: self.
 	^ self
@@ -130,5 +133,26 @@ CPMultiInstanceActivityExecution >> isActive [
 CPMultiInstanceActivityExecution >> cancel [
 	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Activity instance can be cancelled.' ].
 	cancelled := true.
+	^ self
+]
+
+
+{ #category : 'data - snapshot' }
+CPMultiInstanceActivityExecution >> captureCompensationDataSnapshot [
+	subScope ifNil: [
+		self error: 'A Multi-Instance SubProcess instance requires its execution scope before completion.' ].
+	activityItemValuesSnapshot ifNotNil: [
+		self error: 'A Multi-Instance SubProcess instance completion snapshot can only be captured once.' ].
+	activityItemValuesSnapshot := itemValues copy.
+	scopeItemValuesSnapshot := subScope itemValuesSnapshot.
+	^ self
+]
+
+{ #category : 'data - snapshot' }
+CPMultiInstanceActivityExecution >> restoreCompensationDataSnapshot [
+	activityItemValuesSnapshot ifNil: [
+		self error: 'A Multi-Instance SubProcess instance requires completion snapshot data for compensation.' ].
+	itemValues := activityItemValuesSnapshot copy.
+	subScope restoreItemValuesFromSnapshot: scopeItemValuesSnapshot.
 	^ self
 ]

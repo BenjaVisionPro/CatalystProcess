@@ -5693,3 +5693,38 @@ CPExecutionKernelExamples >> multiInstanceSubProcessInstancesOwnIndependentExecu
 	^ subProcessExecution
 ]
 
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceSubProcessInstanceCapturesCompletionDataSnapshot [
+	<gtExample>
+	| process subProcess dataObject loop execution subProcessExecution instance |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'instanceData'; yourself.
+	subProcess := CPSubProcess new identifier: 'multiSubProcess'; yourself.
+	subProcess addFlowElement: dataObject.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	subProcess loopCharacteristics: loop.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 2;
+			yourself).
+	subProcessExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: subProcess;
+		yourself).
+	subProcessExecution activate.
+	subProcessExecution beginMultiInstanceActivityExecutions.
+	instance := subProcessExecution multiInstanceActivityExecutions first.
+	instance subScope itemValueFor: dataObject put: 'data at instance completion'.
+	instance complete.
+	instance subScope itemValueFor: dataObject put: 'data changed later'.
+	instance restoreCompensationDataSnapshot.
+	self assert: (instance subScope itemValueFor: dataObject) equals: 'data at instance completion'.
+	self assert: instance isCompleted.
+	self assert: subProcessExecution isActive.
+	^ instance
+]
