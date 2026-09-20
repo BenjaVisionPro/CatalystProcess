@@ -1777,3 +1777,48 @@ CPExecutionKernelExamples >> unmatchedSignalOccurrenceCannotInstantiateProcess [
 	self assert: execution acceptedOccurrences isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> conditionalStartInstantiatesProcessWhenConditionIsSatisfied [
+	<gtExample>
+	| process condition definition conditionalStart after flow execution eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'condition'; body: 'ready'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'conditionalDefinition'; condition: condition; yourself.
+	conditionalStart := CPConditionalStartEvent new identifier: 'conditionalStart'; yourself.
+	conditionalStart eventDefinitions add: definition.
+	after := CPTask new identifier: 'after'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: conditionalStart; targetRef: after; yourself.
+	process flowElements addAll: { conditionalStart. after. flow }.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	eventExecution := execution startWhenConditionSatisfied.
+	self assert: execution isStarted.
+	self assert: eventExecution definition == conditionalStart.
+	self assert: eventExecution occurrence isNil.
+	self assert: execution acceptedOccurrences isEmpty.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> unsatisfiedConditionalStartCannotInstantiateProcess [
+	<gtExample>
+	| process condition definition conditionalStart execution rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'condition'; body: 'ready'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'conditionalDefinition'; condition: condition; yourself.
+	conditionalStart := CPConditionalStartEvent new identifier: 'conditionalStart'; yourself.
+	conditionalStart eventDefinitions add: definition.
+	process addFlowElement: conditionalStart.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: false.
+	rejected := false.
+	[ execution startWhenConditionSatisfied ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isStarted not.
+	self assert: execution eventExecutions isEmpty.
+	^ execution
+]

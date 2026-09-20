@@ -117,3 +117,17 @@ CPProcessExecution >> startWithOccurrence: anOccurrence [
 	started := true.
 	^ self executeStartEvent: matchingStartEvents first occurrence: anOccurrence
 ]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> startWhenConditionSatisfied [
+	| matchingStartEvents |
+	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
+	matchingStartEvents := self definition flowElements select: [ :each |
+		each isStartEvent and: [ each conditionAllowsInstantiationIn: self ] ].
+	matchingStartEvents ifEmpty: [
+		self error: 'No Conditional Start Event condition is satisfied.' ].
+	matchingStartEvents size > 1 ifTrue: [
+		self error: 'More than one Conditional Start Event condition is satisfied.' ].
+	started := true.
+	^ self executeStartEvent: matchingStartEvents first occurrence: nil
+]

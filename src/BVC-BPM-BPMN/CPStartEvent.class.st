@@ -38,3 +38,8 @@ CPStartEvent >> isStartEvent [
 CPStartEvent >> matchesInstantiationOccurrence: anOccurrence [
 	^ false
 ]
+
+{ #category : 'execution' }
+CPStartEvent >> conditionAllowsInstantiationIn: anExecutionScope [
+	^ false
+]
