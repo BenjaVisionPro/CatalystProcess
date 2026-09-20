@@ -8,7 +8,8 @@ Class {
 		'completed',
 		'messageDispatch',
 		'messageSubscription',
-		'receivedOccurrence'
+		'receivedOccurrence',
+		'externalInvocation'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -105,4 +106,35 @@ CPStandardLoopIterationExecution >> acceptReceivedOccurrence: anOccurrence [
 	self isWaitingForMessage ifFalse: [ self error: 'Only a waiting Standard Loop Receive Task iteration can accept a message occurrence.' ].
 	receivedOccurrence := anOccurrence.
 	^ anOccurrence
+]
+
+
+{ #category : 'external work' }
+CPStandardLoopIterationExecution >> externalInvocation [
+	^ externalInvocation
+]
+
+{ #category : 'external work' }
+CPStandardLoopIterationExecution >> prepareExternalInvocationIdentifiedBy: anIdentifier [
+	| outerExecution implementation inputs input |
+	self isActive ifFalse: [ self error: 'Only an Active Standard Loop Service Task iteration can prepare external work.' ].
+	externalInvocation ifNotNil: [ self error: 'A Standard Loop Service Task iteration can prepare external work only once.' ].
+	outerExecution := self activityExecution.
+	implementation := outerExecution resolvedImplementation.
+	implementation ifNil: [ self error: 'A Standard Loop Service Task requires a resolved implementation before preparing external work.' ].
+	externalInvocation := CPExternalInvocation new
+		invocationIdentifier: anIdentifier;
+		activityExecution: self;
+		implementation: implementation;
+		yourself.
+	outerExecution definition ioSpecification ifNil: [ ^ externalInvocation ].
+	inputs := outerExecution definition ioSpecification dataInputs.
+	inputs ifEmpty: [ ^ externalInvocation ].
+	inputs size = 1 ifFalse: [
+		self error: 'A Standard Loop Service Task Operation input requires exactly one Data Input.' ].
+	input := inputs first.
+	(outerExecution hasItemValueFor: input) ifFalse: [
+		self error: 'The Standard Loop Service Task Data Input is unavailable for external invocation.' ].
+	externalInvocation inputValue: (outerExecution itemValueFor: input).
+	^ externalInvocation
 ]

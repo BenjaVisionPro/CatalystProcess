@@ -1095,6 +1095,11 @@ CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
 	implementation := self environment resolveOperation: operation in: self.
 	anActivityExecution resolvedImplementation: implementation.
 	anActivityExecution activate.
+	(serviceTask loopCharacteristics notNil and: [ serviceTask loopCharacteristics isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	^ anActivityExecution
 ]
 
@@ -1119,6 +1124,27 @@ CPExecutionScope >> completeServiceTaskExecution: anActivityExecution withResult
 	^ anActivityExecution
 ]
 
+
+{ #category : 'activities - service' }
+CPExecutionScope >> completeStandardLoopServiceTaskIteration: anIteration withResultOccurrence: anOccurrence [
+	| invocation outerExecution |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop Service Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop Service Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop Service Task iteration can accept an external result.' ].
+	invocation := anIteration externalInvocation.
+	invocation ifNil: [ self error: 'The Standard Loop Service Task iteration has no pending external invocation.' ].
+	invocation isPending ifFalse: [ self error: 'The Standard Loop Service Task external invocation has already accepted a result.' ].
+	self acceptOccurrence: anOccurrence.
+	invocation acceptResultOccurrence: anOccurrence.
+	outerExecution definition operationRef outMessageRef ifNotNil: [
+		outerExecution populateSingleDataOutputFromOccurrence: anOccurrence ].
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
+]
 
 { #category : 'activities - service' }
 CPExecutionScope >> completeMultiInstanceServiceTaskExecution: anInstance withResultOccurrence: anOccurrence [

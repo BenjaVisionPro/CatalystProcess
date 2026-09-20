@@ -51,3 +51,10 @@ CPServiceTaskExecution >> populateExternalInvocationInput [
 	externalInvocation inputValue: (self itemValueFor: input).
 	^ self
 ]
+
+
+{ #category : 'standard loop' }
+CPServiceTaskExecution >> standardLoopIterationDidBegin: anIteration [
+	super standardLoopIterationDidBegin: anIteration.
+	^ anIteration
+]

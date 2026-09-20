@@ -7525,3 +7525,60 @@ CPExecutionKernelExamples >> receiveTaskStandardLoopWaitsSequentiallyPerIteratio
 	self assert: execution waitingMessageSubscriptions isEmpty.
 	^ taskExecution
 ]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> serviceTaskStandardLoopExecutesExternalWorkSequentiallyPerIteration [
+	<gtExample>
+	| process task operation implementation loop condition environment execution taskExecution firstIteration firstInvocation firstResult secondIteration secondInvocation secondResult |
+	process := CPProcess new identifier: 'process'; yourself.
+	operation := CPOperation new identifier: 'performWork'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPServiceTask new
+		identifier: 'repeatService';
+		operationRef: operation;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	firstIteration := taskExecution standardLoopIterations first.
+	self assert: firstIteration isActive.
+	self assert: taskExecution standardLoopIterations size equals: 1.
+	firstInvocation := firstIteration prepareExternalInvocationIdentifiedBy: #firstServiceInvocation.
+	self assert: firstInvocation activityExecution == firstIteration.
+	self assert: firstInvocation implementation == implementation.
+	firstResult := CPExecutionOccurrence new
+		occurrenceIdentifier: #firstServiceResult;
+		definition: firstInvocation;
+		yourself.
+	execution completeStandardLoopServiceTaskIteration: firstIteration withResultOccurrence: firstResult.
+	self assert: firstIteration isCompleted.
+	secondIteration := taskExecution standardLoopIterations second.
+	self assert: secondIteration isActive.
+	self assert: taskExecution standardLoopIterations size equals: 2.
+	secondInvocation := secondIteration prepareExternalInvocationIdentifiedBy: #secondServiceInvocation.
+	self assert: secondInvocation activityExecution == secondIteration.
+	self assert: secondInvocation implementation == implementation.
+	secondResult := CPExecutionOccurrence new
+		occurrenceIdentifier: #secondServiceResult;
+		definition: secondInvocation;
+		yourself.
+	execution completeStandardLoopServiceTaskIteration: secondIteration withResultOccurrence: secondResult.
+	self assert: secondIteration isCompleted.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 2.
+	self assert: firstInvocation isCompleted.
+	self assert: secondInvocation isCompleted.
+	^ taskExecution
+]
