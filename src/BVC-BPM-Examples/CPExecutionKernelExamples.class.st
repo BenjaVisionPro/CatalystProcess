@@ -2568,7 +2568,17 @@ CPExecutionKernelExamples >> targetedAsynchronousCompensationThrowBeginsHandlerA
 	after := CPTask new identifier: 'afterThrow'; yourself.
 	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
 	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
-	process flowElements addAll: { work. handler. before. throwEvent. after. incoming. outgoing }.
+	process
+		addFlowElement: work;
+		addFlowElement: handler;
+		addFlowElement: before;
+		addFlowElement: throwEvent;
+		addFlowElement: after;
+		addFlowElement: incoming;
+		addFlowElement: outgoing.
+	self assert: work container == process.
+	self assert: handler container == process.
+	self assert: throwEvent container == process.
 	association := CPAssociation new
 		identifier: 'compensationHandler';
 		sourceRef: boundary;
