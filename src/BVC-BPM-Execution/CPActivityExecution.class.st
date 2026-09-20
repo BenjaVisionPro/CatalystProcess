@@ -555,7 +555,7 @@ CPActivityExecution >> multiInstanceActivityExecutions [
 ]
 
 { #category : 'multi-instance' }
-CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
+CPActivityExecution >> createMultiInstanceActivityExecutionAt: anIndex [
 	| loop instance |
 	self initializeMultiInstanceCardinality.
 	(anIndex between: 1 and: multiInstanceCardinality) ifFalse: [
@@ -575,6 +575,13 @@ CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
 			self error: 'A Multi-Instance Activity instance has no available InputSet.' ] ].
 	definition isSubProcess ifTrue: [
 		instance createSubScopeFor: definition ].
+	^ instance
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
+	| instance |
+	instance := self createMultiInstanceActivityExecutionAt: anIndex.
 	self multiInstanceActivityExecutionDidBegin: instance.
 	^ instance
 ]
@@ -595,7 +602,10 @@ CPActivityExecution >> beginMultiInstanceActivityExecutions [
 		self beginMultiInstanceActivityExecutionAt: 1.
 		^ multiInstanceActivityExecutions ].
 	1 to: multiInstanceCardinality do: [ :index |
-		self beginMultiInstanceActivityExecutionAt: index ].
+		self createMultiInstanceActivityExecutionAt: index ].
+	multiInstanceActivityExecutions do: [ :instance |
+		instance isActive ifTrue: [
+			self multiInstanceActivityExecutionDidBegin: instance ] ].
 	^ multiInstanceActivityExecutions
 ]
 

@@ -6858,6 +6858,45 @@ CPExecutionKernelExamples >> multiInstanceScriptTaskExecutesPerInstance [
 ]
 
 { #category : 'examples - tasks' }
+CPExecutionKernelExamples >> parallelMultiInstanceScriptTaskGeneratesAllInstancesBeforeCompletionCondition [
+	<gtExample>
+	| process task loop cardinality condition environment execution taskExecution instances |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: cardinality;
+		completionCondition: condition;
+		yourself.
+	task := CPScriptTask new
+		identifier: 'calculate';
+		scriptFormat: 'text/x-smalltalk';
+		script: 'item recalculate';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 3;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createScriptTaskExecutionFor: task.
+	execution activateScriptTaskExecution: taskExecution.
+	instances := taskExecution multiInstanceActivityExecutions.
+	self assert: instances size equals: 3.
+	self assert: environment scriptTaskExecutions size equals: 1.
+	self assert: environment scriptTaskExecutions first == instances first.
+	self assert: instances first isCompleted.
+	self assert: instances second isCancelled.
+	self assert: instances third isCancelled.
+	self assert: taskExecution numberOfInstances equals: 3.
+	self assert: taskExecution numberOfCompletedInstances equals: 1.
+	self assert: taskExecution numberOfTerminatedInstances equals: 2.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
 CPExecutionKernelExamples >> businessRuleTaskExecutesThroughEnvironment [
 	<gtExample>
 	| process task environment execution taskExecution |
