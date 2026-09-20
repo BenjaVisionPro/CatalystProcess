@@ -1724,3 +1724,56 @@ CPExecutionKernelExamples >> unmatchedTimerOccurrenceCannotInstantiateProcess [
 	self assert: execution acceptedOccurrences isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> signalOccurrenceInstantiatesProcessThroughMatchingStartEvent [
+	<gtExample>
+	| process signal otherSignal signalDefinition otherDefinition signalStart otherStart after otherAfter flow otherFlow execution occurrence eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	signal := CPSignal new identifier: 'signal'; yourself.
+	otherSignal := CPSignal new identifier: 'otherSignal'; yourself.
+	signalDefinition := CPSignalEventDefinition new identifier: 'signalDefinition'; signalRef: signal; yourself.
+	otherDefinition := CPSignalEventDefinition new identifier: 'otherDefinition'; signalRef: otherSignal; yourself.
+	signalStart := CPSignalStartEvent new identifier: 'signalStart'; yourself.
+	signalStart eventDefinitions add: signalDefinition.
+	otherStart := CPSignalStartEvent new identifier: 'otherStart'; yourself.
+	otherStart eventDefinitions add: otherDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	otherAfter := CPTask new identifier: 'otherAfter'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: signalStart; targetRef: after; yourself.
+	otherFlow := CPSequenceFlow new identifier: 'otherFlow'; sourceRef: otherStart; targetRef: otherAfter; yourself.
+	process flowElements addAll: { signalStart. otherStart. after. otherAfter. flow. otherFlow }.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #signalStart1; definition: signal; yourself.
+	eventExecution := execution startWithOccurrence: occurrence.
+	self assert: execution isStarted.
+	self assert: eventExecution definition == signalStart.
+	self assert: eventExecution occurrence == occurrence.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence).
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: otherFlow) isEmpty.
+	^ execution
+]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> unmatchedSignalOccurrenceCannotInstantiateProcess [
+	<gtExample>
+	| process signal otherSignal signalDefinition signalStart execution occurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	signal := CPSignal new identifier: 'signal'; yourself.
+	otherSignal := CPSignal new identifier: 'otherSignal'; yourself.
+	signalDefinition := CPSignalEventDefinition new identifier: 'signalDefinition'; signalRef: signal; yourself.
+	signalStart := CPSignalStartEvent new identifier: 'signalStart'; yourself.
+	signalStart eventDefinitions add: signalDefinition.
+	process addFlowElement: signalStart.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongSignal; definition: otherSignal; yourself.
+	rejected := false.
+	[ execution startWithOccurrence: occurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isStarted not.
+	self assert: execution acceptedOccurrences isEmpty.
+	^ execution
+]
