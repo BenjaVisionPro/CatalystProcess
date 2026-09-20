@@ -2252,3 +2252,48 @@ CPExecutionKernelExamples >> escalationEndEventIsCaughtByNonInterruptingBoundary
 	self assert: endActivation isAvailable not.
 	^ boundaryExecution
 ]
+
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationEndEventIsCaughtByInterruptingBoundaryEvent [
+	<gtExample>
+	| process subProcess innerStart escalationEnd competingReceive toEscalation toReceive escalation thrownDefinition boundary caughtDefinition after boundaryFlow message execution subProcessExecution childScope boundaryExecution endActivation receiveExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'thrownEscalation'; escalationRef: escalation; yourself.
+	escalationEnd := CPEscalationEndEvent new identifier: 'escalationEnd'; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	message := CPMessage new identifier: 'competingMessage'; yourself.
+	competingReceive := CPReceiveTask new identifier: 'competingReceive'; messageRef: message; yourself.
+	toEscalation := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: innerStart; targetRef: escalationEnd; yourself.
+	toReceive := CPSequenceFlow new identifier: 'toReceive'; sourceRef: innerStart; targetRef: competingReceive; yourself.
+	subProcess addFlowElement: innerStart.
+	subProcess addFlowElement: escalationEnd.
+	subProcess addFlowElement: competingReceive.
+	subProcess addFlowElement: toEscalation.
+	subProcess addFlowElement: toReceive.
+	caughtDefinition := CPEscalationEventDefinition new identifier: 'caughtEscalation'; escalationRef: escalation; yourself.
+	boundary := CPBoundaryEvent new identifier: 'escalationBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterEscalation'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	receiveExecution := childScope createReceiveTaskExecutionFor: competingReceive.
+	childScope activateReceiveTaskExecution: receiveExecution.
+	endActivation := (childScope availableFlowActivationsOn: toEscalation) first.
+	childScope executeEscalationEndEvent: escalationEnd consuming: endActivation.
+	self assert: subProcessExecution state class = CPActivityTerminatedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == escalation.
+	self assert: receiveExecution isFinal.
+	self assert: receiveExecution subscription isWaiting not.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	self assert: (childScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
+	^ boundaryExecution
+]

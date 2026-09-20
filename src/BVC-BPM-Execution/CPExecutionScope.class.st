@@ -667,6 +667,9 @@ CPExecutionScope >> triggerBoundaryEventExecution: aBoundaryEventExecution with:
 		self error: 'The Boundary Event execution does not belong to this execution scope.' ].
 	aBoundaryEventExecution isWaiting ifFalse: [
 		self error: 'Only a waiting Boundary Event can accept an occurrence.' ].
+	aBoundaryEventExecution definition cancelActivity ifTrue: [
+		aBoundaryEventExecution attachedActivityExecution subScope ifNotNil: [ :aSubScope |
+			aSubScope terminateRemainingWork ] ].
 	self acceptOccurrence: anOccurrence.
 	aBoundaryEventExecution triggerWithAcceptedOccurrence: anOccurrence.
 	aBoundaryEventExecution definition cancelActivity ifTrue: [
@@ -1168,8 +1171,6 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 		propagatingFrom: self.
 	boundaryExecution ifNil: [
 		self error: 'No matching Escalation Boundary Event is waiting in the containing execution hierarchy.' ].
-	boundaryExecution definition cancelActivity ifTrue: [
-		self error: 'Interrupting Escalation Boundary Event execution is not implemented yet.' ].
 	execution := self executeEndEvent: anEscalationEndEvent consuming: anActivation.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: UUID new asString;
