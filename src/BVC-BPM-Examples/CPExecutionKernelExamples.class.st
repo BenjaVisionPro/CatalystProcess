@@ -5408,7 +5408,6 @@ CPExecutionKernelExamples >> multiInstanceInputDataItemIsBoundPerInstance [
 		yourself.
 	loop := CPMultiInstanceLoopCharacteristics new
 		loopDataInputRef: loopDataInput;
-		loopDataOutputRef: loopDataOutput;
 		inputDataItem: inputDataItem;
 		yourself.
 	task := CPTask new
@@ -6331,13 +6330,12 @@ CPExecutionKernelExamples >> multiInstanceActivityLocalDataIsOwnedPerInstance [
 	| process task loopDataInput activityInput activityOutput activityProperty specification loop execution taskExecution firstInstance secondInstance |
 	process := CPProcess new identifier: 'process'; yourself.
 	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
-	loopDataOutput := CPDataOutput new identifier: 'results'; isCollection: true; yourself.
 	activityInput := CPDataInput new identifier: 'activityInput'; yourself.
 	activityOutput := CPDataOutput new identifier: 'activityOutput'; yourself.
 	activityProperty := CPProperty new identifier: 'activityProperty'; yourself.
 	specification := CPInputOutputSpecification new
 		dataInputs: { loopDataInput. activityInput };
-		dataOutputs: { loopDataOutput. activityOutput };
+		dataOutputs: { activityOutput };
 		yourself.
 	loop := CPMultiInstanceLoopCharacteristics new loopDataInputRef: loopDataInput; yourself.
 	task := CPTask new
