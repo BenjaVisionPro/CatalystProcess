@@ -939,6 +939,8 @@ CPExecutionScope >> completeServiceTaskExecution: anActivityExecution withResult
 	invocation isPending ifFalse: [ self error: 'The Service Task external invocation has already accepted a result.' ].
 	self acceptOccurrence: anOccurrence.
 	invocation acceptResultOccurrence: anOccurrence.
+	anActivityExecution definition operationRef outMessageRef ifNotNil: [
+		anActivityExecution populateSingleDataOutputFromOccurrence: anOccurrence ].
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.
@@ -986,6 +988,7 @@ CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOcc
 	self acceptOccurrence: anOccurrence.
 	subscription triggerWith: anOccurrence.
 	anActivityExecution acceptReceivedOccurrence: anOccurrence.
+	anActivityExecution populateSingleDataOutputFromOccurrence: anOccurrence.
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.

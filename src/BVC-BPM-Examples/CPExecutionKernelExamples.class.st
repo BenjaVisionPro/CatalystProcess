@@ -4652,3 +4652,94 @@ CPExecutionKernelExamples >> activityCompletionRejectsMissingRequiredOutput [
 	self assert: taskExecution isCompleting.
 	^ taskExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> serviceTaskResultPopulatesDataOutputBeforeCompletion [
+	<gtExample>
+	| process target serviceTask operation inputMessage outputMessage specification output outputSet association implementation environment execution serviceExecution invocation result payload |
+	process := CPProcess new identifier: 'process'; yourself.
+	target := CPDataObject new identifier: 'result'; yourself.
+	process addFlowElement: target.
+	inputMessage := CPMessage new identifier: 'request'; yourself.
+	outputMessage := CPMessage new identifier: 'response'; yourself.
+	operation := CPOperation new
+		identifier: 'chargeAccount';
+		inMessageRef: inputMessage;
+		outMessageRef: outputMessage;
+		yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'charge';
+		operationRef: operation;
+		yourself.
+	specification := CPInputOutputSpecification new.
+	output := CPDataOutput new identifier: 'responseOutput'; yourself.
+	specification dataOutputs: { output }.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
+	specification outputSets: { outputSet }.
+	serviceTask ioSpecification: specification.
+	association := CPDataOutputAssociation new
+		sourceRefs: { output };
+		targetRef: target;
+		yourself.
+	serviceTask dataOutputAssociations: { association }.
+	process addFlowElement: serviceTask.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	execution activateServiceTaskExecution: serviceExecution.
+	invocation := serviceExecution prepareExternalInvocationIdentifiedBy: #chargeInvocationWithData.
+	payload := Dictionary new at: #authorization put: 'approved'; yourself.
+	result := CPExecutionOccurrence new
+		occurrenceIdentifier: #chargeResultWithData;
+		definition: invocation;
+		payload: payload;
+		yourself.
+	execution completeServiceTaskExecution: serviceExecution withResultOccurrence: result.
+	self assert: serviceExecution isCompleted.
+	self assert: (serviceExecution itemValueFor: output) == payload.
+	self assert: (execution itemValueFor: target) == payload.
+	^ serviceExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> receiveTaskMessagePopulatesDataOutputBeforeCompletion [
+	<gtExample>
+	| process target message receiveTask specification output outputSet association execution receiveExecution occurrence payload |
+	process := CPProcess new identifier: 'process'; yourself.
+	target := CPDataObject new identifier: 'received'; yourself.
+	process addFlowElement: target.
+	message := CPMessage new identifier: 'reply'; yourself.
+	receiveTask := CPReceiveTask new
+		identifier: 'receive';
+		messageRef: message;
+		yourself.
+	specification := CPInputOutputSpecification new.
+	output := CPDataOutput new identifier: 'messageOutput'; yourself.
+	specification dataOutputs: { output }.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
+	specification outputSets: { outputSet }.
+	receiveTask ioSpecification: specification.
+	association := CPDataOutputAssociation new
+		sourceRefs: { output };
+		targetRef: target;
+		yourself.
+	receiveTask dataOutputAssociations: { association }.
+	process addFlowElement: receiveTask.
+	execution := self executionFor: process.
+	receiveExecution := execution createReceiveTaskExecutionFor: receiveTask.
+	execution activateReceiveTaskExecution: receiveExecution.
+	payload := Dictionary new at: #customer put: 'customer-1'; yourself.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #replyWithData;
+		definition: message;
+		payload: payload;
+		yourself.
+	execution triggerReceiveTaskExecution: receiveExecution with: occurrence.
+	self assert: receiveExecution isCompleted.
+	self assert: (receiveExecution itemValueFor: output) == payload.
+	self assert: (execution itemValueFor: target) == payload.
+	^ receiveExecution
+]

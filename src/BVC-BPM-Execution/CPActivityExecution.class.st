@@ -136,6 +136,19 @@ CPActivityExecution >> prepareInputs [
 
 
 
+{ #category : 'data' }
+CPActivityExecution >> populateSingleDataOutputFromOccurrence: anOccurrence [
+	| outputs |
+	definition ioSpecification ifNil: [ ^ self ].
+	outputs := definition ioSpecification dataOutputs.
+	outputs ifEmpty: [ ^ self ].
+	outputs size = 1 ifFalse: [
+		self error: 'This Activity result requires exactly one Data Output.' ].
+	self itemValueFor: outputs first put: anOccurrence payload.
+	^ self
+]
+
+
 { #category : 'data associations' }
 CPActivityExecution >> dataOutputAssociationsSourcedBy: aDataOutput [
 	^ definition dataOutputAssociations select: [ :each |
