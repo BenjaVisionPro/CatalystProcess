@@ -5122,3 +5122,49 @@ CPExecutionKernelExamples >> messageEndEventUsesProcessDataOutput [
 	self assert: eventExecution thrownOccurrences first payload equals: 'process result'.
 	^ eventExecution
 ]
+
+{ #category : 'examples - call activity' }
+CPExecutionKernelExamples >> callActivityMapsCallableProcessDataInterface [
+	<gtExample>
+	| caller source result calledProcess call callSpecification callInput callOutput calledSpecification calledInput calledOutput inputAssociation outputAssociation execution callExecution calledScope |
+	caller := CPProcess new identifier: 'caller'; yourself.
+	source := CPDataObject new identifier: 'source'; yourself.
+	result := CPDataObject new identifier: 'result'; yourself.
+	caller addFlowElement: source.
+	caller addFlowElement: result.
+	calledProcess := CPProcess new identifier: 'called'; yourself.
+	calledSpecification := CPInputOutputSpecification new.
+	calledInput := CPDataInput new identifier: 'calledInput'; yourself.
+	calledOutput := CPDataOutput new identifier: 'calledOutput'; yourself.
+	calledSpecification dataInputs add: calledInput.
+	calledSpecification dataOutputs add: calledOutput.
+	calledSpecification inputSets first dataInputRefs add: calledInput.
+	calledSpecification outputSets first dataOutputRefs add: calledOutput.
+	calledProcess ioSpecification: calledSpecification.
+	call := CPCallActivity new identifier: 'call'; calledElement: calledProcess; yourself.
+	callSpecification := CPInputOutputSpecification new.
+	callInput := CPDataInput new identifier: 'callInput'; yourself.
+	callOutput := CPDataOutput new identifier: 'callOutput'; yourself.
+	callSpecification dataInputs add: callInput.
+	callSpecification dataOutputs add: callOutput.
+	callSpecification inputSets first dataInputRefs add: callInput.
+	callSpecification outputSets first dataOutputRefs add: callOutput.
+	call ioSpecification: callSpecification.
+	inputAssociation := CPDataInputAssociation new sourceRefs: { source }; targetRef: callInput; yourself.
+	outputAssociation := CPDataOutputAssociation new sourceRefs: { callOutput }; targetRef: result; yourself.
+	call dataInputAssociations add: inputAssociation.
+	call dataOutputAssociations add: outputAssociation.
+	caller addFlowElement: call.
+	execution := self executionFor: caller.
+	execution environment callableElement: calledProcess resolvesTo: calledProcess.
+	execution itemValueFor: source put: 'request'.
+	callExecution := execution createActivityExecutionFor: call.
+	execution activateCallActivityExecution: callExecution.
+	calledScope := callExecution subScope.
+	self assert: (calledScope itemValueFor: calledInput) equals: 'request'.
+	calledScope itemValueFor: calledOutput put: 'response'.
+	execution completeCallActivity: callExecution.
+	self assert: (callExecution itemValueFor: callOutput) equals: 'response'.
+	self assert: (execution itemValueFor: result) equals: 'response'.
+	^ callExecution
+]

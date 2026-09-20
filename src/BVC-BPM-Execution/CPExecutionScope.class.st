@@ -929,6 +929,7 @@ CPExecutionScope >> activateCallActivityExecution: anActivityExecution [
 		self error: 'A called Process can have at most one empty Start Event for control-flow invocation.' ].
 	anActivityExecution activate.
 	calledScope := anActivityExecution createSubScopeFor: calledProcess.
+	self mapCallActivityInputsFrom: anActivityExecution to: calledScope.
 	startEvents
 		ifNotEmpty: [ calledScope executeStartEvent: startEvents first occurrence: nil ]
 		ifEmpty: [ calledScope activateImplicitSubProcessStart ].
@@ -944,10 +945,63 @@ CPExecutionScope >> canCompleteCallActivity: anActivityExecution [
 CPExecutionScope >> completeCallActivity: anActivityExecution [
 	(self canCompleteCallActivity: anActivityExecution) ifFalse: [
 		self error: 'The Call Activity cannot complete while called Process control flow or Activities remain active.' ].
+	self mapCallActivityOutputsFrom: anActivityExecution subScope to: anActivityExecution.
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
+]
+
+
+{ #category : 'activities - call - data' }
+CPExecutionScope >> mapCallActivityInputsFrom: anActivityExecution to: calledScope [
+	| activitySpecification callableSpecification activityInputs callableInputs |
+	activitySpecification := anActivityExecution definition ioSpecification.
+	callableSpecification := calledScope definition ioSpecification.
+	activitySpecification ifNil: [
+		callableSpecification ifNil: [ ^ self ].
+		callableSpecification dataInputs ifEmpty: [ ^ self ].
+		self error: 'The Call Activity data interface does not match the called Process.' ].
+	callableSpecification ifNil: [
+		activitySpecification dataInputs ifEmpty: [ ^ self ].
+		self error: 'The Call Activity data interface does not match the called Process.' ].
+	activityInputs := activitySpecification dataInputs.
+	callableInputs := callableSpecification dataInputs.
+	activityInputs size = callableInputs size ifFalse: [
+		self error: 'The Call Activity DataInputs must exactly match the called Process DataInputs.' ].
+	1 to: activityInputs size do: [ :index |
+		(anActivityExecution hasItemValueFor: (activityInputs at: index)) ifFalse: [
+			self error: 'A Call Activity DataInput is unavailable for invocation.' ].
+		calledScope
+			itemValueFor: (callableInputs at: index)
+			put: (anActivityExecution itemValueFor: (activityInputs at: index)) ].
+	^ self
+]
+
+{ #category : 'activities - call - data' }
+CPExecutionScope >> mapCallActivityOutputsFrom: calledScope to: anActivityExecution [
+	| activitySpecification callableSpecification activityOutputs callableOutputs |
+	activitySpecification := anActivityExecution definition ioSpecification.
+	callableSpecification := calledScope definition ioSpecification.
+	activitySpecification ifNil: [
+		callableSpecification ifNil: [ ^ self ].
+		callableSpecification dataOutputs ifEmpty: [ ^ self ].
+		self error: 'The Call Activity data interface does not match the called Process.' ].
+	callableSpecification ifNil: [
+		activitySpecification dataOutputs ifEmpty: [ ^ self ].
+		self error: 'The Call Activity data interface does not match the called Process.' ].
+	activityOutputs := activitySpecification dataOutputs.
+	callableOutputs := callableSpecification dataOutputs.
+	activityOutputs size = callableOutputs size ifFalse: [
+		self error: 'The Call Activity DataOutputs must exactly match the called Process DataOutputs.' ].
+	1 to: callableOutputs size do: [ :index |
+		(calledScope hasItemValueFor: (callableOutputs at: index)) ifFalse: [
+			self error: 'A called Process DataOutput is unavailable at Call Activity completion.' ].
+		anActivityExecution
+			itemValueFor: (activityOutputs at: index)
+			put: (calledScope itemValueFor: (callableOutputs at: index))
+			producedBy: anActivityExecution ].
+	^ self
 ]
 
 { #category : 'building' }
