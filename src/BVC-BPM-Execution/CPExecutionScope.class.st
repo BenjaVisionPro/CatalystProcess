@@ -1191,10 +1191,21 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
+	self ensureCompensationRecordsFor: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
 	anActivityExecution scope == self ifFalse: [
 		self error: 'The completed Activity execution does not belong to this execution scope.' ].
+	anActivityExecution isCompleted ifFalse: [
+		self error: 'Compensation history can be recorded only for a completed Activity execution.' ].
 	anActivityExecution definition boundaryEventRefs do: [ :eachBoundary |
-		(eachBoundary eventDefinitions anySatisfy: [ :eachDefinition | eachDefinition isCompensationEventDefinition ]) ifTrue: [
+		((eachBoundary eventDefinitions anySatisfy: [ :eachDefinition | eachDefinition isCompensationEventDefinition ])
+			and: [ compensationRecords noneSatisfy: [ :eachRecord |
+				eachRecord activityExecution == anActivityExecution
+					and: [ eachRecord boundaryEvent == eachBoundary ] ] ]) ifTrue: [
 			compensationRecords add: (CPCompensationRecord new
 				activityExecution: anActivityExecution;
 				boundaryEvent: eachBoundary;
@@ -1216,6 +1227,7 @@ CPExecutionScope >> availableCompensationRecordsFor: anActivity [
 { #category : 'activities - compensation' }
 CPExecutionScope >> claimCompensationRecordFor: anActivityExecution [
 	| matches |
+	self ensureCompensationRecordsFor: anActivityExecution.
 	matches := self availableCompensationRecords select: [ :each |
 		each activityExecution == anActivityExecution ].
 	matches size = 1 ifFalse: [
