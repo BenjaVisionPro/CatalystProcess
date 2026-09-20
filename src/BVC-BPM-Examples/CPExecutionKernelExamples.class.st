@@ -1674,3 +1674,53 @@ CPExecutionKernelExamples >> unmatchedMessageOccurrenceCannotInstantiateProcess 
 	self assert: execution acceptedOccurrences isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> timerOccurrenceInstantiatesProcessThroughMatchingStartEvent [
+	<gtExample>
+	| process timerDefinition otherTimerDefinition timerStart otherStart after otherAfter flow otherFlow execution occurrence eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	otherTimerDefinition := CPTimerEventDefinition new identifier: 'otherTimerDefinition'; yourself.
+	timerStart := CPTimerStartEvent new identifier: 'timerStart'; yourself.
+	timerStart eventDefinitions add: timerDefinition.
+	otherStart := CPTimerStartEvent new identifier: 'otherStart'; yourself.
+	otherStart eventDefinitions add: otherTimerDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	otherAfter := CPTask new identifier: 'otherAfter'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: timerStart; targetRef: after; yourself.
+	otherFlow := CPSequenceFlow new identifier: 'otherFlow'; sourceRef: otherStart; targetRef: otherAfter; yourself.
+	process flowElements addAll: { timerStart. otherStart. after. otherAfter. flow. otherFlow }.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #timerStart1; definition: timerDefinition; yourself.
+	eventExecution := execution startWithOccurrence: occurrence.
+	self assert: execution isStarted.
+	self assert: eventExecution definition == timerStart.
+	self assert: eventExecution occurrence == occurrence.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence).
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: otherFlow) isEmpty.
+	^ execution
+]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> unmatchedTimerOccurrenceCannotInstantiateProcess [
+	<gtExample>
+	| process timerDefinition otherTimerDefinition timerStart execution occurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	otherTimerDefinition := CPTimerEventDefinition new identifier: 'otherTimerDefinition'; yourself.
+	timerStart := CPTimerStartEvent new identifier: 'timerStart'; yourself.
+	timerStart eventDefinitions add: timerDefinition.
+	process addFlowElement: timerStart.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongTimer; definition: otherTimerDefinition; yourself.
+	rejected := false.
+	[ execution startWithOccurrence: occurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isStarted not.
+	self assert: execution acceptedOccurrences isEmpty.
+	^ execution
+]
