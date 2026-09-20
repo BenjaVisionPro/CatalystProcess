@@ -3551,3 +3551,75 @@ CPExecutionKernelExamples >> propagatedErrorIsCaughtByIntermediateErrorEventSubP
 	self assert: (execution availableFlowActivationsOn: boundaryFlow) isEmpty.
 	^ errorHandlerExecution
 ]
+
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventDefinitionWithoutErrorCatchesAnyError [
+	<gtExample>
+	| firstError secondError catchAll |
+	firstError := CPError new identifier: 'firstError'; yourself.
+	secondError := CPError new identifier: 'secondError'; yourself.
+	catchAll := CPErrorEventDefinition new identifier: 'catchAll'; yourself.
+	self assert: catchAll error isNil.
+	self assert: (catchAll catchesError: firstError).
+	self assert: (catchAll catchesError: secondError).
+	^ catchAll
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventDefinitionWithErrorCatchesOnlyExactError [
+	<gtExample>
+	| firstError secondError definition |
+	firstError := CPError new identifier: 'firstError'; yourself.
+	secondError := CPError new identifier: 'secondError'; yourself.
+	definition := CPErrorEventDefinition new
+		identifier: 'catchFirstError';
+		error: firstError;
+		yourself.
+	self assert: (definition catchesError: firstError).
+	self assert: (definition catchesError: secondError) not.
+	^ definition
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> ambiguousErrorEventSubProcessMatchingIsRejectedBeforeMutation [
+	<gtExample>
+	| process subProcess exactHandler exactStart exactDefinition catchAllHandler catchAllStart catchAllDefinition thrownError errorEnd errorDefinition before flow execution subExecution childScope producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	thrownError := CPError new identifier: 'bookingError'; yourself.
+	exactHandler := CPErrorSubProcess new identifier: 'exactHandler'; yourself.
+	exactStart := CPErrorStartEvent new identifier: 'exactStart'; yourself.
+	exactDefinition := CPErrorEventDefinition new identifier: 'catchBookingError'; error: thrownError; yourself.
+	exactStart eventDefinitions add: exactDefinition.
+	exactHandler addFlowElement: exactStart.
+	catchAllHandler := CPErrorSubProcess new identifier: 'catchAllHandler'; yourself.
+	catchAllStart := CPErrorStartEvent new identifier: 'catchAllStart'; yourself.
+	catchAllDefinition := CPErrorEventDefinition new identifier: 'catchAnyError'; yourself.
+	catchAllStart eventDefinitions add: catchAllDefinition.
+	catchAllHandler addFlowElement: catchAllStart.
+	errorEnd := CPErrorEndEvent new identifier: 'throwError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwBookingError'; error: thrownError; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	before := CPTask new identifier: 'beforeError'; yourself.
+	flow := CPSequenceFlow new identifier: 'errorFlow'; sourceRef: before; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: exactHandler; addFlowElement: catchAllHandler; addFlowElement: before; addFlowElement: errorEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	rejected := false.
+	[ childScope executeErrorEndEvent: errorEnd consuming: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: activation isAvailable.
+	self assert: subExecution isActive.
+	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == exactHandler ]) not.
+	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == catchAllHandler ]) not.
+	^ subExecution
+]
