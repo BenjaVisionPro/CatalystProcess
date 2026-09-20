@@ -2702,6 +2702,37 @@ CPExecutionKernelExamples >> compensationHistoryPreservesGlobalReverseCompletion
 ]
 
 { #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> defaultCompensationOrdersActualSequenceFlowConsumerBeforeProducer [
+	<gtExample>
+	| process firstWork firstDefinition firstBoundary secondWork secondDefinition secondBoundary flow execution firstExecution activation secondExecution records |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstWork := CPTask new identifier: 'firstWork'; yourself.
+	firstDefinition := CPCompensationEventDefinition new identifier: 'firstCompensation'; yourself.
+	firstBoundary := CPBoundaryEvent new identifier: 'firstBoundary'; attachedToRef: firstWork; cancelActivity: false; yourself.
+	firstBoundary eventDefinitions add: firstDefinition.
+	secondWork := CPTask new identifier: 'secondWork'; yourself.
+	secondDefinition := CPCompensationEventDefinition new identifier: 'secondCompensation'; yourself.
+	secondBoundary := CPBoundaryEvent new identifier: 'secondBoundary'; attachedToRef: secondWork; cancelActivity: false; yourself.
+	secondBoundary eventDefinitions add: secondDefinition.
+	flow := CPSequenceFlow new identifier: 'firstToSecond'; sourceRef: firstWork; targetRef: secondWork; yourself.
+	{ firstWork. secondWork. flow } do: [ :each | process addFlowElement: each ].
+	execution := self executionFor: process.
+	firstExecution := execution createActivityExecutionFor: firstWork.
+	firstExecution activate; beginCompletion; complete.
+	execution produceOutgoingControlFor: firstExecution.
+	activation := (execution availableFlowActivationsOn: flow) first.
+	secondExecution := execution readyActivityExecutionFor: secondWork.
+	secondExecution activate; beginCompletion; complete.
+	records := execution defaultCompensationRecords.
+	self assert: activation producedBy == firstExecution.
+	self assert: activation consumedBy == secondExecution.
+	self assert: records size equals: 2.
+	self assert: records first activityExecution == secondExecution.
+	self assert: records second activityExecution == firstExecution.
+	^ records
+]
+
+{ #category : 'examples - compensation events' }
 CPExecutionKernelExamples >> asynchronousScopeCompensationBeginsHandlersInReverseCompletionOrderAndContinues [
 	<gtExample>
 	| process firstWork firstBoundary firstDefinition firstHandler firstAssociation secondWork secondBoundary secondDefinition secondHandler secondAssociation before throwDefinition throwEvent after incoming outgoing execution firstExecution secondExecution ordered producer activation throwExecution |

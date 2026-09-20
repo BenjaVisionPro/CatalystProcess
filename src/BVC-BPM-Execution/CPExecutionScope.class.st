@@ -1493,14 +1493,48 @@ CPExecutionScope >> compensationHandlerFor: aCompensationRecord [
 ]
 
 { #category : 'activities - compensation' }
+CPExecutionScope >> allFlowActivations [
+	| activations |
+	activations := flowActivations asOrderedCollection.
+	childScopes do: [ :eachScope |
+		activations addAll: eachScope allFlowActivations ].
+	^ activations
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> compensationRecord: aRecord mustPrecede: anotherRecord [
+	^ self allFlowActivations anySatisfy: [ :activation |
+		activation producedBy == anotherRecord activityExecution
+			and: [ activation consumedBy == aRecord activityExecution ] ]
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> orderDefaultCompensationRecords: compensationRecordCollection [
+	| remaining ordered eligible next |
+	remaining := compensationRecordCollection asOrderedCollection.
+	ordered := OrderedCollection new.
+	[ remaining isEmpty ] whileFalse: [
+		eligible := remaining select: [ :candidate |
+			(remaining anySatisfy: [ :other |
+				other ~~ candidate and: [ self compensationRecord: other mustPrecede: candidate ] ]) not ].
+		eligible isEmpty ifTrue: [
+			self error: 'Default compensation dependencies contain a cycle.' ].
+		next := eligible first.
+		eligible do: [ :candidate |
+			candidate completionSequence > next completionSequence ifTrue: [ next := candidate ] ].
+		ordered add: next.
+		remaining remove: next ].
+	^ ordered
+]
+
+{ #category : 'activities - compensation' }
 CPExecutionScope >> defaultCompensationRecords [
 	| records |
 	records := self availableCompensationRecords asOrderedCollection.
 	childScopes do: [ :eachScope |
 		(compensationRecords anySatisfy: [ :eachRecord | eachRecord activityExecution == eachScope owningActivity ]) ifFalse: [
 			records addAll: eachScope defaultCompensationRecords ] ].
-	^ records sorted: [ :earlier :later |
-		earlier completionSequence > later completionSequence ]
+	^ self orderDefaultCompensationRecords: records
 ]
 
 { #category : 'activities - compensation' }
