@@ -16,7 +16,9 @@ CPExecutionKernelExamples >> executionFor: aProcess [
 CPExecutionKernelExamples >> readyActivityExecution [
 	<gtExample>
 	| execution |
-	execution := CPActivityExecution new.
+	execution := CPActivityExecution new
+		definition: (CPTask new identifier: 'activity'; yourself);
+		yourself.
 	self assert: execution isReady.
 	self assert: execution isFinal not.
 	^ execution
