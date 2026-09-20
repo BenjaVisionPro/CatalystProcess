@@ -812,6 +812,7 @@ CPExecutionScope >> activateSubProcessExecution: anActivityExecution [
 	startEvents ifNotEmpty: [
 		startEvents first eventDefinitions ifNotEmpty: [
 			self error: 'A control-flow Sub-Process Start Event must be empty.' ] ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
 	anActivityExecution activate.
 	subScope := anActivityExecution createSubScopeFor: subProcess.
 	startEvents
@@ -870,6 +871,7 @@ CPExecutionScope >> activateCallActivityExecution: anActivityExecution [
 		self error: 'Only a Ready Call Activity can be activated.' ].
 	callActivity := anActivityExecution definition.
 	callActivity calledElement ifNil: [ self error: 'A Call Activity requires a called element.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
 	calledProcess := self environment
 		resolveCallableElement: callActivity calledElement
 		in: self.
@@ -917,6 +919,7 @@ CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
 	serviceTask := anActivityExecution definition.
 	operation := serviceTask operationRef.
 	operation ifNil: [ self error: 'A Service Task requires an Operation.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
 	implementation := self environment resolveOperation: operation in: self.
 	anActivityExecution resolvedImplementation: implementation.
 	anActivityExecution activate.
@@ -958,6 +961,7 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 		self error: 'Only a Ready Receive Task execution can become Active.' ].
 	anActivityExecution definition messageRef ifNil: [
 		self error: 'A Receive Task requires a Message.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
 	anActivityExecution activate.
 	subscription := CPMessageSubscription new
 		waitingExecution: anActivityExecution;

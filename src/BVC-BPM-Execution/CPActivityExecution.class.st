@@ -212,6 +212,12 @@ CPActivityExecution >> isCompleted [ ^ state class = CPActivityCompletedState ]
 CPActivityExecution >> isFinal [ ^ state isFinal ]
 
 { #category : 'lifecycle' }
+CPActivityExecution >> prepareForActivation [
+	self isReady ifFalse: [ self error: 'Only a Ready Activity can prepare for activation.' ].
+	^ self prepareInputs
+]
+
+{ #category : 'lifecycle' }
 CPActivityExecution >> activate [
 	self isReady ifFalse: [ self error: 'Only a Ready Activity can become Active.' ].
 	state := CPActivityActiveState new

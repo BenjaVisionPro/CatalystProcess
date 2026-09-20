@@ -4480,3 +4480,83 @@ CPExecutionKernelExamples >> optionalActivityInputDoesNotBlockAvailableInputSet 
 	self assert: (taskExecution hasItemValueFor: optionalInput) = false.
 	^ taskExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> serviceTaskWaitsForRequiredInputBeforeResolvingOperation [
+	<gtExample>
+	| process dataObject serviceTask specification input inputSet association operation implementation environment execution serviceExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	operation := CPOperation new identifier: 'chargeAccount'; yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'charge';
+		operationRef: operation;
+		yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'orderInput'; yourself.
+	specification dataInputs: { input }.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification inputSets: { inputSet }.
+	serviceTask ioSpecification: specification.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: input;
+		yourself.
+	serviceTask dataInputAssociations: { association }.
+	process addFlowElement: serviceTask.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	self assert: (execution activateServiceTaskExecution: serviceExecution) = false.
+	self assert: serviceExecution isReady.
+	self assert: serviceExecution resolvedImplementation isNil.
+	self assert: (serviceExecution hasItemValueFor: input) = false.
+	implementation := Object new.
+	environment operation: operation resolvesTo: implementation.
+	execution itemValueFor: dataObject put: 'ready'.
+	self assert: (execution activateServiceTaskExecution: serviceExecution) == serviceExecution.
+	self assert: serviceExecution isActive.
+	self assert: serviceExecution resolvedImplementation == implementation.
+	self assert: (serviceExecution itemValueFor: input) equals: 'ready'.
+	^ serviceExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> receiveTaskWaitsForRequiredInputBeforeCreatingSubscription [
+	<gtExample>
+	| process dataObject message receiveTask specification input inputSet association execution receiveExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'correlation'; yourself.
+	process addFlowElement: dataObject.
+	message := CPMessage new identifier: 'reply'; yourself.
+	receiveTask := CPReceiveTask new
+		identifier: 'receive';
+		messageRef: message;
+		yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'correlationInput'; yourself.
+	specification dataInputs: { input }.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification inputSets: { inputSet }.
+	receiveTask ioSpecification: specification.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: input;
+		yourself.
+	receiveTask dataInputAssociations: { association }.
+	process addFlowElement: receiveTask.
+	execution := self executionFor: process.
+	receiveExecution := execution createReceiveTaskExecutionFor: receiveTask.
+	self assert: (execution activateReceiveTaskExecution: receiveExecution) = false.
+	self assert: receiveExecution isReady.
+	self assert: receiveExecution subscription isNil.
+	self assert: execution messageSubscriptions isEmpty.
+	execution itemValueFor: dataObject put: 'customer-1'.
+	self assert: (execution activateReceiveTaskExecution: receiveExecution) == receiveExecution.
+	self assert: receiveExecution isActive.
+	self assert: receiveExecution subscription notNil.
+	self assert: execution messageSubscriptions size equals: 1.
+	self assert: (receiveExecution itemValueFor: input) equals: 'customer-1'.
+	^ receiveExecution
+]
