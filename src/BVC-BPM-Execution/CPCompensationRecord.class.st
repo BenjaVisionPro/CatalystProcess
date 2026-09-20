@@ -9,8 +9,7 @@ Class {
 		'handled',
 		'handlerExecution',
 		'completionSequence',
-		'compensationRecords',
-		'currentCompensationRecordIndex'
+		'compensationRecords'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -22,8 +21,7 @@ CPCompensationRecord >> initialize [
 	claimed := false.
 	handling := false.
 	handled := false.
-	compensationRecords := OrderedCollection new.
-	currentCompensationRecordIndex := 0
+	compensationRecords := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -109,33 +107,11 @@ CPCompensationRecord >> compensationRecords [
 CPCompensationRecord >> compensationRecords: aCollection [
 	compensationRecords isEmpty ifFalse: [
 		self error: 'A compensation record can establish its nested compensation work only once.' ].
-	compensationRecords addAll: aCollection.
-	compensationRecords ifNotEmpty: [ currentCompensationRecordIndex := 1 ]
-]
-
-{ #category : 'accessing' }
-CPCompensationRecord >> currentCompensationRecord [
-	currentCompensationRecordIndex = 0 ifTrue: [ ^ nil ].
-	^ compensationRecords at: currentCompensationRecordIndex
-]
-
-{ #category : 'testing' }
-CPCompensationRecord >> hasMoreCompensationRecords [
-	^ currentCompensationRecordIndex > 0
-		and: [ currentCompensationRecordIndex < compensationRecords size ]
+	compensationRecords addAll: aCollection
 ]
 
 { #category : 'testing' }
 CPCompensationRecord >> isWaitingForCompensationRecord: aCompensationRecord [
 	^ self isHandling
-		and: [ self currentCompensationRecord == aCompensationRecord ]
-]
-
-{ #category : 'lifecycle' }
-CPCompensationRecord >> advanceAfterCompensationRecord: aCompensationRecord [
-	(self isWaitingForCompensationRecord: aCompensationRecord) ifFalse: [
-		self error: 'Only completion of the current nested compensation record can advance default compensation.' ].
-	self hasMoreCompensationRecords ifFalse: [ ^ nil ].
-	currentCompensationRecordIndex := currentCompensationRecordIndex + 1.
-	^ self currentCompensationRecord
+		and: [ compensationRecords identityIncludes: aCompensationRecord ]
 ]

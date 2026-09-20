@@ -1605,7 +1605,8 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 		claimedRecord completeHandling.
 		owningScope compensationRecordDidComplete: claimedRecord.
 		^ claimedRecord ].
-	self beginCompensationFor: claimedRecord currentCompensationRecord.
+	(claimedRecord activityExecution subScope readyDefaultCompensationRecordsIn: nestedRecords) do: [ :eachRecord |
+		self beginCompensationFor: eachRecord ].
 	^ claimedRecord
 ]
 
@@ -1698,7 +1699,8 @@ CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming
 						ifEmpty: [ self completeIntermediateThrowEventExecution: endExecution ]
 						ifNotEmpty: [
 							endExecution compensationRecords: records.
-							handlerExecution := self beginCompensationFor: endExecution currentCompensationRecord ] ]
+							(self readyDefaultCompensationRecordsIn: records) do: [ :eachRecord |
+								self beginCompensationFor: eachRecord ] ] ]
 				ifNotNil: [
 					endExecution compensationRecord: record.
 					handlerExecution := self beginCompensationFor: record ] ]
@@ -1712,7 +1714,7 @@ CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming
 
 { #category : 'events - compensation' }
 CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
-	| nextRecord completedOuterRecord |
+	| completedOuterRecord |
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isCompensationThrowEventExecution) ifTrue: [
 			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
@@ -1752,12 +1754,17 @@ CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
 		detect: [ :eachRecord | eachRecord isWaitingForCompensationRecord: aCompensationRecord ]
 		ifNone: [ nil ].
 	completedOuterRecord ifNotNil: [
-		nextRecord := completedOuterRecord advanceAfterCompensationRecord: aCompensationRecord.
-		nextRecord
-			ifNil: [
+		| remaining ready nestedScope |
+		remaining := completedOuterRecord compensationRecords reject: [ :each | each isHandled ].
+		remaining
+			ifEmpty: [
 				completedOuterRecord completeHandling.
 				self compensationRecordDidComplete: completedOuterRecord ]
-			ifNotNil: [ self beginCompensationFor: nextRecord ].
+			ifNotEmpty: [
+				nestedScope := completedOuterRecord activityExecution subScope.
+				ready := nestedScope readyDefaultCompensationRecordsIn: remaining.
+				ready do: [ :eachRecord |
+					eachRecord isAvailable ifTrue: [ self beginCompensationFor: eachRecord ] ] ].
 		^ aCompensationRecord ].
 	parentScope ifNotNil: [ parentScope compensationRecordDidComplete: aCompensationRecord ].
 	^ aCompensationRecord
