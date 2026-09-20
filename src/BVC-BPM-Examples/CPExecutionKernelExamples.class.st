@@ -3331,3 +3331,67 @@ CPExecutionKernelExamples >> errorEventSubProcessIsOutsideNormalFlow [
 	self assert: (execution activityExecutions anySatisfy: [ :each | each definition == handler ]) not.
 	^ handler
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> uncaughtSubProcessErrorCompensatesCompletedWorkBeforeBoundaryPropagation [
+	<gtExample>
+	| process subProcess work compensationDefinition compensationBoundary compensationHandler compensationAssociation innerStart errorEnd innerFlow error errorDefinition errorBoundary errorBoundaryDefinition after boundaryFlow execution subProcessExecution childScope workExecution workRecord errorBoundaryExecution endActivation errorExecution handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	work := CPTask new identifier: 'completedWork'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'workCompensation'; yourself.
+	compensationBoundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: work;
+		cancelActivity: false;
+		yourself.
+	compensationBoundary eventDefinitions add: compensationDefinition.
+	compensationHandler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	compensationAssociation := CPAssociation new
+		identifier: 'compensationAssociation';
+		sourceRef: compensationBoundary;
+		targetRef: compensationHandler;
+		beOne;
+		yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'paymentError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess
+		addFlowElement: work;
+		addFlowElement: compensationHandler;
+		addFlowElement: innerStart;
+		addFlowElement: errorEnd;
+		addFlowElement: innerFlow;
+		addArtifact: compensationAssociation.
+	errorBoundaryDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	errorBoundary := CPBoundaryEvent new identifier: 'errorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	errorBoundary eventDefinitions add: errorBoundaryDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: errorBoundary; targetRef: after; yourself.
+	process addFlowElement: subProcess; addFlowElement: after; addFlowElement: boundaryFlow.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	errorBoundaryExecution := execution beginBoundaryEvent: errorBoundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	workExecution := childScope createActivityExecutionFor: work.
+	workExecution activate; beginCompletion; complete.
+	workRecord := (childScope availableCompensationRecordsFor: work) first.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	errorExecution := childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: errorExecution isPendingWork.
+	self assert: errorBoundaryExecution isTriggered not.
+	self assert: workRecord isHandling.
+	handlerExecution := workRecord handlerExecution.
+	self assert: handlerExecution definition == compensationHandler.
+	handlerExecution beginCompletion; complete.
+	self assert: workRecord isHandled.
+	self assert: errorExecution isPendingWork not.
+	self assert: errorBoundaryExecution isTriggered.
+	self assert: errorBoundaryExecution occurrence == errorExecution occurrence.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ errorExecution
+]
