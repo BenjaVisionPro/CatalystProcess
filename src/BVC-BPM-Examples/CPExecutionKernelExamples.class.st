@@ -2604,3 +2604,68 @@ CPExecutionKernelExamples >> targetedAsynchronousCompensationThrowBeginsHandlerA
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ throwExecution
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> targetedSynchronousCompensationThrowWaitsForHandlerCompletion [
+	<gtExample>
+	| process work compensationDefinition boundary handler association before throwDefinition throwEvent after incoming outgoing execution workExecution record producer activation throwExecution handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	work := CPTask new identifier: 'work'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'workCompensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: work;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	handler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new
+		identifier: 'throwDefinition';
+		activityRef: work;
+		waitForCompletion: true;
+		yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	process
+		addFlowElement: work;
+		addFlowElement: handler;
+		addFlowElement: before;
+		addFlowElement: throwEvent;
+		addFlowElement: after;
+		addFlowElement: incoming;
+		addFlowElement: outgoing.
+	association := CPAssociation new
+		identifier: 'compensationHandler';
+		sourceRef: boundary;
+		targetRef: handler;
+		beOne;
+		yourself.
+	process addArtifact: association.
+	execution := self executionFor: process.
+	workExecution := execution createActivityExecutionFor: work.
+	workExecution activate.
+	workExecution beginCompletion.
+	workExecution complete.
+	record := execution availableCompensationRecords first.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	handlerExecution := record handlerExecution.
+	self assert: throwExecution isPending.
+	self assert: throwExecution isWaitingForCompensation.
+	self assert: throwExecution compensationRecord == record.
+	self assert: record isHandling.
+	self assert: handlerExecution isActive.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	handlerExecution beginCompletion.
+	handlerExecution complete.
+	self assert: record isHandled.
+	self assert: throwExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ throwExecution
+]

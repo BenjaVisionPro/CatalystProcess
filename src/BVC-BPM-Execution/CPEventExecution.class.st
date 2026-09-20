@@ -62,3 +62,8 @@ CPEventExecution >> isPendingWork [
 CPEventExecution >> terminatePendingWork [
 	^ self
 ]
+
+{ #category : 'testing' }
+CPEventExecution >> isCompensationThrowEventExecution [
+	^ false
+]
