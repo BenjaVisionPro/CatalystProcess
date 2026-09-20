@@ -5433,3 +5433,57 @@ CPExecutionKernelExamples >> multiInstanceInputDataItemIsBoundPerInstance [
 	self assert: firstInstance activityExecution == taskExecution.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> sequentialMultiInstanceGeneratesNextOnlyAfterCompletion [
+	<gtExample>
+	| process task cardinality loop execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		isSequential: true;
+		loopCardinality: cardinality;
+		yourself.
+	task := CPTask new identifier: 'multiTask'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 3;
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution beginMultiInstanceActivityExecutions.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 1.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	self assert: firstInstance index equals: 1.
+	firstInstance complete.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 2.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	self assert: secondInstance index equals: 2.
+	self assert: taskExecution multiInstanceCompletedCount equals: 1.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> parallelMultiInstanceGeneratesAllInstancesTogether [
+	<gtExample>
+	| process task cardinality loop execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		isSequential: false;
+		loopCardinality: cardinality;
+		yourself.
+	task := CPTask new identifier: 'multiTask'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 3;
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution beginMultiInstanceActivityExecutions.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 3.
+	self assert: taskExecution multiInstanceActivityExecutions first index equals: 1.
+	self assert: taskExecution multiInstanceActivityExecutions second index equals: 2.
+	self assert: taskExecution multiInstanceActivityExecutions third index equals: 3.
+	self assert: taskExecution multiInstanceCompletedCount equals: 0.
+	^ taskExecution
+]

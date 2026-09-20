@@ -552,3 +552,36 @@ CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
 	multiInstanceActivityExecutions add: instance.
 	^ instance
 ]
+
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> beginMultiInstanceActivityExecutions [
+	| loop |
+	self initializeMultiInstanceCardinality.
+	loop := definition loopCharacteristics.
+	multiInstanceCardinality = 0 ifTrue: [ ^ multiInstanceActivityExecutions ].
+	loop isSequential ifTrue: [
+		self beginMultiInstanceActivityExecutionAt: 1.
+		^ multiInstanceActivityExecutions ].
+	1 to: multiInstanceCardinality do: [ :index |
+		self beginMultiInstanceActivityExecutionAt: index ].
+	^ multiInstanceActivityExecutions
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceActivityExecutionDidComplete: anInstance [
+	| loop nextIndex |
+	(multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The completed Multi-Instance Activity instance does not belong to this Activity execution.' ].
+	loop := definition loopCharacteristics.
+	loop isSequential ifFalse: [ ^ anInstance ].
+	nextIndex := anInstance index + 1.
+	nextIndex <= multiInstanceCardinality ifTrue: [
+		self beginMultiInstanceActivityExecutionAt: nextIndex ].
+	^ anInstance
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceCompletedCount [
+	^ multiInstanceActivityExecutions count: [ :each | each isCompleted ]
+]

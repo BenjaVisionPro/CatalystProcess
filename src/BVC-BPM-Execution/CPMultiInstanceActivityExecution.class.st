@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'activityExecution',
 		'index',
-		'itemValues'
+		'itemValues',
+		'completed'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -13,7 +14,8 @@ Class {
 { #category : 'initialization' }
 CPMultiInstanceActivityExecution >> initialize [
 	super initialize.
-	itemValues := IdentityDictionary new
+	itemValues := IdentityDictionary new.
+	completed := false
 ]
 
 { #category : 'accessing' }
@@ -61,4 +63,18 @@ CPMultiInstanceActivityExecution >> itemValueFor: anItemAwareElement put: aValue
 		self error: 'The item-aware element does not belong to this Multi-Instance Activity instance.' ].
 	itemValues at: anItemAwareElement put: aValue.
 	^ aValue
+]
+
+
+{ #category : 'lifecycle' }
+CPMultiInstanceActivityExecution >> isCompleted [
+	^ completed
+]
+
+{ #category : 'lifecycle' }
+CPMultiInstanceActivityExecution >> complete [
+	completed ifTrue: [ self error: 'A Multi-Instance Activity instance cannot complete twice.' ].
+	completed := true.
+	activityExecution multiInstanceActivityExecutionDidComplete: self.
+	^ self
 ]
