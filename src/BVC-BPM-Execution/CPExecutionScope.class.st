@@ -2572,6 +2572,11 @@ CPExecutionScope >> activateTaskExecution: anActivityExecution [
 	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
 		anActivityExecution beginMultiInstanceActivityExecutions.
 		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.

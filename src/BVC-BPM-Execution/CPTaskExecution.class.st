@@ -11,3 +11,10 @@ CPTaskExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
 	scope completeMultiInstanceAbstractTaskExecution: anInstance.
 	^ anInstance
 ]
+
+{ #category : 'looping' }
+CPTaskExecution >> standardLoopIterationDidBegin: anIteration [
+	super standardLoopIterationDidBegin: anIteration.
+	scope completeStandardLoopIteration: anIteration of: self.
+	^ anIteration
+]

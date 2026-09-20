@@ -7357,3 +7357,31 @@ CPExecutionKernelExamples >> parallelMultiInstanceManualTaskWaitsPerInstance [
 	self assert: taskExecution isCompleted.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> abstractTaskStandardLoopExecutesTaskSemanticsPerIteration [
+	<gtExample>
+	| process task loop condition execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 3;
+		loopCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'repeat';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createTaskExecutionFor: task.
+	execution activateTaskExecution: taskExecution.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 3.
+	self assert: taskExecution standardLoopIterations size equals: 3.
+	self assert: (taskExecution standardLoopIterations allSatisfy: [ :each | each isCompleted ]).
+	^ taskExecution
+]

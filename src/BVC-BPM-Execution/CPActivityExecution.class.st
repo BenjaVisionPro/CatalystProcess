@@ -428,7 +428,13 @@ CPActivityExecution >> beginStandardLoopIteration [
 		activate;
 		yourself.
 	standardLoopIterations add: iteration.
+	self standardLoopIterationDidBegin: iteration.
 	^ iteration
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> standardLoopIterationDidBegin: anIteration [
+	^ anIteration
 ]
 
 { #category : 'looping' }
