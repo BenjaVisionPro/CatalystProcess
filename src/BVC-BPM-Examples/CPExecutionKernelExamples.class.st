@@ -6083,3 +6083,74 @@ CPExecutionKernelExamples >> multiInstanceRuntimeAttributesTrackTerminatedInstan
 		+ taskExecution numberOfTerminatedInstances) equals: taskExecution numberOfInstances.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceNoneBehaviorThrowsForEveryCompletedInstance [
+	<gtExample>
+	| process task loop signal eventDefinition execution taskExecution first second firstOccurrence secondOccurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	signal := CPSignal new identifier: 'progress'; yourself.
+	eventDefinition := CPSignalEventDefinition new signalRef: signal; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		noneBehaviorEventRef: eventDefinition;
+		beNone;
+		yourself.
+	task := CPTask new identifier: 'multiTask'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 2;
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	first := taskExecution multiInstanceActivityExecutions first.
+	second := taskExecution multiInstanceActivityExecutions second.
+	first complete.
+	second complete.
+	self assert: first thrownOccurrences size equals: 1.
+	self assert: second thrownOccurrences size equals: 1.
+	firstOccurrence := first thrownOccurrences first.
+	secondOccurrence := second thrownOccurrences first.
+	self assert: firstOccurrence definition == signal.
+	self assert: secondOccurrence definition == signal.
+	self assert: (firstOccurrence payload at: 'loopCounter') equals: 1.
+	self assert: (firstOccurrence payload at: 'numberOfCompletedInstances') equals: 1.
+	self assert: (secondOccurrence payload at: 'loopCounter') equals: 2.
+	self assert: (secondOccurrence payload at: 'numberOfCompletedInstances') equals: 2.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceOneBehaviorThrowsOnlyForFirstCompletedInstance [
+	<gtExample>
+	| process task loop signal eventDefinition execution taskExecution first second occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	signal := CPSignal new identifier: 'firstProgress'; yourself.
+	eventDefinition := CPSignalEventDefinition new signalRef: signal; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		oneBehaviorEventRef: eventDefinition;
+		beOne;
+		yourself.
+	task := CPTask new identifier: 'multiTask'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 2;
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	first := taskExecution multiInstanceActivityExecutions first.
+	second := taskExecution multiInstanceActivityExecutions second.
+	second complete.
+	first complete.
+	self assert: second thrownOccurrences size equals: 1.
+	self assert: first thrownOccurrences isEmpty.
+	occurrence := second thrownOccurrences first.
+	self assert: occurrence definition == signal.
+	self assert: (occurrence payload at: 'loopCounter') equals: 2.
+	self assert: (occurrence payload at: 'numberOfCompletedInstances') equals: 1.
+	^ taskExecution
+]

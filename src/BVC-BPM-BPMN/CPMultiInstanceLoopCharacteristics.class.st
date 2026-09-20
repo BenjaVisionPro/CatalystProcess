@@ -89,3 +89,24 @@ CPMultiInstanceLoopCharacteristics >> noneBehaviorEventRefDescription [ <magritt
 CPMultiInstanceLoopCharacteristics >> isMultiInstance [
 	^ true
 ]
+
+
+{ #category : 'behavior' }
+CPMultiInstanceLoopCharacteristics >> hasNoneBehavior [
+	^ behavior = 'None'
+]
+
+{ #category : 'behavior' }
+CPMultiInstanceLoopCharacteristics >> hasOneBehavior [
+	^ behavior = 'One'
+]
+
+{ #category : 'behavior' }
+CPMultiInstanceLoopCharacteristics >> hasAllBehavior [
+	^ behavior = 'All'
+]
+
+{ #category : 'behavior' }
+CPMultiInstanceLoopCharacteristics >> hasComplexBehavior [
+	^ behavior = 'Complex'
+]

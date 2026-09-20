@@ -607,6 +607,7 @@ CPActivityExecution >> multiInstanceActivityExecutionDidComplete: anInstance [
 	(multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The completed Multi-Instance Activity instance does not belong to this Activity execution.' ].
 	loop := definition loopCharacteristics.
+	self prepareMultiInstanceBehaviorForCompleted: anInstance.
 	(self multiInstanceCompletionConditionSatisfied) ifTrue: [
 		self cancelRemainingMultiInstanceActivityExecutions.
 		self completeMultiInstanceActivityExecution.
@@ -692,4 +693,47 @@ CPActivityExecution >> numberOfCompletedInstances [
 { #category : 'multi-instance - runtime attributes' }
 CPActivityExecution >> numberOfTerminatedInstances [
 	^ self multiInstanceCancelledCount
+]
+
+
+{ #category : 'multi-instance - events' }
+CPActivityExecution >> prepareMultiInstanceBehaviorForCompleted: anInstance [
+	| loop eventDefinition |
+	loop := definition loopCharacteristics.
+	loop hasAllBehavior ifTrue: [ ^ anInstance ].
+	loop hasNoneBehavior ifTrue: [
+		eventDefinition := loop noneBehaviorEventRef.
+		eventDefinition ifNil: [ self error: 'Multi-Instance None behavior requires noneBehaviorEventRef for executable event semantics.' ].
+		self throwMultiInstanceBehaviorEventDefinition: eventDefinition for: anInstance.
+		^ anInstance ].
+	loop hasOneBehavior ifTrue: [
+		self multiInstanceCompletedCount = 1 ifTrue: [
+			eventDefinition := loop oneBehaviorEventRef.
+			eventDefinition ifNil: [ self error: 'Multi-Instance One behavior requires oneBehaviorEventRef for executable event semantics.' ].
+			self throwMultiInstanceBehaviorEventDefinition: eventDefinition for: anInstance ].
+		^ anInstance ].
+	loop hasComplexBehavior ifTrue: [ ^ anInstance ].
+	self error: 'Unknown Multi-Instance behavior.'
+]
+
+{ #category : 'multi-instance - events' }
+CPActivityExecution >> throwMultiInstanceBehaviorEventDefinition: anEventDefinition for: anInstance [
+	| resultDefinition occurrence payload |
+	resultDefinition := anEventDefinition resultDefinition.
+	resultDefinition ifNil: [
+		self error: 'A Multi-Instance behavior EventDefinition requires an executable result definition.' ].
+	payload := Dictionary new
+		at: 'loopCounter' put: anInstance loopCounter;
+		at: 'numberOfInstances' put: self numberOfInstances;
+		at: 'numberOfActiveInstances' put: self numberOfActiveInstances;
+		at: 'numberOfCompletedInstances' put: self numberOfCompletedInstances;
+		at: 'numberOfTerminatedInstances' put: self numberOfTerminatedInstances;
+		yourself.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: UUID new asString;
+		definition: resultDefinition;
+		payload: payload;
+		yourself.
+	anInstance recordThrownOccurrence: occurrence.
+	^ occurrence
 ]

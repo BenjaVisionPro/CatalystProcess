@@ -8,6 +8,7 @@ Class {
 		'subScope',
 		'activityItemValuesSnapshot',
 		'scopeItemValuesSnapshot',
+		'thrownOccurrences',
 		'completed',
 		'cancelled'
 	],
@@ -19,6 +20,7 @@ Class {
 CPMultiInstanceActivityExecution >> initialize [
 	super initialize.
 	itemValues := IdentityDictionary new.
+	thrownOccurrences := OrderedCollection new.
 	completed := false.
 	cancelled := false
 ]
@@ -160,4 +162,16 @@ CPMultiInstanceActivityExecution >> restoreCompensationDataSnapshot [
 { #category : 'multi-instance - runtime attributes' }
 CPMultiInstanceActivityExecution >> loopCounter [
 	^ index
+]
+
+
+{ #category : 'multi-instance - events' }
+CPMultiInstanceActivityExecution >> thrownOccurrences [
+	^ thrownOccurrences
+]
+
+{ #category : 'multi-instance - events' }
+CPMultiInstanceActivityExecution >> recordThrownOccurrence: anOccurrence [
+	thrownOccurrences add: anOccurrence.
+	^ anOccurrence
 ]
