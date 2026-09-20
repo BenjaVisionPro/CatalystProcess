@@ -2843,3 +2843,45 @@ CPExecutionKernelExamples >> compensationHandlerCompletionDoesNotCreateCompensat
 	self assert: execution allAvailableCompensationRecords isEmpty.
 	^ handlerExecution
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationEndEventWaitsForScopeCompensationBeforeProcessCanComplete [
+	<gtExample>
+	| process work boundary compensationDefinition handler association before endDefinition endEvent incoming execution workExecution records producer activation endExecution handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	work := CPTask new identifier: 'work'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'workCompensation'; yourself.
+	boundary := CPBoundaryEvent new identifier: 'compensationBoundary'; attachedToRef: work; cancelActivity: false; yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	handler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	before := CPTask new identifier: 'beforeEnd'; yourself.
+	endDefinition := CPCompensationEventDefinition new identifier: 'endCompensation'; waitForCompletion: true; yourself.
+	endEvent := CPCompensationEndEvent new identifier: 'compensationEnd'; yourself.
+	endEvent eventDefinitions add: endDefinition.
+	incoming := CPSequenceFlow new identifier: 'toCompensationEnd'; sourceRef: before; targetRef: endEvent; yourself.
+	{ work. handler. before. endEvent. incoming } do: [ :each | process addFlowElement: each ].
+	association := CPAssociation new identifier: 'handlerAssociation'; sourceRef: boundary; targetRef: handler; beOne; yourself.
+	process addArtifact: association.
+	execution := self executionFor: process.
+	workExecution := execution createActivityExecutionFor: work.
+	workExecution activate; beginCompletion; complete.
+	records := execution allAvailableCompensationRecords.
+	self assert: records size equals: 1.
+	producer := execution createActivityExecutionFor: before.
+	producer activate; beginCompletion; complete.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	endExecution := execution executeCompensationEndEvent: endEvent consuming: activation.
+	handlerExecution := records first handlerExecution.
+	self assert: endExecution isPending.
+	self assert: handlerExecution definition == handler.
+	self assert: handlerExecution isActive.
+	self assert: execution canComplete not.
+	handlerExecution beginCompletion; complete.
+	self assert: records first isHandled.
+	self assert: endExecution isCompleted.
+	self assert: execution canComplete.
+	execution complete.
+	self assert: execution isCompleted.
+	^ endExecution
+]

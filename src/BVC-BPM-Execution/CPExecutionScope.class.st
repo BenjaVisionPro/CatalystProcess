@@ -1352,6 +1352,57 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 	^ throwExecution
 ]
 
+
+
+{ #category : 'events - compensation' }
+CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming: anActivation [
+	| definitions compensationDefinition targetActivity records record endExecution handlerExecution |
+	aCompensationEndEvent outgoing isEmpty ifFalse: [
+		self error: 'A Compensation End Event cannot produce outgoing Sequence Flow.' ].
+	(anActivation isAvailable and: [ aCompensationEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'A Compensation End Event requires an available activation from one of its incoming Sequence Flows.' ].
+	definitions := aCompensationEndEvent eventDefinitions select: [ :each | each isCompensationEventDefinition ].
+	definitions size = 1 ifFalse: [
+		self error: 'A Compensation End Event requires exactly one Compensation Event Definition.' ].
+	compensationDefinition := definitions first.
+	targetActivity := compensationDefinition activityRef.
+	targetActivity
+		ifNil: [
+			records := self allAvailableCompensationRecordsInReverseCompletionOrder.
+			records do: [ :eachRecord |
+				eachRecord activityExecution scope compensationHandlerFor: eachRecord ] ]
+		ifNotNil: [
+			records := self allAvailableCompensationRecordsFor: targetActivity.
+			records size = 1 ifFalse: [
+				self error: 'Targeted compensation must resolve to exactly one available completed Activity execution.' ].
+			record := records first.
+			record activityExecution scope compensationHandlerFor: record ].
+	endExecution := CPCompensationThrowEventExecution new
+		definition: aCompensationEndEvent;
+		scope: self;
+		yourself.
+	eventExecutions add: endExecution.
+	endExecution consumeFlowActivation: anActivation.
+	compensationDefinition waitForCompletion
+		ifTrue: [
+			targetActivity
+				ifNil: [
+					records
+						ifEmpty: [ self completeIntermediateThrowEventExecution: endExecution ]
+						ifNotEmpty: [
+							endExecution compensationRecords: records.
+							handlerExecution := self beginCompensationFor: endExecution currentCompensationRecord ] ]
+				ifNotNil: [
+					endExecution compensationRecord: record.
+					handlerExecution := self beginCompensationFor: record ] ]
+		ifFalse: [
+			targetActivity
+				ifNil: [ records do: [ :eachRecord | self beginCompensationFor: eachRecord ] ]
+				ifNotNil: [ handlerExecution := self beginCompensationFor: record ].
+			self completeIntermediateThrowEventExecution: endExecution ].
+	^ endExecution
+]
+
 { #category : 'events - compensation' }
 CPExecutionScope >> completeCompensationThrowsWaitingFor: anActivityExecution [
 	| nextRecord |
