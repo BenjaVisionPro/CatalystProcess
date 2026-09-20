@@ -14,3 +14,8 @@ CPErrorEventDefinition >> errorDescription [ <magritteDescription> ^ MAToOneRela
 CPErrorEventDefinition >> interruptsActivityWithFailure [
 	^ true
 ]
+
+{ #category : 'execution semantics' }
+CPErrorEventDefinition >> catchesError: anError [
+	^ error == anError
+]

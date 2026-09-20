@@ -36,3 +36,8 @@ CPEventDefinition >> eventTypeLabelDescription [
 CPEventDefinition >> interruptsActivityWithFailure [
 	^ false
 ]
+
+{ #category : 'execution semantics' }
+CPEventDefinition >> catchesError: anError [
+	^ false
+]

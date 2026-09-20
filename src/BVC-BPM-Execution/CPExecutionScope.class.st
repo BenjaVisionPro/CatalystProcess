@@ -959,3 +959,39 @@ CPExecutionScope >> hasPendingEventWork [
 	(eventExecutions anySatisfy: [ :eachExecution | eachExecution isPendingWork ]) ifTrue: [ ^ true ].
 	^ childScopes anySatisfy: [ :eachScope | eachScope hasPendingEventWork ]
 ]
+
+{ #category : 'events - error' }
+CPExecutionScope >> waitingErrorBoundaryExecutionFor: anError attachedTo: anActivityExecution [
+	^ eventExecutions
+		detect: [ :eachExecution |
+			eachExecution isBoundaryEventExecution
+				and: [ eachExecution isWaiting
+				and: [ eachExecution attachedActivityExecution == anActivityExecution
+				and: [ eachExecution definition catchesError: anError ] ] ] ]
+		ifNone: [ nil ]
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivation [
+	| definitions errorDefinition thrownError execution boundaryExecution occurrence |
+	definitions := anErrorEndEvent eventDefinitions.
+	definitions size = 1 ifFalse: [
+		self error: 'An Error End Event requires exactly one Error Event Definition.' ].
+	errorDefinition := definitions first.
+	thrownError := errorDefinition error.
+	thrownError ifNil: [ self error: 'An Error End Event requires an Error reference.' ].
+	parentScope ifNil: [ self error: 'Uncaught Process-level Error End Event execution is not implemented yet.' ].
+	boundaryExecution := parentScope
+		waitingErrorBoundaryExecutionFor: thrownError
+		attachedTo: owningActivity.
+	boundaryExecution ifNil: [
+		self error: 'No matching Error Boundary Event is waiting on the containing Activity.' ].
+	execution := self executeEndEvent: anErrorEndEvent consuming: anActivation.
+	self terminateRemainingWork.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: UUID new asString;
+		definition: thrownError;
+		yourself.
+	parentScope triggerBoundaryEventExecution: boundaryExecution with: occurrence.
+	^ execution
+]

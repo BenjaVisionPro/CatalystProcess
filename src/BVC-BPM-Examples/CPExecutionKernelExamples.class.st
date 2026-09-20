@@ -1940,3 +1940,38 @@ CPExecutionKernelExamples >> signalBroadcastDeliversOneOccurrenceToAllWaitingSub
 	self assert: execution waitingSignalSubscriptions isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEndEventIsCaughtByMatchingBoundaryEvent [
+	<gtExample>
+	| process subProcess innerStart errorEnd innerFlow error errorDefinition boundary boundaryDefinition after boundaryFlow execution subProcessExecution childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'paymentError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: innerStart.
+	subProcess addFlowElement: errorEnd.
+	subProcess addFlowElement: innerFlow.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'errorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: subProcessExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	self assert: childScope availableFlowActivations isEmpty.
+	^ boundaryExecution
+]
