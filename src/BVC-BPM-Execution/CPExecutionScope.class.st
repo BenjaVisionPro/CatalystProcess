@@ -838,6 +838,7 @@ CPExecutionScope >> terminateRemainingWork [
 		eachExecution subscriptions do: [ :eachSubscription |
 			eachSubscription isWaiting ifTrue: [ eachSubscription withdraw ] ] ].
 	eventExecutions do: [ :eachExecution |
+		eachExecution terminatePendingWork.
 		(eachExecution isBoundaryEventExecution and: [ eachExecution isWaiting ]) ifTrue: [
 			eachExecution withdraw ] ].
 	^ self

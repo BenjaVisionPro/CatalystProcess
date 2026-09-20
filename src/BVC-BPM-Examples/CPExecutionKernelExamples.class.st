@@ -1593,3 +1593,31 @@ CPExecutionKernelExamples >> processCannotCompleteWhileIntermediateThrowEventIsP
 	self assert: execution canComplete.
 	^ execution
 ]
+
+
+{ #category : 'examples - lifecycle' }
+CPExecutionKernelExamples >> terminateEndEventWithdrawsPendingIntermediateThrowEvent [
+	<gtExample>
+	| process start throwEvent terminateEvent throwFlow terminateFlow execution throwActivation terminateActivation throwExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	throwEvent := CPMessageThrowIntermediateEvent new identifier: 'pendingMessage'; yourself.
+	terminateEvent := CPTerminateEndEvent new identifier: 'terminate'; yourself.
+	throwFlow := CPSequenceFlow new identifier: 'toThrow'; sourceRef: start; targetRef: throwEvent; yourself.
+	terminateFlow := CPSequenceFlow new identifier: 'toTerminate'; sourceRef: start; targetRef: terminateEvent; yourself.
+	process flowElements addAll: { start. throwEvent. terminateEvent. throwFlow. terminateFlow }.
+	execution := self executionFor: process.
+	execution start.
+	throwActivation := (execution availableFlowActivationsOn: throwFlow) first.
+	terminateActivation := (execution availableFlowActivationsOn: terminateFlow) first.
+	throwExecution := execution beginIntermediateThrowEvent: throwEvent consuming: throwActivation.
+	self assert: throwExecution isPending.
+	self assert: execution hasPendingEventWork.
+	execution executeTerminateEndEvent: terminateEvent consuming: terminateActivation.
+	self assert: throwExecution isPending not.
+	self assert: throwExecution isWithdrawn.
+	self assert: throwExecution isCompleted not.
+	self assert: execution hasPendingEventWork not.
+	self assert: execution isCompleted.
+	^ execution
+]

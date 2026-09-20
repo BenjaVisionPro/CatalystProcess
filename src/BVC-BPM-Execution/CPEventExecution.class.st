@@ -57,3 +57,8 @@ CPEventExecution >> isBoundaryEventExecution [ ^ false ]
 CPEventExecution >> isPendingWork [
 	^ false
 ]
+
+{ #category : 'lifecycle' }
+CPEventExecution >> terminatePendingWork [
+	^ self
+]
