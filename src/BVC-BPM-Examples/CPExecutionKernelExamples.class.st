@@ -2095,3 +2095,32 @@ CPExecutionKernelExamples >> conditionalIntermediateCatchEventWaitsUntilConditio
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ eventExecution
 ]
+
+{ #category : 'examples - link events' }
+CPExecutionKernelExamples >> linkEventDefinitionModelsSourceAndTargetRelationship [
+	<gtExample>
+	| sourceOne sourceTwo target |
+	target := CPLinkEventDefinition new
+		identifier: 'targetLink';
+		name: 'To Close';
+		yourself.
+	sourceOne := CPLinkEventDefinition new
+		identifier: 'sourceLinkOne';
+		name: 'To Close';
+		target: target;
+		yourself.
+	sourceTwo := CPLinkEventDefinition new
+		identifier: 'sourceLinkTwo';
+		name: 'To Close';
+		target: target;
+		yourself.
+	target sources add: sourceOne.
+	target sources add: sourceTwo.
+	self assert: sourceOne target == target.
+	self assert: sourceTwo target == target.
+	self assert: target sources size equals: 2.
+	self assert: (target sources identityIncludes: sourceOne).
+	self assert: (target sources identityIncludes: sourceTwo).
+	self assert: target name equals: 'To Close'.
+	^ target
+]

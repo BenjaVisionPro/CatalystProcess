@@ -369,6 +369,10 @@ CPDefinitionsSourceMaterializer >> sourceForEventDefinition: aDefinition [
 			aDefinition timeCycle ifNotNil: [ :each | stream nextPutAll: ' timeCycle: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ].
 			aDefinition timeDuration ifNotNil: [ :each | stream nextPutAll: ' timeDuration: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ] ].
 		aDefinition class = CPConditionalEventDefinition ifTrue: [ aDefinition condition ifNotNil: [ :each | stream nextPutAll: ' condition: '; nextPutAll: (self sourceForExpression: each); nextPutAll: ';' ] ].
+		aDefinition class = CPLinkEventDefinition ifTrue: [
+			aDefinition name ifNotNil: [ :each | stream nextPutAll: ' name: '; nextPutAll: each storeString; nextPutAll: ';' ].
+			aDefinition sources ifNotEmpty: [ stream nextPutAll: ' sources: {'; nextPutAll: ((aDefinition sources collect: [ :each | '(CPLinkEventDefinition identifier: ', each identifier storeString, ')' ]) joinUsing: '. '); nextPutAll: '};' ].
+			aDefinition target ifNotNil: [ :each | stream nextPutAll: ' target: (CPLinkEventDefinition identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
 		aDefinition class = CPErrorEventDefinition ifTrue: [ aDefinition error ifNotNil: [ :each | stream nextPutAll: ' error: (CPError identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
 		aDefinition class = CPEscalationEventDefinition ifTrue: [ aDefinition escalationRef ifNotNil: [ :each | stream nextPutAll: ' escalationRef: (CPEscalation identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
 		aDefinition class = CPSignalEventDefinition ifTrue: [ aDefinition signalRef ifNotNil: [ :each | stream nextPutAll: ' signalRef: (CPSignal identifier: '; nextPutAll: each identifier storeString; nextPutAll: ');' ] ].
@@ -432,6 +436,12 @@ CPDefinitionsSourceMaterializer >> validateEventDefinitionForSourceSave: aDefini
 	(aDefinition class = CPConditionalEventDefinition) ifTrue: [
 		aDefinition condition ifNil: [ self error: 'A ConditionalEventDefinition requires a condition' ].
 		aDefinition condition class = CPFormalExpression ifFalse: [ self error: 'Process source saving currently supports only FormalExpression event conditions' ].
+		^ self ].
+	(aDefinition class = CPLinkEventDefinition) ifTrue: [
+		aDefinition name ifNil: [ self error: 'A LinkEventDefinition requires a name' ].
+		aDefinition name isEmpty ifTrue: [ self error: 'A LinkEventDefinition requires a non-empty name' ].
+		aDefinition sources do: [ :each | each identifier ifNil: [ self error: 'A referenced LinkEventDefinition source requires a stable identifier' ] ].
+		aDefinition target ifNotNil: [ :each | each identifier ifNil: [ self error: 'A referenced LinkEventDefinition target requires a stable identifier' ] ].
 		^ self ].
 	(aDefinition class = CPErrorEventDefinition) ifTrue: [ aDefinition error ifNotNil: [ :each | each identifier ifNil: [ self error: 'A referenced Error requires a stable identifier' ] ]. ^ self ].
 	(aDefinition class = CPEscalationEventDefinition) ifTrue: [ aDefinition escalationRef ifNotNil: [ :each | each identifier ifNil: [ self error: 'A referenced Escalation requires a stable identifier' ] ]. ^ self ].
