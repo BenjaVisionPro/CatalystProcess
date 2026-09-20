@@ -5,7 +5,8 @@ Class {
 		'activityExecution',
 		'index',
 		'itemValues',
-		'completed'
+		'completed',
+		'cancelled'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -15,7 +16,8 @@ Class {
 CPMultiInstanceActivityExecution >> initialize [
 	super initialize.
 	itemValues := IdentityDictionary new.
-	completed := false
+	completed := false.
+	cancelled := false
 ]
 
 { #category : 'accessing' }
@@ -76,5 +78,23 @@ CPMultiInstanceActivityExecution >> complete [
 	completed ifTrue: [ self error: 'A Multi-Instance Activity instance cannot complete twice.' ].
 	completed := true.
 	activityExecution multiInstanceActivityExecutionDidComplete: self.
+	^ self
+]
+
+
+{ #category : 'lifecycle' }
+CPMultiInstanceActivityExecution >> isCancelled [
+	^ cancelled
+]
+
+{ #category : 'lifecycle' }
+CPMultiInstanceActivityExecution >> isActive [
+	^ completed not and: [ cancelled not ]
+]
+
+{ #category : 'lifecycle' }
+CPMultiInstanceActivityExecution >> cancel [
+	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Activity instance can be cancelled.' ].
+	cancelled := true.
 	^ self
 ]

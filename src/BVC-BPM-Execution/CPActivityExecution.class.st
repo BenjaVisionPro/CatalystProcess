@@ -574,14 +574,57 @@ CPActivityExecution >> multiInstanceActivityExecutionDidComplete: anInstance [
 	(multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The completed Multi-Instance Activity instance does not belong to this Activity execution.' ].
 	loop := definition loopCharacteristics.
-	loop isSequential ifFalse: [ ^ anInstance ].
-	nextIndex := anInstance index + 1.
-	nextIndex <= multiInstanceCardinality ifTrue: [
-		self beginMultiInstanceActivityExecutionAt: nextIndex ].
+	(self multiInstanceCompletionConditionSatisfied) ifTrue: [
+		self cancelRemainingMultiInstanceActivityExecutions.
+		self completeMultiInstanceActivityExecution.
+		^ anInstance ].
+	self multiInstanceCompletedCount = multiInstanceCardinality ifTrue: [
+		self completeMultiInstanceActivityExecution.
+		^ anInstance ].
+	loop isSequential ifTrue: [
+		nextIndex := anInstance index + 1.
+		nextIndex <= multiInstanceCardinality ifTrue: [
+			self beginMultiInstanceActivityExecutionAt: nextIndex ] ].
 	^ anInstance
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceCompletionConditionSatisfied [
+	| condition |
+	condition := definition loopCharacteristics completionCondition.
+	condition ifNil: [ ^ false ].
+	^ scope environment
+		evaluateExpression: condition
+		in: scope
+		forActivityExecution: self
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> cancelRemainingMultiInstanceActivityExecutions [
+	multiInstanceActivityExecutions do: [ :each |
+		each isActive ifTrue: [ each cancel ] ].
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> completeMultiInstanceActivityExecution [
+	self isActive ifFalse: [ self error: 'Only an Active Multi-Instance Activity can complete.' ].
+	self beginCompletion.
+	self complete.
+	^ self
 ]
 
 { #category : 'multi-instance' }
 CPActivityExecution >> multiInstanceCompletedCount [
 	^ multiInstanceActivityExecutions count: [ :each | each isCompleted ]
+]
+
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceActiveCount [
+	^ multiInstanceActivityExecutions count: [ :each | each isActive ]
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceCancelledCount [
+	^ multiInstanceActivityExecutions count: [ :each | each isCancelled ]
 ]

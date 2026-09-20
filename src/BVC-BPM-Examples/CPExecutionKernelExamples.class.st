@@ -5487,3 +5487,41 @@ CPExecutionKernelExamples >> parallelMultiInstanceGeneratesAllInstancesTogether 
 	self assert: taskExecution multiInstanceCompletedCount equals: 0.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCompletionConditionCancelsRemainingInstances [
+	<gtExample>
+	| process task loop condition execution environment taskExecution firstInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 3;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 3.
+	self assert: taskExecution multiInstanceActiveCount equals: 3.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	firstInstance complete.
+	self assert: taskExecution multiInstanceCompletedCount equals: 1.
+	self assert: taskExecution multiInstanceCancelledCount equals: 2.
+	self assert: taskExecution multiInstanceActiveCount equals: 0.
+	self assert: taskExecution isCompleted.
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
+	^ taskExecution
+]
