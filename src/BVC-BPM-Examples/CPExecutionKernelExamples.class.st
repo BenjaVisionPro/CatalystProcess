@@ -4391,3 +4391,92 @@ CPExecutionKernelExamples >> simpleDataAssociationPreservesAvailableNilValue [
 	self assert: (taskExecution itemValueFor: input) isNil.
 	^ taskExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityInputsUseFirstAvailableInputSet [
+	<gtExample>
+	| process unavailable available task specification firstInput secondInput firstSet secondSet firstAssociation secondAssociation execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	unavailable := CPDataObject new identifier: 'unavailable'; yourself.
+	available := CPDataObject new identifier: 'available'; yourself.
+	process addFlowElement: unavailable.
+	process addFlowElement: available.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	firstInput := CPDataInput new identifier: 'firstInput'; yourself.
+	secondInput := CPDataInput new identifier: 'secondInput'; yourself.
+	specification dataInputs: { firstInput. secondInput }.
+	firstSet := CPInputSet new dataInputRefs: { firstInput }; yourself.
+	secondSet := CPInputSet new dataInputRefs: { secondInput }; yourself.
+	specification inputSets: { firstSet. secondSet }.
+	task ioSpecification: specification.
+	firstAssociation := CPDataInputAssociation new sourceRefs: { unavailable }; targetRef: firstInput; yourself.
+	secondAssociation := CPDataInputAssociation new sourceRefs: { available }; targetRef: secondInput; yourself.
+	task dataInputAssociations: { firstAssociation. secondAssociation }.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution itemValueFor: available put: 'ready'.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareInputs.
+	self assert: (taskExecution hasItemValueFor: firstInput) = false.
+	self assert: (taskExecution itemValueFor: secondInput) equals: 'ready'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityInputsWaitWhenNoInputSetIsAvailable [
+	<gtExample>
+	| process dataObject task specification input inputSet association execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'orderInput'; yourself.
+	specification dataInputs: { input }.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification inputSets: { inputSet }.
+	task ioSpecification: specification.
+	association := CPDataInputAssociation new sourceRefs: { dataObject }; targetRef: input; yourself.
+	task dataInputAssociations: { association }.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareInputs = false.
+	self assert: taskExecution isReady.
+	self assert: (taskExecution hasItemValueFor: input) = false.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> optionalActivityInputDoesNotBlockAvailableInputSet [
+	<gtExample>
+	| process dataObject optionalSource task specification requiredInput optionalInput inputSet requiredAssociation optionalAssociation execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	optionalSource := CPDataObject new identifier: 'optionalSource'; yourself.
+	process addFlowElement: optionalSource.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	requiredInput := CPDataInput new identifier: 'required'; yourself.
+	optionalInput := CPDataInput new identifier: 'optional'; yourself.
+	specification dataInputs: { requiredInput. optionalInput }.
+	inputSet := CPInputSet new
+		dataInputRefs: { requiredInput. optionalInput };
+		optionalInputRefs: { optionalInput };
+		yourself.
+	specification inputSets: { inputSet }.
+	task ioSpecification: specification.
+	requiredAssociation := CPDataInputAssociation new sourceRefs: { dataObject }; targetRef: requiredInput; yourself.
+	optionalAssociation := CPDataInputAssociation new sourceRefs: { optionalSource }; targetRef: optionalInput; yourself.
+	task dataInputAssociations: { requiredAssociation. optionalAssociation }.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution itemValueFor: dataObject put: 'ready'.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareInputs.
+	self assert: (taskExecution itemValueFor: requiredInput) equals: 'ready'.
+	self assert: (taskExecution hasItemValueFor: optionalInput) = false.
+	^ taskExecution
+]

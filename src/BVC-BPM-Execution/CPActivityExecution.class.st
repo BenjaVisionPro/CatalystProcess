@@ -66,6 +66,67 @@ CPActivityExecution >> hasItemValueFor: anItemAwareElement [
 	^ itemValues includesKey: anItemAwareElement
 ]
 
+
+{ #category : 'data associations' }
+CPActivityExecution >> canExecuteDataAssociation: aDataAssociation [
+	| source |
+	((definition dataInputAssociations identityIncludes: aDataAssociation)
+		or: [ definition dataOutputAssociations identityIncludes: aDataAssociation ]) ifFalse: [
+		self error: 'The Data Association does not belong to this Activity.' ].
+	aDataAssociation transformation ifNotNil: [
+		self error: 'Data Association transformations are not yet executable.' ].
+	aDataAssociation assignments ifNotEmpty: [
+		self error: 'Data Association assignments are not yet executable.' ].
+	aDataAssociation sourceRefs size = 1 ifFalse: [
+		self error: 'A Data Association without transformation or assignments requires exactly one source.' ].
+	aDataAssociation targetRef ifNil: [
+		self error: 'A Data Association requires a target.' ].
+	source := aDataAssociation sourceRefs first.
+	^ self accessibleItemValueAvailableFor: source
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> dataInputAssociationsTargeting: aDataInput [
+	^ definition dataInputAssociations select: [ :each |
+		each targetRef == aDataInput ]
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> inputSetIsAvailable: anInputSet [
+	| requiredInputs associations |
+	requiredInputs := anInputSet dataInputRefs reject: [ :each |
+		(anInputSet optionalInputRefs identityIncludes: each)
+			or: [ anInputSet whileExecutingInputRefs identityIncludes: each ] ].
+	requiredInputs do: [ :eachInput |
+		associations := self dataInputAssociationsTargeting: eachInput.
+		associations ifEmpty: [
+			(self hasItemValueFor: eachInput) ifFalse: [ ^ false ] ].
+		(associations allSatisfy: [ :each | self canExecuteDataAssociation: each ]) ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> firstAvailableInputSet [
+	definition ioSpecification ifNil: [ ^ nil ].
+	definition ioSpecification inputSets do: [ :each |
+		(self inputSetIsAvailable: each) ifTrue: [ ^ each ] ].
+	^ nil
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> prepareInputs [
+	| inputSet associations |
+	definition ioSpecification ifNil: [ ^ true ].
+	inputSet := self firstAvailableInputSet.
+	inputSet ifNil: [ ^ false ].
+	inputSet dataInputRefs do: [ :eachInput |
+		associations := self dataInputAssociationsTargeting: eachInput.
+		associations do: [ :each |
+			(self canExecuteDataAssociation: each)
+				ifTrue: [ self executeDataAssociation: each ] ] ].
+	^ true
+]
+
 { #category : 'data associations' }
 CPActivityExecution >> executeDataAssociation: aDataAssociation [
 	| source |
