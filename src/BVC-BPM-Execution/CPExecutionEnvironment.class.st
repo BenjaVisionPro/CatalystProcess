@@ -24,3 +24,8 @@ CPExecutionEnvironment >> resolveCallableElement: aCallableElement in: anExecuti
 CPExecutionEnvironment >> resolveOperation: anOperation in: anExecutionScope [
 	self subclassResponsibility
 ]
+
+{ #category : 'execution' }
+CPExecutionEnvironment >> executeScriptTask: aScriptTask in: anExecutionScope forActivityExecution: anActivityExecution [
+	self subclassResponsibility
+]

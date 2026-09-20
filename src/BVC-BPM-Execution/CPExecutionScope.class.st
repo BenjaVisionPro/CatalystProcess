@@ -2305,3 +2305,56 @@ CPExecutionScope >> completeMultiInstanceSendTaskExecution: anInstance [
 	anInstance complete.
 	^ anInstance
 ]
+
+
+{ #category : 'building' }
+CPExecutionScope >> createScriptTaskExecutionFor: aScriptTask [
+	^ self addActivityExecution: (CPScriptTaskExecution new
+		definition: aScriptTask;
+		yourself)
+]
+
+{ #category : 'activities - script' }
+CPExecutionScope >> activateScriptTaskExecution: anActivityExecution [
+	| scriptTask loop |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Script Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Script Task execution can become Active.' ].
+	scriptTask := anActivityExecution definition.
+	scriptTask script ifNotNil: [
+		scriptTask scriptFormat ifNil: [
+			self error: 'A Script Task with a script requires a scriptFormat.' ] ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	loop := scriptTask loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	self environment
+		executeScriptTask: scriptTask
+		in: self
+		forActivityExecution: anActivityExecution.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - script' }
+CPExecutionScope >> executeMultiInstanceScriptTaskExecution: anInstance [
+	| outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Script Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Script Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Script Task instance can execute its script.' ].
+	self environment
+		executeScriptTask: outerExecution definition
+		in: self
+		forActivityExecution: anInstance.
+	anInstance complete.
+	^ anInstance
+]

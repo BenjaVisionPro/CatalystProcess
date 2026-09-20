@@ -6,7 +6,8 @@ Class {
 		'callableResolutions',
 		'operationResolutions',
 		'lastActivityExecutionUsedForExpressionEvaluation',
-		'lastLoopCounterAtExpressionEvaluation'
+		'lastLoopCounterAtExpressionEvaluation',
+		'scriptTaskExecutions'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -17,7 +18,8 @@ CPExampleExecutionEnvironment >> initialize [
 	super initialize.
 	expressionResults := IdentityDictionary new.
 	callableResolutions := IdentityDictionary new.
-	operationResolutions := IdentityDictionary new
+	operationResolutions := IdentityDictionary new.
+	scriptTaskExecutions := OrderedCollection new
 ]
 
 { #category : 'configuration' }
@@ -76,4 +78,16 @@ CPExampleExecutionEnvironment >> lastActivityExecutionUsedForExpressionEvaluatio
 { #category : 'accessing' }
 CPExampleExecutionEnvironment >> lastLoopCounterAtExpressionEvaluation [
 	^ lastLoopCounterAtExpressionEvaluation
+]
+
+
+{ #category : 'execution' }
+CPExampleExecutionEnvironment >> executeScriptTask: aScriptTask in: anExecutionScope forActivityExecution: anActivityExecution [
+	scriptTaskExecutions add: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'accessing' }
+CPExampleExecutionEnvironment >> scriptTaskExecutions [
+	^ scriptTaskExecutions
 ]

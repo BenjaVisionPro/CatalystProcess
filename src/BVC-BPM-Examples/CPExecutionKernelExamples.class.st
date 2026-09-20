@@ -6802,3 +6802,57 @@ CPExecutionKernelExamples >> scriptTaskCarriesExecutableDefinition [
 	self assert: task script equals: 'invoice recalculateTotal'.
 	^ task
 ]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> scriptTaskExecutesThroughEnvironment [
+	<gtExample>
+	| process task environment execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPScriptTask new
+		identifier: 'calculate';
+		scriptFormat: 'text/x-smalltalk';
+		script: 'invoice recalculateTotal';
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createScriptTaskExecutionFor: task.
+	execution activateScriptTaskExecution: taskExecution.
+	self assert: environment scriptTaskExecutions size equals: 1.
+	self assert: environment scriptTaskExecutions first == taskExecution.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> multiInstanceScriptTaskExecutesPerInstance [
+	<gtExample>
+	| process task loop cardinality environment execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: cardinality;
+		yourself.
+	task := CPScriptTask new
+		identifier: 'calculate';
+		scriptFormat: 'text/x-smalltalk';
+		script: 'item recalculate';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 2;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createScriptTaskExecutionFor: task.
+	execution activateScriptTaskExecution: taskExecution.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	self assert: environment scriptTaskExecutions size equals: 2.
+	self assert: environment scriptTaskExecutions first == firstInstance.
+	self assert: environment scriptTaskExecutions second == secondInstance.
+	self assert: firstInstance isCompleted.
+	self assert: secondInstance isCompleted.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
