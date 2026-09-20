@@ -736,7 +736,7 @@ CPExecutionScope >> activateSubProcessExecution: anActivityExecution [
 { #category : 'activities - sub-process' }
 CPExecutionScope >> activateImplicitSubProcessStart [
 	definition flowElements do: [ :each |
-		(each incoming isEmpty and: [ each isActivity and: [ each isForCompensation not ] ]) ifTrue: [
+		(each isActivity and: [ each incoming isEmpty and: [ each isForCompensation not ] ]) ifTrue: [
 			| activation |
 			activation := CPSequenceFlowActivation new
 				definition: nil;
