@@ -3059,3 +3059,65 @@ CPExecutionKernelExamples >> emptyDefaultSubProcessCompensationCompletesSynchron
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ bookingRecord
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> customCompensationEventSubProcessHandlesExactCompletedSubProcess [
+	<gtExample>
+	| process booking work workBoundary workCompensation workHandler workAssociation compensationHandler compensationStart compensationDefinition undo startFlow before throwDefinition throwEvent after incoming outgoing execution bookingExecution bookingScope workExecution workRecord bookingRecord producer activation throwExecution handlerExecution handlerScope undoExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	booking := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	work := CPTask new identifier: 'work'; yourself.
+	workCompensation := CPCompensationEventDefinition new identifier: 'workCompensation'; yourself.
+	workBoundary := CPBoundaryEvent new identifier: 'workBoundary'; attachedToRef: work; cancelActivity: false; yourself.
+	workBoundary eventDefinitions add: workCompensation.
+	workHandler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	workAssociation := CPAssociation new identifier: 'workAssociation'; sourceRef: workBoundary; targetRef: workHandler; beOne; yourself.
+	booking addFlowElement: work; addFlowElement: workHandler; addArtifact: workAssociation.
+	compensationHandler := CPCompensationSubProcess new identifier: 'bookingCompensation'; yourself.
+	compensationStart := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	compensationStart eventDefinitions add: compensationDefinition.
+	undo := CPTask new identifier: 'undoBooking'; yourself.
+	startFlow := CPSequenceFlow new identifier: 'startUndo'; sourceRef: compensationStart; targetRef: undo; yourself.
+	compensationHandler addFlowElement: compensationStart; addFlowElement: undo; addFlowElement: startFlow.
+	booking addFlowElement: compensationHandler.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; activityRef: booking; waitForCompletion: true; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	process addFlowElement: booking; addFlowElement: before; addFlowElement: throwEvent; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	bookingExecution := execution createActivityExecutionFor: booking.
+	bookingExecution activate.
+	bookingScope := bookingExecution createSubScopeFor: booking.
+	workExecution := bookingScope createActivityExecutionFor: work.
+	workExecution activate; beginCompletion; complete.
+	workRecord := (bookingScope availableCompensationRecordsFor: work) first.
+	bookingExecution beginCompletion; complete.
+	bookingRecord := (execution availableCompensationRecordsFor: booking) first.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	self assert: throwExecution isPending.
+	self assert: bookingRecord isHandling.
+	self assert: workRecord isAvailable.
+	handlerExecution := bookingRecord handlerExecution.
+	self assert: handlerExecution definition == compensationHandler.
+	self assert: handlerExecution scope == bookingScope.
+	self assert: handlerExecution isActive.
+	handlerScope := handlerExecution subScope.
+	self assert: handlerScope notNil.
+	self assert: (handlerScope availableFlowActivationsOn: startFlow) size equals: 1.
+	undoExecution := handlerScope readyActivityExecutionFor: undo.
+	undoExecution activate; beginCompletion; complete.
+	self assert: (bookingScope canCompleteSubProcessActivity: handlerExecution).
+	bookingScope completeSubProcessActivity: handlerExecution.
+	self assert: bookingRecord isHandled.
+	self assert: workRecord isAvailable.
+	self assert: throwExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ bookingRecord
+]

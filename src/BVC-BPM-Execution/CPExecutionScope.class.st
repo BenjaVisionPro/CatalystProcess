@@ -685,6 +685,30 @@ CPExecutionScope >> triggerBoundaryEventExecution: aBoundaryEventExecution with:
 ]
 
 { #category : 'activities - sub-process' }
+CPExecutionScope >> activateCompensationSubProcessExecution: anActivityExecution [
+	| subProcess startEvents compensationDefinitions subScope |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Compensation Event SubProcess execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Compensation Event SubProcess execution can be activated.' ].
+	subProcess := anActivityExecution definition.
+	(subProcess isSubProcess and: [ subProcess isForCompensation ]) ifFalse: [
+		self error: 'Compensation Event SubProcess execution requires a compensation-only SubProcess.' ].
+	startEvents := subProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'A Compensation Event SubProcess requires exactly one Start Event.' ].
+	compensationDefinitions := startEvents first eventDefinitions select: [ :each | each isCompensationEventDefinition ].
+	(startEvents first eventDefinitions size = 1 and: [ compensationDefinitions size = 1 ]) ifFalse: [
+		self error: 'A Compensation Event SubProcess Start Event requires exactly one Compensation Event Definition.' ].
+	startEvents first incoming isEmpty ifFalse: [
+		self error: 'A Compensation Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	anActivityExecution activate.
+	subScope := anActivityExecution createSubScopeFor: subProcess.
+	subScope executeStartEvent: startEvents first occurrence: nil.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - sub-process' }
 CPExecutionScope >> activateSubProcessExecution: anActivityExecution [
 	| subProcess startEvents subScope |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
@@ -1193,15 +1217,44 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
-	| handledRecord |
 	self ensureCompensationRecordsFor: anActivityExecution.
+	self completeCompensationRecordHandledBy: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> completeCompensationRecordHandledBy: anActivityExecution [
+	| handledRecord |
 	handledRecord := compensationRecords
 		detect: [ :each | each handlerExecution == anActivityExecution and: [ each isHandling ] ]
 		ifNone: [ nil ].
 	handledRecord ifNotNil: [
 		handledRecord completeHandling.
-		self compensationRecordDidComplete: handledRecord ].
-	^ anActivityExecution
+		self compensationRecordDidComplete: handledRecord.
+		^ handledRecord ].
+	parentScope ifNotNil: [ ^ parentScope completeCompensationRecordHandledBy: anActivityExecution ].
+	^ nil
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> customCompensationHandlerFor: aCompensationRecord [
+	| completedSubProcess handlers startEvents compensationDefinitions |
+	aCompensationRecord boundaryEvent ifNotNil: [
+		self error: 'A compensation Boundary Event record uses its associated compensation-handler Activity.' ].
+	completedSubProcess := aCompensationRecord activityExecution definition.
+	handlers := completedSubProcess flowElements select: [ :each |
+		each isSubProcess and: [ each isForCompensation ] ].
+	handlers size = 1 ifFalse: [
+		self error: 'A completed SubProcess with custom compensation requires exactly one Compensation Event SubProcess.' ].
+	startEvents := handlers first flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'A Compensation Event SubProcess requires exactly one Start Event.' ].
+	compensationDefinitions := startEvents first eventDefinitions select: [ :each | each isCompensationEventDefinition ].
+	(startEvents first eventDefinitions size = 1 and: [ compensationDefinitions size = 1 ]) ifFalse: [
+		self error: 'A Compensation Event SubProcess Start Event requires exactly one Compensation Event Definition.' ].
+	startEvents first incoming isEmpty ifFalse: [
+		self error: 'A Compensation Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	^ handlers first
 ]
 
 { #category : 'activities - compensation' }
@@ -1329,7 +1382,8 @@ CPExecutionScope >> validateCompensationRecord: aCompensationRecord [
 			eachRecord activityExecution scope validateCompensationRecord: eachRecord ].
 		^ aCompensationRecord ].
 	definition hasCustomCompensationHandler ifTrue: [
-		self error: 'Compensation Event SubProcess execution is not implemented yet.' ].
+		self customCompensationHandlerFor: aCompensationRecord.
+		^ aCompensationRecord ].
 	self error: 'The compensation record has no BPMN compensation handler.'
 ]
 
@@ -1347,6 +1401,12 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 		handlerExecution := owningScope createActivityExecutionFor: handler.
 		claimedRecord beginHandlingWith: handlerExecution.
 		handlerExecution activate.
+		^ handlerExecution ].
+	claimedRecord activityExecution definition hasCustomCompensationHandler ifTrue: [
+		handler := owningScope customCompensationHandlerFor: claimedRecord.
+		handlerExecution := claimedRecord activityExecution subScope createActivityExecutionFor: handler.
+		claimedRecord beginHandlingWith: handlerExecution.
+		claimedRecord activityExecution subScope activateCompensationSubProcessExecution: handlerExecution.
 		^ handlerExecution ].
 	nestedRecords := claimedRecord activityExecution subScope defaultCompensationRecords.
 	claimedRecord beginHandling.
