@@ -7831,7 +7831,7 @@ CPExecutionKernelExamples >> lateStandardLoopReceiveOccurrenceDoesNotMutateTermi
 	self assert: iteration receivedOccurrence isNil.
 	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
 	self assert: taskExecution loopCounter equals: 0.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
 
@@ -7859,7 +7859,7 @@ CPExecutionKernelExamples >> lateStandardLoopSendCompletionDoesNotMutateTerminat
 	self assert: dispatch isPending.
 	self assert: iteration isTerminated.
 	self assert: taskExecution loopCounter equals: 0.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
 
@@ -7886,7 +7886,7 @@ CPExecutionKernelExamples >> lateStandardLoopUserCompletionDoesNotMutateTerminat
 	self assert: workItem isPending.
 	self assert: iteration isTerminated.
 	self assert: taskExecution loopCounter equals: 0.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
 
@@ -7916,7 +7916,7 @@ CPExecutionKernelExamples >> lateMultiInstanceServiceResultDoesNotMutateTerminat
 	self assert: instance isCancelled.
 	self assert: invocation isPending.
 	self assert: (execution acceptedOccurrences identityIncludes: result) not.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
 
@@ -7946,7 +7946,7 @@ CPExecutionKernelExamples >> lateMultiInstanceReceiveOccurrenceDoesNotMutateTerm
 	self assert: subscription isCancelled.
 	self assert: instance receivedOccurrence isNil.
 	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
 
@@ -7973,7 +7973,7 @@ CPExecutionKernelExamples >> lateMultiInstanceSendCompletionDoesNotMutateTermina
 	self assert: rejected.
 	self assert: instance isCancelled.
 	self assert: dispatch isPending.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
 
@@ -7999,6 +7999,6 @@ CPExecutionKernelExamples >> lateMultiInstanceUserCompletionDoesNotMutateTermina
 	self assert: rejected.
 	self assert: instance isCancelled.
 	self assert: workItem isPending.
-	self assert: taskExecution isTerminated.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
