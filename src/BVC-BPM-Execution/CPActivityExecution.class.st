@@ -12,7 +12,8 @@ Class {
 		'dataDependencies',
 		'selectedInputSet',
 		'selectedOutputSet',
-		'loopCounter'
+		'loopCounter',
+		'standardLoopIterations'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -33,7 +34,8 @@ CPActivityExecution >> initialize [
 	itemValues := IdentityDictionary new.
 	itemValueProducers := IdentityDictionary new.
 	dataDependencies := OrderedCollection new.
-	loopCounter := 0
+	loopCounter := 0.
+	standardLoopIterations := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -370,6 +372,48 @@ CPActivityExecution >> recordStandardLoopIterationCompletion [
 		self error: 'Only a BPMN Standard Loop execution can complete a loop iteration.' ].
 	loopCounter := loopCounter + 1.
 	^ loopCounter
+]
+
+
+
+{ #category : 'looping' }
+CPActivityExecution >> standardLoopIterations [
+	^ standardLoopIterations
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> activeStandardLoopIteration [
+	^ standardLoopIterations
+		detect: [ :each | each isActive ]
+		ifNone: [ nil ]
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> beginStandardLoopIteration [
+	| iteration |
+	self isActive ifFalse: [ self error: 'Only an Active Activity can begin a Standard Loop iteration.' ].
+	(self activeStandardLoopIteration notNil) ifTrue: [
+		self error: 'A Standard Loop Activity can execute only one iteration at a time.' ].
+	self standardLoopMayBeginNextIteration ifFalse: [
+		self error: 'The Standard Loop conditions do not permit another iteration.' ].
+	iteration := CPStandardLoopIterationExecution new
+		activityExecution: self;
+		index: loopCounter + 1;
+		activate;
+		yourself.
+	standardLoopIterations add: iteration.
+	^ iteration
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> completeStandardLoopIteration: anIteration [
+	(standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop iteration does not belong to this Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an Active Standard Loop iteration can complete.' ].
+	anIteration complete.
+	self recordStandardLoopIterationCompletion.
+	^ anIteration
 ]
 
 { #category : 'testing' }

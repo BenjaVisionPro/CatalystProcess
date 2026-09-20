@@ -5252,3 +5252,44 @@ CPExecutionKernelExamples >> standardLoopPreTestCanPreventFirstIteration [
 	self assert: taskExecution loopCounter equals: 0.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> standardLoopExecutesSequentialIterationsBeforeOutgoingControl [
+	<gtExample>
+	| process before task after loop condition incoming outgoing execution producer taskExecution firstIteration secondIteration |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPTask new identifier: 'repeat'; loopCharacteristics: loop; yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toLoop'; sourceRef: before; targetRef: task; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterLoop'; sourceRef: task; targetRef: after; yourself.
+	process addFlowElement: before; addFlowElement: task; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	producer := execution createActivityExecutionFor: before.
+	producer activate; beginCompletion; complete.
+	execution produceOutgoingControlFor: producer.
+	taskExecution := execution readyActivityExecutionFor: task.
+	execution activateStandardLoopExecution: taskExecution.
+	firstIteration := taskExecution activeStandardLoopIteration.
+	self assert: firstIteration index equals: 1.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	execution completeStandardLoopIteration: firstIteration of: taskExecution.
+	secondIteration := taskExecution activeStandardLoopIteration.
+	self assert: secondIteration index equals: 2.
+	self assert: taskExecution loopCounter equals: 1.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	execution completeStandardLoopIteration: secondIteration of: taskExecution.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 2.
+	self assert: taskExecution activeStandardLoopIteration isNil.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ taskExecution
+]

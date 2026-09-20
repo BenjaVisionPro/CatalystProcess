@@ -2100,3 +2100,47 @@ CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
 	parentScope ifNotNil: [ parentScope compensationRecordDidComplete: aCompensationRecord ].
 	^ aCompensationRecord
 ]
+
+
+{ #category : 'activities - standard loop' }
+CPExecutionScope >> activateStandardLoopExecution: anActivityExecution [
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Standard Loop Activity execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Standard Loop Activity execution can become Active.' ].
+	anActivityExecution definition loopCharacteristics ifNil: [
+		self error: 'The Activity has no loop characteristics.' ].
+	anActivityExecution definition loopCharacteristics isStandardLoop ifFalse: [
+		self error: 'The Activity does not have BPMN Standard Loop characteristics.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	anActivityExecution standardLoopMayBeginNextIteration
+		ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+		ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+	^ anActivityExecution
+]
+
+{ #category : 'activities - standard loop' }
+CPExecutionScope >> completeStandardLoopIteration: anIteration of: anActivityExecution [
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Standard Loop Activity execution does not belong to this execution scope.' ].
+	anIteration activityExecution == anActivityExecution ifFalse: [
+		self error: 'The Standard Loop iteration belongs to another Activity execution.' ].
+	anActivityExecution completeStandardLoopIteration: anIteration.
+	anActivityExecution standardLoopMayBeginNextIteration
+		ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+		ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+	^ anActivityExecution
+]
+
+{ #category : 'activities - standard loop' }
+CPExecutionScope >> completeStandardLoopExecution: anActivityExecution [
+	anActivityExecution isActive ifFalse: [
+		self error: 'Only an Active Standard Loop Activity execution can complete.' ].
+	anActivityExecution activeStandardLoopIteration ifNotNil: [
+		self error: 'A Standard Loop Activity cannot complete while an iteration remains active.' ].
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
