@@ -3623,3 +3623,73 @@ CPExecutionKernelExamples >> ambiguousErrorEventSubProcessMatchingIsRejectedBefo
 	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == catchAllHandler ]) not.
 	^ subExecution
 ]
+
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEndEventIsCaughtByCatchAllBoundaryEvent [
+	<gtExample>
+	| process subProcess innerStart errorEnd innerFlow error errorDefinition boundary boundaryDefinition execution subProcessExecution childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'paymentError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: innerStart; addFlowElement: errorEnd; addFlowElement: innerFlow.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'catchAnyError'; yourself.
+	boundary := CPBoundaryEvent new identifier: 'catchAllBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: subProcessExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution acceptedOccurrences occurrencesOf: boundaryExecution occurrence) equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> exactAndCatchAllErrorBoundariesAreAmbiguousBeforeMutation [
+	<gtExample>
+	| process subProcess innerStart errorEnd innerFlow error errorDefinition exactBoundary exactDefinition catchAllBoundary catchAllDefinition execution subProcessExecution childScope exactBoundaryExecution catchAllBoundaryExecution endActivation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'paymentError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: innerStart; addFlowElement: errorEnd; addFlowElement: innerFlow.
+	exactDefinition := CPErrorEventDefinition new identifier: 'catchPaymentError'; error: error; yourself.
+	exactBoundary := CPBoundaryEvent new identifier: 'exactBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	exactBoundary eventDefinitions add: exactDefinition.
+	catchAllDefinition := CPErrorEventDefinition new identifier: 'catchAnyError'; yourself.
+	catchAllBoundary := CPBoundaryEvent new identifier: 'catchAllBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	catchAllBoundary eventDefinitions add: catchAllDefinition.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	exactBoundaryExecution := execution beginBoundaryEvent: exactBoundary attachedTo: subProcessExecution.
+	catchAllBoundaryExecution := execution beginBoundaryEvent: catchAllBoundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	rejected := false.
+	[ childScope executeErrorEndEvent: errorEnd consuming: endActivation ]
+		on: Error
+		do: [ :caught | rejected := true ].
+	self assert: rejected.
+	self assert: endActivation isAvailable.
+	self assert: subProcessExecution isActive.
+	self assert: exactBoundaryExecution isWaiting.
+	self assert: catchAllBoundaryExecution isWaiting.
+	self assert: childScope acceptedOccurrences isEmpty.
+	^ execution
+]
