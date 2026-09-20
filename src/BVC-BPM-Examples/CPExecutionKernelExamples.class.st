@@ -2371,7 +2371,6 @@ CPExecutionKernelExamples >> compensationRecordCanBeClaimedExactlyOnce [
 		cancelActivity: false;
 		yourself.
 	boundary eventDefinitions add: compensationDefinition.
-	activity boundaryEventRefs add: boundary.
 	process addFlowElement: activity.
 	execution := self executionFor: process.
 	activityExecution := execution createActivityExecutionFor: activity.
