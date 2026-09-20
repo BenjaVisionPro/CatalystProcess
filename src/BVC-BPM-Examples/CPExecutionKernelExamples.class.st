@@ -2426,3 +2426,35 @@ CPExecutionKernelExamples >> processExecutionDiscoversCompensationHistoryInNeste
 	self assert: (execution allAvailableCompensationRecordsFor: activity) size equals: 1.
 	^ records first
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationBoundaryAssociatesWithExplicitHandlerActivity [
+	<gtExample>
+	| process activity compensationDefinition boundary handler association |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'work'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: activity;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	handler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	process addFlowElement: activity.
+	process addFlowElement: handler.
+	association := CPAssociation new
+		identifier: 'compensationHandler';
+		sourceRef: boundary;
+		targetRef: handler;
+		beOne;
+		yourself.
+	process addArtifact: association.
+	self assert: association container == process.
+	self assert: association sourceRef == boundary.
+	self assert: association targetRef == handler.
+	self assert: association associationDirection equals: 'One'.
+	self assert: handler isForCompensation.
+	self assert: process artifacts size equals: 1.
+	^ association
+]

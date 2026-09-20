@@ -6,7 +6,8 @@ Class {
 	#superclass : 'CPActivity',
 	#instVars : [
 		'flowElements',
-		'laneSets'
+		'laneSets',
+		'artifacts'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -21,7 +22,8 @@ CPSubProcess class >> defaultIcon [
 CPSubProcess >> initialize [
 	super initialize.
 	flowElements := OrderedCollection new.
-	laneSets := OrderedCollection new
+	laneSets := OrderedCollection new.
+	artifacts := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -124,4 +126,34 @@ CPSubProcess class >> subProcessTypes [
 		CPCompensationSubProcess.
 		CPAdHocSubProcess
 	}
+]
+
+
+{ #category : 'accessing' }
+CPSubProcess >> artifacts [ ^ artifacts ]
+
+{ #category : 'accessing' }
+CPSubProcess >> artifacts: aCollection [
+	artifacts copy do: [ :each | (aCollection identityIncludes: each) ifFalse: [ self removeArtifact: each ] ].
+	aCollection do: [ :each | self addArtifact: each ]
+]
+
+{ #category : 'adding' }
+CPSubProcess >> addArtifact: anArtifact [
+	(artifacts identityIncludes: anArtifact) ifTrue: [ ^ self ].
+	artifacts add: anArtifact.
+	anArtifact container: self
+]
+
+{ #category : 'removing' }
+CPSubProcess >> removeArtifact: anArtifact [
+	(artifacts identityIncludes: anArtifact) ifFalse: [ ^ self ].
+	artifacts remove: anArtifact.
+	anArtifact container == self ifTrue: [ anArtifact container: nil ]
+]
+
+{ #category : 'descriptions' }
+CPSubProcess >> artifactsDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new accessor: #artifacts; classes: { CPArtifact }; reference: CPArtifact new labelDescription; label: 'Artifacts'; priority: 108; group: 'Relations'; beOrdered; yourself
 ]

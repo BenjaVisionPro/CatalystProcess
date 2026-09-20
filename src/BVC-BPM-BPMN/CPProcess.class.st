@@ -6,7 +6,8 @@ Class {
 		'laneSets',
 		'diagram',
 		'definitionalCollaborationRef',
-		'properties'
+		'properties',
+		'artifacts'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -17,7 +18,8 @@ CPProcess >> initialize [
 	super initialize.
 	flowElements := OrderedCollection new.
 	laneSets := OrderedCollection new.
-	properties := OrderedCollection new
+	properties := OrderedCollection new.
+	artifacts := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -189,3 +191,33 @@ CPProcess class >> defaultIcon [
 	^ #diagramProject
 ]
 
+
+
+{ #category : 'accessing' }
+CPProcess >> artifacts [ ^ artifacts ]
+
+{ #category : 'accessing' }
+CPProcess >> artifacts: aCollection [
+	artifacts copy do: [ :each | (aCollection identityIncludes: each) ifFalse: [ self removeArtifact: each ] ].
+	aCollection do: [ :each | self addArtifact: each ]
+]
+
+{ #category : 'adding' }
+CPProcess >> addArtifact: anArtifact [
+	(artifacts identityIncludes: anArtifact) ifTrue: [ ^ self ].
+	artifacts add: anArtifact.
+	anArtifact container: self
+]
+
+{ #category : 'removing' }
+CPProcess >> removeArtifact: anArtifact [
+	(artifacts identityIncludes: anArtifact) ifFalse: [ ^ self ].
+	artifacts remove: anArtifact.
+	anArtifact container == self ifTrue: [ anArtifact container: nil ]
+]
+
+{ #category : 'descriptions' }
+CPProcess >> artifactsDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new accessor: #artifacts; classes: { CPArtifact }; reference: CPArtifact new labelDescription; label: 'Artifacts'; priority: 108; group: 'Relations'; beOrdered; yourself
+]
