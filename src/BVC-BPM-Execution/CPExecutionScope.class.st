@@ -1286,3 +1286,26 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 	handlerExecution activate.
 	^ handlerExecution
 ]
+
+{ #category : 'events - compensation' }
+CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consuming: anActivation [
+	| definitions compensationDefinition targetActivity records throwExecution |
+	(anActivation isAvailable and: [ aCompensationThrowEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'A Compensation Intermediate Throw Event requires an available activation from one of its incoming Sequence Flows.' ].
+	definitions := aCompensationThrowEvent eventDefinitions select: [ :each | each isCompensationEventDefinition ].
+	definitions size = 1 ifFalse: [
+		self error: 'A Compensation Intermediate Throw Event requires exactly one Compensation Event Definition.' ].
+	compensationDefinition := definitions first.
+	targetActivity := compensationDefinition activityRef.
+	targetActivity ifNil: [
+		self error: 'Scope compensation without an activityRef is not yet supported.' ].
+	compensationDefinition waitForCompletion ifTrue: [
+		self error: 'Synchronous compensation requires handler-completion coordination and is not yet supported.' ].
+	records := self allAvailableCompensationRecordsFor: targetActivity.
+	records size = 1 ifFalse: [
+		self error: 'Targeted compensation must resolve to exactly one available completed Activity execution.' ].
+	throwExecution := self beginIntermediateThrowEvent: aCompensationThrowEvent consuming: anActivation.
+	self beginCompensationFor: records first.
+	self completeIntermediateThrowEventExecution: throwExecution.
+	^ throwExecution
+]
