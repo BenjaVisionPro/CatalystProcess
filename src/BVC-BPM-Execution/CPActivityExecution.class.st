@@ -361,7 +361,7 @@ CPActivityExecution >> standardLoopMayBeginNextIteration [
 	condition := loop loopCondition.
 	condition ifNil: [
 		self error: 'An executable Standard Loop requires a loopCondition.' ].
-	^ scope environment evaluateExpression: condition in: scope
+	^ scope environment evaluateExpression: condition in: scope forActivityExecution: self
 ]
 
 { #category : 'looping' }

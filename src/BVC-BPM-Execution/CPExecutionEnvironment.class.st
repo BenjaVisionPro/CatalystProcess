@@ -10,6 +10,11 @@ CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope 
 	self subclassResponsibility
 ]
 
+{ #category : 'evaluation' }
+CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope forActivityExecution: anActivityExecution [
+	^ self evaluateExpression: anExpression in: anExecutionScope
+]
+
 { #category : 'resolution' }
 CPExecutionEnvironment >> resolveCallableElement: aCallableElement in: anExecutionScope [
 	self subclassResponsibility

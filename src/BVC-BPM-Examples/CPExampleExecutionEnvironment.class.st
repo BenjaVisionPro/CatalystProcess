@@ -4,7 +4,9 @@ Class {
 	#instVars : [
 		'expressionResults',
 		'callableResolutions',
-		'operationResolutions'
+		'operationResolutions',
+		'lastActivityExecutionUsedForExpressionEvaluation',
+		'lastLoopCounterAtExpressionEvaluation'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -56,4 +58,22 @@ CPExampleExecutionEnvironment >> resolveOperation: anOperation in: anExecutionSc
 	^ operationResolutions
 		at: anOperation
 		ifAbsent: [ self error: 'No example Operation resolution has been configured.' ]
+]
+
+
+{ #category : 'evaluation' }
+CPExampleExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope forActivityExecution: anActivityExecution [
+	lastActivityExecutionUsedForExpressionEvaluation := anActivityExecution.
+	lastLoopCounterAtExpressionEvaluation := anActivityExecution loopCounter.
+	^ self evaluateExpression: anExpression in: anExecutionScope
+]
+
+{ #category : 'accessing' }
+CPExampleExecutionEnvironment >> lastActivityExecutionUsedForExpressionEvaluation [
+	^ lastActivityExecutionUsedForExpressionEvaluation
+]
+
+{ #category : 'accessing' }
+CPExampleExecutionEnvironment >> lastLoopCounterAtExpressionEvaluation [
+	^ lastLoopCounterAtExpressionEvaluation
 ]

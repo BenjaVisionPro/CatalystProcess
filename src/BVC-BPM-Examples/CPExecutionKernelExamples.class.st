@@ -5295,3 +5295,33 @@ CPExecutionKernelExamples >> standardLoopExecutesSequentialIterationsBeforeOutgo
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - looping' }
+CPExecutionKernelExamples >> standardLoopConditionReceivesActivityExecutionContext [
+	<gtExample>
+	| process task loop condition execution environment taskExecution iteration |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'loopTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	environment := execution environment.
+	environment expression: condition evaluatesTo: true.
+	taskExecution := execution createActivityExecutionFor: task.
+	taskExecution activate.
+	iteration := taskExecution beginStandardLoopIteration.
+	taskExecution completeStandardLoopIteration: iteration.
+	self assert: taskExecution standardLoopMayBeginNextIteration.
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
+	self assert: environment lastLoopCounterAtExpressionEvaluation equals: 1.
+	^ taskExecution
+]
