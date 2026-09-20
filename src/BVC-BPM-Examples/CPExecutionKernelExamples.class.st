@@ -5391,3 +5391,45 @@ CPExecutionKernelExamples >> multiInstanceCardinalityComesFromLoopDataInput [
 	self assert: taskExecution multiInstanceInputItems size equals: 3.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceInputDataItemIsBoundPerInstance [
+	<gtExample>
+	| process task loopDataInput inputDataItem specification loop execution taskExecution values firstInstance secondInstance thirdInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	loopDataInput := CPDataInput new
+		identifier: 'items';
+		isCollection: true;
+		yourself.
+	inputDataItem := CPDataInput new identifier: 'item'; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput };
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopDataInputRef: loopDataInput;
+		inputDataItem: inputDataItem;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: CPExampleExecutionEnvironment new.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	values := OrderedCollection withAll: { 'alpha'. 'beta'. 'gamma' }.
+	taskExecution itemValueFor: loopDataInput put: values.
+	self assert: taskExecution initializeMultiInstanceCardinality equals: 3.
+	firstInstance := taskExecution beginMultiInstanceActivityExecutionAt: 1.
+	secondInstance := taskExecution beginMultiInstanceActivityExecutionAt: 2.
+	thirdInstance := taskExecution beginMultiInstanceActivityExecutionAt: 3.
+	self assert: (firstInstance itemValueFor: inputDataItem) equals: 'alpha'.
+	self assert: (secondInstance itemValueFor: inputDataItem) equals: 'beta'.
+	self assert: (thirdInstance itemValueFor: inputDataItem) equals: 'gamma'.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 3.
+	self assert: firstInstance activityExecution == taskExecution.
+	^ taskExecution
+]

@@ -15,7 +15,8 @@ Class {
 		'loopCounter',
 		'standardLoopIterations',
 		'multiInstanceCardinality',
-		'multiInstanceInputItems'
+		'multiInstanceInputItems',
+		'multiInstanceActivityExecutions'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -39,7 +40,8 @@ CPActivityExecution >> initialize [
 	loopCounter := 0.
 	standardLoopIterations := OrderedCollection new.
 	multiInstanceCardinality := nil.
-	multiInstanceInputItems := nil
+	multiInstanceInputItems := nil.
+	multiInstanceActivityExecutions := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -524,4 +526,29 @@ CPActivityExecution >> initializeMultiInstanceCardinality [
 { #category : 'multi-instance' }
 CPActivityExecution >> multiInstanceInputItems [
 	^ multiInstanceInputItems
+]
+
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceActivityExecutions [
+	^ multiInstanceActivityExecutions
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
+	| loop instance |
+	self initializeMultiInstanceCardinality.
+	(anIndex between: 1 and: multiInstanceCardinality) ifFalse: [
+		self error: 'A Multi-Instance Activity instance index is outside the initialized cardinality.' ].
+	(multiInstanceActivityExecutions anySatisfy: [ :each | each index = anIndex ]) ifTrue: [
+		self error: 'A Multi-Instance Activity instance already exists for this index.' ].
+	loop := definition loopCharacteristics.
+	instance := CPMultiInstanceActivityExecution new
+		activityExecution: self;
+		index: anIndex;
+		yourself.
+	(loop inputDataItem notNil and: [ multiInstanceInputItems notNil ]) ifTrue: [
+		instance itemValueFor: loop inputDataItem put: (multiInstanceInputItems at: anIndex) ].
+	multiInstanceActivityExecutions add: instance.
+	^ instance
 ]
