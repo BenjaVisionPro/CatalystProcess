@@ -1574,7 +1574,7 @@ CPExecutionScope >> errorBoundaryExecutionFor: anError propagatingFrom: aNestedS
 	| boundaryExecution |
 	boundaryExecution := self
 		waitingErrorBoundaryExecutionFor: anError
-		attachedTo: aNestedScope owningActivity.
+		attachedTo: aNestedScope owningActivity modeledActivityExecution.
 	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
 	parentScope ifNil: [ ^ nil ].
 	^ parentScope
@@ -1605,9 +1605,9 @@ CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNes
 	| handler records propagationExecution |
 	(aBoundaryExecution notNil and: [ eventExecutions identityIncludes: aBoundaryExecution ]) ifTrue: [
 		^ self triggerBoundaryEventExecution: aBoundaryExecution with: anOccurrence ].
-	aNestedScope owningActivity isActive ifTrue: [
-		aNestedScope owningActivity beginFailure.
-		aNestedScope owningActivity finishFailure ].
+	aNestedScope owningActivity modeledActivityExecution isActive ifTrue: [
+		aNestedScope owningActivity modeledActivityExecution beginFailure.
+		aNestedScope owningActivity modeledActivityExecution finishFailure ].
 	handler := self matchingErrorEventSubProcessFor: anOccurrence definition.
 	handler ifNotNil: [
 		^ self beginErrorEventSubProcess: handler occurrence: anOccurrence ].
@@ -1723,7 +1723,7 @@ CPExecutionScope >> escalationBoundaryExecutionFor: anEscalation propagatingFrom
 	| boundaryExecution |
 	boundaryExecution := self
 		waitingEscalationBoundaryExecutionFor: anEscalation
-		attachedTo: aNestedScope owningActivity.
+		attachedTo: aNestedScope owningActivity modeledActivityExecution.
 	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
 	parentScope ifNil: [ ^ nil ].
 	^ parentScope

@@ -51,6 +51,11 @@ CPActivityExecution >> definition [ ^ definition ]
 { #category : 'accessing' }
 CPActivityExecution >> definition: anActivity [ definition := anActivity ]
 { #category : 'accessing' }
+CPActivityExecution >> modeledActivityExecution [
+	^ self
+]
+
+{ #category : 'accessing' }
 CPActivityExecution >> scope [ ^ scope ]
 { #category : 'accessing' }
 CPActivityExecution >> scope: anExecutionScope [ scope := anExecutionScope ]

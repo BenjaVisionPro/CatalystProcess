@@ -47,6 +47,11 @@ CPMultiInstanceActivityExecution >> activityExecution: anActivityExecution [
 
 
 { #category : 'accessing' }
+CPMultiInstanceActivityExecution >> modeledActivityExecution [
+	^ activityExecution
+]
+
+{ #category : 'accessing' }
 CPMultiInstanceActivityExecution >> scope [
 	^ activityExecution scope
 ]

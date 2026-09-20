@@ -8158,3 +8158,231 @@ CPExecutionKernelExamples >> terminatingStandardLoopSubProcessTerminatesActiveIt
 	self assert: subProcessExecution state class equals: CPActivityTerminatedState.
 	^ subProcessExecution
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> multiInstanceSubProcessErrorIsCaughtByOuterActivityBoundary [
+	<gtExample>
+	| process subProcess loop cardinality innerStart errorEnd innerFlow error thrownDefinition boundary caughtDefinition after boundaryFlow execution subProcessExecution instance childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new isSequential: true; loopCardinality: cardinality; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'repeatSubProcess'; loopCharacteristics: loop; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'repeatedError'; yourself.
+	thrownDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: innerStart; addFlowElement: errorEnd; addFlowElement: innerFlow.
+	caughtDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'errorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new expression: cardinality evaluatesTo: 1; yourself).
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	instance := subProcessExecution multiInstanceActivityExecutions first.
+	childScope := instance subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: childScope owningActivity == instance.
+	self assert: instance modeledActivityExecution == subProcessExecution.
+	self assert: subProcessExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> standardLoopSubProcessErrorIsCaughtByOuterActivityBoundary [
+	<gtExample>
+	| process subProcess loop innerStart errorEnd innerFlow error thrownDefinition boundary caughtDefinition after boundaryFlow execution subProcessExecution iteration childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 1; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'repeatSubProcess'; loopCharacteristics: loop; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'repeatedError'; yourself.
+	thrownDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: innerStart; addFlowElement: errorEnd; addFlowElement: innerFlow.
+	caughtDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'errorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	iteration := subProcessExecution activeStandardLoopIteration.
+	childScope := iteration subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: childScope owningActivity == iteration.
+	self assert: iteration modeledActivityExecution == subProcessExecution.
+	self assert: subProcessExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> multiInstanceSubProcessEscalationIsCaughtByOuterActivityBoundary [
+	<gtExample>
+	| process subProcess loop cardinality innerStart escalationEnd innerFlow escalation thrownDefinition boundary caughtDefinition after boundaryFlow execution subProcessExecution instance childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new isSequential: true; loopCardinality: cardinality; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'repeatSubProcess'; loopCharacteristics: loop; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	escalation := CPEscalation new identifier: 'repeatedEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'thrownEscalation'; escalationRef: escalation; yourself.
+	escalationEnd := CPEscalationEndEvent new identifier: 'escalationEnd'; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: innerStart; targetRef: escalationEnd; yourself.
+	subProcess addFlowElement: innerStart; addFlowElement: escalationEnd; addFlowElement: innerFlow.
+	caughtDefinition := CPEscalationEventDefinition new identifier: 'caughtEscalation'; escalationRef: escalation; yourself.
+	boundary := CPBoundaryEvent new identifier: 'escalationBoundary'; attachedToRef: subProcess; cancelActivity: false; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterEscalation'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new expression: cardinality evaluatesTo: 1; yourself).
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	instance := subProcessExecution multiInstanceActivityExecutions first.
+	childScope := instance subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeEscalationEndEvent: escalationEnd consuming: endActivation.
+	self assert: childScope owningActivity == instance.
+	self assert: instance modeledActivityExecution == subProcessExecution.
+	self assert: subProcessExecution isActive.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == escalation.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> standardLoopSubProcessEscalationIsCaughtByOuterActivityBoundary [
+	<gtExample>
+	| process subProcess loop innerStart escalationEnd innerFlow escalation thrownDefinition boundary caughtDefinition after boundaryFlow execution subProcessExecution iteration childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 1; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'repeatSubProcess'; loopCharacteristics: loop; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	escalation := CPEscalation new identifier: 'repeatedEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'thrownEscalation'; escalationRef: escalation; yourself.
+	escalationEnd := CPEscalationEndEvent new identifier: 'escalationEnd'; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: innerStart; targetRef: escalationEnd; yourself.
+	subProcess addFlowElement: innerStart; addFlowElement: escalationEnd; addFlowElement: innerFlow.
+	caughtDefinition := CPEscalationEventDefinition new identifier: 'caughtEscalation'; escalationRef: escalation; yourself.
+	boundary := CPBoundaryEvent new identifier: 'escalationBoundary'; attachedToRef: subProcess; cancelActivity: false; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterEscalation'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	iteration := subProcessExecution activeStandardLoopIteration.
+	childScope := iteration subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeEscalationEndEvent: escalationEnd consuming: endActivation.
+	self assert: childScope owningActivity == iteration.
+	self assert: iteration modeledActivityExecution == subProcessExecution.
+	self assert: subProcessExecution isActive.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == escalation.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> multiInstanceSubProcessErrorPropagatesToEnclosingBoundary [
+	<gtExample>
+	| process outer repeated loop cardinality innerStart errorEnd innerFlow error thrownDefinition boundary caughtDefinition after boundaryFlow environment execution outerExecution outerScope repeatedExecution instance childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	outer := CPSubProcess new identifier: 'outer'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new isSequential: true; loopCardinality: cardinality; yourself.
+	repeated := CPNoneSubProcess new identifier: 'repeated'; loopCharacteristics: loop; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'nestedRepeatedError'; yourself.
+	thrownDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	repeated addFlowElement: innerStart; addFlowElement: errorEnd; addFlowElement: innerFlow.
+	outer addFlowElement: repeated.
+	caughtDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'outerErrorBoundary'; attachedToRef: outer; cancelActivity: true; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	environment := CPExampleExecutionEnvironment new expression: cardinality evaluatesTo: 1; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	outerExecution := execution createActivityExecutionFor: outer.
+	execution activateSubProcessExecution: outerExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: outerExecution.
+	outerScope := outerExecution subScope.
+	repeatedExecution := outerScope createActivityExecutionFor: repeated.
+	outerScope activateSubProcessExecution: repeatedExecution.
+	instance := repeatedExecution multiInstanceActivityExecutions first.
+	childScope := instance subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: repeatedExecution state class equals: CPActivityFailedState.
+	self assert: outerExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> standardLoopSubProcessErrorPropagatesToEnclosingBoundary [
+	<gtExample>
+	| process outer repeated loop innerStart errorEnd innerFlow error thrownDefinition boundary caughtDefinition after boundaryFlow execution outerExecution outerScope repeatedExecution iteration childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	outer := CPSubProcess new identifier: 'outer'; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 1; yourself.
+	repeated := CPNoneSubProcess new identifier: 'repeated'; loopCharacteristics: loop; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'nestedRepeatedError'; yourself.
+	thrownDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	repeated addFlowElement: innerStart; addFlowElement: errorEnd; addFlowElement: innerFlow.
+	outer addFlowElement: repeated.
+	caughtDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'outerErrorBoundary'; attachedToRef: outer; cancelActivity: true; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	outerExecution := execution createActivityExecutionFor: outer.
+	execution activateSubProcessExecution: outerExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: outerExecution.
+	outerScope := outerExecution subScope.
+	repeatedExecution := outerScope createActivityExecutionFor: repeated.
+	outerScope activateSubProcessExecution: repeatedExecution.
+	iteration := repeatedExecution activeStandardLoopIteration.
+	childScope := iteration subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: repeatedExecution state class equals: CPActivityFailedState.
+	self assert: outerExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]

@@ -34,6 +34,9 @@ CPStandardLoopIterationExecution >> activityExecution [ ^ activityExecution ]
 CPStandardLoopIterationExecution >> activityExecution: anActivityExecution [ activityExecution := anActivityExecution ]
 
 { #category : 'accessing' }
+CPStandardLoopIterationExecution >> modeledActivityExecution [ ^ activityExecution ]
+
+{ #category : 'accessing' }
 CPStandardLoopIterationExecution >> scope [ ^ activityExecution scope ]
 
 { #category : 'accessing' }
