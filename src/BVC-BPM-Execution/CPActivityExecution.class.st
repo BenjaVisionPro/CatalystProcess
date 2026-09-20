@@ -516,7 +516,7 @@ CPActivityExecution >> initializeMultiInstanceCardinality [
 	(self accessibleItemValueAvailableFor: loopDataInput) ifFalse: [
 		self error: 'The Multi-Instance loopDataInputRef value is unavailable.' ].
 	collection := self accessibleItemValueFor: loopDataInput.
-	multiInstanceInputItems := collection asOrderedCollection.
+	multiInstanceInputItems := OrderedCollection withAll: collection.
 	multiInstanceCardinality := multiInstanceInputItems size.
 	^ multiInstanceCardinality
 ]
