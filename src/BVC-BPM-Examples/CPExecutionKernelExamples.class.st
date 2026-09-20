@@ -2848,8 +2848,9 @@ CPExecutionKernelExamples >> compensationHandlerCompletionDoesNotCreateCompensat
 { #category : 'examples - compensation events' }
 CPExecutionKernelExamples >> compensationEndEventWaitsForScopeCompensationBeforeProcessCanComplete [
 	<gtExample>
-	| process work boundary compensationDefinition handler association before endDefinition endEvent incoming execution workExecution records producer activation endExecution handlerExecution |
+	| process start work boundary compensationDefinition handler association before endDefinition endEvent incoming execution workExecution records producer activation endExecution handlerExecution |
 	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
 	work := CPTask new identifier: 'work'; yourself.
 	compensationDefinition := CPCompensationEventDefinition new identifier: 'workCompensation'; yourself.
 	boundary := CPBoundaryEvent new identifier: 'compensationBoundary'; attachedToRef: work; cancelActivity: false; yourself.
@@ -2860,10 +2861,12 @@ CPExecutionKernelExamples >> compensationEndEventWaitsForScopeCompensationBefore
 	endEvent := CPCompensationEndEvent new identifier: 'compensationEnd'; yourself.
 	endEvent eventDefinitions add: endDefinition.
 	incoming := CPSequenceFlow new identifier: 'toCompensationEnd'; sourceRef: before; targetRef: endEvent; yourself.
-	{ work. handler. before. endEvent. incoming } do: [ :each | process addFlowElement: each ].
+	{ start. work. handler. before. endEvent. incoming } do: [ :each | process addFlowElement: each ].
 	association := CPAssociation new identifier: 'handlerAssociation'; sourceRef: boundary; targetRef: handler; beOne; yourself.
 	process addArtifact: association.
 	execution := self executionFor: process.
+	execution start.
+	self assert: execution isStarted.
 	workExecution := execution createActivityExecutionFor: work.
 	workExecution activate; beginCompletion; complete.
 	records := execution allAvailableCompensationRecords.
