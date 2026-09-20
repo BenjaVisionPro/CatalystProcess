@@ -6,6 +6,7 @@ Class {
 		'index',
 		'active',
 		'completed',
+		'terminated',
 		'messageDispatch',
 		'messageSubscription',
 		'receivedOccurrence',
@@ -21,7 +22,8 @@ Class {
 CPStandardLoopIterationExecution >> initialize [
 	super initialize.
 	active := false.
-	completed := false
+	completed := false.
+	terminated := false
 ]
 
 { #category : 'accessing' }
@@ -47,9 +49,12 @@ CPStandardLoopIterationExecution >> isActive [ ^ active ]
 { #category : 'testing' }
 CPStandardLoopIterationExecution >> isCompleted [ ^ completed ]
 
+{ #category : 'testing' }
+CPStandardLoopIterationExecution >> isTerminated [ ^ terminated ]
+
 { #category : 'lifecycle' }
 CPStandardLoopIterationExecution >> activate [
-	(active or: [ completed ]) ifTrue: [ self error: 'A Standard Loop iteration can be activated only once.' ].
+	(active or: [ completed or: [ terminated ] ]) ifTrue: [ self error: 'A Standard Loop iteration can be activated only once.' ].
 	active := true
 ]
 
@@ -58,6 +63,16 @@ CPStandardLoopIterationExecution >> complete [
 	active ifFalse: [ self error: 'Only an Active Standard Loop iteration can complete.' ].
 	active := false.
 	completed := true
+]
+
+{ #category : 'lifecycle' }
+CPStandardLoopIterationExecution >> terminate [
+	self isActive ifFalse: [ self error: 'Only an Active Standard Loop iteration can be terminated.' ].
+	(messageSubscription notNil and: [ messageSubscription isWaiting ]) ifTrue: [
+		messageSubscription cancel ].
+	active := false.
+	terminated := true.
+	^ self
 ]
 
 

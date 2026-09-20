@@ -1137,6 +1137,8 @@ CPExecutionScope >> completeStandardLoopServiceTaskIteration: anIteration withRe
 		self error: 'The Standard Loop Service Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
 		self error: 'The Standard Loop Service Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an iteration of an Active Standard Loop Service Task can accept an external result.' ].
 	anIteration isActive ifFalse: [
 		self error: 'Only an active Standard Loop Service Task iteration can accept an external result.' ].
 	invocation := anIteration externalInvocation.
@@ -1158,6 +1160,8 @@ CPExecutionScope >> completeMultiInstanceServiceTaskExecution: anInstance withRe
 		self error: 'The Multi-Instance Service Task instance does not belong to this execution scope.' ].
 	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The Multi-Instance Service Task instance does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an instance of an Active Multi-Instance Service Task can accept an external result.' ].
 	anInstance isActive ifFalse: [
 		self error: 'Only an active Multi-Instance Service Task instance can accept an external result.' ].
 	invocation := anInstance externalInvocation.
@@ -1237,6 +1241,8 @@ CPExecutionScope >> triggerMultiInstanceReceiveTaskExecution: anInstance with: a
 		self error: 'The Multi-Instance Receive Task instance does not belong to this execution scope.' ].
 	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The Multi-Instance Receive Task instance does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an instance of an Active Multi-Instance Receive Task can accept a message occurrence.' ].
 	anInstance isWaitingForMessage ifFalse: [
 		self error: 'Only a waiting Multi-Instance Receive Task instance can accept a message occurrence.' ].
 	subscription := anInstance messageSubscription.
@@ -2336,6 +2342,8 @@ CPExecutionScope >> completeMultiInstanceSendTaskExecution: anInstance [
 		self error: 'The Multi-Instance Send Task instance does not belong to this execution scope.' ].
 	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The Multi-Instance Send Task instance does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an instance of an Active Multi-Instance Send Task can complete its Message dispatch.' ].
 	anInstance isActive ifFalse: [
 		self error: 'Only an active Multi-Instance Send Task instance can complete its Message dispatch.' ].
 	dispatch := anInstance messageDispatch.
@@ -2558,6 +2566,8 @@ CPExecutionScope >> distributeMultiInstanceUserTaskExecution: anInstance [
         self error: 'The Multi-Instance User Task instance does not belong to this execution scope.' ].
     (outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
         self error: 'The Multi-Instance User Task instance does not belong to its outer Activity execution.' ].
+    outerExecution isActive ifFalse: [
+        self error: 'Only an instance of an Active Multi-Instance User Task can distribute work.' ].
     anInstance isActive ifFalse: [
         self error: 'Only an active Multi-Instance User Task instance can distribute work.' ].
     workItem := CPUserTaskWorkItem new
@@ -2579,6 +2589,8 @@ CPExecutionScope >> completeMultiInstanceUserTaskExecution: anInstance [
         self error: 'The Multi-Instance User Task instance does not belong to this execution scope.' ].
     (outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
         self error: 'The Multi-Instance User Task instance does not belong to its outer Activity execution.' ].
+    outerExecution isActive ifFalse: [
+        self error: 'Only an instance of an Active Multi-Instance User Task can complete.' ].
     anInstance isActive ifFalse: [
         self error: 'Only an active Multi-Instance User Task instance can complete.' ].
     workItem := anInstance userTaskWorkItem.
@@ -2740,6 +2752,8 @@ CPExecutionScope >> assignMultiInstanceManualTaskExecution: anInstance [
 		self error: 'The Multi-Instance Manual Task instance does not belong to this execution scope.' ].
 	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The Multi-Instance Manual Task instance does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an instance of an Active Multi-Instance Manual Task can resolve its resource assignments.' ].
 	anInstance isActive ifFalse: [
 		self error: 'Only an active Multi-Instance Manual Task instance can resolve its resource assignments.' ].
 	anInstance manualTaskResourceAssignments:
@@ -2755,6 +2769,8 @@ CPExecutionScope >> completeMultiInstanceManualTaskExecution: anInstance [
 		self error: 'The Multi-Instance Manual Task instance does not belong to this execution scope.' ].
 	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
 		self error: 'The Multi-Instance Manual Task instance does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an instance of an Active Multi-Instance Manual Task can complete.' ].
 	anInstance isActive ifFalse: [
 		self error: 'Only an active Multi-Instance Manual Task instance can complete.' ].
 	anInstance complete.
@@ -2768,6 +2784,7 @@ CPExecutionScope >> completeStandardLoopSendTaskIteration: anIteration [
 	outerExecution := anIteration activityExecution.
 	outerExecution scope == self ifFalse: [ self error: 'The Standard Loop Send Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [ self error: 'The Standard Loop Send Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [ self error: 'Only an iteration of an Active Standard Loop Send Task can complete its Message dispatch.' ].
 	anIteration isActive ifFalse: [ self error: 'Only an active Standard Loop Send Task iteration can complete its Message dispatch.' ].
 	dispatch := anIteration messageDispatch.
 	dispatch ifNil: [ self error: 'The Standard Loop Send Task iteration has no pending Message dispatch.' ].
@@ -2799,6 +2816,7 @@ CPExecutionScope >> triggerStandardLoopReceiveTaskIteration: anIteration with: a
 	outerExecution := anIteration activityExecution.
 	outerExecution scope == self ifFalse: [ self error: 'The Standard Loop Receive Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [ self error: 'The Standard Loop Receive Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [ self error: 'Only an iteration of an Active Standard Loop Receive Task can accept a message occurrence.' ].
 	anIteration isWaitingForMessage ifFalse: [ self error: 'Only a waiting Standard Loop Receive Task iteration can accept a message occurrence.' ].
 	subscription := anIteration messageSubscription.
 	anOccurrence definition == subscription message ifFalse: [ self error: 'The occurrence does not carry the Message awaited by this Standard Loop Receive Task iteration.' ].
@@ -2818,6 +2836,8 @@ CPExecutionScope >> distributeStandardLoopUserTaskIteration: anIteration [
 		self error: 'The Standard Loop User Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
 		self error: 'The Standard Loop User Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an iteration of an Active Standard Loop User Task can distribute work.' ].
 	anIteration isActive ifFalse: [
 		self error: 'Only an active Standard Loop User Task iteration can distribute work.' ].
 	workItem := CPUserTaskWorkItem new
@@ -2839,6 +2859,8 @@ CPExecutionScope >> completeStandardLoopUserTaskIteration: anIteration [
 		self error: 'The Standard Loop User Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
 		self error: 'The Standard Loop User Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an iteration of an Active Standard Loop User Task can complete.' ].
 	anIteration isActive ifFalse: [
 		self error: 'Only an active Standard Loop User Task iteration can complete.' ].
 	workItem := anIteration userTaskWorkItem.
@@ -2857,6 +2879,8 @@ CPExecutionScope >> assignStandardLoopManualTaskIteration: anIteration [
 		self error: 'The Standard Loop Manual Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
 		self error: 'The Standard Loop Manual Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an iteration of an Active Standard Loop Manual Task can resolve its resource assignments.' ].
 	anIteration isActive ifFalse: [
 		self error: 'Only an active Standard Loop Manual Task iteration can resolve its resource assignments.' ].
 	anIteration manualTaskResourceAssignments:
@@ -2872,6 +2896,8 @@ CPExecutionScope >> completeStandardLoopManualTaskIteration: anIteration [
 		self error: 'The Standard Loop Manual Task iteration does not belong to this execution scope.' ].
 	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
 		self error: 'The Standard Loop Manual Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an iteration of an Active Standard Loop Manual Task can complete.' ].
 	anIteration isActive ifFalse: [
 		self error: 'Only an active Standard Loop Manual Task iteration can complete.' ].
 	self completeStandardLoopIteration: anIteration of: outerExecution.

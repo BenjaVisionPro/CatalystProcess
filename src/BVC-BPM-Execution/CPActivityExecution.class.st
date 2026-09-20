@@ -481,11 +481,13 @@ CPActivityExecution >> activate [
 { #category : 'lifecycle' }
 CPActivityExecution >> withdraw [
 	(self isReady or: [ self isActive ]) ifFalse: [ self error: 'Only a Ready or Active Activity can be Withdrawn.' ].
+	self isActive ifTrue: [ self terminateActiveLoopExecutions ].
 	state := CPActivityWithdrawnState new
 ]
 { #category : 'lifecycle' }
 CPActivityExecution >> fail [
 	self isActive ifFalse: [ self error: 'Only an Active Activity can fail.' ].
+	self terminateActiveLoopExecutions.
 	state := CPActivityFailedState new
 ]
 { #category : 'lifecycle' }
@@ -503,6 +505,7 @@ CPActivityExecution >> complete [
 { #category : 'lifecycle' }
 CPActivityExecution >> beginFailure [
 	self isActive ifFalse: [ self error: 'Only an Active Activity can begin failure handling.' ].
+	self terminateActiveLoopExecutions.
 	state := CPActivityFailingState new
 ]
 { #category : 'lifecycle' }
@@ -513,12 +516,21 @@ CPActivityExecution >> finishFailure [
 { #category : 'lifecycle' }
 CPActivityExecution >> beginTermination [
 	(self isActive or: [ self isCompleting ]) ifFalse: [ self error: 'Only an Active or Completing Activity can begin termination.' ].
+	self terminateActiveLoopExecutions.
 	state := CPActivityTerminatingState new
 ]
 { #category : 'lifecycle' }
 CPActivityExecution >> finishTermination [
 	state class = CPActivityTerminatingState ifFalse: [ self error: 'Only a Terminating Activity can become Terminated.' ].
 	state := CPActivityTerminatedState new
+]
+
+
+{ #category : 'looping' }
+CPActivityExecution >> terminateActiveLoopExecutions [
+	self activeStandardLoopIteration ifNotNil: [ :iteration | iteration terminate ].
+	self cancelRemainingMultiInstanceActivityExecutions.
+	^ self
 ]
 
 

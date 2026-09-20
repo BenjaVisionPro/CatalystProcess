@@ -455,6 +455,7 @@ CPMultiInstanceActivityExecution >> isActive [
 { #category : 'lifecycle' }
 CPMultiInstanceActivityExecution >> cancel [
 	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Activity instance can be cancelled.' ].
+	subScope ifNotNil: [ subScope terminateRemainingWork ].
 	(messageSubscription notNil and: [ messageSubscription isWaiting ]) ifTrue: [
 		messageSubscription cancel ].
 	cancelled := true.

@@ -7697,3 +7697,308 @@ CPExecutionKernelExamples >> standardLoopConditionMustEvaluateToBoolean [
 	self assert: taskExecution isActive.
 	self assert: taskExecution standardLoopIterations isEmpty
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> terminatingStandardLoopActivityTerminatesActiveIteration [
+	<gtExample>
+	| process task loop condition environment execution taskExecution iteration workItem |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPUserTask new identifier: 'repeatUserWork'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new expression: condition evaluatesTo: true; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution activateUserTaskExecution: taskExecution.
+	iteration := taskExecution standardLoopIterations first.
+	workItem := iteration userTaskWorkItem.
+	self assert: taskExecution isActive.
+	self assert: iteration isActive.
+	self assert: iteration isTerminated not.
+	self assert: workItem isPending.
+	taskExecution beginTermination.
+	self assert: taskExecution state class equals: CPActivityTerminatingState.
+	self assert: iteration isActive not.
+	self assert: iteration isTerminated.
+	self assert: iteration isCompleted not.
+	self assert: workItem isPending.
+	taskExecution finishTermination.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
+	self assert: iteration isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> lateStandardLoopServiceResultDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process task operation implementation loop condition environment execution taskExecution iteration invocation result rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	operation := CPOperation new identifier: 'performWork'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPServiceTask new
+		identifier: 'repeatService';
+		operationRef: operation;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	iteration := taskExecution standardLoopIterations first.
+	invocation := iteration prepareExternalInvocationIdentifiedBy: #lateServiceInvocation.
+	result := CPExecutionOccurrence new
+		occurrenceIdentifier: #lateServiceResult;
+		definition: invocation;
+		yourself.
+	taskExecution beginTermination.
+	taskExecution finishTermination.
+	rejected := false.
+	[ execution completeStandardLoopServiceTaskIteration: iteration withResultOccurrence: result ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: iteration isTerminated.
+	self assert: invocation isPending.
+	self assert: (execution acceptedOccurrences identityIncludes: result) not.
+	self assert: taskExecution loopCounter equals: 0.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> terminatingMultiInstanceSubProcessCancelsInstancesAndNestedWork [
+	<gtExample>
+	| subProcessExecution firstInstance secondInstance nestedTask nestedExecution |
+	subProcessExecution := self multiInstanceSubProcessInstancesOwnIndependentExecutionScopes.
+	firstInstance := subProcessExecution multiInstanceActivityExecutions first.
+	secondInstance := subProcessExecution multiInstanceActivityExecutions second.
+	nestedTask := CPTask new identifier: 'nestedWork'; yourself.
+	nestedExecution := firstInstance subScope createActivityExecutionFor: nestedTask.
+	nestedExecution activate.
+	self assert: firstInstance isActive.
+	self assert: secondInstance isActive.
+	self assert: nestedExecution isActive.
+	subProcessExecution beginTermination.
+	self assert: subProcessExecution state class equals: CPActivityTerminatingState.
+	self assert: firstInstance isCancelled.
+	self assert: secondInstance isCancelled.
+	self assert: nestedExecution state class equals: CPActivityTerminatedState.
+	self assert: nestedExecution isActive not.
+	subProcessExecution finishTermination.
+	self assert: subProcessExecution state class equals: CPActivityTerminatedState.
+	^ subProcessExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> lateStandardLoopReceiveOccurrenceDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process message task loop condition execution taskExecution iteration subscription occurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'request'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 2; loopCondition: condition; yourself.
+	task := CPReceiveTask new identifier: 'repeatReceive'; messageRef: message; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createReceiveTaskExecutionFor: task.
+	execution activateReceiveTaskExecution: taskExecution.
+	iteration := taskExecution standardLoopIterations first.
+	subscription := iteration messageSubscription.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #lateReceive; definition: message; yourself.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution triggerStandardLoopReceiveTaskIteration: iteration with: occurrence ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: subscription isCancelled.
+	self assert: iteration receivedOccurrence isNil.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
+	self assert: taskExecution loopCounter equals: 0.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> lateStandardLoopSendCompletionDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process message task loop condition execution taskExecution iteration dispatch rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'notification'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 2; loopCondition: condition; yourself.
+	task := CPSendTask new identifier: 'repeatSend'; messageRef: message; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createSendTaskExecutionFor: task.
+	execution activateSendTaskExecution: taskExecution.
+	iteration := taskExecution standardLoopIterations first.
+	dispatch := iteration messageDispatch.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution completeStandardLoopSendTaskIteration: iteration ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: dispatch isPending.
+	self assert: iteration isTerminated.
+	self assert: taskExecution loopCounter equals: 0.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> lateStandardLoopUserCompletionDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process task loop condition environment execution taskExecution iteration workItem rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 2; loopCondition: condition; yourself.
+	task := CPUserTask new identifier: 'repeatUserWork'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new expression: condition evaluatesTo: true; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution activateUserTaskExecution: taskExecution.
+	iteration := taskExecution standardLoopIterations first.
+	workItem := iteration userTaskWorkItem.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution completeStandardLoopUserTaskIteration: iteration ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: workItem isPending.
+	self assert: iteration isTerminated.
+	self assert: taskExecution loopCounter equals: 0.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> lateMultiInstanceServiceResultDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process task operation cardinality loop implementation environment execution taskExecution instance invocation result rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	operation := CPOperation new identifier: 'performWork'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopCardinality: cardinality; yourself.
+	task := CPServiceTask new identifier: 'multiService'; operationRef: operation; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; expression: cardinality evaluatesTo: 1; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	instance := taskExecution multiInstanceActivityExecutions first.
+	invocation := instance prepareExternalInvocationIdentifiedBy: #lateMultiServiceInvocation.
+	result := CPExecutionOccurrence new occurrenceIdentifier: #lateMultiServiceResult; definition: invocation; yourself.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution completeMultiInstanceServiceTaskExecution: instance withResultOccurrence: result ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: instance isCancelled.
+	self assert: invocation isPending.
+	self assert: (execution acceptedOccurrences identityIncludes: result) not.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> lateMultiInstanceReceiveOccurrenceDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process message task cardinality loop environment execution taskExecution instance subscription occurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'request'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopCardinality: cardinality; yourself.
+	task := CPReceiveTask new identifier: 'multiReceive'; messageRef: message; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new expression: cardinality evaluatesTo: 1; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createReceiveTaskExecutionFor: task.
+	execution activateReceiveTaskExecution: taskExecution.
+	instance := taskExecution multiInstanceActivityExecutions first.
+	subscription := instance messageSubscription.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #lateMultiReceive; definition: message; yourself.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution triggerMultiInstanceReceiveTaskExecution: instance with: occurrence ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: instance isCancelled.
+	self assert: subscription isCancelled.
+	self assert: instance receivedOccurrence isNil.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence) not.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> lateMultiInstanceSendCompletionDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process message task cardinality loop environment execution taskExecution instance dispatch rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'notification'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopCardinality: cardinality; yourself.
+	task := CPSendTask new identifier: 'multiSend'; messageRef: message; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new expression: cardinality evaluatesTo: 1; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createSendTaskExecutionFor: task.
+	execution activateSendTaskExecution: taskExecution.
+	instance := taskExecution multiInstanceActivityExecutions first.
+	dispatch := instance messageDispatch.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution completeMultiInstanceSendTaskExecution: instance ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: instance isCancelled.
+	self assert: dispatch isPending.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> lateMultiInstanceUserCompletionDoesNotMutateTerminatedExecution [
+	<gtExample>
+	| process task cardinality loop environment execution taskExecution instance workItem rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopCardinality: cardinality; yourself.
+	task := CPUserTask new identifier: 'multiUser'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new expression: cardinality evaluatesTo: 1; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution activateUserTaskExecution: taskExecution.
+	instance := taskExecution multiInstanceActivityExecutions first.
+	workItem := instance userTaskWorkItem.
+	taskExecution beginTermination; finishTermination.
+	rejected := false.
+	[ execution completeMultiInstanceUserTaskExecution: instance ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: instance isCancelled.
+	self assert: workItem isPending.
+	self assert: taskExecution isTerminated.
+	^ taskExecution
+]
