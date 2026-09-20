@@ -419,12 +419,17 @@ CPActivityExecution >> activeStandardLoopIteration [
 
 { #category : 'looping' }
 CPActivityExecution >> beginStandardLoopIteration [
+	self standardLoopMayBeginNextIteration ifFalse: [
+		self error: 'The Standard Loop conditions do not permit another iteration.' ].
+	^ self beginPermittedStandardLoopIteration
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> beginPermittedStandardLoopIteration [
 	| iteration |
 	self isActive ifFalse: [ self error: 'Only an Active Activity can begin a Standard Loop iteration.' ].
 	(self activeStandardLoopIteration notNil) ifTrue: [
 		self error: 'A Standard Loop Activity can execute only one iteration at a time.' ].
-	self standardLoopMayBeginNextIteration ifFalse: [
-		self error: 'The Standard Loop conditions do not permit another iteration.' ].
 	iteration := CPStandardLoopIterationExecution new
 		activityExecution: self;
 		index: loopCounter + 1;

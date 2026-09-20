@@ -2249,7 +2249,7 @@ CPExecutionScope >> activateStandardLoopExecution: anActivityExecution [
 	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
 	anActivityExecution activate.
 	anActivityExecution standardLoopMayBeginNextIteration
-		ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+		ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 		ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 	^ anActivityExecution
 ]
@@ -2262,7 +2262,7 @@ CPExecutionScope >> completeStandardLoopIteration: anIteration of: anActivityExe
 		self error: 'The Standard Loop iteration belongs to another Activity execution.' ].
 	anActivityExecution completeStandardLoopIteration: anIteration.
 	anActivityExecution standardLoopMayBeginNextIteration
-		ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+		ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 		ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 	^ anActivityExecution
 ]
