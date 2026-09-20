@@ -7582,3 +7582,87 @@ CPExecutionKernelExamples >> serviceTaskStandardLoopExecutesExternalWorkSequenti
 	self assert: secondInvocation isCompleted.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> userTaskStandardLoopDistributesSequentialWorkItems [
+	<gtExample>
+	| process task loop condition environment execution taskExecution firstIteration firstWorkItem secondIteration secondWorkItem |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPUserTask new identifier: 'repeatUserWork'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new expression: condition evaluatesTo: true; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution activateUserTaskExecution: taskExecution.
+	firstIteration := taskExecution standardLoopIterations first.
+	firstWorkItem := firstIteration userTaskWorkItem.
+	self assert: firstWorkItem isPending.
+	self assert: firstWorkItem activityExecution == firstIteration.
+	self assert: environment userTaskWorkItems size equals: 1.
+	execution completeStandardLoopUserTaskIteration: firstIteration.
+	self assert: firstWorkItem isCompleted.
+	secondIteration := taskExecution standardLoopIterations second.
+	secondWorkItem := secondIteration userTaskWorkItem.
+	self assert: secondWorkItem isPending.
+	self assert: secondWorkItem activityExecution == secondIteration.
+	self assert: environment userTaskWorkItems size equals: 2.
+	self assert: taskExecution isActive.
+	execution completeStandardLoopUserTaskIteration: secondIteration.
+	self assert: secondWorkItem isCompleted.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 2.
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> manualTaskStandardLoopResolvesAssignmentsSequentially [
+	<gtExample>
+	| process task loop condition performer assignmentExpression environment execution taskExecution firstIteration secondIteration |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	assignmentExpression := CPResourceAssignmentExpression new
+		expression: (CPExpression new identifier: 'workers'; yourself);
+		yourself.
+	performer := CPHumanPerformer new
+		identifier: 'performer';
+		resourceAssignmentExpression: assignmentExpression;
+		yourself.
+	task := CPManualTask new
+		identifier: 'repeatManualWork';
+		resources: { performer };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: condition evaluatesTo: true;
+		expression: assignmentExpression expression evaluatesTo: { 'worker@example.test' };
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createManualTaskExecutionFor: task.
+	execution activateManualTaskExecution: taskExecution.
+	firstIteration := taskExecution standardLoopIterations first.
+	self assert: firstIteration isActive.
+	self assert: firstIteration manualTaskResourceAssignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	self assert: taskExecution standardLoopIterations size equals: 1.
+	execution completeStandardLoopManualTaskIteration: firstIteration.
+	secondIteration := taskExecution standardLoopIterations second.
+	self assert: secondIteration isActive.
+	self assert: secondIteration manualTaskResourceAssignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	self assert: taskExecution standardLoopIterations size equals: 2.
+	execution completeStandardLoopManualTaskIteration: secondIteration.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 2.
+	^ taskExecution
+]

@@ -2513,6 +2513,11 @@ CPExecutionScope >> activateUserTaskExecution: anActivityExecution [
     (loop notNil and: [ loop isMultiInstance ]) ifTrue: [
         anActivityExecution beginMultiInstanceActivityExecutions.
         ^ anActivityExecution ].
+    (loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+        anActivityExecution standardLoopMayBeginNextIteration
+            ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+            ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+        ^ anActivityExecution ].
     workItem := CPUserTaskWorkItem new
         userTask: userTask;
         activityExecution: anActivityExecution;
@@ -2701,6 +2706,11 @@ CPExecutionScope >> activateManualTaskExecution: anActivityExecution [
 	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
 		anActivityExecution beginMultiInstanceActivityExecutions.
 		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	anActivityExecution resourceAssignments:
 		(self resourceAssignmentsFor: manualTask activityExecution: anActivityExecution).
 	^ anActivityExecution
@@ -2791,6 +2801,75 @@ CPExecutionScope >> triggerStandardLoopReceiveTaskIteration: anIteration with: a
 	self acceptOccurrence: anOccurrence.
 	anIteration acceptReceivedOccurrence: anOccurrence.
 	subscription triggerWith: anOccurrence.
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
+]
+
+
+{ #category : 'activities - user' }
+CPExecutionScope >> distributeStandardLoopUserTaskIteration: anIteration [
+	| outerExecution workItem |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop User Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop User Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop User Task iteration can distribute work.' ].
+	workItem := CPUserTaskWorkItem new
+		userTask: outerExecution definition;
+		activityExecution: anIteration;
+		resourceAssignments: (self resourceAssignmentsFor: outerExecution definition activityExecution: anIteration);
+		yourself.
+	anIteration userTaskWorkItem: workItem.
+	self environment distributeUserTaskWorkItem: workItem in: self.
+	workItem markDistributed.
+	^ workItem
+]
+
+{ #category : 'activities - user' }
+CPExecutionScope >> completeStandardLoopUserTaskIteration: anIteration [
+	| outerExecution workItem |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop User Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop User Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop User Task iteration can complete.' ].
+	workItem := anIteration userTaskWorkItem.
+	workItem ifNil: [ self error: 'The Standard Loop User Task iteration has no distributed work item.' ].
+	workItem isPending ifFalse: [ self error: 'The Standard Loop User Task work item is not pending.' ].
+	workItem complete.
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
+]
+
+{ #category : 'activities - manual' }
+CPExecutionScope >> assignStandardLoopManualTaskIteration: anIteration [
+	| outerExecution |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop Manual Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop Manual Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop Manual Task iteration can resolve its resource assignments.' ].
+	anIteration manualTaskResourceAssignments:
+		(self resourceAssignmentsFor: outerExecution definition activityExecution: anIteration).
+	^ anIteration
+]
+
+{ #category : 'activities - manual' }
+CPExecutionScope >> completeStandardLoopManualTaskIteration: anIteration [
+	| outerExecution |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop Manual Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop Manual Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop Manual Task iteration can complete.' ].
 	self completeStandardLoopIteration: anIteration of: outerExecution.
 	^ anIteration
 ]

@@ -9,7 +9,9 @@ Class {
 		'messageDispatch',
 		'messageSubscription',
 		'receivedOccurrence',
-		'externalInvocation'
+		'externalInvocation',
+		'userTaskWorkItem',
+		'manualTaskResourceAssignments'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -137,4 +139,29 @@ CPStandardLoopIterationExecution >> prepareExternalInvocationIdentifiedBy: anIde
 		self error: 'The Standard Loop Service Task Data Input is unavailable for external invocation.' ].
 	externalInvocation inputValue: (outerExecution itemValueFor: input).
 	^ externalInvocation
+]
+
+
+{ #category : 'user task' }
+CPStandardLoopIterationExecution >> userTaskWorkItem [
+	^ userTaskWorkItem
+]
+
+{ #category : 'user task' }
+CPStandardLoopIterationExecution >> userTaskWorkItem: aWorkItem [
+	userTaskWorkItem ifNotNil: [ self error: 'A Standard Loop User Task iteration can have only one work item.' ].
+	userTaskWorkItem := aWorkItem
+]
+
+{ #category : 'manual task' }
+CPStandardLoopIterationExecution >> manualTaskResourceAssignments [
+	^ manualTaskResourceAssignments ifNil: [ #() ]
+]
+
+{ #category : 'manual task' }
+CPStandardLoopIterationExecution >> manualTaskResourceAssignments: aCollection [
+	manualTaskResourceAssignments ifNotNil: [
+		self error: 'A Standard Loop Manual Task iteration can resolve its resource assignments only once.' ].
+	manualTaskResourceAssignments := aCollection asOrderedCollection.
+	^ manualTaskResourceAssignments
 ]

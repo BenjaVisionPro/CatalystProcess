@@ -48,3 +48,11 @@ CPUserTaskExecution >> taskPriority: anInteger [
     workItem ifNil: [ self error: 'The User Task execution has no distributed work item.' ].
     ^ workItem taskPriority: anInteger
 ]
+
+
+{ #category : 'standard loop' }
+CPUserTaskExecution >> standardLoopIterationDidBegin: anIteration [
+	super standardLoopIterationDidBegin: anIteration.
+	scope distributeStandardLoopUserTaskIteration: anIteration.
+	^ anIteration
+]

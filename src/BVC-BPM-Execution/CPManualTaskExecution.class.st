@@ -25,3 +25,11 @@ CPManualTaskExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
 	scope assignMultiInstanceManualTaskExecution: anInstance.
 	^ anInstance
 ]
+
+
+{ #category : 'standard loop' }
+CPManualTaskExecution >> standardLoopIterationDidBegin: anIteration [
+	super standardLoopIterationDidBegin: anIteration.
+	scope assignStandardLoopManualTaskIteration: anIteration.
+	^ anIteration
+]
