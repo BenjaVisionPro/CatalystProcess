@@ -4812,3 +4812,37 @@ CPExecutionKernelExamples >> serviceTaskExternalInvocationPreservesNilInputValue
 	self assert: invocation inputValue isNil.
 	^ invocation
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> compensationEventSubProcessRestoresCompletionDataSnapshot [
+	<gtExample>
+	| process booking property dataObject compensationHandler compensationStart compensationDefinition execution bookingExecution bookingScope bookingRecord handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	booking := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	property := CPProperty new identifier: 'bookingProperty'; yourself.
+	booking properties add: property.
+	dataObject := CPDataObject new identifier: 'bookingData'; yourself.
+	booking addFlowElement: dataObject.
+	compensationHandler := CPCompensationSubProcess new identifier: 'bookingCompensation'; yourself.
+	compensationStart := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	compensationStart eventDefinitions add: compensationDefinition.
+	compensationHandler addFlowElement: compensationStart.
+	booking addFlowElement: compensationHandler.
+	process addFlowElement: booking.
+	execution := self executionFor: process.
+	bookingExecution := execution createActivityExecutionFor: booking.
+	bookingExecution activate.
+	bookingScope := bookingExecution createSubScopeFor: booking.
+	bookingExecution itemValueFor: property put: 'property at completion'.
+	bookingScope itemValueFor: dataObject put: 'data at completion'.
+	bookingExecution beginCompletion; complete.
+	bookingRecord := (execution availableCompensationRecordsFor: booking) first.
+	bookingExecution itemValueFor: property put: 'property changed later'.
+	bookingScope itemValueFor: dataObject put: 'data changed later'.
+	handlerExecution := execution beginCompensationFor: bookingRecord.
+	self assert: handlerExecution definition == compensationHandler.
+	self assert: (bookingExecution itemValueFor: property) equals: 'property at completion'.
+	self assert: (bookingScope itemValueFor: dataObject) equals: 'data at completion'.
+	^ bookingRecord
+]

@@ -9,7 +9,9 @@ Class {
 		'handled',
 		'handlerExecution',
 		'completionSequence',
-		'compensationRecords'
+		'compensationRecords',
+		'activityItemValuesSnapshot',
+		'scopeItemValuesSnapshot'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -115,3 +117,24 @@ CPCompensationRecord >> isWaitingForCompensationRecord: aCompensationRecord [
 	^ self isHandling
 		and: [ compensationRecords identityIncludes: aCompensationRecord ]
 ]
+
+{ #category : 'data - snapshot' }
+CPCompensationRecord >> captureDataSnapshotFrom: anActivityExecution [
+	anActivityExecution subScope ifNil: [
+		self error: 'Compensation Event SubProcess snapshot data requires the completed SubProcess execution scope.' ].
+	activityItemValuesSnapshot ifNotNil: [
+		self error: 'Compensation snapshot data can only be captured once.' ].
+	activityItemValuesSnapshot := anActivityExecution itemValuesSnapshot.
+	scopeItemValuesSnapshot := anActivityExecution subScope itemValuesSnapshot.
+	^ self
+]
+
+{ #category : 'data - snapshot' }
+CPCompensationRecord >> restoreDataSnapshot [
+	activityItemValuesSnapshot ifNil: [
+		self error: 'Compensation Event SubProcess requires snapshot data from completion.' ].
+	activityExecution restoreItemValuesFromSnapshot: activityItemValuesSnapshot.
+	activityExecution subScope restoreItemValuesFromSnapshot: scopeItemValuesSnapshot.
+	^ self
+]
+

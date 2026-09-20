@@ -235,6 +235,18 @@ CPActivityExecution >> itemValueFor: anItemAwareElement put: aValue [
 	^ aValue
 ]
 
+
+{ #category : 'data - snapshot' }
+CPActivityExecution >> itemValuesSnapshot [
+	^ itemValues copy
+]
+
+{ #category : 'data - snapshot' }
+CPActivityExecution >> restoreItemValuesFromSnapshot: aDictionary [
+	itemValues := aDictionary copy.
+	^ self
+]
+
 { #category : 'control flow' }
 CPActivityExecution >> consumeFlowActivation: anActivation [
 	anActivation consumeBy: self.

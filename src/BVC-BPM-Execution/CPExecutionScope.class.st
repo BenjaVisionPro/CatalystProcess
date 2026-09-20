@@ -1451,6 +1451,18 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 ]
 
 
+
+{ #category : 'data - snapshot' }
+CPExecutionScope >> itemValuesSnapshot [
+	^ itemValues copy
+]
+
+{ #category : 'data - snapshot' }
+CPExecutionScope >> restoreItemValuesFromSnapshot: aDictionary [
+	itemValues := aDictionary copy.
+	^ self
+]
+
 { #category : 'activities - compensation' }
 CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
 	self ensureCompensationRecordsFor: anActivityExecution.
@@ -1495,7 +1507,7 @@ CPExecutionScope >> customCompensationHandlerFor: aCompensationRecord [
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
-	| newBoundaries completionSequence |
+	| newBoundaries completionSequence record |
 	anActivityExecution scope == self ifFalse: [
 		self error: 'The completed Activity execution does not belong to this execution scope.' ].
 	anActivityExecution isCompleted ifFalse: [
@@ -1513,10 +1525,13 @@ CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
 	completionSequence := self processExecution nextCompensationCompletionSequence.
 	newBoundaries
 		ifEmpty: [
-			compensationRecords add: (CPCompensationRecord new
+			record := CPCompensationRecord new
 				activityExecution: anActivityExecution;
 				completionSequence: completionSequence;
-				yourself) ]
+				yourself.
+			anActivityExecution definition hasCustomCompensationHandler ifTrue: [
+			record captureDataSnapshotFrom: anActivityExecution ].
+			compensationRecords add: record ]
 		ifNotEmpty: [
 			newBoundaries do: [ :eachBoundary |
 				compensationRecords add: (CPCompensationRecord new
@@ -1708,6 +1723,7 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 		handlerExecution activate.
 		^ handlerExecution ].
 	claimedRecord activityExecution definition hasCustomCompensationHandler ifTrue: [
+		claimedRecord restoreDataSnapshot.
 		handler := owningScope customCompensationHandlerFor: claimedRecord.
 		handlerExecution := claimedRecord activityExecution subScope createActivityExecutionFor: handler.
 		claimedRecord beginHandlingWith: handlerExecution.
