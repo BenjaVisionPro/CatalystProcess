@@ -24,6 +24,7 @@ CPIntermediateCatchEventExecution >> triggerWithAcceptedOccurrence: anOccurrence
 	(self scope processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
 		self error: 'The occurrence must be accepted by the Process execution before it can trigger the Intermediate Catch Event.' ].
 	self occurrence: anOccurrence.
+	self populateCatchEventDataFrom: anOccurrence.
 	waiting := false.
 	self definition outgoing do: [ :eachFlow |
 		self recordProducedFlowActivation:

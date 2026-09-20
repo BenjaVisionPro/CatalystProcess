@@ -4961,3 +4961,40 @@ CPExecutionKernelExamples >> activityCompletionRejectsFirstAvailableOutputSetInc
 	self assert: taskExecution selectedOutputSet isNil.
 	^ taskExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> messageCatchEventCopiesPayloadThroughDataOutputAssociation [
+	<gtExample>
+	| process start catch message messageDefinition dataOutput dataObject association flow execution eventExecution occurrence payload |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	dataOutput := CPDataOutput new identifier: 'receivedData'; yourself.
+	dataObject := CPDataObject new identifier: 'processData'; yourself.
+	association := CPDataOutputAssociation new
+		sourceRefs: { dataOutput };
+		targetRef: dataObject;
+		yourself.
+	catch := CPMessageCatchIntermediateEvent new
+		identifier: 'receiveMessage';
+		eventDefinitions: { messageDefinition };
+		dataOutputs: { dataOutput };
+		dataOutputAssociations: { association };
+		yourself.
+	flow := CPSequenceFlow new identifier: 'toCatch'; sourceRef: start; targetRef: catch; yourself.
+	process addFlowElement: start; addFlowElement: catch; addFlowElement: dataObject; addFlowElement: flow.
+	execution := self executionFor: process.
+	execution start.
+	eventExecution := execution beginMessageIntermediateCatchEvent: catch consuming: (execution availableFlowActivationsOn: flow) first.
+	payload := Dictionary new at: 'order' put: 42; yourself.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: 'message-1';
+		definition: message;
+		payload: payload;
+		yourself.
+	execution triggerMessageIntermediateCatchEventExecution: eventExecution with: occurrence.
+	self assert: (eventExecution itemValueFor: dataOutput) == payload.
+	self assert: (execution accessibleItemValueFor: dataObject) == payload.
+	^ eventExecution
+]

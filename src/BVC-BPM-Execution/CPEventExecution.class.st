@@ -6,7 +6,8 @@ Class {
 		'scope',
 		'consumedFlowActivation',
 		'producedFlowActivations',
-		'occurrence'
+		'occurrence',
+		'itemValues'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -15,7 +16,8 @@ Class {
 { #category : 'initialization' }
 CPEventExecution >> initialize [
 	super initialize.
-	producedFlowActivations := OrderedCollection new
+	producedFlowActivations := OrderedCollection new.
+	itemValues := IdentityDictionary new
 ]
 
 { #category : 'accessing' }
@@ -82,4 +84,47 @@ CPEventExecution >> isErrorEndEventExecution [
 { #category : 'testing' }
 CPEventExecution >> isErrorPropagationExecution [
 	^ false
+]
+
+{ #category : 'data' }
+CPEventExecution >> ownsItemValueFor: anItemAwareElement [
+	definition isCatchEvent ifTrue: [ ^ definition dataOutputs identityIncludes: anItemAwareElement ].
+	definition isThrowEvent ifTrue: [ ^ definition dataInputs identityIncludes: anItemAwareElement ].
+	^ false
+]
+
+{ #category : 'data' }
+CPEventExecution >> itemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Event execution.' ].
+	^ itemValues at: anItemAwareElement ifAbsent: [ nil ]
+]
+
+{ #category : 'data' }
+CPEventExecution >> itemValueFor: anItemAwareElement put: aValue [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Event execution.' ].
+	itemValues at: anItemAwareElement put: aValue.
+	^ aValue
+]
+
+{ #category : 'data' }
+CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
+	| outputs |
+	definition isCatchEvent ifFalse: [ self error: 'Only a Catch Event can receive occurrence data.' ].
+	outputs := definition dataOutputs.
+	outputs isEmpty ifTrue: [ ^ self ].
+	outputs size = 1 ifFalse: [
+		self error: 'A single Event occurrence requires exactly one corresponding Data Output.' ].
+	self itemValueFor: outputs first put: anOccurrence payload.
+	definition dataOutputAssociations do: [ :association |
+		| source |
+		association transformation ifNotNil: [ self error: 'Event Data Association transformations are not yet executable.' ].
+		association assignments ifNotEmpty: [ self error: 'Event Data Association assignments are not yet executable.' ].
+		association sourceRefs size = 1 ifFalse: [ self error: 'An Event Data Association without transformation or assignments requires exactly one source.' ].
+		association targetRef ifNil: [ self error: 'An Event Data Association requires a target.' ].
+		source := association sourceRefs first.
+		(self ownsItemValueFor: source) ifFalse: [ self error: 'The Event Data Association source does not belong to this Event execution.' ].
+		self scope accessibleItemValueFor: association targetRef put: (self itemValueFor: source) ].
+	^ self
 ]
