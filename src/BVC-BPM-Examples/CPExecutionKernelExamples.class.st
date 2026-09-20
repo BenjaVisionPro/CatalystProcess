@@ -70,16 +70,17 @@ CPExecutionKernelExamples >> activityExecutionOwnsNestedScope [
 { #category : 'examples' }
 CPExecutionKernelExamples >> acceptedOccurrence [
 	<gtExample>
-	| scope occurrence |
-	scope := CPExecutionScope new.
+	| process execution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	execution := self executionFor: process.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: 'message-42';
 		payload: (Dictionary new at: #value put: 42; yourself);
 		yourself.
-	scope acceptOccurrence: occurrence.
-	self assert: (scope hasAcceptedOccurrenceIdentifiedBy: 'message-42').
-	self assert: scope acceptedOccurrences size equals: 1.
-	^ scope
+	execution acceptOccurrence: occurrence.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: 'message-42').
+	self assert: execution acceptedOccurrences size equals: 1.
+	^ execution
 ]
 
 { #category : 'examples - control flow' }

@@ -2276,7 +2276,8 @@ CPProcessVisualElementExamples >> boundaryEventTypeSelectionUsesRequestedTypes [
 		CPErrorEventDefinition.
 		CPMessageEventDefinition.
 		CPEscalationEventDefinition.
-		CPConditionalEventDefinition }.
+		CPConditionalEventDefinition.
+		CPCompensationEventDefinition }.
 	self assert: (selection typeLabelFor: CPEscalationEventDefinition) equals: 'Escalation'.
 	self assert: (selection typeIconFor: CPEscalationEventDefinition) equals: #chevronsUp.
 	^ selection
