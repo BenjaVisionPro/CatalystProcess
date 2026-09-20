@@ -589,7 +589,8 @@ CPExecutionScope >> executeLinkThrowEvent: aLinkThrowEvent consuming: anActivati
 	(targetDefinition sources identityIncludes: sourceDefinition) ifFalse: [
 		self error: 'The target Link Event Definition must reference the source Link Event Definition.' ].
 	targetEvents := definition flowElements select: [ :each |
-		each isCatchEvent and: [ each eventDefinitions identityIncludes: targetDefinition ] ].
+		each isEvent and: [
+			each isCatchEvent and: [ each eventDefinitions identityIncludes: targetDefinition ] ] ].
 	targetEvents size = 1 ifFalse: [
 		self error: 'A source Link Event Definition must resolve to exactly one target Link Catch Event in the same execution scope.' ].
 	targetEvent := targetEvents first.
