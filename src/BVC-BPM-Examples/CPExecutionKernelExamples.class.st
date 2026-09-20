@@ -3693,3 +3693,66 @@ CPExecutionKernelExamples >> exactAndCatchAllErrorBoundariesAreAmbiguousBeforeMu
 	self assert: childScope acceptedOccurrences isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - event sub-processes' }
+CPExecutionKernelExamples >> errorEventSubProcessRejectsAttachedBoundaryEvent [
+	<gtExample>
+	| handler start definition boundary rejected |
+	handler := CPErrorSubProcess new identifier: 'errorHandler'; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	definition := CPErrorEventDefinition new identifier: 'catchAllError'; yourself.
+	start eventDefinitions add: definition.
+	handler addFlowElement: start.
+	boundary := CPBoundaryEvent new identifier: 'invalidBoundary'; attachedToRef: handler; yourself.
+	rejected := false.
+	[ handler validateEventSubProcessStructure ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: handler boundaryEventRefs size equals: 1.
+	self assert: handler boundaryEventRefs first == boundary.
+	^ handler
+]
+
+{ #category : 'examples - event sub-processes' }
+CPExecutionKernelExamples >> errorEventSubProcessRejectsEnclosingSequenceFlowConnection [
+	<gtExample>
+	| process source handler start definition flow rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	handler := CPErrorSubProcess new identifier: 'errorHandler'; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	definition := CPErrorEventDefinition new identifier: 'catchAllError'; yourself.
+	start eventDefinitions add: definition.
+	handler addFlowElement: start.
+	flow := CPSequenceFlow new identifier: 'invalidFlow'; sourceRef: source; targetRef: handler; yourself.
+	process addFlowElement: source; addFlowElement: handler; addFlowElement: flow.
+	rejected := false.
+	[ handler validateEventSubProcessStructure ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: handler incoming size equals: 1.
+	self assert: handler incoming first == flow.
+	^ handler
+]
+
+{ #category : 'examples - event sub-processes' }
+CPExecutionKernelExamples >> compensationSubProcessUsesEventSubProcessStructuralContract [
+	<gtExample>
+	| handler start definition rejected |
+	handler := CPCompensationSubProcess new identifier: 'compensationHandler'; yourself.
+	start := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	definition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	start eventDefinitions add: definition.
+	handler addFlowElement: start.
+	self assert: handler isEventSubProcess.
+	handler validateEventSubProcessStructure.
+	start incoming add: (CPSequenceFlow new identifier: 'invalidIncoming'; yourself).
+	rejected := false.
+	[ handler validateEventSubProcessStructure ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	^ handler
+]

@@ -26,3 +26,8 @@ CPCompensationSubProcess class >> subProcessTypeIcon [
 CPCompensationSubProcess class >> defaultIcon [
 	^ self subProcessTypeIcon
 ]
+
+{ #category : 'testing' }
+CPCompensationSubProcess >> isEventSubProcess [
+	^ true
+]

@@ -208,3 +208,29 @@ CPSubProcess >> isErrorEventSubProcess [
 CPSubProcess >> isEventSubProcess [
 	^ false
 ]
+
+{ #category : 'validation' }
+CPSubProcess >> validateEventSubProcessStructure [
+	| sequenceFlows flowNodes |
+	self isEventSubProcess ifFalse: [
+		self error: 'Event SubProcess structural validation requires an Event SubProcess.' ].
+	(self incoming isEmpty and: [ self outgoing isEmpty ]) ifFalse: [
+		self error: 'An Event SubProcess cannot be connected to the enclosing normal Sequence Flow.' ].
+	self boundaryEventRefs isEmpty ifFalse: [
+		self error: 'An Event SubProcess cannot have attached Boundary Events.' ].
+	sequenceFlows := flowElements select: [ :each | each isSequenceFlow ].
+	sequenceFlows do: [ :eachFlow |
+		(eachFlow sourceRef notNil and: [ eachFlow sourceRef container ~~ self ]) ifTrue: [
+			self error: 'An Event SubProcess Sequence Flow source must belong to that Event SubProcess.' ].
+		(eachFlow targetRef notNil and: [ eachFlow targetRef container ~~ self ]) ifTrue: [
+			self error: 'An Event SubProcess Sequence Flow target must belong to that Event SubProcess.' ] ].
+	flowNodes := flowElements select: [ :each | each isFlowNode ].
+	flowNodes do: [ :eachNode |
+		eachNode incoming do: [ :eachFlow |
+			eachFlow container == self ifFalse: [
+				self error: 'An Event SubProcess FlowNode cannot receive Sequence Flow from outside that Event SubProcess.' ] ].
+		eachNode outgoing do: [ :eachFlow |
+			eachFlow container == self ifFalse: [
+				self error: 'An Event SubProcess FlowNode cannot produce Sequence Flow outside that Event SubProcess.' ] ] ].
+	^ self
+]

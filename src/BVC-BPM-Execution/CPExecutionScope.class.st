@@ -696,6 +696,7 @@ CPExecutionScope >> activateCompensationSubProcessExecution: anActivityExecution
 	subProcess := anActivityExecution definition.
 	(subProcess isSubProcess and: [ subProcess isForCompensation ]) ifFalse: [
 		self error: 'Compensation Event SubProcess execution requires a compensation-only SubProcess.' ].
+	subProcess validateEventSubProcessStructure.
 	startEvents := subProcess flowElements select: [ :each | each isStartEvent ].
 	startEvents size = 1 ifFalse: [
 		self error: 'A Compensation Event SubProcess requires exactly one Start Event.' ].
@@ -1086,6 +1087,7 @@ CPExecutionScope >> hasPendingEventWork [
 { #category : 'events - error' }
 CPExecutionScope >> errorStartEventFor: anErrorSubProcess [
 	| startEvents startEvent |
+	anErrorSubProcess validateEventSubProcessStructure.
 	startEvents := anErrorSubProcess flowElements select: [ :each | each isStartEvent ].
 	startEvents size = 1 ifFalse: [
 		self error: 'An Error Event SubProcess requires exactly one Start Event.' ].
