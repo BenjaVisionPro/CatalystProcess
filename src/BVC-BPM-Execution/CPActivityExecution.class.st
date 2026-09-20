@@ -177,11 +177,23 @@ CPActivityExecution >> firstAvailableOutputSet [
 ]
 
 { #category : 'data associations' }
+CPActivityExecution >> selectedInputSetAllowsOutputSet: anOutputSet [
+	selectedInputSet ifNil: [ ^ true ].
+	selectedInputSet outputSetRefs ifNotEmpty: [
+		(selectedInputSet outputSetRefs identityIncludes: anOutputSet) ifFalse: [ ^ false ] ].
+	anOutputSet inputSetRefs ifNotEmpty: [
+		(anOutputSet inputSetRefs identityIncludes: selectedInputSet) ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
 CPActivityExecution >> prepareOutputs [
 	| outputSet associations |
 	definition ioSpecification ifNil: [ ^ true ].
 	outputSet := self firstAvailableOutputSet.
 	outputSet ifNil: [ self error: 'The Activity has no available OutputSet.' ].
+	(self selectedInputSetAllowsOutputSet: outputSet) ifFalse: [
+		self error: 'The selected OutputSet is not compatible with the InputSet used to start the Activity.' ].
 	selectedOutputSet := outputSet.
 	outputSet dataOutputRefs do: [ :eachOutput |
 		(self hasItemValueFor: eachOutput) ifTrue: [

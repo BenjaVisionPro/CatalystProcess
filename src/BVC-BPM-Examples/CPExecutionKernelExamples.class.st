@@ -4894,3 +4894,70 @@ CPExecutionKernelExamples >> dataAssociationProvenanceCreatesCompensationDepende
 	self assert: (execution compensationRecord: firstRecord mustPrecede: secondRecord) = false.
 	^ secondExecution
 ]
+
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityCompletionAcceptsOutputSetExpectedBySelectedInputSet [
+	<gtExample>
+	| process task specification inputSet output outputSet execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	inputSet := CPInputSet new.
+	output := CPDataOutput new identifier: 'output'; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
+	inputSet outputSetRefs: { outputSet }.
+	outputSet inputSetRefs: { inputSet }.
+	specification
+		dataOutputs: { output };
+		inputSets: { inputSet };
+		outputSets: { outputSet }.
+	task ioSpecification: specification.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareForActivation.
+	taskExecution activate.
+	taskExecution itemValueFor: output put: 'result'.
+	taskExecution beginCompletion.
+	taskExecution complete.
+	self assert: taskExecution selectedInputSet == inputSet.
+	self assert: taskExecution selectedOutputSet == outputSet.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityCompletionRejectsFirstAvailableOutputSetIncompatibleWithSelectedInputSet [
+	<gtExample>
+	| process task specification inputSet firstOutput secondOutput firstSet secondSet execution taskExecution errorRaised |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	inputSet := CPInputSet new.
+	firstOutput := CPDataOutput new identifier: 'first'; yourself.
+	secondOutput := CPDataOutput new identifier: 'second'; yourself.
+	firstSet := CPOutputSet new dataOutputRefs: { firstOutput }; yourself.
+	secondSet := CPOutputSet new dataOutputRefs: { secondOutput }; yourself.
+	inputSet outputSetRefs: { secondSet }.
+	secondSet inputSetRefs: { inputSet }.
+	specification
+		dataOutputs: { firstOutput. secondOutput };
+		inputSets: { inputSet };
+		outputSets: { firstSet. secondSet }.
+	task ioSpecification: specification.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareForActivation.
+	taskExecution activate.
+	taskExecution itemValueFor: firstOutput put: 'first-result'.
+	taskExecution itemValueFor: secondOutput put: 'second-result'.
+	taskExecution beginCompletion.
+	errorRaised := false.
+	[ taskExecution complete ] on: Error do: [ :error | errorRaised := true ].
+	self assert: errorRaised.
+	self assert: taskExecution isCompleting.
+	self assert: taskExecution selectedOutputSet isNil.
+	^ taskExecution
+]
