@@ -8,6 +8,8 @@ Class {
 		'consumedFlowActivations',
 		'state',
 		'itemValues',
+		'itemValueProducers',
+		'dataDependencies',
 		'selectedInputSet',
 		'selectedOutputSet'
 	],
@@ -27,7 +29,9 @@ CPActivityExecution >> initialize [
 	super initialize.
 	consumedFlowActivations := OrderedCollection new.
 	state := CPActivityReadyState new.
-	itemValues := IdentityDictionary new
+	itemValues := IdentityDictionary new.
+	itemValueProducers := IdentityDictionary new.
+	dataDependencies := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -188,7 +192,7 @@ CPActivityExecution >> prepareOutputs [
 
 { #category : 'data associations' }
 CPActivityExecution >> executeDataAssociation: aDataAssociation [
-	| source |
+	| source producer value |
 	((definition dataInputAssociations identityIncludes: aDataAssociation)
 		or: [ definition dataOutputAssociations identityIncludes: aDataAssociation ]) ifFalse: [
 		self error: 'The Data Association does not belong to this Activity.' ].
@@ -202,7 +206,12 @@ CPActivityExecution >> executeDataAssociation: aDataAssociation [
 		self error: 'A Data Association requires a target.' ].
 	source := aDataAssociation sourceRefs first.
 	(self accessibleItemValueAvailableFor: source) ifFalse: [ ^ false ].
-	self accessibleItemValueFor: aDataAssociation targetRef put: (self accessibleItemValueFor: source).
+	producer := self accessibleItemValueProducerFor: source.
+	producer ifNotNil: [ self recordDataDependencyOn: producer ].
+	value := self accessibleItemValueFor: source.
+	(definition dataOutputAssociations identityIncludes: aDataAssociation)
+		ifTrue: [ self accessibleItemValueFor: aDataAssociation targetRef put: value producedBy: self ]
+		ifFalse: [ self accessibleItemValueFor: aDataAssociation targetRef put: value ].
 	^ true
 ]
 
@@ -220,6 +229,49 @@ CPActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue [
 	^ scope accessibleItemValueFor: anItemAwareElement put: aValue
 ]
 
+{ #category : 'data - provenance' }
+CPActivityExecution >> accessibleItemValueProducerFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueProducerFor: anItemAwareElement ].
+	^ scope accessibleItemValueProducerFor: anItemAwareElement
+]
+
+{ #category : 'data - provenance' }
+CPActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution ].
+	^ scope accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution
+]
+
+{ #category : 'data - provenance' }
+CPActivityExecution >> itemValueProducerFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Activity execution.' ].
+	^ itemValueProducers at: anItemAwareElement ifAbsent: [ nil ]
+]
+
+{ #category : 'data - provenance' }
+CPActivityExecution >> itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Activity execution.' ].
+	itemValues at: anItemAwareElement put: aValue.
+	itemValueProducers at: anItemAwareElement put: anActivityExecution.
+	^ aValue
+]
+
+{ #category : 'data - provenance' }
+CPActivityExecution >> recordDataDependencyOn: anActivityExecution [
+	anActivityExecution == self ifTrue: [ ^ self ].
+	(dataDependencies identityIncludes: anActivityExecution) ifFalse: [
+		dataDependencies add: anActivityExecution ].
+	^ self
+]
+
+{ #category : 'data - provenance' }
+CPActivityExecution >> hasDataDependencyOn: anActivityExecution [
+	^ dataDependencies identityIncludes: anActivityExecution
+]
+
 { #category : 'data' }
 CPActivityExecution >> itemValueFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
@@ -232,6 +284,7 @@ CPActivityExecution >> itemValueFor: anItemAwareElement put: aValue [
 	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
 		self error: 'The item-aware element does not belong to this Activity execution.' ].
 	itemValues at: anItemAwareElement put: aValue.
+	itemValueProducers at: anItemAwareElement put: nil.
 	^ aValue
 ]
 
@@ -244,6 +297,7 @@ CPActivityExecution >> itemValuesSnapshot [
 { #category : 'data - snapshot' }
 CPActivityExecution >> restoreItemValuesFromSnapshot: aDictionary [
 	itemValues := aDictionary copy.
+	itemValueProducers := IdentityDictionary new.
 	^ self
 ]
 

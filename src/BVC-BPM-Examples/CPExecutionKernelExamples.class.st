@@ -4846,3 +4846,51 @@ CPExecutionKernelExamples >> compensationEventSubProcessRestoresCompletionDataSn
 	self assert: (bookingScope itemValueFor: dataObject) equals: 'data at completion'.
 	^ bookingRecord
 ]
+
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> dataAssociationProvenanceCreatesCompensationDependency [
+	<gtExample>
+	| process shared firstTask firstSpecification firstOutput firstOutputAssociation secondTask secondSpecification secondInput secondInputAssociation execution firstExecution secondExecution firstRecord secondRecord |
+	process := CPProcess new identifier: 'process'; yourself.
+	shared := CPDataObject new identifier: 'shared'; yourself.
+	process addFlowElement: shared.
+
+	firstTask := CPTask new identifier: 'produce'; yourself.
+	firstSpecification := CPInputOutputSpecification new.
+	firstOutput := CPDataOutput new identifier: 'produced'; yourself.
+	firstSpecification dataOutputs: { firstOutput }.
+	firstTask ioSpecification: firstSpecification.
+	firstOutputAssociation := CPDataOutputAssociation new
+		sourceRefs: { firstOutput };
+		targetRef: shared;
+		yourself.
+	firstTask dataOutputAssociations: { firstOutputAssociation }.
+	process addFlowElement: firstTask.
+
+	secondTask := CPTask new identifier: 'consume'; yourself.
+	secondSpecification := CPInputOutputSpecification new.
+	secondInput := CPDataInput new identifier: 'consumed'; yourself.
+	secondSpecification dataInputs: { secondInput }.
+	secondTask ioSpecification: secondSpecification.
+	secondInputAssociation := CPDataInputAssociation new
+		sourceRefs: { shared };
+		targetRef: secondInput;
+		yourself.
+	secondTask dataInputAssociations: { secondInputAssociation }.
+	process addFlowElement: secondTask.
+
+	execution := self executionFor: process.
+	firstExecution := execution createActivityExecutionFor: firstTask.
+	secondExecution := execution createActivityExecutionFor: secondTask.
+	firstExecution itemValueFor: firstOutput put: 'value-from-a'.
+	self assert: (firstExecution executeDataAssociation: firstOutputAssociation).
+	self assert: (secondExecution executeDataAssociation: secondInputAssociation).
+	self assert: (secondExecution hasDataDependencyOn: firstExecution).
+
+	firstRecord := CPCompensationRecord new activityExecution: firstExecution; yourself.
+	secondRecord := CPCompensationRecord new activityExecution: secondExecution; yourself.
+	self assert: (execution compensationRecord: secondRecord mustPrecede: firstRecord).
+	self assert: (execution compensationRecord: firstRecord mustPrecede: secondRecord) = false.
+	^ secondExecution
+]

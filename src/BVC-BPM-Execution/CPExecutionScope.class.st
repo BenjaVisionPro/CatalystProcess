@@ -16,7 +16,8 @@ Class {
 		'signalSubscriptions',
 		'conditionalSubscriptions',
 		'compensationRecords',
-		'itemValues'
+		'itemValues',
+		'itemValueProducers'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -43,7 +44,8 @@ CPExecutionScope >> initialize [
 	signalSubscriptions := OrderedCollection new.
 	conditionalSubscriptions := OrderedCollection new.
 	compensationRecords := OrderedCollection new.
-	itemValues := IdentityDictionary new
+	itemValues := IdentityDictionary new.
+	itemValueProducers := IdentityDictionary new
 ]
 
 { #category : 'accessing' }
@@ -139,6 +141,26 @@ CPExecutionScope >> accessibleItemValueFor: anItemAwareElement put: aValue [
 	^ context itemValueFor: item put: aValue
 ]
 
+{ #category : 'data - provenance' }
+CPExecutionScope >> accessibleItemValueProducerFor: anItemAwareElement [
+	| context item |
+	item := anItemAwareElement isDataObjectReference
+		ifTrue: [ anItemAwareElement dataObjectRef ]
+		ifFalse: [ anItemAwareElement ].
+	context := self executionContextForAccessibleItemValue: anItemAwareElement.
+	^ context itemValueProducerFor: item
+]
+
+{ #category : 'data - provenance' }
+CPExecutionScope >> accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	| context item |
+	item := anItemAwareElement isDataObjectReference
+		ifTrue: [ anItemAwareElement dataObjectRef ]
+		ifFalse: [ anItemAwareElement ].
+	context := self executionContextForAccessibleItemValue: anItemAwareElement.
+	^ context itemValueFor: item put: aValue producedBy: anActivityExecution
+]
+
 { #category : 'data' }
 CPExecutionScope >> itemValueFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
@@ -151,6 +173,23 @@ CPExecutionScope >> itemValueFor: anItemAwareElement put: aValue [
 	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
 		self error: 'The item-aware element does not belong to this execution scope.' ].
 	itemValues at: anItemAwareElement put: aValue.
+	itemValueProducers at: anItemAwareElement put: nil.
+	^ aValue
+]
+
+{ #category : 'data - provenance' }
+CPExecutionScope >> itemValueProducerFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this execution scope.' ].
+	^ itemValueProducers at: anItemAwareElement ifAbsent: [ nil ]
+]
+
+{ #category : 'data - provenance' }
+CPExecutionScope >> itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this execution scope.' ].
+	itemValues at: anItemAwareElement put: aValue.
+	itemValueProducers at: anItemAwareElement put: anActivityExecution.
 	^ aValue
 ]
 
@@ -1460,6 +1499,7 @@ CPExecutionScope >> itemValuesSnapshot [
 { #category : 'data - snapshot' }
 CPExecutionScope >> restoreItemValuesFromSnapshot: aDictionary [
 	itemValues := aDictionary copy.
+	itemValueProducers := IdentityDictionary new.
 	^ self
 ]
 
@@ -1633,6 +1673,7 @@ CPExecutionScope >> flowActivation: anActivation wasProducedByActivityExecution:
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> compensationRecord: aRecord mustPrecede: anotherRecord [
+	(aRecord activityExecution hasDataDependencyOn: anotherRecord activityExecution) ifTrue: [ ^ true ].
 	^ self allFlowActivations anySatisfy: [ :activation |
 		(self
 			flowActivation: activation
