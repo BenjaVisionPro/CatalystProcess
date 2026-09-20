@@ -2213,7 +2213,7 @@ CPExecutionKernelExamples >> escalationEndEventAndBoundaryShareExplicitMatchingC
 		yourself).
 	self assert: (CPEndEvent endEventTypes includes: CPEscalationEndEvent).
 	self assert: (boundary catchesEscalation: escalation).
-	self deny: (boundary catchesEscalation: otherEscalation).
+	self assert: (boundary catchesEscalation: otherEscalation) not.
 	self assert: endEvent eventDefinitions first escalationRef == escalation.
 	^ endEvent
 ]
