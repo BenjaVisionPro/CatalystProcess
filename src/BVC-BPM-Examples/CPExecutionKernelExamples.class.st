@@ -2390,3 +2390,39 @@ CPExecutionKernelExamples >> compensationRecordCanBeClaimedExactlyOnce [
 	self assert: rejected.
 	^ record
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> processExecutionDiscoversCompensationHistoryInNestedScopes [
+	<gtExample>
+	| process subProcess activity compensationDefinition boundary execution subProcessExecution childScope activityExecution records |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	activity := CPTask new identifier: 'nestedWork'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new
+		identifier: 'compensation';
+		yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: activity;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	subProcess addFlowElement: activity.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	activityExecution := childScope createActivityExecutionFor: activity.
+	activityExecution activate.
+	activityExecution beginCompletion.
+	activityExecution complete.
+	self assert: execution availableCompensationRecords isEmpty.
+	records := execution allAvailableCompensationRecords.
+	self assert: records size equals: 1.
+	self assert: records first activityExecution == activityExecution.
+	self assert: records first boundaryEvent == boundary.
+	self assert: (execution allAvailableCompensationRecordsFor: activity) size equals: 1.
+	^ records first
+]

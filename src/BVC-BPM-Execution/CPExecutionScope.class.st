@@ -1225,6 +1225,21 @@ CPExecutionScope >> availableCompensationRecordsFor: anActivity [
 ]
 
 { #category : 'activities - compensation' }
+CPExecutionScope >> allAvailableCompensationRecords [
+	| records |
+	records := self availableCompensationRecords asOrderedCollection.
+	childScopes do: [ :eachScope |
+		records addAll: eachScope allAvailableCompensationRecords ].
+	^ records
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> allAvailableCompensationRecordsFor: anActivity [
+	^ self allAvailableCompensationRecords select: [ :each |
+		each activityExecution definition == anActivity ]
+]
+
+{ #category : 'activities - compensation' }
 CPExecutionScope >> claimCompensationRecordFor: anActivityExecution [
 	| matches |
 	self ensureCompensationRecordsFor: anActivityExecution.
