@@ -582,6 +582,8 @@ CPExecutionScope >> executeEndEvent: anEndEvent consuming: anActivation [
 	(anActivation isAvailable and: [ anEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
 		self error: 'An End Event requires an available activation from one of its incoming Sequence Flows.' ].
 	execution := self createEventExecutionFor: anEndEvent.
+	execution prepareThrowData.
+	execution prepareThrownOccurrences.
 	execution consumeFlowActivation: anActivation.
 	^ execution
 ]

@@ -5067,7 +5067,7 @@ CPExecutionKernelExamples >> messageStartEventPopulatesProcessDataInput [
 	messageStart eventDefinitions add: messageDefinition.
 	after := CPTask new identifier: 'after'; yourself.
 	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: messageStart; targetRef: after; yourself.
-	process flowElements addAll: { messageStart. after. flow }.
+	process addFlowElement: messageStart; addFlowElement: after; addFlowElement: flow.
 	execution := self executionFor: process.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: #messageStartWithData1;
@@ -5078,5 +5078,47 @@ CPExecutionKernelExamples >> messageStartEventPopulatesProcessDataInput [
 	self assert: (eventExecution itemValueFor: eventOutput) equals: 'process input value'.
 	self assert: (execution itemValueFor: processInput) equals: 'process input value'.
 	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ eventExecution
+]
+
+
+{ #category : 'examples - data' }
+CPExecutionKernelExamples >> messageEndEventUsesProcessDataOutput [
+	<gtExample>
+	| process specification processOutput start message messageDefinition messageEnd eventInput association flow execution eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	processOutput := CPDataOutput new identifier: 'processOutput'; yourself.
+	specification := CPInputOutputSpecification new
+		dataOutputs: { processOutput };
+		yourself.
+	process ioSpecification: specification.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new
+		identifier: 'messageDefinition';
+		messageRef: message;
+		yourself.
+	eventInput := CPDataInput new identifier: 'eventInput'; yourself.
+	association := CPDataInputAssociation new
+		identifier: 'endInput';
+		sourceRefs: { processOutput };
+		targetRef: eventInput;
+		yourself.
+	messageEnd := CPMessageEndEvent new
+		identifier: 'messageEnd';
+		dataInputs: { eventInput };
+		dataInputAssociations: { association };
+		yourself.
+	messageEnd eventDefinitions add: messageDefinition.
+	flow := CPSequenceFlow new identifier: 'toEnd'; sourceRef: start; targetRef: messageEnd; yourself.
+	process addFlowElement: start; addFlowElement: messageEnd; addFlowElement: flow.
+	execution := self executionFor: process.
+	execution itemValueFor: processOutput put: 'process result'.
+	execution start.
+	eventExecution := execution executeEndEvent: messageEnd consuming: (execution availableFlowActivationsOn: flow) first.
+	self assert: (eventExecution itemValueFor: eventInput) equals: 'process result'.
+	self assert: eventExecution thrownOccurrences size equals: 1.
+	self assert: eventExecution thrownOccurrences first definition == message.
+	self assert: eventExecution thrownOccurrences first payload equals: 'process result'.
 	^ eventExecution
 ]
