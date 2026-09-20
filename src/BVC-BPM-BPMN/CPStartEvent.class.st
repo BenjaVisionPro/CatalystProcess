@@ -16,7 +16,7 @@ CPStartEvent class >> defaultIcon [
 
 { #category : 'event type' }
 CPStartEvent class >> startEventTypes [
-	^ { CPNoneStartEvent . CPMessageStartEvent . CPTimerStartEvent . CPSignalStartEvent . CPConditionalStartEvent . CPCompensationStartEvent }
+	^ { CPNoneStartEvent . CPMessageStartEvent . CPTimerStartEvent . CPSignalStartEvent . CPConditionalStartEvent . CPErrorStartEvent . CPCompensationStartEvent }
 ]
 
 { #category : 'event type' }

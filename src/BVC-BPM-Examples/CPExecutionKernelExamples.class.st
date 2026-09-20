@@ -3203,3 +3203,27 @@ CPExecutionKernelExamples >> invalidCustomCompensationHandlerIsRejectedBeforeMut
 	self assert: activation isAvailable.
 	^ bookingRecord
 ]
+
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventSubProcessHasInterruptingErrorStart [
+	<gtExample>
+	| handler start definition error |
+	error := CPError new identifier: 'bookingError'; yourself.
+	handler := CPErrorSubProcess new identifier: 'errorHandler'; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	definition := CPErrorEventDefinition new identifier: 'errorDefinition'; error: error; yourself.
+	start eventDefinitions add: definition.
+	handler addFlowElement: start.
+	self assert: handler isSubProcess.
+	self assert: start isStartEvent.
+	self assert: start container == handler.
+	self assert: start incoming isEmpty.
+	self assert: start eventDefinitions size equals: 1.
+	self assert: start eventDefinitions first == definition.
+	self assert: (definition catchesError: error).
+	self assert: definition interruptsActivityWithFailure.
+	self assert: (CPStartEvent startEventTypes includes: CPErrorStartEvent).
+	self assert: (CPSubProcess subProcessTypes includes: CPErrorSubProcess).
+	^ handler
+]

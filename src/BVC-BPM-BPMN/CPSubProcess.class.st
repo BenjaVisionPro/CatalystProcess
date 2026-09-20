@@ -125,6 +125,7 @@ CPSubProcess class >> subProcessTypes [
 		CPNoneSubProcess.
 		CPLoopSubProcess.
 		CPMultiInstanceSubProcess.
+		CPErrorSubProcess.
 		CPCompensationSubProcess.
 		CPAdHocSubProcess
 	}
