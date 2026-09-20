@@ -1647,11 +1647,13 @@ CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
 CPExecutionScope >> completeCompensationRecordHandledBy: anActivityExecution [
 	| handledRecord |
 	handledRecord := compensationRecords
-		detect: [ :each | each handlerExecution == anActivityExecution and: [ each isHandling ] ]
+		detect: [ :each | (each isHandledByExecution: anActivityExecution) and: [ each isHandling ] ]
 		ifNone: [ nil ].
 	handledRecord ifNotNil: [
-		handledRecord completeHandling.
-		self compensationRecordDidComplete: handledRecord.
+		handledRecord handlerExecutions isEmpty
+			ifTrue: [ handledRecord completeHandling ]
+			ifFalse: [ handledRecord handlerExecutionDidComplete: anActivityExecution ].
+		handledRecord isHandled ifTrue: [ self compensationRecordDidComplete: handledRecord ].
 		^ handledRecord ].
 	parentScope ifNotNil: [ ^ parentScope completeCompensationRecordHandledBy: anActivityExecution ].
 	^ nil
@@ -1903,8 +1905,18 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 		handlerExecution activate.
 		^ handlerExecution ].
 	claimedRecord activityExecution definition hasCustomCompensationHandler ifTrue: [
-		claimedRecord restoreDataSnapshot.
 		handler := owningScope customCompensationHandlerFor: claimedRecord.
+		claimedRecord multiInstanceActivityExecutions ifNotEmpty: [
+			| handlerExecutions |
+			handlerExecutions := claimedRecord multiInstanceActivityExecutions collect: [ :eachInstance |
+				eachInstance restoreCompensationDataSnapshot.
+				eachInstance subScope createActivityExecutionFor: handler ].
+			claimedRecord beginHandlingWithAll: handlerExecutions.
+			1 to: claimedRecord multiInstanceActivityExecutions size do: [ :index |
+				(claimedRecord multiInstanceActivityExecutions at: index) subScope
+					activateCompensationSubProcessExecution: (handlerExecutions at: index) ].
+			^ handlerExecutions ].
+		claimedRecord restoreDataSnapshot.
 		handlerExecution := claimedRecord activityExecution subScope createActivityExecutionFor: handler.
 		claimedRecord beginHandlingWith: handlerExecution.
 		claimedRecord activityExecution subScope activateCompensationSubProcessExecution: handlerExecution.

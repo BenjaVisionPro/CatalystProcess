@@ -5779,3 +5779,65 @@ CPExecutionKernelExamples >> multiInstanceCompensationRecordRetainsCompletedInst
 	self assert: (secondInstance subScope itemValueFor: secondData) equals: 'second snapshot'.
 	^ record
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCustomCompensationRunsOncePerCompletedInstance [
+	<gtExample>
+	| process subProcess loop compensationHandler compensationStart compensationDefinition undo startFlow dataObject execution activityExecution firstInstance secondInstance record handlerExecutions firstHandler secondHandler firstUndo secondUndo |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'multiSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	dataObject := CPDataObject new identifier: 'instanceData'; yourself.
+	subProcess addFlowElement: dataObject.
+	compensationHandler := CPCompensationSubProcess new identifier: 'compensationHandler'; yourself.
+	compensationStart := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	compensationStart eventDefinitions add: compensationDefinition.
+	undo := CPTask new identifier: 'undo'; yourself.
+	startFlow := CPSequenceFlow new identifier: 'startUndo'; sourceRef: compensationStart; targetRef: undo; yourself.
+	compensationHandler addFlowElement: compensationStart; addFlowElement: undo; addFlowElement: startFlow.
+	subProcess addFlowElement: compensationHandler.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 2;
+			yourself).
+	activityExecution := execution createActivityExecutionFor: subProcess.
+	activityExecution activate.
+	activityExecution beginMultiInstanceActivityExecutions.
+	firstInstance := activityExecution multiInstanceActivityExecutions first.
+	secondInstance := activityExecution multiInstanceActivityExecutions second.
+	firstInstance subScope itemValueFor: dataObject put: 'first snapshot'.
+	secondInstance subScope itemValueFor: dataObject put: 'second snapshot'.
+	firstInstance complete.
+	secondInstance complete.
+	record := (execution availableCompensationRecordsFor: subProcess) first.
+	firstInstance subScope itemValueFor: dataObject put: 'changed first'.
+	secondInstance subScope itemValueFor: dataObject put: 'changed second'.
+	handlerExecutions := execution beginCompensationFor: record.
+	self assert: handlerExecutions size equals: 2.
+	firstHandler := handlerExecutions first.
+	secondHandler := handlerExecutions second.
+	self assert: firstHandler scope == firstInstance subScope.
+	self assert: secondHandler scope == secondInstance subScope.
+	self assert: (firstInstance subScope itemValueFor: dataObject) equals: 'first snapshot'.
+	self assert: (secondInstance subScope itemValueFor: dataObject) equals: 'second snapshot'.
+	self assert: firstHandler isActive.
+	self assert: secondHandler isActive.
+	firstUndo := firstHandler subScope readyActivityExecutionFor: undo.
+	secondUndo := secondHandler subScope readyActivityExecutionFor: undo.
+	firstUndo activate; beginCompletion; complete.
+	firstInstance subScope completeSubProcessActivity: firstHandler.
+	self assert: record isHandling.
+	self assert: record isHandled not.
+	secondUndo activate; beginCompletion; complete.
+	secondInstance subScope completeSubProcessActivity: secondHandler.
+	self assert: record isHandled.
+	^ record
+]

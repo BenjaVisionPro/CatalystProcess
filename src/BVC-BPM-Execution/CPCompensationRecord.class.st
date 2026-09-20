@@ -8,6 +8,7 @@ Class {
 		'handling',
 		'handled',
 		'handlerExecution',
+		'handlerExecutions',
 		'completionSequence',
 		'compensationRecords',
 		'activityItemValuesSnapshot',
@@ -25,6 +26,7 @@ CPCompensationRecord >> initialize [
 	handling := false.
 	handled := false.
 	compensationRecords := OrderedCollection new.
+	handlerExecutions := OrderedCollection new.
 	multiInstanceActivityExecutions := OrderedCollection new
 ]
 
@@ -71,6 +73,36 @@ CPCompensationRecord >> beginHandlingWith: anActivityExecution [
 	self beginHandling.
 	handlerExecution := anActivityExecution.
 	^ anActivityExecution
+]
+
+
+{ #category : 'accessing' }
+CPCompensationRecord >> handlerExecutions [
+	^ handlerExecutions
+]
+
+{ #category : 'lifecycle' }
+CPCompensationRecord >> beginHandlingWithAll: activityExecutions [
+	activityExecutions isEmpty ifTrue: [
+		self error: 'Multi-Instance compensation requires at least one handler execution.' ].
+	self beginHandling.
+	handlerExecutions addAll: activityExecutions.
+	^ activityExecutions
+]
+
+{ #category : 'testing' }
+CPCompensationRecord >> isHandledByExecution: anActivityExecution [
+	^ handlerExecution == anActivityExecution
+		or: [ handlerExecutions identityIncludes: anActivityExecution ]
+]
+
+{ #category : 'lifecycle' }
+CPCompensationRecord >> handlerExecutionDidComplete: anActivityExecution [
+	(handlerExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The completed compensation handler does not belong to this compensation record.' ].
+	handlerExecutions remove: anActivityExecution.
+	handlerExecutions ifEmpty: [ self completeHandling ].
+	^ self
 ]
 
 { #category : 'lifecycle' }
