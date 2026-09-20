@@ -3121,3 +3121,85 @@ CPExecutionKernelExamples >> customCompensationEventSubProcessHandlesExactComple
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ bookingRecord
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> asynchronousCustomCompensationEventSubProcessContinuesImmediately [
+	<gtExample>
+	| process booking compensationHandler compensationStart compensationDefinition undo startFlow before throwDefinition throwEvent after incoming outgoing execution bookingExecution bookingScope bookingRecord producer activation throwExecution handlerExecution undoExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	booking := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	compensationHandler := CPCompensationSubProcess new identifier: 'bookingCompensation'; yourself.
+	compensationStart := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	compensationStart eventDefinitions add: compensationDefinition.
+	undo := CPTask new identifier: 'undoBooking'; yourself.
+	startFlow := CPSequenceFlow new identifier: 'startUndo'; sourceRef: compensationStart; targetRef: undo; yourself.
+	compensationHandler addFlowElement: compensationStart; addFlowElement: undo; addFlowElement: startFlow.
+	booking addFlowElement: compensationHandler.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; activityRef: booking; waitForCompletion: false; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	process addFlowElement: booking; addFlowElement: before; addFlowElement: throwEvent; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	bookingExecution := execution createActivityExecutionFor: booking.
+	bookingExecution activate.
+	bookingScope := bookingExecution createSubScopeFor: booking.
+	bookingExecution beginCompletion; complete.
+	bookingRecord := (execution availableCompensationRecordsFor: booking) first.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	self assert: throwExecution isCompleted.
+	self assert: bookingRecord isHandling.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	handlerExecution := bookingRecord handlerExecution.
+	self assert: handlerExecution definition == compensationHandler.
+	self assert: handlerExecution scope == bookingScope.
+	self assert: handlerExecution isActive.
+	undoExecution := handlerExecution subScope readyActivityExecutionFor: undo.
+	undoExecution activate; beginCompletion; complete.
+	self assert: (bookingScope canCompleteSubProcessActivity: handlerExecution).
+	bookingScope completeSubProcessActivity: handlerExecution.
+	self assert: bookingRecord isHandled.
+	^ bookingRecord
+]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> invalidCustomCompensationHandlerIsRejectedBeforeMutation [
+	<gtExample>
+	| process booking compensationHandler malformedStart before throwDefinition throwEvent incoming execution bookingExecution bookingRecord producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	booking := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	compensationHandler := CPCompensationSubProcess new identifier: 'bookingCompensation'; yourself.
+	malformedStart := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	compensationHandler addFlowElement: malformedStart.
+	booking addFlowElement: compensationHandler.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; activityRef: booking; waitForCompletion: true; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	process addFlowElement: booking; addFlowElement: before; addFlowElement: throwEvent; addFlowElement: incoming.
+	execution := self executionFor: process.
+	bookingExecution := execution createActivityExecutionFor: booking.
+	bookingExecution activate.
+	bookingExecution createSubScopeFor: booking.
+	bookingExecution beginCompletion; complete.
+	bookingRecord := (execution availableCompensationRecordsFor: booking) first.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	rejected := false.
+	[ execution executeCompensationThrowEvent: throwEvent consuming: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: bookingRecord isAvailable.
+	self assert: bookingRecord isClaimed not.
+	self assert: bookingRecord handlerExecution isNil.
+	self assert: activation isAvailable.
+	^ bookingRecord
+]
