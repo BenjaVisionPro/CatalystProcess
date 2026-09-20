@@ -13,6 +13,8 @@ Class {
 		'scopeItemValuesSnapshot',
 		'thrownOccurrences',
 		'externalInvocation',
+		'messageSubscription',
+		'receivedOccurrence',
 		'completed',
 		'cancelled'
 	],
@@ -380,6 +382,45 @@ CPMultiInstanceActivityExecution >> populateSingleDataOutputFromOccurrence: anOc
 	^ self
 ]
 
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> messageSubscription [
+	^ messageSubscription
+]
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> messageSubscription: aMessageSubscription [
+	messageSubscription := aMessageSubscription
+]
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> receivedOccurrence [
+	^ receivedOccurrence
+]
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> isWaitingForMessage [
+	^ self isActive
+		and: [ receivedOccurrence isNil
+		and: [ messageSubscription notNil
+		and: [ messageSubscription isCancelled not ] ] ]
+]
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> acceptMessageSubscription: aSubscription occurrence: anOccurrence [
+	messageSubscription == aSubscription ifFalse: [
+		self error: 'The Message subscription does not belong to this Multi-Instance Activity instance.' ].
+	^ self scope triggerMultiInstanceReceiveTaskExecution: self with: anOccurrence
+]
+
+{ #category : 'messages' }
+CPMultiInstanceActivityExecution >> acceptReceivedOccurrence: anOccurrence [
+	self isWaitingForMessage ifFalse: [
+		self error: 'Only a waiting Multi-Instance Receive Task instance can accept a message occurrence.' ].
+	receivedOccurrence := anOccurrence.
+	^ anOccurrence
+]
+
 { #category : 'lifecycle' }
 CPMultiInstanceActivityExecution >> isCompleted [
 	^ completed
@@ -411,6 +452,8 @@ CPMultiInstanceActivityExecution >> isActive [
 { #category : 'lifecycle' }
 CPMultiInstanceActivityExecution >> cancel [
 	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Activity instance can be cancelled.' ].
+	(messageSubscription notNil and: [ messageSubscription isWaiting ]) ifTrue: [
+		messageSubscription cancel ].
 	cancelled := true.
 	^ self
 ]

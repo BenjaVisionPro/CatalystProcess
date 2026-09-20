@@ -37,3 +37,11 @@ CPReceiveTaskExecution >> acceptMessageSubscription: aSubscription occurrence: a
 	subscription == aSubscription ifFalse: [ self error: 'The Message subscription does not belong to this Receive Task execution.' ].
 	^ scope triggerReceiveTaskExecution: self with: anOccurrence
 ]
+
+
+{ #category : 'multi-instance' }
+CPReceiveTaskExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
+	super multiInstanceActivityExecutionDidBegin: anInstance.
+	self scope subscribeMultiInstanceReceiveTaskExecution: anInstance.
+	^ anInstance
+]

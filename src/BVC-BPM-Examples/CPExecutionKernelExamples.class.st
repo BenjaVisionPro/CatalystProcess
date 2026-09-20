@@ -6641,3 +6641,88 @@ CPExecutionKernelExamples >> multiInstanceServiceTaskExecutesExternalWorkPerInst
 		'first result'. 'second result' }).
 	^ serviceExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceReceiveTaskWaitsPerInstance [
+	<gtExample>
+	| process message receiveTask loopDataInput loopDataOutput activityOutput outputDataItem outerInputSet outputSet outerOutputSet specification outputAssociation loop execution receiveExecution firstInstance secondInstance firstSubscription secondSubscription ambiguous firstOccurrence secondOccurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'request'; yourself.
+	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
+	loopDataOutput := CPDataOutput new identifier: 'results'; isCollection: true; yourself.
+	activityOutput := CPDataOutput new identifier: 'activityOutput'; yourself.
+	outputDataItem := CPDataOutput new identifier: 'instanceOutput'; yourself.
+	outerInputSet := CPInputSet new dataInputRefs: { loopDataInput }; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { activityOutput }; yourself.
+	outerOutputSet := CPOutputSet new dataOutputRefs: { loopDataOutput }; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput };
+		dataOutputs: { loopDataOutput. activityOutput };
+		inputSets: { outerInputSet };
+		outputSets: { outputSet. outerOutputSet };
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { activityOutput };
+		targetRef: outputDataItem;
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopDataInputRef: loopDataInput;
+		loopDataOutputRef: loopDataOutput;
+		outputDataItem: outputDataItem;
+		yourself.
+	receiveTask := CPReceiveTask new
+		identifier: 'multiReceive';
+		messageRef: message;
+		ioSpecification: specification;
+		dataOutputAssociations: { outputAssociation };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: receiveTask.
+	execution := self executionFor: process.
+	receiveExecution := execution createReceiveTaskExecutionFor: receiveTask.
+	receiveExecution itemValueFor: loopDataInput put: (OrderedCollection withAll: { 'first'. 'second' }).
+	execution activateReceiveTaskExecution: receiveExecution.
+	firstInstance := receiveExecution multiInstanceActivityExecutions first.
+	secondInstance := receiveExecution multiInstanceActivityExecutions second.
+	firstSubscription := firstInstance messageSubscription.
+	secondSubscription := secondInstance messageSubscription.
+	self assert: receiveExecution subscription isNil.
+	self assert: firstSubscription waitingExecution == firstInstance.
+	self assert: secondSubscription waitingExecution == secondInstance.
+	self assert: firstSubscription isWaiting.
+	self assert: secondSubscription isWaiting.
+	self assert: execution waitingMessageSubscriptions size equals: 2.
+	ambiguous := false.
+	[ execution deliverMessageOccurrence: (CPExecutionOccurrence new
+		occurrenceIdentifier: #ambiguousRequest;
+		definition: message;
+		payload: 'ambiguous';
+		yourself) ]
+		on: Error
+		do: [ :error | ambiguous := true ].
+	self assert: ambiguous.
+	firstOccurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #firstRequest;
+		definition: message;
+		payload: 'first result';
+		yourself.
+	firstSubscription deliverOccurrence: firstOccurrence.
+	self assert: firstInstance receivedOccurrence == firstOccurrence.
+	self assert: firstInstance isCompleted.
+	self assert: secondInstance isActive.
+	self assert: receiveExecution isActive.
+	self assert: execution waitingMessageSubscriptions size equals: 1.
+	secondOccurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #secondRequest;
+		definition: message;
+		payload: 'second result';
+		yourself.
+	execution deliverMessageOccurrence: secondOccurrence.
+	self assert: secondInstance receivedOccurrence == secondOccurrence.
+	self assert: secondInstance isCompleted.
+	self assert: receiveExecution isCompleted.
+	self assert: execution waitingMessageSubscriptions isEmpty.
+	self assert: (receiveExecution itemValueFor: loopDataOutput) equals: (OrderedCollection withAll: {
+		'first result'. 'second result' }).
+	^ receiveExecution
+]

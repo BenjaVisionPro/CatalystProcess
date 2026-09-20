@@ -1150,7 +1150,7 @@ CPExecutionScope >> createReceiveTaskExecutionFor: aReceiveTask [
 
 { #category : 'activities - receive' }
 CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
-	| subscription |
+	| subscription loop |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
 		self error: 'The Receive Task execution does not belong to this execution scope.' ].
 	anActivityExecution isReady ifFalse: [
@@ -1159,6 +1159,10 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 		self error: 'A Receive Task requires a Message.' ].
 	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
 	anActivityExecution activate.
+	loop := anActivityExecution definition loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
 	subscription := CPMessageSubscription new
 		waitingExecution: anActivityExecution;
 		message: anActivityExecution definition messageRef;
@@ -1166,6 +1170,49 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 	anActivityExecution subscription: subscription.
 	messageSubscriptions add: subscription.
 	^ anActivityExecution
+]
+
+
+{ #category : 'activities - receive' }
+CPExecutionScope >> subscribeMultiInstanceReceiveTaskExecution: anInstance [
+	| outerExecution subscription |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Receive Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Receive Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Receive Task instance can wait for a Message.' ].
+	anInstance messageSubscription ifNotNil: [
+		self error: 'A Multi-Instance Receive Task instance can have only one Message subscription.' ].
+	subscription := CPMessageSubscription new
+		waitingExecution: anInstance;
+		message: outerExecution definition messageRef;
+		yourself.
+	anInstance messageSubscription: subscription.
+	messageSubscriptions add: subscription.
+	^ subscription
+]
+
+{ #category : 'activities - receive' }
+CPExecutionScope >> triggerMultiInstanceReceiveTaskExecution: anInstance with: anOccurrence [
+	| outerExecution subscription |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Receive Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Receive Task instance does not belong to its outer Activity execution.' ].
+	anInstance isWaitingForMessage ifFalse: [
+		self error: 'Only a waiting Multi-Instance Receive Task instance can accept a message occurrence.' ].
+	subscription := anInstance messageSubscription.
+	anOccurrence definition == subscription message ifFalse: [
+		self error: 'The occurrence does not carry the Message awaited by this Multi-Instance Receive Task instance.' ].
+	self acceptOccurrence: anOccurrence.
+	anInstance acceptReceivedOccurrence: anOccurrence.
+	subscription triggerWith: anOccurrence.
+	anInstance populateSingleDataOutputFromOccurrence: anOccurrence.
+	anInstance complete.
+	^ anInstance
 ]
 
 { #category : 'activities - receive' }

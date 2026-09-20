@@ -575,7 +575,13 @@ CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
 			self error: 'A Multi-Instance Activity instance has no available InputSet.' ] ].
 	definition isSubProcess ifTrue: [
 		instance createSubScopeFor: definition ].
+	self multiInstanceActivityExecutionDidBegin: instance.
 	^ instance
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
+	^ anInstance
 ]
 
 
