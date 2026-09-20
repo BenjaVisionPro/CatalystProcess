@@ -6363,7 +6363,7 @@ CPExecutionKernelExamples >> multiInstanceActivityLocalDataIsOwnedPerInstance [
 	self assert: (secondInstance itemValueFor: activityOutput) equals: 'second output'.
 	self assert: (firstInstance itemValueFor: activityProperty) equals: 'first property'.
 	self assert: (secondInstance itemValueFor: activityProperty) equals: 'second property'.
-	self assert: taskExecution ownsItemValueFor: loopDataInput.
+	self assert: (taskExecution ownsItemValueFor: loopDataInput).
 	self assert: (firstInstance ownsItemValueFor: loopDataInput) equals: false.
 	self assert: (secondInstance ownsItemValueFor: loopDataInput) equals: false.
 	^ taskExecution
