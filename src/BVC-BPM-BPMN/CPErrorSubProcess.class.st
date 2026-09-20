@@ -20,3 +20,13 @@ CPErrorSubProcess class >> subProcessTypeIcon [
 CPErrorSubProcess class >> defaultIcon [
 	^ self subProcessTypeIcon
 ]
+
+{ #category : 'testing' }
+CPErrorSubProcess >> isErrorEventSubProcess [
+	^ true
+]
+
+{ #category : 'testing' }
+CPErrorSubProcess >> isEventSubProcess [
+	^ true
+]

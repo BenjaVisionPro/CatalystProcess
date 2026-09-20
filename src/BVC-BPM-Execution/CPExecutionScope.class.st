@@ -263,6 +263,8 @@ CPExecutionScope >> readyActivityExecutionFor: anActivity [
 	| available execution |
 	anActivity isForCompensation ifTrue: [
 		self error: 'A Compensation Activity cannot become Ready from normal Sequence Flow.' ].
+	(anActivity isSubProcess and: [ anActivity isEventSubProcess ]) ifTrue: [
+		self error: 'An Event SubProcess cannot become Ready from normal Sequence Flow.' ].
 	available := self availableIncomingFlowActivationsFor: anActivity.
 	available size < anActivity startQuantity ifTrue: [
 		self error: 'The Activity does not have enough incoming control-flow activations to become Ready.' ].
@@ -1082,6 +1084,65 @@ CPExecutionScope >> hasPendingEventWork [
 ]
 
 { #category : 'events - error' }
+CPExecutionScope >> errorStartEventFor: anErrorSubProcess [
+	| startEvents startEvent |
+	startEvents := anErrorSubProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'An Error Event SubProcess requires exactly one Start Event.' ].
+	startEvent := startEvents first.
+	startEvent isErrorStartEvent ifFalse: [
+		self error: 'An Error Event SubProcess requires an Error Start Event.' ].
+	startEvent incoming isEmpty ifFalse: [
+		self error: 'An Error Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	startEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'An Error Start Event requires exactly one Error Event Definition.' ].
+	^ startEvent
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> matchingErrorEventSubProcessFor: anError [
+	| matches |
+	matches := definition flowElements select: [ :each |
+		each isSubProcess and: [
+			each isErrorEventSubProcess and: [
+				| startEvent |
+				startEvent := self errorStartEventFor: each.
+				startEvent eventDefinitions first catchesError: anError ] ] ].
+	matches size > 1 ifTrue: [
+		self error: 'More than one Error Event SubProcess matches the propagated Error in the same execution scope.' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> beginErrorEventSubProcess: anErrorSubProcess occurrence: anOccurrence [
+	| startEvent handlerExecution handlerScope |
+	startEvent := self errorStartEventFor: anErrorSubProcess.
+	(self acceptedOccurrences identityIncludes: anOccurrence) ifFalse: [ self acceptOccurrence: anOccurrence ].
+	owningActivity ifNotNil: [
+		owningActivity isActive ifFalse: [
+			self error: 'An interrupting Error Event SubProcess requires an Active owning Activity.' ].
+		owningActivity beginFailure ].
+	self terminateRemainingWork.
+	handlerExecution := self createActivityExecutionFor: anErrorSubProcess.
+	handlerExecution activate.
+	handlerScope := handlerExecution createSubScopeFor: anErrorSubProcess.
+	handlerScope executeStartEvent: startEvent occurrence: anOccurrence.
+	^ handlerExecution
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> completeErrorEventSubProcessActivity: anActivityExecution [
+	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
+		self error: 'The Error Event SubProcess cannot complete while nested control flow or Activities remain active.' ].
+	anActivityExecution definition isErrorEventSubProcess ifFalse: [
+		self error: 'Only an Error Event SubProcess can complete through error-handler completion.' ].
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	owningActivity ifNotNil: [ owningActivity finishFailure ].
+	^ anActivityExecution
+]
+
+{ #category : 'events - error' }
 CPExecutionScope >> waitingErrorBoundaryExecutionFor: anError attachedTo: anActivityExecution [
 	| matches |
 	matches := eventExecutions select: [ :eachExecution |
@@ -1124,25 +1185,30 @@ CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNes
 
 { #category : 'events - error' }
 CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivation [
-	| definitions errorDefinition thrownError execution boundaryExecution occurrence |
+	| definitions errorDefinition thrownError execution handler occurrence boundaryExecution |
 	definitions := anErrorEndEvent eventDefinitions.
 	definitions size = 1 ifFalse: [
 		self error: 'An Error End Event requires exactly one Error Event Definition.' ].
 	errorDefinition := definitions first.
 	thrownError := errorDefinition error.
 	thrownError ifNil: [ self error: 'An Error End Event requires an Error reference.' ].
-	parentScope ifNil: [ self error: 'Uncaught Process-level Error End Event execution is not implemented yet.' ].
-	boundaryExecution := parentScope
-		errorBoundaryExecutionFor: thrownError
-		propagatingFrom: self.
-	boundaryExecution ifNil: [
-		self error: 'No matching Error Boundary Event is waiting in the containing execution hierarchy.' ].
+	handler := self matchingErrorEventSubProcessFor: thrownError.
+	handler ifNil: [
+		parentScope ifNil: [ self error: 'Uncaught Process-level Error End Event execution is not implemented yet.' ].
+		boundaryExecution := parentScope
+			errorBoundaryExecutionFor: thrownError
+			propagatingFrom: self.
+		boundaryExecution ifNil: [
+			self error: 'No matching Error Event SubProcess or Error Boundary Event is available in the containing execution hierarchy.' ] ].
 	execution := self executeEndEvent: anErrorEndEvent consuming: anActivation.
-	self terminateRemainingWork.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: UUID new asString;
 		definition: thrownError;
 		yourself.
+	handler ifNotNil: [
+		self beginErrorEventSubProcess: handler occurrence: occurrence.
+		^ execution ].
+	self terminateRemainingWork.
 	parentScope
 		propagateErrorOccurrence: occurrence
 		fromNestedScope: self

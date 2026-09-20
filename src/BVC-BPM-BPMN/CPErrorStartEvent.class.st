@@ -14,3 +14,8 @@ CPErrorStartEvent class >> eventTypeLabel [
 CPErrorStartEvent class >> eventTypeIcon [
 	^ #circleExclamation
 ]
+
+{ #category : 'testing' }
+CPErrorStartEvent >> isErrorStartEvent [
+	^ true
+]

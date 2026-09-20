@@ -198,3 +198,13 @@ CPSubProcess >> usesDefaultCompensationHandler [
 CPSubProcess >> hasEmbeddedCompensationHandler [
 	^ self usesDefaultCompensationHandler or: [ self hasCustomCompensationHandler ]
 ]
+
+{ #category : 'testing' }
+CPSubProcess >> isErrorEventSubProcess [
+	^ false
+]
+
+{ #category : 'testing' }
+CPSubProcess >> isEventSubProcess [
+	^ false
+]

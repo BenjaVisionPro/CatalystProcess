@@ -3227,3 +3227,107 @@ CPExecutionKernelExamples >> errorEventSubProcessHasInterruptingErrorStart [
 	self assert: (CPSubProcess subProcessTypes includes: CPErrorSubProcess).
 	^ handler
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> matchingErrorEventSubProcessInterruptsExactScope [
+	<gtExample>
+	| process subProcess handler start startDefinition thrownError errorEnd errorDefinition before flow execution subExecution childScope producer activation handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	thrownError := CPError new identifier: 'bookingError'; yourself.
+	handler := CPErrorSubProcess new identifier: 'errorHandler'; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	startDefinition := CPErrorEventDefinition new identifier: 'catchBookingError'; error: thrownError; yourself.
+	start eventDefinitions add: startDefinition.
+	handler addFlowElement: start.
+	errorEnd := CPErrorEndEvent new identifier: 'throwError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwBookingError'; error: thrownError; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	before := CPTask new identifier: 'beforeError'; yourself.
+	flow := CPSequenceFlow new identifier: 'toError'; sourceRef: before; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: handler; addFlowElement: before; addFlowElement: errorEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	childScope executeErrorEndEvent: errorEnd consuming: activation.
+	handlerExecution := childScope activityExecutions detect: [ :each | each definition == handler ].
+	self assert: subExecution state class equals: CPActivityFailingState.
+	self assert: producer state class equals: CPActivityTerminatedState.
+	self assert: handlerExecution isActive.
+	self assert: handlerExecution subScope notNil.
+	self assert: activation isAvailable not.
+	self assert: handlerExecution subScope eventExecutions size equals: 1.
+	self assert: handlerExecution subScope eventExecutions first definition == start.
+	self assert: handlerExecution subScope eventExecutions first occurrence definition == thrownError.
+	childScope completeErrorEventSubProcessActivity: handlerExecution.
+	self assert: handlerExecution isCompleted.
+	self assert: subExecution state class equals: CPActivityFailedState.
+	^ handlerExecution
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> malformedMatchingErrorEventSubProcessIsRejectedBeforeMutation [
+	<gtExample>
+	| process subProcess handler start firstDefinition secondDefinition thrownError errorEnd errorDefinition before flow execution subExecution childScope producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	thrownError := CPError new identifier: 'bookingError'; yourself.
+	handler := CPErrorSubProcess new identifier: 'errorHandler'; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	firstDefinition := CPErrorEventDefinition new identifier: 'firstCatch'; error: thrownError; yourself.
+	secondDefinition := CPErrorEventDefinition new identifier: 'secondCatch'; error: thrownError; yourself.
+	start eventDefinitions add: firstDefinition; add: secondDefinition.
+	handler addFlowElement: start.
+	errorEnd := CPErrorEndEvent new identifier: 'throwError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwBookingError'; error: thrownError; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	before := CPTask new identifier: 'beforeError'; yourself.
+	flow := CPSequenceFlow new identifier: 'toError'; sourceRef: before; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: handler; addFlowElement: before; addFlowElement: errorEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	rejected := false.
+	[ childScope executeErrorEndEvent: errorEnd consuming: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: subExecution isActive.
+	self assert: producer isActive.
+	self assert: activation isAvailable.
+	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == handler ]) not.
+	^ subExecution
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventSubProcessIsOutsideNormalFlow [
+	<gtExample>
+	| process handler source flow execution producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	handler := CPErrorSubProcess new identifier: 'errorHandler'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	flow := CPSequenceFlow new identifier: 'invalidNormalFlow'; sourceRef: source; targetRef: handler; yourself.
+	process addFlowElement: source; addFlowElement: handler; addFlowElement: flow.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: source.
+	producer activate.
+	activation := execution activateSequenceFlow: flow producedBy: producer.
+	rejected := false.
+	[ execution readyActivityExecutionFor: handler ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: activation isAvailable.
+	self assert: (execution activityExecutions anySatisfy: [ :each | each definition == handler ]) not.
+	^ handler
+]
