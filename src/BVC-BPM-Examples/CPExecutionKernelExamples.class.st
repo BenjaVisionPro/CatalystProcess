@@ -2017,3 +2017,45 @@ CPExecutionKernelExamples >> errorEndEventPropagatesToEnclosingBoundaryEvent [
 	self assert: (outerScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
 	^ boundaryExecution
 ]
+
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> ambiguousErrorBoundaryMatchIsRejectedBeforeMutation [
+	<gtExample>
+	| process subProcess innerStart errorEnd innerFlow error errorDefinition firstBoundary secondBoundary firstDefinition secondDefinition execution subProcessExecution childScope firstBoundaryExecution secondBoundaryExecution endActivation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'paymentError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: innerStart.
+	subProcess addFlowElement: errorEnd.
+	subProcess addFlowElement: innerFlow.
+	firstDefinition := CPErrorEventDefinition new identifier: 'firstCaughtError'; error: error; yourself.
+	firstBoundary := CPBoundaryEvent new identifier: 'firstErrorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	firstBoundary eventDefinitions add: firstDefinition.
+	secondDefinition := CPErrorEventDefinition new identifier: 'secondCaughtError'; error: error; yourself.
+	secondBoundary := CPBoundaryEvent new identifier: 'secondErrorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	secondBoundary eventDefinitions add: secondDefinition.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	firstBoundaryExecution := execution beginBoundaryEvent: firstBoundary attachedTo: subProcessExecution.
+	secondBoundaryExecution := execution beginBoundaryEvent: secondBoundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	rejected := false.
+	[ childScope executeErrorEndEvent: errorEnd consuming: endActivation ]
+		on: Error
+		do: [ :caught | rejected := true ].
+	self assert: rejected.
+	self assert: endActivation isAvailable.
+	self assert: subProcessExecution isActive.
+	self assert: firstBoundaryExecution isWaiting.
+	self assert: secondBoundaryExecution isWaiting.
+	self assert: childScope acceptedOccurrences isEmpty.
+	^ execution
+]

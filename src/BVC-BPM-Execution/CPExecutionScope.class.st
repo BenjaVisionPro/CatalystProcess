@@ -962,13 +962,15 @@ CPExecutionScope >> hasPendingEventWork [
 
 { #category : 'events - error' }
 CPExecutionScope >> waitingErrorBoundaryExecutionFor: anError attachedTo: anActivityExecution [
-	^ eventExecutions
-		detect: [ :eachExecution |
-			eachExecution isBoundaryEventExecution
-				and: [ eachExecution isWaiting
+	| matches |
+	matches := eventExecutions select: [ :eachExecution |
+		eachExecution isBoundaryEventExecution
+			and: [ eachExecution isWaiting
 				and: [ eachExecution attachedActivityExecution == anActivityExecution
-				and: [ eachExecution definition catchesError: anError ] ] ] ]
-		ifNone: [ nil ]
+					and: [ eachExecution definition catchesError: anError ] ] ] ].
+	matches size > 1 ifTrue: [
+		self error: 'More than one waiting Error Boundary Event matches the propagated Error on the same Activity execution.' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
 ]
 
 { #category : 'events - error' }
