@@ -2733,6 +2733,60 @@ CPExecutionKernelExamples >> defaultCompensationOrdersActualSequenceFlowConsumer
 ]
 
 { #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> defaultCompensationOrdersBoundaryFlowConsumerBeforeAttachedActivity [
+	<gtExample>
+	| process firstWork firstDefinition firstCompensationBoundary noticeBoundary secondWork secondDefinition secondCompensationBoundary flow execution firstExecution noticeExecution occurrence activation secondExecution records ready |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstWork := CPTask new identifier: 'firstWork'; yourself.
+	firstDefinition := CPCompensationEventDefinition new identifier: 'firstCompensation'; yourself.
+	firstCompensationBoundary := CPBoundaryEvent new
+		identifier: 'firstCompensationBoundary';
+		attachedToRef: firstWork;
+		cancelActivity: false;
+		yourself.
+	firstCompensationBoundary eventDefinitions add: firstDefinition.
+	noticeBoundary := CPBoundaryEvent new
+		identifier: 'noticeBoundary';
+		attachedToRef: firstWork;
+		cancelActivity: false;
+		yourself.
+	secondWork := CPTask new identifier: 'secondWork'; yourself.
+	secondDefinition := CPCompensationEventDefinition new identifier: 'secondCompensation'; yourself.
+	secondCompensationBoundary := CPBoundaryEvent new
+		identifier: 'secondCompensationBoundary';
+		attachedToRef: secondWork;
+		cancelActivity: false;
+		yourself.
+	secondCompensationBoundary eventDefinitions add: secondDefinition.
+	flow := CPSequenceFlow new identifier: 'noticeToSecond'; sourceRef: noticeBoundary; targetRef: secondWork; yourself.
+	{ firstWork. secondWork. flow } do: [ :each | process addFlowElement: each ].
+	execution := self executionFor: process.
+	firstExecution := execution createActivityExecutionFor: firstWork.
+	firstExecution activate.
+	noticeExecution := execution beginBoundaryEvent: noticeBoundary attachedTo: firstExecution.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #notice1;
+		definition: noticeBoundary;
+		yourself.
+	execution triggerBoundaryEventExecution: noticeExecution with: occurrence.
+	activation := (execution availableFlowActivationsOn: flow) first.
+	secondExecution := execution readyActivityExecutionFor: secondWork.
+	secondExecution activate; beginCompletion; complete.
+	firstExecution beginCompletion; complete.
+	records := execution defaultCompensationRecords.
+	ready := execution readyDefaultCompensationRecordsIn: records.
+	self assert: noticeExecution attachedActivityExecution == firstExecution.
+	self assert: activation producedBy == noticeExecution.
+	self assert: activation consumedBy == secondExecution.
+	self assert: records size equals: 2.
+	self assert: records first activityExecution == secondExecution.
+	self assert: records second activityExecution == firstExecution.
+	self assert: ready size equals: 1.
+	self assert: ready first activityExecution == secondExecution.
+	^ records
+]
+
+{ #category : 'examples - compensation events' }
 CPExecutionKernelExamples >> asynchronousScopeCompensationBeginsHandlersInReverseCompletionOrderAndContinues [
 	<gtExample>
 	| process firstWork firstBoundary firstDefinition firstHandler firstAssociation secondWork secondBoundary secondDefinition secondHandler secondAssociation before throwDefinition throwEvent after incoming outgoing execution firstExecution secondExecution ordered producer activation throwExecution |

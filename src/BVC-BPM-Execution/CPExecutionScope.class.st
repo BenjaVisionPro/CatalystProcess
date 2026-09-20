@@ -1504,9 +1504,30 @@ CPExecutionScope >> allFlowActivations [
 ]
 
 { #category : 'activities - compensation' }
+CPExecutionScope >> allBoundaryEventExecutions [
+	| executions |
+	executions := eventExecutions
+		select: [ :eachExecution | eachExecution isBoundaryEventExecution ]
+		thenCollect: [ :eachExecution | eachExecution ].
+	childScopes do: [ :eachScope |
+		executions addAll: eachScope allBoundaryEventExecutions ].
+	^ executions
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> flowActivation: anActivation wasProducedByActivityExecution: anActivityExecution [
+	anActivation producedBy == anActivityExecution ifTrue: [ ^ true ].
+	^ self allBoundaryEventExecutions anySatisfy: [ :eachExecution |
+		eachExecution == anActivation producedBy
+			and: [ eachExecution attachedActivityExecution == anActivityExecution ] ]
+]
+
+{ #category : 'activities - compensation' }
 CPExecutionScope >> compensationRecord: aRecord mustPrecede: anotherRecord [
 	^ self allFlowActivations anySatisfy: [ :activation |
-		activation producedBy == anotherRecord activityExecution
+		(self
+			flowActivation: activation
+			wasProducedByActivityExecution: anotherRecord activityExecution)
 			and: [ activation consumedBy == aRecord activityExecution ] ]
 ]
 
