@@ -261,6 +261,8 @@ CPExecutionScope >> canReadyActivity: anActivity [
 { #category : 'control flow' }
 CPExecutionScope >> readyActivityExecutionFor: anActivity [
 	| available execution |
+	anActivity isForCompensation ifTrue: [
+		self error: 'A Compensation Activity cannot become Ready from normal Sequence Flow.' ].
 	available := self availableIncomingFlowActivationsFor: anActivity.
 	available size < anActivity startQuantity ifTrue: [
 		self error: 'The Activity does not have enough incoming control-flow activations to become Ready.' ].
@@ -707,7 +709,7 @@ CPExecutionScope >> activateSubProcessExecution: anActivityExecution [
 { #category : 'activities - sub-process' }
 CPExecutionScope >> activateImplicitSubProcessStart [
 	definition flowElements do: [ :each |
-		(each incoming isEmpty and: [ each isActivity ]) ifTrue: [
+		(each incoming isEmpty and: [ each isActivity and: [ each isForCompensation not ] ]) ifTrue: [
 			| activation |
 			activation := CPSequenceFlowActivation new
 				definition: nil;

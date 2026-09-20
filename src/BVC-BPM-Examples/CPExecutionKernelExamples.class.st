@@ -2888,3 +2888,33 @@ CPExecutionKernelExamples >> compensationEndEventWaitsForScopeCompensationBefore
 	self assert: execution isCompleted.
 	^ endExecution
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationActivityIsOutsideNormalFlow [
+	<gtExample>
+	| process before handler incoming execution producer activation rejected subProcess subExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	handler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	incoming := CPSequenceFlow new identifier: 'toHandler'; sourceRef: before; targetRef: handler; yourself.
+	{ before. handler. incoming } do: [ :each | process addFlowElement: each ].
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	producer activate; beginCompletion; complete.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	rejected := false.
+	[ execution readyActivityExecutionFor: handler ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: activation isAvailable.
+	self assert: (execution activityExecutions noneSatisfy: [ :each | each definition == handler ]).
+
+	subProcess := CPNoneSubProcess new identifier: 'subProcess'; yourself.
+	subProcess addFlowElement: (CPTask new identifier: 'nestedUndo'; isForCompensation: true; yourself).
+	subExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subExecution.
+	self assert: subExecution subScope flowActivations isEmpty.
+	^ handler
+]
