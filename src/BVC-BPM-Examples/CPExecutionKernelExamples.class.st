@@ -2939,3 +2939,17 @@ CPExecutionKernelExamples >> compensationEventSubProcessIsExplicitCompensationHa
 	self assert: (CPStartEvent startEventTypes includes: CPCompensationStartEvent).
 	^ handler
 ]
+
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> subProcessCanDeclareImplicitDefaultCompensation [
+	<gtExample>
+	| subProcess |
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	self assert: subProcess compensable not.
+	subProcess compensable: true.
+	self assert: subProcess compensable.
+	self assert: subProcess isForCompensation not.
+	^ subProcess
+]

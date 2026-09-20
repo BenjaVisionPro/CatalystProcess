@@ -7,7 +7,8 @@ Class {
 	#instVars : [
 		'flowElements',
 		'laneSets',
-		'artifacts'
+		'artifacts',
+		'compensable'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -23,7 +24,8 @@ CPSubProcess >> initialize [
 	super initialize.
 	flowElements := OrderedCollection new.
 	laneSets := OrderedCollection new.
-	artifacts := OrderedCollection new
+	artifacts := OrderedCollection new.
+	compensable := false
 ]
 
 { #category : 'accessing' }
@@ -156,4 +158,26 @@ CPSubProcess >> removeArtifact: anArtifact [
 CPSubProcess >> artifactsDescription [
 	<magritteDescription>
 	^ MAToManyRelationDescription new accessor: #artifacts; classes: { CPArtifact }; reference: CPArtifact new labelDescription; label: 'Artifacts'; priority: 108; group: 'Relations'; beOrdered; yourself
+]
+
+
+{ #category : 'accessing' }
+CPSubProcess >> compensable [
+	^ compensable
+]
+
+{ #category : 'accessing' }
+CPSubProcess >> compensable: aBoolean [
+	compensable := aBoolean
+]
+
+{ #category : 'descriptions' }
+CPSubProcess >> compensableDescription [
+	<magritteDescription>
+	^ MABooleanDescription new
+		accessor: #compensable;
+		label: 'Compensable';
+		priority: 195;
+		group: 'Execution';
+		yourself
 ]
