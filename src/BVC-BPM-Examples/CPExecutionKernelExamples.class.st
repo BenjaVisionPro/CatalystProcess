@@ -6444,3 +6444,113 @@ CPExecutionKernelExamples >> multiInstanceDataAssociationsExecutePerInstance [
 		'first result'. 'second result' }).
 	^ taskExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceLoopDataOutputIsNotPublishedAfterEarlyCompletion [
+	<gtExample>
+	| process target task loopDataOutput outputDataItem inputSet outputSet specification outputAssociation condition loop environment execution taskExecution firstInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	target := CPDataObject new identifier: 'publishedResults'; isCollection: true; yourself.
+	process addFlowElement: target.
+	loopDataOutput := CPDataOutput new identifier: 'results'; isCollection: true; yourself.
+	outputDataItem := CPDataOutput new identifier: 'instanceOutput'; yourself.
+	inputSet := CPInputSet new yourself.
+	outputSet := CPOutputSet new
+		dataOutputRefs: { loopDataOutput };
+		optionalOutputRefs: { loopDataOutput };
+		yourself.
+	specification := CPInputOutputSpecification new
+		dataOutputs: { loopDataOutput };
+		inputSets: { inputSet };
+		outputSets: { outputSet };
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { loopDataOutput };
+		targetRef: target;
+		yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		loopDataOutputRef: loopDataOutput;
+		outputDataItem: outputDataItem;
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		dataOutputAssociations: { outputAssociation };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 2;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	firstInstance itemValueFor: outputDataItem put: 'first result'.
+	firstInstance complete.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution multiInstanceCompletedCount equals: 1.
+	self assert: taskExecution multiInstanceCancelledCount equals: 1.
+	self assert: (taskExecution hasItemValueFor: loopDataOutput).
+	self assert: (execution hasItemValueFor: target) equals: false.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceLoopDataOutputPublishesAfterAllItemsAreWritten [
+	<gtExample>
+	| process target task loopDataOutput outputDataItem inputSet outputSet specification outputAssociation loop environment execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	target := CPDataObject new identifier: 'publishedResults'; isCollection: true; yourself.
+	process addFlowElement: target.
+	loopDataOutput := CPDataOutput new identifier: 'results'; isCollection: true; yourself.
+	outputDataItem := CPDataOutput new identifier: 'instanceOutput'; yourself.
+	inputSet := CPInputSet new yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { loopDataOutput }; yourself.
+	specification := CPInputOutputSpecification new
+		dataOutputs: { loopDataOutput };
+		inputSets: { inputSet };
+		outputSets: { outputSet };
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { loopDataOutput };
+		targetRef: target;
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		loopDataOutputRef: loopDataOutput;
+		outputDataItem: outputDataItem;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		dataOutputAssociations: { outputAssociation };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 2;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	firstInstance itemValueFor: outputDataItem put: 'first result'.
+	secondInstance itemValueFor: outputDataItem put: 'second result'.
+	firstInstance complete.
+	self assert: taskExecution isActive.
+	self assert: (execution hasItemValueFor: target) equals: false.
+	secondInstance complete.
+	self assert: taskExecution isCompleted.
+	self assert: (execution itemValueFor: target) equals: (OrderedCollection withAll: {
+		'first result'. 'second result' }).
+	^ taskExecution
+]
+

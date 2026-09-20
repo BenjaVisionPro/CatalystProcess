@@ -172,12 +172,25 @@ CPActivityExecution >> dataOutputAssociationsSourcedBy: aDataOutput [
 ]
 
 { #category : 'data associations' }
+CPActivityExecution >> outputItemAvailableForPublication: aDataOutput [
+	| loop |
+	(self hasItemValueFor: aDataOutput) ifFalse: [ ^ false ].
+	loop := definition loopCharacteristics.
+	(loop notNil
+		and: [ loop isMultiInstance
+		and: [ loop loopDataOutputRef == aDataOutput ] ]) ifTrue: [
+		^ multiInstanceCardinality notNil
+			and: [ self multiInstanceCompletedCount = multiInstanceCardinality ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
 CPActivityExecution >> outputSetIsAvailable: anOutputSet [
 	| requiredOutputs |
 	requiredOutputs := anOutputSet dataOutputRefs reject: [ :each |
 		anOutputSet optionalOutputRefs identityIncludes: each ].
 	^ requiredOutputs allSatisfy: [ :eachOutput |
-		self hasItemValueFor: eachOutput ]
+		self outputItemAvailableForPublication: eachOutput ]
 ]
 
 { #category : 'data associations' }
@@ -208,7 +221,7 @@ CPActivityExecution >> prepareOutputs [
 		self error: 'The selected OutputSet is not compatible with the InputSet used to start the Activity.' ].
 	selectedOutputSet := outputSet.
 	outputSet dataOutputRefs do: [ :eachOutput |
-		(self hasItemValueFor: eachOutput) ifTrue: [
+		(self outputItemAvailableForPublication: eachOutput) ifTrue: [
 			associations := self dataOutputAssociationsSourcedBy: eachOutput.
 			associations do: [ :each | self executeDataAssociation: each ] ] ].
 	^ true
