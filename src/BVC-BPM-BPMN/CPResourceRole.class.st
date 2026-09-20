@@ -45,3 +45,13 @@ CPResourceRole >> usesResourceAssignmentExpression [
 CPResourceRole >> usesResourceReference [
 	^ resourceRef notNil
 ]
+
+{ #category : 'validation' }
+CPResourceRole >> hasValidResourceParameterBindings [
+	resourceRef ifNil: [ ^ resourceParameterBindings isEmpty ].
+	^ resourceParameterBindings allSatisfy: [ :binding |
+		binding parameterRef notNil
+			and: [ resourceRef resourceParameters identityIncludes: binding parameterRef
+			and: [ binding expression notNil ] ] ]
+]
+

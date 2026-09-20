@@ -7140,3 +7140,66 @@ CPExecutionKernelExamples >> userTaskParameterizedResourceAssignmentEvaluatesBin
     self assert: workItem potentialOwners equals: (OrderedCollection with: 'regional-manager@example.test').
     ^ workItem
 ]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> resourceParameterBindingMustReferenceParameterDefinedByResource [
+    <gtExample>
+    | process task resource definedParameter foreignParameter binding potentialOwner environment execution taskExecution rejectedActivation |
+    process := CPProcess new identifier: 'process'; yourself.
+    resource := CPResource new identifier: 'regionalManagers'; yourself.
+    definedParameter := CPResourceParameter new identifier: 'region'; yourself.
+    foreignParameter := CPResourceParameter new identifier: 'department'; yourself.
+    resource addResourceParameter: definedParameter.
+    binding := CPResourceParameterBinding new
+        parameterRef: foreignParameter;
+        expression: (CPExpression new identifier: 'departmentExpression'; yourself);
+        yourself.
+    potentialOwner := CPPotentialOwner new
+        identifier: 'approvers';
+        resourceRef: resource;
+        resourceParameterBindings: { binding };
+        yourself.
+    task := CPUserTask new identifier: 'approve'; resources: { potentialOwner }; yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    rejectedActivation := false.
+    [ execution activateUserTaskExecution: taskExecution ]
+        on: Error
+        do: [ :error | rejectedActivation := true ].
+    self assert: rejectedActivation.
+    self assert: taskExecution isReady.
+    self assert: environment lastResolvedResource isNil.
+    ^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> resourceParameterBindingRequiresExpression [
+    <gtExample>
+    | process task resource parameter binding potentialOwner environment execution taskExecution rejectedActivation |
+    process := CPProcess new identifier: 'process'; yourself.
+    resource := CPResource new identifier: 'regionalManagers'; yourself.
+    parameter := CPResourceParameter new identifier: 'region'; yourself.
+    resource addResourceParameter: parameter.
+    binding := CPResourceParameterBinding new parameterRef: parameter; yourself.
+    potentialOwner := CPPotentialOwner new
+        identifier: 'approvers';
+        resourceRef: resource;
+        resourceParameterBindings: { binding };
+        yourself.
+    task := CPUserTask new identifier: 'approve'; resources: { potentialOwner }; yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    rejectedActivation := false.
+    [ execution activateUserTaskExecution: taskExecution ]
+        on: Error
+        do: [ :error | rejectedActivation := true ].
+    self assert: rejectedActivation.
+    self assert: taskExecution isReady.
+    self assert: environment lastResolvedResource isNil.
+    ^ taskExecution
+]
+

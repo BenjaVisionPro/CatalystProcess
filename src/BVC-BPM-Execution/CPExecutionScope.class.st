@@ -2512,6 +2512,8 @@ CPExecutionScope >> resourcesForRole: aResourceRole activityExecution: anActivit
 	| assignmentExpression parameterValues |
 	aResourceRole hasValidAssignment ifFalse: [
 		self error: 'A ResourceRole must use either a Resource reference or a ResourceAssignmentExpression, and parameter bindings require a Resource reference.' ].
+	aResourceRole hasValidResourceParameterBindings ifFalse: [
+		self error: 'Each ResourceParameterBinding must reference a parameter defined by the Resource and must contain an Expression.' ].
 	aResourceRole usesResourceAssignmentExpression ifTrue: [
 		assignmentExpression := aResourceRole resourceAssignmentExpression expression.
 		assignmentExpression ifNil: [ self error: 'A ResourceAssignmentExpression requires an Expression.' ].
