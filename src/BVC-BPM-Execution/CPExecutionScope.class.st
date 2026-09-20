@@ -166,6 +166,24 @@ CPExecutionScope >> allWaitingSignalSubscriptionsFor: aSignal [
 	^ self allWaitingSignalSubscriptions select: [ :each | each signal == aSignal ]
 ]
 
+{ #category : 'signals' }
+CPExecutionScope >> triggerSignalIntermediateCatchEventExecution: anEventExecution withAcceptedOccurrence: anOccurrence [
+	| subscription |
+	(eventExecutions identityIncludes: anEventExecution) ifFalse: [
+		self error: 'The Signal Intermediate Catch Event execution does not belong to this execution scope.' ].
+	anEventExecution isWaiting ifFalse: [
+		self error: 'Only a waiting Signal Intermediate Catch Event can accept an occurrence.' ].
+	subscription := anEventExecution subscription.
+	subscription ifNil: [ self error: 'The Signal Intermediate Catch Event has no Signal subscription.' ].
+	anOccurrence definition == subscription signal ifFalse: [
+		self error: 'The occurrence does not match this Signal subscription.' ].
+	(self processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
+		self error: 'A broadcast Signal occurrence must be accepted by the Process execution before delivery.' ].
+	subscription triggerWith: anOccurrence.
+	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ anEventExecution
+]
+
 { #category : 'accessing' }
 CPExecutionScope >> flowActivations [ ^ flowActivations ]
 
@@ -259,6 +277,13 @@ CPExecutionScope >> hasAcceptedOccurrenceIdentifiedByAnywhere: anIdentifier [
 	(self hasAcceptedOccurrenceIdentifiedBy: anIdentifier) ifTrue: [ ^ true ].
 	^ childScopes anySatisfy: [ :eachScope |
 		eachScope hasAcceptedOccurrenceIdentifiedByAnywhere: anIdentifier ]
+]
+
+{ #category : 'occurrences' }
+CPExecutionScope >> hasAcceptedOccurrenceAnywhere: anOccurrence [
+	(acceptedOccurrences identityIncludes: anOccurrence) ifTrue: [ ^ true ].
+	^ childScopes anySatisfy: [ :eachScope |
+		eachScope hasAcceptedOccurrenceAnywhere: anOccurrence ]
 ]
 
 { #category : 'occurrences' }

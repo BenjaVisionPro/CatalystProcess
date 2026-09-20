@@ -132,3 +132,16 @@ CPProcessExecution >> startWhenConditionSatisfied [
 	started := true.
 	^ self executeStartEvent: matchingStartEvents first occurrence: nil
 ]
+
+
+{ #category : 'signals' }
+CPProcessExecution >> deliverSignalOccurrence: anOccurrence [
+	| matches |
+	anOccurrence ifNil: [ self error: 'Signal delivery requires an occurrence.' ].
+	matches := self allWaitingSignalSubscriptionsFor: anOccurrence definition.
+	matches isEmpty ifTrue: [
+		self error: 'No waiting Signal subscription matches this occurrence.' ].
+	self acceptOccurrence: anOccurrence.
+	matches do: [ :each | each deliverAcceptedOccurrence: anOccurrence ].
+	^ matches
+]

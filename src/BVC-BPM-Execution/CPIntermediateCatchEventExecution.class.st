@@ -21,8 +21,8 @@ CPIntermediateCatchEventExecution >> isTriggered [ ^ waiting not ]
 { #category : 'occurrences' }
 CPIntermediateCatchEventExecution >> triggerWithAcceptedOccurrence: anOccurrence [
 	waiting ifFalse: [ self error: 'This Intermediate Catch Event has already been triggered.' ].
-	(self scope acceptedOccurrences identityIncludes: anOccurrence) ifFalse: [
-		self error: 'The occurrence must be accepted by the execution scope before it can trigger the Intermediate Catch Event.' ].
+	(self scope processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
+		self error: 'The occurrence must be accepted by the Process execution before it can trigger the Intermediate Catch Event.' ].
 	self occurrence: anOccurrence.
 	waiting := false.
 	self definition outgoing do: [ :eachFlow |
@@ -56,4 +56,10 @@ CPIntermediateCatchEventExecution >> acceptTimerSubscription: aSubscription occu
 CPIntermediateCatchEventExecution >> acceptSignalSubscription: aSubscription occurrence: anOccurrence [
 	subscription == aSubscription ifFalse: [ self error: 'The Signal subscription does not belong to this Intermediate Catch Event execution.' ].
 	^ self scope triggerSignalIntermediateCatchEventExecution: self with: anOccurrence
+]
+
+{ #category : 'signals' }
+CPIntermediateCatchEventExecution >> acceptSignalSubscription: aSubscription acceptedOccurrence: anOccurrence [
+	subscription == aSubscription ifFalse: [ self error: 'The Signal subscription does not belong to this Intermediate Catch Event execution.' ].
+	^ self scope triggerSignalIntermediateCatchEventExecution: self withAcceptedOccurrence: anOccurrence
 ]

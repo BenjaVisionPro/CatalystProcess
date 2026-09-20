@@ -1901,3 +1901,42 @@ CPExecutionKernelExamples >> signalIntermediateCatchEventWaitingExecution [
 	self assert: eventExecution isWaiting.
 	^ eventExecution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> signalBroadcastDeliversOneOccurrenceToAllWaitingSubscriptions [
+	<gtExample>
+	| process beforeOne beforeTwo catchOne catchTwo afterOne afterTwo signal definition inOne inTwo outOne outTwo execution producerOne producerTwo activationOne activationTwo eventOne eventTwo occurrence delivered |
+	process := CPProcess new identifier: 'process'; yourself.
+	beforeOne := CPTask new identifier: 'beforeOne'; yourself.
+	beforeTwo := CPTask new identifier: 'beforeTwo'; yourself.
+	signal := CPSignal new identifier: 'ready'; yourself.
+	definition := CPSignalEventDefinition new identifier: 'readyDefinition'; signalRef: signal; yourself.
+	catchOne := CPSignalIntermediateEvent new identifier: 'catchOne'; eventDefinitions: { definition } asOrderedCollection; yourself.
+	catchTwo := CPSignalIntermediateEvent new identifier: 'catchTwo'; eventDefinitions: { definition } asOrderedCollection; yourself.
+	afterOne := CPTask new identifier: 'afterOne'; yourself.
+	afterTwo := CPTask new identifier: 'afterTwo'; yourself.
+	inOne := CPSequenceFlow new identifier: 'inOne'; sourceRef: beforeOne; targetRef: catchOne; yourself.
+	inTwo := CPSequenceFlow new identifier: 'inTwo'; sourceRef: beforeTwo; targetRef: catchTwo; yourself.
+	outOne := CPSequenceFlow new identifier: 'outOne'; sourceRef: catchOne; targetRef: afterOne; yourself.
+	outTwo := CPSequenceFlow new identifier: 'outTwo'; sourceRef: catchTwo; targetRef: afterTwo; yourself.
+	{ beforeOne. beforeTwo. catchOne. catchTwo. afterOne. afterTwo. inOne. inTwo. outOne. outTwo } do: [ :each | process addFlowElement: each ].
+	execution := self executionFor: process.
+	producerOne := execution createActivityExecutionFor: beforeOne.
+	producerTwo := execution createActivityExecutionFor: beforeTwo.
+	activationOne := execution activateSequenceFlow: inOne producedBy: producerOne.
+	activationTwo := execution activateSequenceFlow: inTwo producedBy: producerTwo.
+	eventOne := execution beginSignalIntermediateCatchEvent: catchOne consuming: activationOne.
+	eventTwo := execution beginSignalIntermediateCatchEvent: catchTwo consuming: activationTwo.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #broadcastReady1; definition: signal; yourself.
+	delivered := execution deliverSignalOccurrence: occurrence.
+	self assert: delivered size equals: 2.
+	self assert: eventOne isTriggered.
+	self assert: eventTwo isTriggered.
+	self assert: eventOne occurrence == occurrence.
+	self assert: eventTwo occurrence == occurrence.
+	self assert: (execution acceptedOccurrences occurrencesOf: occurrence) equals: 1.
+	self assert: (execution availableFlowActivationsOn: outOne) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: outTwo) size equals: 1.
+	self assert: execution waitingSignalSubscriptions isEmpty.
+	^ execution
+]

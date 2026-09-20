@@ -45,6 +45,13 @@ CPSignalSubscription >> deliverOccurrence: anOccurrence [
 	^ waitingExecution acceptSignalSubscription: self occurrence: anOccurrence
 ]
 
+{ #category : 'signals' }
+CPSignalSubscription >> deliverAcceptedOccurrence: anOccurrence [
+	self isWaiting ifFalse: [ self error: 'A Signal subscription can be delivered only once.' ].
+	anOccurrence definition == signal ifFalse: [ self error: 'The occurrence does not match this Signal subscription.' ].
+	^ waitingExecution acceptSignalSubscription: self acceptedOccurrence: anOccurrence
+]
+
 { #category : 'lifecycle' }
 CPSignalSubscription >> cancel [
 	self isWaiting ifFalse: [ self error: 'Only a waiting Signal subscription can be cancelled.' ].
