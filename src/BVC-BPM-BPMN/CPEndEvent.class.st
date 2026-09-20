@@ -18,7 +18,7 @@ CPEndEvent class >> defaultIcon [
 
 { #category : 'event type' }
 CPEndEvent class >> endEventTypes [
-	^ { CPNoneEndEvent . CPMessageEndEvent . CPErrorEndEvent . CPEscalationEndEvent . CPTerminateEndEvent . CPSignalEndEvent }
+	^ { CPNoneEndEvent . CPMessageEndEvent . CPErrorEndEvent . CPEscalationEndEvent . CPTerminateEndEvent . CPSignalEndEvent . CPCompensationEndEvent }
 ]
 
 { #category : 'event type' }

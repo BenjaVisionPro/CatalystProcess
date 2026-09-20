@@ -19,7 +19,7 @@ CPEvent >> isThrowEvent [ ^ false ]
 
 { #category : 'event type' }
 CPEvent class >> intermediateEventTypes [
-	^ { CPTimerIntermediateEvent. CPMessageCatchIntermediateEvent. CPMessageThrowIntermediateEvent. CPSignalIntermediateEvent. CPSignalThrowIntermediateEvent. CPLinkIntermediateEvent. CPLinkThrowIntermediateEvent }
+	^ { CPTimerIntermediateEvent. CPMessageCatchIntermediateEvent. CPMessageThrowIntermediateEvent. CPSignalIntermediateEvent. CPSignalThrowIntermediateEvent. CPLinkIntermediateEvent. CPLinkThrowIntermediateEvent. CPCompensationThrowIntermediateEvent }
 ]
 
 

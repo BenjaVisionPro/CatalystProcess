@@ -2297,3 +2297,28 @@ CPExecutionKernelExamples >> escalationEndEventIsCaughtByInterruptingBoundaryEve
 	self assert: (childScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
 	^ boundaryExecution
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationEventFamilyIsExplicitlyModelled [
+	<gtExample>
+	| activity boundary definition throwEvent endEvent |
+	activity := CPTask new identifier: 'compensatedActivity'; yourself.
+	definition := CPCompensationEventDefinition new
+		identifier: 'compensation';
+		activityRef: activity;
+		yourself.
+	boundary := CPBoundaryEvent new identifier: 'compensationBoundary'; attachedToRef: activity; cancelActivity: false; yourself.
+	boundary eventDefinitions add: definition.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: (CPCompensationEventDefinition new identifier: 'throwDefinition'; activityRef: activity; yourself).
+	endEvent := CPCompensationEndEvent new identifier: 'endCompensation'; yourself.
+	endEvent eventDefinitions add: (CPCompensationEventDefinition new identifier: 'endDefinition'; activityRef: activity; yourself).
+	self assert: (CPBoundaryEvent eventDefinitionTypes includes: CPCompensationEventDefinition).
+	self assert: (CPEvent intermediateEventTypes includes: CPCompensationThrowIntermediateEvent).
+	self assert: (CPEndEvent endEventTypes includes: CPCompensationEndEvent).
+	self assert: boundary eventDefinitions first == definition.
+	self assert: throwEvent eventDefinitions first activityRef == activity.
+	self assert: endEvent eventDefinitions first activityRef == activity.
+	^ boundary
+]

@@ -62,7 +62,7 @@ CPBoundaryEvent >> isIntermediateEvent [ ^ true ]
 
 { #category : 'event type' }
 CPBoundaryEvent class >> eventDefinitionTypes [
-	^ { CPTimerEventDefinition. CPErrorEventDefinition. CPMessageEventDefinition. CPEscalationEventDefinition. CPConditionalEventDefinition }
+	^ { CPTimerEventDefinition. CPErrorEventDefinition. CPMessageEventDefinition. CPEscalationEventDefinition. CPConditionalEventDefinition. CPCompensationEventDefinition }
 ]
 
 { #category : 'defaults' }
