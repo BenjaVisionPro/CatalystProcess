@@ -2550,3 +2550,44 @@ CPExecutionScope >> resourcesForRole: aResourceRole activityExecution: anActivit
 		in: self
 		forActivityExecution: anActivityExecution
 ]
+
+{ #category : 'building' }
+CPExecutionScope >> createTaskExecutionFor: aTask [
+	^ self addActivityExecution: (CPTaskExecution new
+		definition: aTask;
+		yourself)
+]
+
+{ #category : 'activities - abstract task' }
+CPExecutionScope >> activateTaskExecution: anActivityExecution [
+	| task loop |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Abstract Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Abstract Task execution can become Active.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	task := anActivityExecution definition.
+	loop := task loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - abstract task' }
+CPExecutionScope >> completeMultiInstanceAbstractTaskExecution: anInstance [
+	| outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Abstract Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Abstract Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Abstract Task instance can complete.' ].
+	anInstance complete.
+	^ anInstance
+]

@@ -7242,3 +7242,47 @@ CPExecutionKernelExamples >> resourceParameterBindingRequiresExpression [
     ^ taskExecution
 ]
 
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> abstractTaskCompletesOnActivation [
+	<gtExample>
+	| process task execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPTask new identifier: 'activity'; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution
+		for: process
+		environment: CPExampleExecutionEnvironment new.
+	taskExecution := execution createTaskExecutionFor: task.
+	execution activateTaskExecution: taskExecution.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> parallelMultiInstanceAbstractTaskCompletesAllInstances [
+	<gtExample>
+	| process task loop cardinality environment execution taskExecution instances |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: cardinality;
+		yourself.
+	task := CPTask new
+		identifier: 'activity';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 3;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createTaskExecutionFor: task.
+	execution activateTaskExecution: taskExecution.
+	instances := taskExecution multiInstanceActivityExecutions.
+	self assert: instances size equals: 3.
+	self assert: taskExecution numberOfCompletedInstances equals: 3.
+	self assert: taskExecution numberOfTerminatedInstances equals: 0.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
