@@ -6154,3 +6154,90 @@ CPExecutionKernelExamples >> multiInstanceOneBehaviorThrowsOnlyForFirstCompleted
 	self assert: (occurrence payload at: 'numberOfCompletedInstances') equals: 1.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceComplexBehaviorEvaluatesEveryDefinitionAndThrowsEachSatisfiedEvent [
+	<gtExample>
+	| process task loop firstCondition secondCondition thirdCondition firstSignal secondSignal thirdSignal firstEvent secondEvent thirdEvent firstBehavior secondBehavior thirdBehavior execution taskExecution instance occurrences |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstCondition := CPFormalExpression new identifier: 'firstCondition'; yourself.
+	secondCondition := CPFormalExpression new identifier: 'secondCondition'; yourself.
+	thirdCondition := CPFormalExpression new identifier: 'thirdCondition'; yourself.
+	firstSignal := CPSignal new identifier: 'firstProgress'; yourself.
+	secondSignal := CPSignal new identifier: 'secondProgress'; yourself.
+	thirdSignal := CPSignal new identifier: 'thirdProgress'; yourself.
+	firstEvent := CPImplicitThrowEvent new
+		identifier: 'firstEvent';
+		eventDefinitions: { CPSignalEventDefinition new signalRef: firstSignal; yourself };
+		yourself.
+	secondEvent := CPImplicitThrowEvent new
+		identifier: 'secondEvent';
+		eventDefinitions: { CPSignalEventDefinition new signalRef: secondSignal; yourself };
+		yourself.
+	thirdEvent := CPImplicitThrowEvent new
+		identifier: 'thirdEvent';
+		eventDefinitions: { CPSignalEventDefinition new signalRef: thirdSignal; yourself };
+		yourself.
+	firstBehavior := CPComplexBehaviorDefinition new condition: firstCondition; event: firstEvent; yourself.
+	secondBehavior := CPComplexBehaviorDefinition new condition: secondCondition; event: secondEvent; yourself.
+	thirdBehavior := CPComplexBehaviorDefinition new condition: thirdCondition; event: thirdEvent; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		complexBehaviorDefinitions: { firstBehavior. secondBehavior. thirdBehavior };
+		beComplex;
+		yourself.
+	task := CPTask new identifier: 'multiTask'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 1;
+		expression: firstCondition evaluatesTo: true;
+		expression: secondCondition evaluatesTo: false;
+		expression: thirdCondition evaluatesTo: true;
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	instance := taskExecution multiInstanceActivityExecutions first.
+	instance complete.
+	occurrences := instance thrownOccurrences.
+	self assert: occurrences size equals: 2.
+	self assert: occurrences first definition == firstSignal.
+	self assert: occurrences second definition == thirdSignal.
+	self assert: (occurrences first payload at: 'loopCounter') equals: 1.
+	self assert: (occurrences first payload at: 'numberOfCompletedInstances') equals: 1.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceComplexBehaviorRequiresBooleanConditionResult [
+	<gtExample>
+	| process task loop condition signal implicitEvent behavior execution taskExecution instance errorRaised |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'condition'; yourself.
+	signal := CPSignal new identifier: 'progress'; yourself.
+	implicitEvent := CPImplicitThrowEvent new
+		identifier: 'progressEvent';
+		eventDefinitions: { CPSignalEventDefinition new signalRef: signal; yourself };
+		yourself.
+	behavior := CPComplexBehaviorDefinition new condition: condition; event: implicitEvent; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		complexBehaviorDefinitions: { behavior };
+		beComplex;
+		yourself.
+	task := CPTask new identifier: 'multiTask'; loopCharacteristics: loop; yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 1;
+		expression: condition evaluatesTo: 'not boolean';
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	instance := taskExecution multiInstanceActivityExecutions first.
+	errorRaised := false.
+	[ instance complete ] on: Error do: [ :error | errorRaised := true ].
+	self assert: errorRaised.
+	^ taskExecution
+]

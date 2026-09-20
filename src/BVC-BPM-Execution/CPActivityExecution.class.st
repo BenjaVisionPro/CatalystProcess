@@ -712,8 +712,36 @@ CPActivityExecution >> prepareMultiInstanceBehaviorForCompleted: anInstance [
 			eventDefinition ifNil: [ self error: 'Multi-Instance One behavior requires oneBehaviorEventRef for executable event semantics.' ].
 			self throwMultiInstanceBehaviorEventDefinition: eventDefinition for: anInstance ].
 		^ anInstance ].
-	loop hasComplexBehavior ifTrue: [ ^ anInstance ].
+	loop hasComplexBehavior ifTrue: [
+		self prepareComplexMultiInstanceBehaviorForCompleted: anInstance.
+		^ anInstance ].
 	self error: 'Unknown Multi-Instance behavior.'
+]
+
+
+{ #category : 'multi-instance - events' }
+CPActivityExecution >> prepareComplexMultiInstanceBehaviorForCompleted: anInstance [
+	| loop |
+	loop := definition loopCharacteristics.
+	loop complexBehaviorDefinitions do: [ :eachBehavior |
+		| result event |
+		eachBehavior condition ifNil: [
+			self error: 'A Complex Multi-Instance behavior requires a condition.' ].
+		result := scope environment
+			evaluateExpression: eachBehavior condition
+			in: scope
+			forActivityExecution: anInstance.
+		((result == true) or: [ result == false ]) ifFalse: [
+			self error: 'A Complex Multi-Instance behavior condition must evaluate to a Boolean.' ].
+		result ifTrue: [
+			event := eachBehavior event.
+			event ifNil: [
+				self error: 'A Complex Multi-Instance behavior requires an Implicit Throw Event.' ].
+			event eventDefinitions isEmpty ifTrue: [
+				self error: 'A Complex Multi-Instance behavior Implicit Throw Event requires an EventDefinition.' ].
+			event eventDefinitions do: [ :eachEventDefinition |
+				self throwMultiInstanceBehaviorEventDefinition: eachEventDefinition for: anInstance ] ] ].
+	^ anInstance
 ]
 
 { #category : 'multi-instance - events' }
