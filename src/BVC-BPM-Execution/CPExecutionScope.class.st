@@ -1083,7 +1083,7 @@ CPExecutionScope >> createServiceTaskExecutionFor: aServiceTask [
 
 { #category : 'activities - service' }
 CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
-	| serviceTask operation implementation |
+	| serviceTask operation implementation loop |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
 		self error: 'The Service Task execution does not belong to this execution scope.' ].
 	anActivityExecution isReady ifFalse: [
@@ -1095,7 +1095,11 @@ CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
 	implementation := self environment resolveOperation: operation in: self.
 	anActivityExecution resolvedImplementation: implementation.
 	anActivityExecution activate.
-	(serviceTask loopCharacteristics notNil and: [ serviceTask loopCharacteristics isStandardLoop ]) ifTrue: [
+	loop := serviceTask loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
 			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].

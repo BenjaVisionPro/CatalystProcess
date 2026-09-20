@@ -6609,7 +6609,7 @@ CPExecutionKernelExamples >> multiInstanceServiceTaskExecutesExternalWorkPerInst
 	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
 	serviceExecution itemValueFor: loopDataInput put: (OrderedCollection withAll: { 'first'. 'second' }).
 	execution activateServiceTaskExecution: serviceExecution.
-	serviceExecution beginMultiInstanceActivityExecutions.
+	self assert: serviceExecution multiInstanceActivityExecutions size equals: 2.
 	firstInstance := serviceExecution multiInstanceActivityExecutions first.
 	secondInstance := serviceExecution multiInstanceActivityExecutions second.
 	firstInvocation := firstInstance prepareExternalInvocationIdentifiedBy: #firstInvocation.
