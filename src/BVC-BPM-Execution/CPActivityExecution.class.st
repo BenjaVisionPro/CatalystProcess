@@ -611,7 +611,7 @@ CPActivityExecution >> multiInstanceActivityExecutionDidComplete: anInstance [
 		self error: 'The completed Multi-Instance Activity instance does not belong to this Activity execution.' ].
 	loop := definition loopCharacteristics.
 	self prepareMultiInstanceBehaviorForCompleted: anInstance.
-	(self multiInstanceCompletionConditionSatisfied) ifTrue: [
+	(self multiInstanceCompletionConditionSatisfiedFor: anInstance) ifTrue: [
 		self cancelRemainingMultiInstanceActivityExecutions.
 		self completeMultiInstanceActivityExecution.
 		^ anInstance ].
@@ -626,14 +626,16 @@ CPActivityExecution >> multiInstanceActivityExecutionDidComplete: anInstance [
 ]
 
 { #category : 'multi-instance' }
-CPActivityExecution >> multiInstanceCompletionConditionSatisfied [
+CPActivityExecution >> multiInstanceCompletionConditionSatisfiedFor: anInstance [
 	| condition result |
+	(multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Activity instance does not belong to this Activity execution.' ].
 	condition := definition loopCharacteristics completionCondition.
 	condition ifNil: [ ^ false ].
 	result := scope environment
 		evaluateExpression: condition
 		in: scope
-		forActivityExecution: self.
+		forActivityExecution: anInstance.
 	((result == true) or: [ result == false ]) ifFalse: [
 		self error: 'A Multi-Instance completionCondition must evaluate to a boolean.' ].
 	^ result

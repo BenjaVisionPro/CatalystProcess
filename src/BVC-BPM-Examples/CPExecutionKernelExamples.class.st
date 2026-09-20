@@ -5522,7 +5522,8 @@ CPExecutionKernelExamples >> multiInstanceCompletionConditionCancelsRemainingIns
 	self assert: taskExecution multiInstanceCancelledCount equals: 2.
 	self assert: taskExecution multiInstanceActiveCount equals: 0.
 	self assert: taskExecution isCompleted.
-	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == firstInstance.
+	self assert: environment lastLoopCounterAtExpressionEvaluation equals: 1.
 	^ taskExecution
 ]
 
