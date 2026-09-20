@@ -11,3 +11,9 @@ Class {
 CPLoopCharacteristics >> isStandardLoop [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPLoopCharacteristics >> isMultiInstance [
+	^ false
+]

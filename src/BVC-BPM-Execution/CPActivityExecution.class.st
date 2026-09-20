@@ -13,7 +13,8 @@ Class {
 		'selectedInputSet',
 		'selectedOutputSet',
 		'loopCounter',
-		'standardLoopIterations'
+		'standardLoopIterations',
+		'multiInstanceCardinality'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -35,7 +36,8 @@ CPActivityExecution >> initialize [
 	itemValueProducers := IdentityDictionary new.
 	dataDependencies := OrderedCollection new.
 	loopCounter := 0.
-	standardLoopIterations := OrderedCollection new
+	standardLoopIterations := OrderedCollection new.
+	multiInstanceCardinality := nil
 ]
 
 { #category : 'accessing' }
@@ -479,4 +481,32 @@ CPActivityExecution >> beginTermination [
 CPActivityExecution >> finishTermination [
 	state class = CPActivityTerminatingState ifFalse: [ self error: 'Only a Terminating Activity can become Terminated.' ].
 	state := CPActivityTerminatedState new
+]
+
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceCardinality [
+	^ multiInstanceCardinality
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> initializeMultiInstanceCardinality [
+	| loop expression cardinality |
+	multiInstanceCardinality ifNotNil: [ ^ multiInstanceCardinality ].
+	loop := definition loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifFalse: [
+		self error: 'Only a BPMN Multi-Instance Activity can initialize instance cardinality.' ].
+	expression := loop loopCardinality.
+	expression ifNil: [
+		loop loopDataInputRef ifNotNil: [
+			self error: 'Data-driven Multi-Instance cardinality is not implemented yet.' ].
+		self error: 'A Multi-Instance Activity requires loopCardinality or loopDataInputRef.' ].
+	cardinality := scope environment
+		evaluateExpression: expression
+		in: scope
+		forActivityExecution: self.
+	(cardinality isInteger and: [ cardinality >= 0 ]) ifFalse: [
+		self error: 'A Multi-Instance loopCardinality must evaluate to a non-negative integer.' ].
+	multiInstanceCardinality := cardinality.
+	^ multiInstanceCardinality
 ]

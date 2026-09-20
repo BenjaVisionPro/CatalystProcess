@@ -83,3 +83,9 @@ CPMultiInstanceLoopCharacteristics >> completionConditionDescription [ <magritte
 CPMultiInstanceLoopCharacteristics >> oneBehaviorEventRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #oneBehaviorEventRef; classes: { CPEventDefinition }; reference: CPEventDefinition new eventTypeLabelDescription; label: 'One behavior event'; priority: 190; group: 'Multi-instance'; yourself ]
 { #category : 'descriptions' }
 CPMultiInstanceLoopCharacteristics >> noneBehaviorEventRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #noneBehaviorEventRef; classes: { CPEventDefinition }; reference: CPEventDefinition new eventTypeLabelDescription; label: 'None behavior event'; priority: 200; group: 'Multi-instance'; yourself ]
+
+
+{ #category : 'testing' }
+CPMultiInstanceLoopCharacteristics >> isMultiInstance [
+	^ true
+]

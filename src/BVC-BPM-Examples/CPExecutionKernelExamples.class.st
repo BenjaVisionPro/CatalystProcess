@@ -5325,3 +5325,33 @@ CPExecutionKernelExamples >> standardLoopConditionReceivesActivityExecutionConte
 	self assert: environment lastLoopCounterAtExpressionEvaluation equals: 1.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCardinalityIsEvaluatedOnce [
+	<gtExample>
+	| process task cardinality loop execution environment taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: cardinality;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 3;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution rootScope addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	self assert: taskExecution initializeMultiInstanceCardinality equals: 3.
+	environment expression: cardinality evaluatesTo: 5.
+	self assert: taskExecution initializeMultiInstanceCardinality equals: 3.
+	self assert: taskExecution multiInstanceCardinality equals: 3.
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
+	^ taskExecution
+]
