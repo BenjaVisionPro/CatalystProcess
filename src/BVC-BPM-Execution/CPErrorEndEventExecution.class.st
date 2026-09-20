@@ -4,7 +4,6 @@ Class {
 	#instVars : [
 		'boundaryExecution',
 		'compensationRecords',
-		'currentCompensationRecordIndex',
 		'completed'
 	],
 	#category : 'BVC-BPM-Execution',
@@ -15,7 +14,6 @@ Class {
 CPErrorEndEventExecution >> initialize [
 	super initialize.
 	compensationRecords := OrderedCollection new.
-	currentCompensationRecordIndex := 0.
 	completed := false
 ]
 
@@ -31,35 +29,18 @@ CPErrorEndEventExecution >> compensationRecords: aCollection [
 		self error: 'An Error End Event execution can establish presumed-abort compensation work only once.' ].
 	aCollection isEmpty ifTrue: [
 		self error: 'Presumed-abort compensation coordination requires at least one compensation record.' ].
-	compensationRecords addAll: aCollection.
-	currentCompensationRecordIndex := 1
+	compensationRecords addAll: aCollection
 ]
 
 { #category : 'accessing' }
-CPErrorEndEventExecution >> currentCompensationRecord [
-	currentCompensationRecordIndex = 0 ifTrue: [ ^ nil ].
-	^ compensationRecords at: currentCompensationRecordIndex
-]
-
-{ #category : 'testing' }
-CPErrorEndEventExecution >> hasMoreCompensationRecords [
-	^ currentCompensationRecordIndex > 0
-		and: [ currentCompensationRecordIndex < compensationRecords size ]
+CPErrorEndEventExecution >> compensationRecords [
+	^ compensationRecords
 ]
 
 { #category : 'testing' }
 CPErrorEndEventExecution >> isWaitingForCompensationRecord: aCompensationRecord [
 	^ completed not
-		and: [ self currentCompensationRecord == aCompensationRecord ]
-]
-
-{ #category : 'lifecycle' }
-CPErrorEndEventExecution >> advanceAfterCompensationRecord: aCompensationRecord [
-	(self isWaitingForCompensationRecord: aCompensationRecord) ifFalse: [
-		self error: 'Only completion of the current presumed-abort compensation record can advance Error propagation.' ].
-	self hasMoreCompensationRecords ifFalse: [ ^ nil ].
-	currentCompensationRecordIndex := currentCompensationRecordIndex + 1.
-	^ self currentCompensationRecord
+		and: [ compensationRecords identityIncludes: aCompensationRecord ]
 ]
 
 { #category : 'lifecycle' }

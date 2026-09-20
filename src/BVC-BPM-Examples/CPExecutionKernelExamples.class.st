@@ -3827,3 +3827,78 @@ CPExecutionKernelExamples >> defaultCompensationReadinessPreservesIndependentWor
 	self assert: (ready identityIncludes: firstRecord) not.
 	^ ready
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> presumedAbortStartsIndependentCompensationTogetherBeforeErrorPropagation [
+	<gtExample>
+	| process subProcess workA workB definitionA definitionB boundaryA boundaryB handlerA handlerB associationA associationB beforeError errorEnd errorFlow error errorDefinition errorBoundary errorBoundaryDefinition after boundaryFlow execution subExecution childScope executionA executionB recordA recordB errorBoundaryExecution producer endActivation errorExecution handlerExecutionA handlerExecutionB |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	workA := CPTask new identifier: 'workA'; yourself.
+	workB := CPTask new identifier: 'workB'; yourself.
+	definitionA := CPCompensationEventDefinition new identifier: 'compensationA'; yourself.
+	boundaryA := CPBoundaryEvent new identifier: 'boundaryA'; attachedToRef: workA; cancelActivity: false; yourself.
+	boundaryA eventDefinitions add: definitionA.
+	handlerA := CPTask new identifier: 'undoA'; isForCompensation: true; yourself.
+	associationA := CPAssociation new identifier: 'associationA'; sourceRef: boundaryA; targetRef: handlerA; beOne; yourself.
+	definitionB := CPCompensationEventDefinition new identifier: 'compensationB'; yourself.
+	boundaryB := CPBoundaryEvent new identifier: 'boundaryB'; attachedToRef: workB; cancelActivity: false; yourself.
+	boundaryB eventDefinitions add: definitionB.
+	handlerB := CPTask new identifier: 'undoB'; isForCompensation: true; yourself.
+	associationB := CPAssociation new identifier: 'associationB'; sourceRef: boundaryB; targetRef: handlerB; beOne; yourself.
+	beforeError := CPTask new identifier: 'beforeError'; yourself.
+	error := CPError new identifier: 'error'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	errorFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: beforeError; targetRef: errorEnd; yourself.
+	subProcess
+		addFlowElement: workA;
+		addFlowElement: workB;
+		addFlowElement: handlerA;
+		addFlowElement: handlerB;
+		addFlowElement: beforeError;
+		addFlowElement: errorEnd;
+		addFlowElement: errorFlow;
+		addArtifact: associationA;
+		addArtifact: associationB.
+	errorBoundaryDefinition := CPErrorEventDefinition new identifier: 'catchError'; error: error; yourself.
+	errorBoundary := CPBoundaryEvent new identifier: 'errorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	errorBoundary eventDefinitions add: errorBoundaryDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: errorBoundary; targetRef: after; yourself.
+	process addFlowElement: subProcess; addFlowElement: after; addFlowElement: boundaryFlow.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subExecution.
+	errorBoundaryExecution := execution beginBoundaryEvent: errorBoundary attachedTo: subExecution.
+	childScope := subExecution subScope.
+	executionA := childScope createActivityExecutionFor: workA.
+	executionA activate; beginCompletion; complete.
+	executionB := childScope createActivityExecutionFor: workB.
+	executionB activate; beginCompletion; complete.
+	recordA := (childScope availableCompensationRecordsFor: workA) first.
+	recordB := (childScope availableCompensationRecordsFor: workB) first.
+	producer := childScope createActivityExecutionFor: beforeError.
+	producer activate.
+	endActivation := childScope activateSequenceFlow: errorFlow producedBy: producer.
+	errorExecution := childScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: errorExecution isPendingWork.
+	self assert: recordA isHandling.
+	self assert: recordB isHandling.
+	self assert: errorBoundaryExecution isTriggered not.
+	handlerExecutionA := recordA handlerExecution.
+	handlerExecutionB := recordB handlerExecution.
+	handlerExecutionA beginCompletion; complete.
+	self assert: recordA isHandled.
+	self assert: recordB isHandling.
+	self assert: errorExecution isPendingWork.
+	self assert: errorBoundaryExecution isTriggered not.
+	handlerExecutionB beginCompletion; complete.
+	self assert: recordB isHandled.
+	self assert: errorExecution isPendingWork not.
+	self assert: errorBoundaryExecution isTriggered.
+	self assert: errorBoundaryExecution occurrence == errorExecution occurrence.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ errorExecution
+]

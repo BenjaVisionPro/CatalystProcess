@@ -1213,7 +1213,8 @@ CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNes
 		compensationRecords: records;
 		yourself.
 	eventExecutions add: propagationExecution.
-	self beginCompensationFor: propagationExecution currentCompensationRecord.
+	(self readyDefaultCompensationRecordsIn: records) do: [ :eachRecord |
+		self beginCompensationFor: eachRecord ].
 	^ propagationExecution
 ]
 
@@ -1266,7 +1267,8 @@ CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivatio
 		^ execution ].
 	execution boundaryExecution: boundaryExecution.
 	execution compensationRecords: records.
-	self beginCompensationFor: execution currentCompensationRecord.
+	(self readyDefaultCompensationRecordsIn: records) do: [ :eachRecord |
+		self beginCompensationFor: eachRecord ].
 	^ execution
 ]
 
@@ -1725,18 +1727,26 @@ CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isErrorEndEventExecution) ifTrue: [
 			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
-				nextRecord := eachExecution advanceAfterCompensationRecord: aCompensationRecord.
-				nextRecord
-					ifNil: [ self completeErrorPropagationExecution: eachExecution ]
-					ifNotNil: [ self beginCompensationFor: nextRecord ].
+				| remaining ready |
+				remaining := eachExecution compensationRecords reject: [ :each | each isHandled ].
+				remaining
+					ifEmpty: [ self completeErrorPropagationExecution: eachExecution ]
+					ifNotEmpty: [
+						ready := self readyDefaultCompensationRecordsIn: remaining.
+						ready do: [ :eachRecord |
+							eachRecord isAvailable ifTrue: [ self beginCompensationFor: eachRecord ] ] ].
 				^ aCompensationRecord ] ] ].
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isErrorPropagationExecution) ifTrue: [
 			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
-				nextRecord := eachExecution advanceAfterCompensationRecord: aCompensationRecord.
-				nextRecord
-					ifNil: [ self completePropagatedErrorExecution: eachExecution ]
-					ifNotNil: [ self beginCompensationFor: nextRecord ].
+				| remaining ready |
+				remaining := eachExecution compensationRecords reject: [ :each | each isHandled ].
+				remaining
+					ifEmpty: [ self completePropagatedErrorExecution: eachExecution ]
+					ifNotEmpty: [
+						ready := self readyDefaultCompensationRecordsIn: remaining.
+						ready do: [ :eachRecord |
+							eachRecord isAvailable ifTrue: [ self beginCompensationFor: eachRecord ] ] ].
 				^ aCompensationRecord ] ] ].
 	completedOuterRecord := compensationRecords
 		detect: [ :eachRecord | eachRecord isWaitingForCompensationRecord: aCompensationRecord ]

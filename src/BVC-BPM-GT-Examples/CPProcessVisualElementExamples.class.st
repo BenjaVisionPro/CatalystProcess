@@ -476,6 +476,7 @@ CPProcessVisualElementExamples >> subProcessTypeSelectionDefinesRequestedTypes [
 		CPNoneSubProcess.
 		CPLoopSubProcess.
 		CPMultiInstanceSubProcess.
+		CPErrorSubProcess.
 		CPCompensationSubProcess.
 		CPAdHocSubProcess }.
 	self assert: (selection typeLabelFor: CPNoneSubProcess) equals: 'None'.
@@ -483,6 +484,8 @@ CPProcessVisualElementExamples >> subProcessTypeSelectionDefinesRequestedTypes [
 	self assert: (selection typeLabelFor: CPLoopSubProcess) equals: 'Loop'.
 	self assert: (selection typeIconFor: CPLoopSubProcess) equals: #arrowRotateLeft.
 	self assert: (selection typeIconFor: CPMultiInstanceSubProcess) equals: #bars.
+	self assert: (selection typeLabelFor: CPErrorSubProcess) equals: 'Error Event'.
+	self assert: (selection typeIconFor: CPErrorSubProcess) equals: #circleExclamation.
 	self assert: (selection typeIconFor: CPCompensationSubProcess) equals: #anglesLeft.
 	self assert: (selection typeIconFor: CPAdHocSubProcess) equals: #tilde.
 	^ selection
