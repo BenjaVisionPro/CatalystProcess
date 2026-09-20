@@ -6787,3 +6787,18 @@ CPExecutionKernelExamples >> multiInstanceSendTaskDispatchesPerInstance [
 	self assert: sendExecution isCompleted.
 	^ sendExecution
 ]
+
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> scriptTaskCarriesExecutableDefinition [
+	<gtExample>
+	| task |
+	task := CPScriptTask new
+		identifier: 'calculate';
+		scriptFormat: 'text/x-smalltalk';
+		script: 'invoice recalculateTotal';
+		yourself.
+	self assert: task scriptFormat equals: 'text/x-smalltalk'.
+	self assert: task script equals: 'invoice recalculateTotal'.
+	^ task
+]
