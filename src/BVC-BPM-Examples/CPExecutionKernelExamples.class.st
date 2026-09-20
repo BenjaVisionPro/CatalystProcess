@@ -6241,3 +6241,84 @@ CPExecutionKernelExamples >> multiInstanceComplexBehaviorRequiresBooleanConditio
 	self assert: errorRaised.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCompletionProducesOutgoingControlFlow [
+	<gtExample>
+	| process task target flow loop execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	flow := CPSequenceFlow new
+		identifier: 'afterMulti';
+		sourceRef: task;
+		targetRef: target;
+		yourself.
+	process addFlowElement: task; addFlowElement: target; addFlowElement: flow.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 2;
+			yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	firstInstance complete.
+	self assert: (execution availableFlowActivationsOn: flow) isEmpty.
+	secondInstance complete.
+	self assert: taskExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	self assert: (execution canReadyActivity: target).
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCompletionConditionProducesOutgoingControlFlowOnce [
+	<gtExample>
+	| process task target flow loop condition execution environment taskExecution firstInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	target := CPTask new identifier: 'target'; yourself.
+	flow := CPSequenceFlow new
+		identifier: 'afterMulti';
+		sourceRef: task;
+		targetRef: target;
+		yourself.
+	process addFlowElement: task; addFlowElement: target; addFlowElement: flow.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 3;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	firstInstance complete.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution multiInstanceCancelledCount equals: 2.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	self assert: (execution canReadyActivity: target).
+	^ taskExecution
+]

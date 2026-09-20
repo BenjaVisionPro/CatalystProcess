@@ -647,6 +647,7 @@ CPActivityExecution >> completeMultiInstanceActivityExecution [
 	self isActive ifFalse: [ self error: 'Only an Active Multi-Instance Activity can complete.' ].
 	self beginCompletion.
 	self complete.
+	scope produceOutgoingControlFor: self.
 	^ self
 ]
 
