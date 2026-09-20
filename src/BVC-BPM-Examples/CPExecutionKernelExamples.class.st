@@ -2811,3 +2811,35 @@ CPExecutionKernelExamples >> synchronousScopeCompensationRunsHandlersSequentiall
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ throwExecution
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationHandlerCompletionDoesNotCreateCompensationHistory [
+	<gtExample>
+	| process handler handlerBoundary handlerDefinition nestedHandler association execution handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	handler := CPTask new identifier: 'compensationHandler'; isForCompensation: true; yourself.
+	handlerDefinition := CPCompensationEventDefinition new identifier: 'handlerCompensation'; yourself.
+	handlerBoundary := CPBoundaryEvent new
+		identifier: 'handlerBoundary';
+		attachedToRef: handler;
+		cancelActivity: false;
+		yourself.
+	handlerBoundary eventDefinitions add: handlerDefinition.
+	nestedHandler := CPTask new identifier: 'nestedUndo'; isForCompensation: true; yourself.
+	{ handler. nestedHandler } do: [ :each | process addFlowElement: each ].
+	association := CPAssociation new
+		identifier: 'handlerAssociation';
+		sourceRef: handlerBoundary;
+		targetRef: nestedHandler;
+		beOne;
+		yourself.
+	process addArtifact: association.
+	execution := self executionFor: process.
+	handlerExecution := execution createActivityExecutionFor: handler.
+	handlerExecution activate; beginCompletion; complete.
+	self assert: handlerExecution isCompleted.
+	self assert: execution compensationRecords isEmpty.
+	self assert: execution allAvailableCompensationRecords isEmpty.
+	^ handlerExecution
+]
