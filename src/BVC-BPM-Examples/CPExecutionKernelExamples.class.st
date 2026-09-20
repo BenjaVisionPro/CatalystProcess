@@ -2669,3 +2669,35 @@ CPExecutionKernelExamples >> targetedSynchronousCompensationThrowWaitsForHandler
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ throwExecution
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationHistoryPreservesGlobalReverseCompletionOrderAcrossScopes [
+	<gtExample>
+	| process outerWork outerDefinition outerBoundary nestedProcess nestedWork nestedDefinition nestedBoundary execution outerExecution ownerExecution nestedScope nestedExecution ordered |
+	process := CPProcess new identifier: 'process'; yourself.
+	outerWork := CPTask new identifier: 'outerWork'; yourself.
+	outerDefinition := CPCompensationEventDefinition new identifier: 'outerCompensation'; yourself.
+	outerBoundary := CPBoundaryEvent new identifier: 'outerBoundary'; attachedToRef: outerWork; cancelActivity: false; yourself.
+	outerBoundary eventDefinitions add: outerDefinition.
+	nestedProcess := CPSubProcess new identifier: 'nested'; yourself.
+	nestedWork := CPTask new identifier: 'nestedWork'; yourself.
+	nestedDefinition := CPCompensationEventDefinition new identifier: 'nestedCompensation'; yourself.
+	nestedBoundary := CPBoundaryEvent new identifier: 'nestedBoundary'; attachedToRef: nestedWork; cancelActivity: false; yourself.
+	nestedBoundary eventDefinitions add: nestedDefinition.
+	process addFlowElement: outerWork; addFlowElement: nestedProcess.
+	nestedProcess addFlowElement: nestedWork.
+	execution := self executionFor: process.
+	outerExecution := execution createActivityExecutionFor: outerWork.
+	outerExecution activate; beginCompletion; complete.
+	ownerExecution := execution createActivityExecutionFor: nestedProcess.
+	nestedScope := CPExecutionScope for: nestedProcess ownedBy: ownerExecution.
+	nestedExecution := nestedScope createActivityExecutionFor: nestedWork.
+	nestedExecution activate; beginCompletion; complete.
+	ordered := execution allAvailableCompensationRecordsInReverseCompletionOrder.
+	self assert: ordered size equals: 2.
+	self assert: ordered first activityExecution == nestedExecution.
+	self assert: ordered second activityExecution == outerExecution.
+	self assert: ordered first completionSequence > ordered second completionSequence.
+	^ ordered
+]

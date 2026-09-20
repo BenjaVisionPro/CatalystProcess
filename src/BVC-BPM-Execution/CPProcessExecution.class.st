@@ -7,7 +7,8 @@ Class {
 		'startedBy',
 		'environment',
 		'started',
-		'completed'
+		'completed',
+		'nextCompensationCompletionSequence'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -44,7 +45,8 @@ CPProcessExecution >> environment: anExecutionEnvironment [ environment := anExe
 CPProcessExecution >> initialize [
 	super initialize.
 	started := false.
-	completed := false
+	completed := false.
+	nextCompensationCompletionSequence := 1
 ]
 
 { #category : 'testing' }
@@ -145,4 +147,13 @@ CPProcessExecution >> deliverSignalOccurrence: anOccurrence [
 	self acceptOccurrence: anOccurrence.
 	matches do: [ :each | each deliverAcceptedOccurrence: anOccurrence ].
 	^ matches
+]
+
+
+{ #category : 'activities - compensation' }
+CPProcessExecution >> nextCompensationCompletionSequence [
+	| sequence |
+	sequence := nextCompensationCompletionSequence.
+	nextCompensationCompletionSequence := nextCompensationCompletionSequence + 1.
+	^ sequence
 ]

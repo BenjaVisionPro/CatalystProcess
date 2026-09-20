@@ -5,7 +5,8 @@ Class {
 		'activityExecution',
 		'boundaryEvent',
 		'claimed',
-		'handlerExecution'
+		'handlerExecution',
+		'completionSequence'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -64,4 +65,16 @@ CPCompensationRecord >> isHandling [
 { #category : 'testing' }
 CPCompensationRecord >> isHandled [
 	^ handlerExecution notNil and: [ handlerExecution isCompleted ]
+]
+
+
+{ #category : 'accessing' }
+CPCompensationRecord >> completionSequence [
+	^ completionSequence
+]
+
+{ #category : 'accessing' }
+CPCompensationRecord >> completionSequence: anInteger [
+	completionSequence ifNotNil: [ self error: 'A compensation record completion sequence can only be assigned once.' ].
+	completionSequence := anInteger
 ]

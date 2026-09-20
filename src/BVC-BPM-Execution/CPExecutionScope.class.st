@@ -1198,19 +1198,24 @@ CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
+	| newBoundaries completionSequence |
 	anActivityExecution scope == self ifFalse: [
 		self error: 'The completed Activity execution does not belong to this execution scope.' ].
 	anActivityExecution isCompleted ifFalse: [
 		self error: 'Compensation history can be recorded only for a completed Activity execution.' ].
-	anActivityExecution definition boundaryEventRefs do: [ :eachBoundary |
-		((eachBoundary eventDefinitions anySatisfy: [ :eachDefinition | eachDefinition isCompensationEventDefinition ])
+	newBoundaries := anActivityExecution definition boundaryEventRefs select: [ :eachBoundary |
+		(eachBoundary eventDefinitions anySatisfy: [ :eachDefinition | eachDefinition isCompensationEventDefinition ])
 			and: [ compensationRecords noneSatisfy: [ :eachRecord |
 				eachRecord activityExecution == anActivityExecution
-					and: [ eachRecord boundaryEvent == eachBoundary ] ] ]) ifTrue: [
-			compensationRecords add: (CPCompensationRecord new
-				activityExecution: anActivityExecution;
-				boundaryEvent: eachBoundary;
-				yourself) ] ].
+					and: [ eachRecord boundaryEvent == eachBoundary ] ] ] ].
+	newBoundaries ifEmpty: [ ^ anActivityExecution ].
+	completionSequence := self processExecution nextCompensationCompletionSequence.
+	newBoundaries do: [ :eachBoundary |
+		compensationRecords add: (CPCompensationRecord new
+			activityExecution: anActivityExecution;
+			boundaryEvent: eachBoundary;
+			completionSequence: completionSequence;
+			yourself) ].
 	^ anActivityExecution
 ]
 
@@ -1238,6 +1243,13 @@ CPExecutionScope >> allAvailableCompensationRecords [
 CPExecutionScope >> allAvailableCompensationRecordsFor: anActivity [
 	^ self allAvailableCompensationRecords select: [ :each |
 		each activityExecution definition == anActivity ]
+]
+
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> allAvailableCompensationRecordsInReverseCompletionOrder [
+	^ self allAvailableCompensationRecords sorted: [ :earlier :later |
+		earlier completionSequence > later completionSequence ]
 ]
 
 { #category : 'activities - compensation' }
