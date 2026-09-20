@@ -10,7 +10,7 @@ Class {
 		'scriptTaskExecutions',
 		'businessRuleTaskExecutions',
 		'userTaskWorkItems',
-		'potentialOwnerResolutions'
+		'resourceRoleResolutions'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -25,7 +25,7 @@ CPExampleExecutionEnvironment >> initialize [
 	scriptTaskExecutions := OrderedCollection new.
 	businessRuleTaskExecutions := OrderedCollection new.
 	userTaskWorkItems := OrderedCollection new.
-	potentialOwnerResolutions := IdentityDictionary new
+	resourceRoleResolutions := IdentityDictionary new
 ]
 
 { #category : 'configuration' }
@@ -124,14 +124,14 @@ CPExampleExecutionEnvironment >> userTaskWorkItems [
 
 
 { #category : 'configuration' }
-CPExampleExecutionEnvironment >> potentialOwner: aPotentialOwner resolvesTo: aCollection [
-    potentialOwnerResolutions at: aPotentialOwner put: aCollection asOrderedCollection.
+CPExampleExecutionEnvironment >> resourceRole: aResourceRole resolvesTo: aCollection [
+    resourceRoleResolutions at: aResourceRole put: aCollection asOrderedCollection.
     ^ self
 ]
 
 { #category : 'resolution' }
-CPExampleExecutionEnvironment >> resolvePotentialOwnersFor: aPotentialOwner in: anExecutionScope forActivityExecution: anActivityExecution [
-    ^ potentialOwnerResolutions
-        at: aPotentialOwner
+CPExampleExecutionEnvironment >> resolveResourceRole: aResourceRole in: anExecutionScope forActivityExecution: anActivityExecution [
+    ^ resourceRoleResolutions
+        at: aResourceRole
         ifAbsent: [ #() ]
 ]

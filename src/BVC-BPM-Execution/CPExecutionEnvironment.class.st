@@ -43,6 +43,6 @@ CPExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionS
 
 
 { #category : 'resolution' }
-CPExecutionEnvironment >> resolvePotentialOwnersFor: aPotentialOwner in: anExecutionScope forActivityExecution: anActivityExecution [
+CPExecutionEnvironment >> resolveResourceRole: aResourceRole in: anExecutionScope forActivityExecution: anActivityExecution [
     self subclassResponsibility
 ]

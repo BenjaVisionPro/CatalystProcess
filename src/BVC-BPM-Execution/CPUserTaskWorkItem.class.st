@@ -8,7 +8,8 @@ Class {
         'completed',
         'actualOwner',
         'taskPriority',
-        'potentialOwners'
+        'potentialOwners',
+        'resourceAssignments'
     ],
     #category : 'BVC-BPM-Execution',
     #package : 'BVC-BPM-Execution'
@@ -19,7 +20,8 @@ CPUserTaskWorkItem >> initialize [
     super initialize.
     distributed := false.
     completed := false.
-    potentialOwners := OrderedCollection new
+    potentialOwners := OrderedCollection new.
+    resourceAssignments := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -67,14 +69,23 @@ CPUserTaskWorkItem >> complete [
 
 
 { #category : 'assignment' }
-CPUserTaskWorkItem >> potentialOwners [
-    ^ potentialOwners
+CPUserTaskWorkItem >> resourceAssignments [
+    ^ resourceAssignments
 ]
 
 { #category : 'assignment' }
-CPUserTaskWorkItem >> potentialOwners: aCollection [
-    distributed ifTrue: [ self error: 'Potential owners must be resolved before a User Task work item is distributed.' ].
-    potentialOwners := aCollection asOrderedCollection.
+CPUserTaskWorkItem >> resourceAssignments: aCollection [
+    distributed ifTrue: [ self error: 'Resource roles must be resolved before a User Task work item is distributed.' ].
+    resourceAssignments := aCollection asOrderedCollection.
+    potentialOwners := OrderedCollection new.
+    resourceAssignments
+        select: [ :each | each isPotentialOwnerAssignment ]
+        thenDo: [ :each | potentialOwners addAll: each resources ].
+    ^ resourceAssignments
+]
+
+{ #category : 'assignment' }
+CPUserTaskWorkItem >> potentialOwners [
     ^ potentialOwners
 ]
 

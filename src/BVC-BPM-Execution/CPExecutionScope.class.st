@@ -2433,7 +2433,7 @@ CPExecutionScope >> activateUserTaskExecution: anActivityExecution [
     workItem := CPUserTaskWorkItem new
         userTask: userTask;
         activityExecution: anActivityExecution;
-        potentialOwners: (self potentialOwnersForUserTask: userTask activityExecution: anActivityExecution);
+        resourceAssignments: (self resourceAssignmentsFor: userTask activityExecution: anActivityExecution);
         yourself.
     anActivityExecution workItem: workItem.
     self environment distributeUserTaskWorkItem: workItem in: self.
@@ -2471,7 +2471,7 @@ CPExecutionScope >> distributeMultiInstanceUserTaskExecution: anInstance [
     workItem := CPUserTaskWorkItem new
         userTask: outerExecution definition;
         activityExecution: anInstance;
-        potentialOwners: (self potentialOwnersForUserTask: outerExecution definition activityExecution: anInstance);
+        resourceAssignments: (self resourceAssignmentsFor: outerExecution definition activityExecution: anInstance);
         yourself.
     anInstance userTaskWorkItem: workItem.
     self environment distributeUserTaskWorkItem: workItem in: self.
@@ -2498,16 +2498,14 @@ CPExecutionScope >> completeMultiInstanceUserTaskExecution: anInstance [
 ]
 
 
-{ #category : 'activities - user' }
-CPExecutionScope >> potentialOwnersForUserTask: aUserTask activityExecution: anActivityExecution [
-    | owners |
-    owners := OrderedCollection new.
-    aUserTask resources
-        select: [ :each | each isPotentialOwner ]
-        thenDo: [ :potentialOwner |
-            owners addAll: (self environment
-                resolvePotentialOwnersFor: potentialOwner
+{ #category : 'resources' }
+CPExecutionScope >> resourceAssignmentsFor: anActivity activityExecution: anActivityExecution [
+    ^ anActivity resources collect: [ :resourceRole |
+        CPResourceRoleAssignment new
+            role: resourceRole;
+            resources: (self environment
+                resolveResourceRole: resourceRole
                 in: self
-                forActivityExecution: anActivityExecution) ].
-    ^ owners
+                forActivityExecution: anActivityExecution);
+            yourself ]
 ]

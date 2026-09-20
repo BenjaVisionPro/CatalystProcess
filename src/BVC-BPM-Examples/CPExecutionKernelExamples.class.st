@@ -7057,7 +7057,7 @@ CPExecutionKernelExamples >> userTaskPotentialOwnersConstrainClaiming [
         yourself.
     process addFlowElement: task.
     environment := CPExampleExecutionEnvironment new
-        potentialOwner: potentialOwner resolvesTo: { 'alice@example.test'. 'bob@example.test' };
+        resourceRole: potentialOwner resolvesTo: { 'alice@example.test'. 'bob@example.test' };
         yourself.
     execution := CPProcessExecution for: process environment: environment.
     taskExecution := execution createUserTaskExecutionFor: task.
@@ -7075,4 +7075,35 @@ CPExecutionKernelExamples >> userTaskPotentialOwnersConstrainClaiming [
     execution completeUserTaskExecution: taskExecution.
     self assert: taskExecution isCompleted.
     ^ taskExecution
+]
+
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> userTaskResolvesActivityResourceRoles [
+    <gtExample>
+    | process task performer potentialOwner environment execution taskExecution workItem assignments |
+    process := CPProcess new identifier: 'process'; yourself.
+    performer := CPHumanPerformer new identifier: 'reviewer'; yourself.
+    potentialOwner := CPPotentialOwner new identifier: 'claimants'; yourself.
+    task := CPUserTask new
+        identifier: 'review';
+        resources: { performer. potentialOwner };
+        yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new
+        resourceRole: performer resolvesTo: { 'assigned-reviewer@example.test' };
+        resourceRole: potentialOwner resolvesTo: { 'alice@example.test'. 'bob@example.test' };
+        yourself.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    workItem := taskExecution workItem.
+    assignments := workItem resourceAssignments.
+    self assert: assignments size equals: 2.
+    self assert: assignments first role == performer.
+    self assert: assignments first resources equals: (OrderedCollection with: 'assigned-reviewer@example.test').
+    self assert: assignments second role == potentialOwner.
+    self assert: assignments second resources equals: (OrderedCollection withAll: { 'alice@example.test'. 'bob@example.test' }).
+    self assert: workItem potentialOwners equals: (OrderedCollection withAll: { 'alice@example.test'. 'bob@example.test' }).
+    ^ workItem
 ]
