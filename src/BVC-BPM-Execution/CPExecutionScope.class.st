@@ -79,6 +79,50 @@ CPExecutionScope >> ownsItemValueFor: anItemAwareElement [
 ]
 
 { #category : 'data' }
+CPExecutionScope >> executionContextForAccessibleItemValue: anItemAwareElement [
+	anItemAwareElement isDataObjectReference ifTrue: [
+		(self hasAccessibleDataObjectReference: anItemAwareElement) ifFalse: [
+			self error: 'The Data Object Reference is not accessible from this execution scope.' ].
+		anItemAwareElement dataObjectRef ifNil: [
+			self error: 'An accessible Data Object Reference requires a referenced Data Object.' ].
+		^ self executionContextForAccessibleItemValue: anItemAwareElement dataObjectRef ].
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [ ^ self ].
+	(owningActivity notNil and: [ owningActivity ownsItemValueFor: anItemAwareElement ]) ifTrue: [
+		^ owningActivity ].
+	parentScope ifNotNil: [
+		^ parentScope executionContextForAccessibleItemValue: anItemAwareElement ].
+	self error: 'The item-aware element is not accessible from this execution scope.'
+]
+
+{ #category : 'data' }
+CPExecutionScope >> hasAccessibleDataObjectReference: aDataObjectReference [
+	(definition flowElements identityIncludes: aDataObjectReference) ifTrue: [ ^ true ].
+	parentScope ifNotNil: [
+		^ parentScope hasAccessibleDataObjectReference: aDataObjectReference ].
+	^ false
+]
+
+{ #category : 'data' }
+CPExecutionScope >> accessibleItemValueFor: anItemAwareElement [
+	| context item |
+	item := anItemAwareElement isDataObjectReference
+		ifTrue: [ anItemAwareElement dataObjectRef ]
+		ifFalse: [ anItemAwareElement ].
+	context := self executionContextForAccessibleItemValue: anItemAwareElement.
+	^ context itemValueFor: item
+]
+
+{ #category : 'data' }
+CPExecutionScope >> accessibleItemValueFor: anItemAwareElement put: aValue [
+	| context item |
+	item := anItemAwareElement isDataObjectReference
+		ifTrue: [ anItemAwareElement dataObjectRef ]
+		ifFalse: [ anItemAwareElement ].
+	context := self executionContextForAccessibleItemValue: anItemAwareElement.
+	^ context itemValueFor: item put: aValue
+]
+
+{ #category : 'data' }
 CPExecutionScope >> itemValueFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
 		self error: 'The item-aware element does not belong to this execution scope.' ].

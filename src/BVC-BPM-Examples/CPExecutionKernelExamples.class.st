@@ -4181,3 +4181,109 @@ CPExecutionKernelExamples >> executionDataRejectsItemOwnedByAnotherContext [
 	self assert: activityRejected.
 	^ execution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> nestedActivityAccessesEnclosingProcessDataObjectValue [
+	<gtExample>
+	| process dataObject subProcess task execution subProcessExecution subScope taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	subProcess addFlowElement: task.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	execution itemValueFor: dataObject put: 'order-123'.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	subScope := subProcessExecution createSubScopeFor: subProcess.
+	taskExecution := subScope createActivityExecutionFor: task.
+	self assert: (taskExecution accessibleItemValueFor: dataObject) equals: 'order-123'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> nestedActivityUpdatesEnclosingProcessDataObjectValue [
+	<gtExample>
+	| process dataObject subProcess task execution subProcessExecution subScope taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	subProcess addFlowElement: task.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	subScope := subProcessExecution createSubScopeFor: subProcess.
+	taskExecution := subScope createActivityExecutionFor: task.
+	taskExecution accessibleItemValueFor: dataObject put: 'updated'.
+	self assert: (execution itemValueFor: dataObject) equals: 'updated'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> dataObjectReferenceResolvesToReferencedExecutionValue [
+	<gtExample>
+	| process dataObject reference task execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	reference := CPDataObjectReference new
+		identifier: 'orderReference';
+		dataObjectRef: dataObject;
+		yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	process addFlowElement: dataObject.
+	process addFlowElement: reference.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution itemValueFor: dataObject put: 'order-123'.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: (taskExecution accessibleItemValueFor: reference) equals: 'order-123'.
+	taskExecution accessibleItemValueFor: reference put: 'order-456'.
+	self assert: (execution itemValueFor: dataObject) equals: 'order-456'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> nestedActivityAccessesEnclosingSubProcessPropertyValue [
+	<gtExample>
+	| process subProcess property task execution subProcessExecution subScope taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	property := CPProperty new identifier: 'property'; yourself.
+	subProcess properties add: property.
+	task := CPTask new identifier: 'task'; yourself.
+	subProcess addFlowElement: task.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	subProcessExecution itemValueFor: property put: 'subProcess value'.
+	subScope := subProcessExecution createSubScopeFor: subProcess.
+	taskExecution := subScope createActivityExecutionFor: task.
+	self assert: (taskExecution accessibleItemValueFor: property) equals: 'subProcess value'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> inaccessibleDataObjectReferenceIsRejected [
+	<gtExample>
+	| process dataObject reference task execution taskExecution rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	reference := CPDataObjectReference new
+		identifier: 'detachedReference';
+		dataObjectRef: dataObject;
+		yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	process addFlowElement: dataObject.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	rejected := false.
+	[ taskExecution accessibleItemValueFor: reference ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	^ taskExecution
+]

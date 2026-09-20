@@ -53,6 +53,20 @@ CPActivityExecution >> ownsItemValueFor: anItemAwareElement [
 ]
 
 { #category : 'data' }
+CPActivityExecution >> accessibleItemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueFor: anItemAwareElement ].
+	^ scope accessibleItemValueFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueFor: anItemAwareElement put: aValue ].
+	^ scope accessibleItemValueFor: anItemAwareElement put: aValue
+]
+
+{ #category : 'data' }
 CPActivityExecution >> itemValueFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
 		self error: 'The item-aware element does not belong to this Activity execution.' ].

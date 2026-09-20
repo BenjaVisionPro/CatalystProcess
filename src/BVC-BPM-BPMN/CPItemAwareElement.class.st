@@ -60,3 +60,8 @@ CPItemAwareElement >> dataStateDescription [
 		group: 'Data';
 		yourself
 ]
+
+{ #category : 'testing' }
+CPItemAwareElement >> isDataObjectReference [
+	^ false
+]
