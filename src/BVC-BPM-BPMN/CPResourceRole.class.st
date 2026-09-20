@@ -32,3 +32,6 @@ CPResourceRole >> resourceRefDescription [ <magritteDescription> ^ MAToOneRelati
 CPResourceRole >> resourceAssignmentExpressionDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #resourceAssignmentExpression; classes: { CPResourceAssignmentExpression }; reference: CPResourceAssignmentExpression new identifierDescription; label: 'Assignment expression'; priority: 110; group: 'Assignment'; yourself ]
 { #category : 'descriptions' }
 CPResourceRole >> resourceParameterBindingsDescription [ <magritteDescription> ^ MAToManyRelationDescription new accessor: #resourceParameterBindings; classes: { CPResourceParameterBinding }; reference: CPResourceParameterBinding new identifierDescription; label: 'Parameter bindings'; priority: 120; group: 'Assignment'; beOrdered; yourself ]
+
+{ #category : 'testing' }
+CPResourceRole >> isPotentialOwner [ ^ false ]

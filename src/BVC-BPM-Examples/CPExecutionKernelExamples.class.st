@@ -7038,3 +7038,41 @@ CPExecutionKernelExamples >> multiInstanceUserTaskMaintainsAssignmentPerInstance
     self assert: taskExecution isCompleted.
     ^ taskExecution
 ]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> userTaskPotentialOwnersConstrainClaiming [
+    <gtExample>
+    | process task assignment potentialOwner environment execution taskExecution workItem rejectedClaim |
+    process := CPProcess new identifier: 'process'; yourself.
+    assignment := CPResourceAssignmentExpression new
+        expression: (CPExpression new identifier: 'reviewers'; yourself);
+        yourself.
+    potentialOwner := CPPotentialOwner new
+        identifier: 'reviewers';
+        resourceAssignmentExpression: assignment;
+        yourself.
+    task := CPUserTask new
+        identifier: 'review';
+        resources: { potentialOwner };
+        yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new
+        potentialOwner: potentialOwner resolvesTo: { 'alice@example.test'. 'bob@example.test' };
+        yourself.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    workItem := taskExecution workItem.
+    self assert: workItem potentialOwners equals: (OrderedCollection withAll: { 'alice@example.test'. 'bob@example.test' }).
+    rejectedClaim := false.
+    [ taskExecution claimBy: 'mallory@example.test' ]
+        on: Error
+        do: [ :error | rejectedClaim := true ].
+    self assert: rejectedClaim.
+    self assert: taskExecution actualOwner isNil.
+    taskExecution claimBy: 'alice@example.test'.
+    self assert: taskExecution actualOwner equals: 'alice@example.test'.
+    execution completeUserTaskExecution: taskExecution.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]

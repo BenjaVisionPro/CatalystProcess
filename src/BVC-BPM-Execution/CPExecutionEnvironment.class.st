@@ -40,3 +40,9 @@ CPExecutionEnvironment >> executeBusinessRuleTask: aBusinessRuleTask in: anExecu
 CPExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionScope [
     self subclassResponsibility
 ]
+
+
+{ #category : 'resolution' }
+CPExecutionEnvironment >> resolvePotentialOwnersFor: aPotentialOwner in: anExecutionScope forActivityExecution: anActivityExecution [
+    self subclassResponsibility
+]

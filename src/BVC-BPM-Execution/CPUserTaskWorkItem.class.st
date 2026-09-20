@@ -7,7 +7,8 @@ Class {
         'distributed',
         'completed',
         'actualOwner',
-        'taskPriority'
+        'taskPriority',
+        'potentialOwners'
     ],
     #category : 'BVC-BPM-Execution',
     #package : 'BVC-BPM-Execution'
@@ -17,7 +18,8 @@ Class {
 CPUserTaskWorkItem >> initialize [
     super initialize.
     distributed := false.
-    completed := false
+    completed := false.
+    potentialOwners := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -65,6 +67,18 @@ CPUserTaskWorkItem >> complete [
 
 
 { #category : 'assignment' }
+CPUserTaskWorkItem >> potentialOwners [
+    ^ potentialOwners
+]
+
+{ #category : 'assignment' }
+CPUserTaskWorkItem >> potentialOwners: aCollection [
+    distributed ifTrue: [ self error: 'Potential owners must be resolved before a User Task work item is distributed.' ].
+    potentialOwners := aCollection asOrderedCollection.
+    ^ potentialOwners
+]
+
+{ #category : 'assignment' }
 CPUserTaskWorkItem >> actualOwner [
     ^ actualOwner
 ]
@@ -74,6 +88,8 @@ CPUserTaskWorkItem >> claimBy: anOwnerIdentifier [
     self isPending ifFalse: [ self error: 'Only a pending User Task work item can be claimed.' ].
     actualOwner ifNotNil: [ self error: 'A User Task work item can be claimed only once.' ].
     anOwnerIdentifier ifNil: [ self error: 'A User Task work item requires an actual owner when claimed.' ].
+    (potentialOwners notEmpty and: [ (potentialOwners includes: anOwnerIdentifier) not ]) ifTrue: [
+        self error: 'Only a potential owner can claim this User Task work item.' ].
     actualOwner := anOwnerIdentifier.
     ^ actualOwner
 ]

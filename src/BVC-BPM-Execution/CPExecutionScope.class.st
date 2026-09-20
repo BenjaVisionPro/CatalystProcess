@@ -2433,6 +2433,7 @@ CPExecutionScope >> activateUserTaskExecution: anActivityExecution [
     workItem := CPUserTaskWorkItem new
         userTask: userTask;
         activityExecution: anActivityExecution;
+        potentialOwners: (self potentialOwnersForUserTask: userTask activityExecution: anActivityExecution);
         yourself.
     anActivityExecution workItem: workItem.
     self environment distributeUserTaskWorkItem: workItem in: self.
@@ -2470,6 +2471,7 @@ CPExecutionScope >> distributeMultiInstanceUserTaskExecution: anInstance [
     workItem := CPUserTaskWorkItem new
         userTask: outerExecution definition;
         activityExecution: anInstance;
+        potentialOwners: (self potentialOwnersForUserTask: outerExecution definition activityExecution: anInstance);
         yourself.
     anInstance userTaskWorkItem: workItem.
     self environment distributeUserTaskWorkItem: workItem in: self.
@@ -2493,4 +2495,19 @@ CPExecutionScope >> completeMultiInstanceUserTaskExecution: anInstance [
     workItem complete.
     anInstance complete.
     ^ anInstance
+]
+
+
+{ #category : 'activities - user' }
+CPExecutionScope >> potentialOwnersForUserTask: aUserTask activityExecution: anActivityExecution [
+    | owners |
+    owners := OrderedCollection new.
+    aUserTask resources
+        select: [ :each | each isPotentialOwner ]
+        thenDo: [ :potentialOwner |
+            owners addAll: (self environment
+                resolvePotentialOwnersFor: potentialOwner
+                in: self
+                forActivityExecution: anActivityExecution) ].
+    ^ owners
 ]
