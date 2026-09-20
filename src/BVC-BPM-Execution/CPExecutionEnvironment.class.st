@@ -29,3 +29,8 @@ CPExecutionEnvironment >> resolveOperation: anOperation in: anExecutionScope [
 CPExecutionEnvironment >> executeScriptTask: aScriptTask in: anExecutionScope forActivityExecution: anActivityExecution [
 	self subclassResponsibility
 ]
+
+{ #category : 'execution' }
+CPExecutionEnvironment >> executeBusinessRuleTask: aBusinessRuleTask in: anExecutionScope forActivityExecution: anActivityExecution [
+	self subclassResponsibility
+]

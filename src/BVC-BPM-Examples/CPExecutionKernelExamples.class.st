@@ -6856,3 +6856,52 @@ CPExecutionKernelExamples >> multiInstanceScriptTaskExecutesPerInstance [
 	self assert: taskExecution isCompleted.
 	^ taskExecution
 ]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> businessRuleTaskExecutesThroughEnvironment [
+	<gtExample>
+	| process task environment execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPBusinessRuleTask new identifier: 'decide'; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createBusinessRuleTaskExecutionFor: task.
+	execution activateBusinessRuleTaskExecution: taskExecution.
+	self assert: task implementation equals: '##unspecified'.
+	self assert: environment businessRuleTaskExecutions size equals: 1.
+	self assert: environment businessRuleTaskExecutions first == taskExecution.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> multiInstanceBusinessRuleTaskExecutesPerInstance [
+	<gtExample>
+	| process task loop cardinality environment execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: cardinality;
+		yourself.
+	task := CPBusinessRuleTask new
+		identifier: 'decide';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 2;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createBusinessRuleTaskExecutionFor: task.
+	execution activateBusinessRuleTaskExecution: taskExecution.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	self assert: environment businessRuleTaskExecutions size equals: 2.
+	self assert: environment businessRuleTaskExecutions first == firstInstance.
+	self assert: environment businessRuleTaskExecutions second == secondInstance.
+	self assert: firstInstance isCompleted.
+	self assert: secondInstance isCompleted.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]

@@ -2358,3 +2358,52 @@ CPExecutionScope >> executeMultiInstanceScriptTaskExecution: anInstance [
 	anInstance complete.
 	^ anInstance
 ]
+
+{ #category : 'building' }
+CPExecutionScope >> createBusinessRuleTaskExecutionFor: aBusinessRuleTask [
+	^ self addActivityExecution: (CPBusinessRuleTaskExecution new
+		definition: aBusinessRuleTask;
+		yourself)
+]
+
+{ #category : 'activities - business rule' }
+CPExecutionScope >> activateBusinessRuleTaskExecution: anActivityExecution [
+	| businessRuleTask loop |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Business Rule Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Business Rule Task execution can become Active.' ].
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	businessRuleTask := anActivityExecution definition.
+	loop := businessRuleTask loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	self environment
+		executeBusinessRuleTask: businessRuleTask
+		in: self
+		forActivityExecution: anActivityExecution.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - business rule' }
+CPExecutionScope >> executeMultiInstanceBusinessRuleTaskExecution: anInstance [
+	| outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Business Rule Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Business Rule Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Business Rule Task instance can execute its business rule.' ].
+	self environment
+		executeBusinessRuleTask: outerExecution definition
+		in: self
+		forActivityExecution: anInstance.
+	anInstance complete.
+	^ anInstance
+]
