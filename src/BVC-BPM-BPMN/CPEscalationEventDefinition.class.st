@@ -9,3 +9,9 @@ CPEscalationEventDefinition >> escalationRef [ ^ escalationRef ]
 CPEscalationEventDefinition >> escalationRef: anEscalation [ escalationRef := anEscalation ]
 { #category : 'descriptions' }
 CPEscalationEventDefinition >> escalationRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #escalationRef; classes: { CPEscalation }; reference: CPEscalation new labelDescription; label: 'Escalation'; priority: 100; group: 'Relations'; yourself ]
+
+
+{ #category : 'execution semantics' }
+CPEscalationEventDefinition >> catchesEscalation: anEscalation [
+	^ escalationRef == anEscalation
+]

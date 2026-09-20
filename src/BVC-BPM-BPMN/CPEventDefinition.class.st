@@ -41,3 +41,9 @@ CPEventDefinition >> interruptsActivityWithFailure [
 CPEventDefinition >> catchesError: anError [
 	^ false
 ]
+
+
+{ #category : 'execution semantics' }
+CPEventDefinition >> catchesEscalation: anEscalation [
+	^ false
+]

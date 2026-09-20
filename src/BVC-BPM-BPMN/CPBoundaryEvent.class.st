@@ -78,3 +78,10 @@ CPBoundaryEvent >> catchesError: anError [
 	^ self eventDefinitions anySatisfy: [ :eachDefinition |
 		eachDefinition catchesError: anError ]
 ]
+
+
+{ #category : 'execution semantics' }
+CPBoundaryEvent >> catchesEscalation: anEscalation [
+	^ self eventDefinitions anySatisfy: [ :eachDefinition |
+		eachDefinition catchesEscalation: anEscalation ]
+]

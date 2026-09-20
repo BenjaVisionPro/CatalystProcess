@@ -2193,3 +2193,27 @@ CPExecutionKernelExamples >> linkThrowRejectsTargetOutsideCurrentScopeBeforeMuta
 	self assert: (execution eventExecutions noneSatisfy: [ :each | each definition == sourceEvent ]).
 	^ execution
 ]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationEndEventAndBoundaryShareExplicitMatchingContract [
+	<gtExample>
+	| escalation otherEscalation definition boundary endEvent |
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	otherEscalation := CPEscalation new identifier: 'otherEscalation'; yourself.
+	definition := CPEscalationEventDefinition new
+		identifier: 'caughtEscalation';
+		escalationRef: escalation;
+		yourself.
+	boundary := CPBoundaryEvent new identifier: 'boundary'; yourself.
+	boundary eventDefinitions add: definition.
+	endEvent := CPEscalationEndEvent new identifier: 'escalationEnd'; yourself.
+	endEvent eventDefinitions add: (CPEscalationEventDefinition new
+		identifier: 'thrownEscalation';
+		escalationRef: escalation;
+		yourself).
+	self assert: (CPEndEvent endEventTypes includes: CPEscalationEndEvent).
+	self assert: (boundary catchesEscalation: escalation).
+	self deny: (boundary catchesEscalation: otherEscalation).
+	self assert: endEvent eventDefinitions first escalationRef == escalation.
+	^ endEvent
+]
