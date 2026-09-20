@@ -8386,3 +8386,206 @@ CPExecutionKernelExamples >> standardLoopSubProcessErrorPropagatesToEnclosingBou
 	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
 	^ boundaryExecution
 ]
+
+{ #category : 'examples - service task faults' }
+CPExecutionKernelExamples >> serviceTaskExternalFaultTriggersErrorBoundaryWithoutNormalCompletion [
+	<gtExample>
+	| process task operation implementation error boundaryDefinition boundary after normalFlow boundaryFlow environment execution taskExecution boundaryExecution invocation fault |
+	process := CPProcess new identifier: 'process'; yourself.
+	error := CPError new identifier: 'serviceError'; yourself.
+	operation := CPOperation new identifier: 'performWork'; errorRefs: { error }; yourself.
+	task := CPServiceTask new identifier: 'service'; operationRef: operation; yourself.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'catchServiceError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'serviceErrorBoundary'; attachedToRef: task; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	normalFlow := CPSequenceFlow new identifier: 'normal'; sourceRef: task; targetRef: after; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'fault'; sourceRef: boundary; targetRef: after; yourself.
+	process addFlowElement: task; addFlowElement: boundary; addFlowElement: after; addFlowElement: normalFlow; addFlowElement: boundaryFlow.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: taskExecution.
+	invocation := taskExecution prepareExternalInvocationIdentifiedBy: #faultingServiceInvocation.
+	fault := CPExecutionOccurrence new occurrenceIdentifier: #serviceFault; definition: error; yourself.
+	execution faultServiceTaskExecution: taskExecution withErrorOccurrence: fault.
+	self assert: invocation isFaulted.
+	self assert: invocation faultOccurrence == fault.
+	self assert: invocation resultOccurrence isNil.
+	self assert: taskExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence == fault.
+	self assert: (execution availableFlowActivationsOn: normalFlow) isEmpty.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ taskExecution
+]
+
+{ #category : 'examples - service task faults' }
+CPExecutionKernelExamples >> standardLoopServiceFaultInterruptsLoopAndTriggersErrorBoundary [
+	<gtExample>
+	| process task operation implementation error loop boundaryDefinition boundary after normalFlow boundaryFlow environment execution taskExecution iteration boundaryExecution invocation fault |
+	process := CPProcess new identifier: 'process'; yourself.
+	error := CPError new identifier: 'loopServiceError'; yourself.
+	operation := CPOperation new identifier: 'performWork'; errorRefs: { error }; yourself.
+	loop := CPStandardLoopCharacteristics new testBefore: false; loopMaximum: 3; yourself.
+	task := CPServiceTask new identifier: 'loopService'; operationRef: operation; loopCharacteristics: loop; yourself.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'catchLoopServiceError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'loopServiceErrorBoundary'; attachedToRef: task; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	normalFlow := CPSequenceFlow new identifier: 'normal'; sourceRef: task; targetRef: after; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'fault'; sourceRef: boundary; targetRef: after; yourself.
+	process addFlowElement: task; addFlowElement: boundary; addFlowElement: after; addFlowElement: normalFlow; addFlowElement: boundaryFlow.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: taskExecution.
+	iteration := taskExecution activeStandardLoopIteration.
+	invocation := iteration prepareExternalInvocationIdentifiedBy: #faultingLoopInvocation.
+	fault := CPExecutionOccurrence new occurrenceIdentifier: #loopServiceFault; definition: error; yourself.
+	execution faultStandardLoopServiceTaskIteration: iteration withErrorOccurrence: fault.
+	self assert: invocation isFaulted.
+	self assert: iteration isTerminated.
+	self assert: taskExecution state class equals: CPActivityFailedState.
+	self assert: taskExecution standardLoopIterations size equals: 1.
+	self assert: taskExecution loopCounter equals: 0.
+	self assert: boundaryExecution isTriggered.
+	self assert: (execution availableFlowActivationsOn: normalFlow) isEmpty.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ taskExecution
+]
+
+{ #category : 'examples - service task faults' }
+CPExecutionKernelExamples >> multiInstanceServiceFaultCancelsSiblingInstancesAndTriggersErrorBoundary [
+	<gtExample>
+	| process task operation implementation error cardinality loop boundaryDefinition boundary after normalFlow boundaryFlow environment execution taskExecution firstInstance secondInstance boundaryExecution invocation fault |
+	process := CPProcess new identifier: 'process'; yourself.
+	error := CPError new identifier: 'multiServiceError'; yourself.
+	operation := CPOperation new identifier: 'performWork'; errorRefs: { error }; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopCardinality: cardinality; yourself.
+	task := CPServiceTask new identifier: 'multiService'; operationRef: operation; loopCharacteristics: loop; yourself.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'catchMultiServiceError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'multiServiceErrorBoundary'; attachedToRef: task; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	normalFlow := CPSequenceFlow new identifier: 'normal'; sourceRef: task; targetRef: after; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'fault'; sourceRef: boundary; targetRef: after; yourself.
+	process addFlowElement: task; addFlowElement: boundary; addFlowElement: after; addFlowElement: normalFlow; addFlowElement: boundaryFlow.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; expression: cardinality evaluatesTo: 2; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: taskExecution.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	invocation := firstInstance prepareExternalInvocationIdentifiedBy: #faultingMultiInvocation.
+	fault := CPExecutionOccurrence new occurrenceIdentifier: #multiServiceFault; definition: error; yourself.
+	execution faultMultiInstanceServiceTaskExecution: firstInstance withErrorOccurrence: fault.
+	self assert: invocation isFaulted.
+	self assert: firstInstance isCancelled.
+	self assert: secondInstance isCancelled.
+	self assert: taskExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: (execution availableFlowActivationsOn: normalFlow) isEmpty.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ taskExecution
+]
+
+{ #category : 'examples - service task faults' }
+CPExecutionKernelExamples >> serviceTaskRejectsErrorNotDeclaredByOperationBeforeMutation [
+	<gtExample>
+	| process task operation implementation declaredError undeclaredError environment execution taskExecution invocation fault rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	declaredError := CPError new identifier: 'declaredError'; yourself.
+	undeclaredError := CPError new identifier: 'undeclaredError'; yourself.
+	operation := CPOperation new identifier: 'performWork'; errorRefs: { declaredError }; yourself.
+	task := CPServiceTask new identifier: 'service'; operationRef: operation; yourself.
+	process addFlowElement: task.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	invocation := taskExecution prepareExternalInvocationIdentifiedBy: #undeclaredFaultInvocation.
+	fault := CPExecutionOccurrence new occurrenceIdentifier: #undeclaredFault; definition: undeclaredError; yourself.
+	rejected := false.
+	[ execution faultServiceTaskExecution: taskExecution withErrorOccurrence: fault ]
+		on: Error do: [ :exception | rejected := true ].
+	self assert: rejected.
+	self assert: invocation isPending.
+	self assert: invocation faultOccurrence isNil.
+	self assert: taskExecution isActive.
+	self assert: (execution acceptedOccurrences identityIncludes: fault) not.
+	^ taskExecution
+]
+
+{ #category : 'examples - service task faults' }
+CPExecutionKernelExamples >> externalInvocationAcceptsExactlyOneTerminalOutcome [
+	<gtExample>
+	| invocation result fault resultThenFaultRejected faultFirst secondResult faultThenResultRejected |
+	invocation := CPExternalInvocation new invocationIdentifier: #resultFirst; yourself.
+	result := CPExecutionOccurrence new occurrenceIdentifier: #result; definition: invocation; yourself.
+	fault := CPExecutionOccurrence new occurrenceIdentifier: #fault; definition: (CPError new identifier: 'error'; yourself); yourself.
+	invocation acceptResultOccurrence: result.
+	resultThenFaultRejected := false.
+	[ invocation acceptFaultOccurrence: fault ] on: Error do: [ :exception | resultThenFaultRejected := true ].
+	self assert: resultThenFaultRejected.
+	self assert: invocation isCompleted.
+	self assert: invocation isFaulted not.
+	self assert: invocation resultOccurrence == result.
+	self assert: invocation faultOccurrence isNil.
+	faultFirst := CPExternalInvocation new invocationIdentifier: #faultFirst; yourself.
+	faultFirst acceptFaultOccurrence: fault.
+	secondResult := CPExecutionOccurrence new occurrenceIdentifier: #secondResult; definition: faultFirst; yourself.
+	faultThenResultRejected := false.
+	[ faultFirst acceptResultOccurrence: secondResult ] on: Error do: [ :exception | faultThenResultRejected := true ].
+	self assert: faultThenResultRejected.
+	self assert: faultFirst isFaulted.
+	self assert: faultFirst isCompleted not.
+	self assert: faultFirst faultOccurrence == fault.
+	self assert: faultFirst resultOccurrence isNil.
+	^ faultFirst
+]
+
+{ #category : 'examples - service task faults' }
+CPExecutionKernelExamples >> nestedServiceFaultPropagatesToContainingSubProcessErrorBoundary [
+	<gtExample>
+	| process subProcess task operation implementation error boundaryDefinition boundary after boundaryFlow environment execution subProcessExecution childScope serviceExecution boundaryExecution invocation fault |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'subProcess'; yourself.
+	error := CPError new identifier: 'nestedServiceError'; yourself.
+	operation := CPOperation new identifier: 'performNestedWork'; errorRefs: { error }; yourself.
+	task := CPServiceTask new identifier: 'nestedService'; operationRef: operation; yourself.
+	subProcess addFlowElement: task.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'catchNestedServiceError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'subProcessErrorBoundary'; attachedToRef: subProcess; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'fault'; sourceRef: boundary; targetRef: after; yourself.
+	process addFlowElement: subProcess; addFlowElement: boundary; addFlowElement: after; addFlowElement: boundaryFlow.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	serviceExecution := childScope createServiceTaskExecutionFor: task.
+	childScope activateServiceTaskExecution: serviceExecution.
+	invocation := serviceExecution prepareExternalInvocationIdentifiedBy: #nestedFaultingInvocation.
+	fault := CPExecutionOccurrence new occurrenceIdentifier: #nestedServiceFault; definition: error; yourself.
+	childScope faultServiceTaskExecution: serviceExecution withErrorOccurrence: fault.
+	self assert: invocation isFaulted.
+	self assert: serviceExecution state class equals: CPActivityFailedState.
+	self assert: subProcessExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence == fault.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ boundaryExecution
+]

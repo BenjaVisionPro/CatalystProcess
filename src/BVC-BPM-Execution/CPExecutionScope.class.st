@@ -1147,6 +1147,125 @@ CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
 ]
 
 
+{ #category : 'events - error' }
+CPExecutionScope >> validateErrorOccurrence: anOccurrence fromActivityExecution: anActivityExecution [
+	| boundaryExecution handler |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Activity execution raising the Error does not belong to this execution scope.' ].
+	anActivityExecution isActive ifFalse: [
+		self error: 'Only an Active Activity execution can raise an Error.' ].
+	boundaryExecution := self
+		waitingErrorBoundaryExecutionFor: anOccurrence definition
+		attachedTo: anActivityExecution.
+	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
+	handler := self matchingErrorEventSubProcessFor: anOccurrence definition.
+	handler ifNotNil: [ ^ handler ].
+	parentScope ifNil: [
+		self error: 'No matching Error Event SubProcess or Error Boundary Event is available in the containing execution hierarchy.' ].
+	boundaryExecution := parentScope
+		errorBoundaryExecutionFor: anOccurrence definition
+		propagatingFrom: self.
+	^ parentScope
+		validateErrorPropagationFor: anOccurrence definition
+		toBoundary: boundaryExecution
+		fromNestedScope: self
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> raiseErrorOccurrence: anOccurrence fromActivityExecution: anActivityExecution [
+	| boundaryExecution handler |
+	self validateErrorOccurrence: anOccurrence fromActivityExecution: anActivityExecution.
+	boundaryExecution := self
+		waitingErrorBoundaryExecutionFor: anOccurrence definition
+		attachedTo: anActivityExecution.
+	boundaryExecution ifNotNil: [
+		^ self triggerBoundaryEventExecution: boundaryExecution with: anOccurrence ].
+	anActivityExecution beginFailure.
+	anActivityExecution finishFailure.
+	handler := self matchingErrorEventSubProcessFor: anOccurrence definition.
+	handler ifNotNil: [
+		^ self beginErrorEventSubProcess: handler occurrence: anOccurrence ].
+	self terminateRemainingWork.
+	boundaryExecution := parentScope
+		errorBoundaryExecutionFor: anOccurrence definition
+		propagatingFrom: self.
+	^ parentScope
+		propagateErrorOccurrence: anOccurrence
+		fromNestedScope: self
+		toBoundary: boundaryExecution
+]
+
+{ #category : 'activities - service' }
+CPExecutionScope >> validateServiceFaultOccurrence: anOccurrence forOperation: anOperation [
+	(anOperation errorRefs identityIncludes: anOccurrence definition) ifFalse: [
+		self error: 'The Service Task external fault must reference an Error declared by its Operation.' ].
+	^ anOccurrence
+]
+
+{ #category : 'activities - service' }
+CPExecutionScope >> faultServiceTaskExecution: anActivityExecution withErrorOccurrence: anOccurrence [
+	| invocation operation |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Service Task execution does not belong to this execution scope.' ].
+	anActivityExecution isActive ifFalse: [
+		self error: 'Only an Active Service Task execution can accept an external fault.' ].
+	invocation := anActivityExecution externalInvocation.
+	invocation ifNil: [ self error: 'The Service Task has no pending external invocation.' ].
+	invocation isPending ifFalse: [ self error: 'The Service Task external invocation has already accepted a terminal outcome.' ].
+	operation := anActivityExecution definition operationRef.
+	self validateServiceFaultOccurrence: anOccurrence forOperation: operation.
+	self validateErrorOccurrence: anOccurrence fromActivityExecution: anActivityExecution.
+	invocation acceptFaultOccurrence: anOccurrence.
+	self raiseErrorOccurrence: anOccurrence fromActivityExecution: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - service' }
+CPExecutionScope >> faultStandardLoopServiceTaskIteration: anIteration withErrorOccurrence: anOccurrence [
+	| invocation outerExecution operation |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop Service Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop Service Task iteration does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an iteration of an Active Standard Loop Service Task can accept an external fault.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop Service Task iteration can accept an external fault.' ].
+	invocation := anIteration externalInvocation.
+	invocation ifNil: [ self error: 'The Standard Loop Service Task iteration has no pending external invocation.' ].
+	invocation isPending ifFalse: [ self error: 'The Standard Loop Service Task external invocation has already accepted a terminal outcome.' ].
+	operation := outerExecution definition operationRef.
+	self validateServiceFaultOccurrence: anOccurrence forOperation: operation.
+	self validateErrorOccurrence: anOccurrence fromActivityExecution: outerExecution.
+	invocation acceptFaultOccurrence: anOccurrence.
+	self raiseErrorOccurrence: anOccurrence fromActivityExecution: outerExecution.
+	^ anIteration
+]
+
+{ #category : 'activities - service' }
+CPExecutionScope >> faultMultiInstanceServiceTaskExecution: anInstance withErrorOccurrence: anOccurrence [
+	| invocation outerExecution operation |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Service Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Service Task instance does not belong to its outer Activity execution.' ].
+	outerExecution isActive ifFalse: [
+		self error: 'Only an instance of an Active Multi-Instance Service Task can accept an external fault.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Service Task instance can accept an external fault.' ].
+	invocation := anInstance externalInvocation.
+	invocation ifNil: [ self error: 'The Multi-Instance Service Task instance has no pending external invocation.' ].
+	invocation isPending ifFalse: [ self error: 'The Multi-Instance Service Task external invocation has already accepted a terminal outcome.' ].
+	operation := outerExecution definition operationRef.
+	self validateServiceFaultOccurrence: anOccurrence forOperation: operation.
+	self validateErrorOccurrence: anOccurrence fromActivityExecution: outerExecution.
+	invocation acceptFaultOccurrence: anOccurrence.
+	self raiseErrorOccurrence: anOccurrence fromActivityExecution: outerExecution.
+	^ anInstance
+]
+
 { #category : 'activities - service' }
 CPExecutionScope >> completeServiceTaskExecution: anActivityExecution withResultOccurrence: anOccurrence [
 	| invocation |

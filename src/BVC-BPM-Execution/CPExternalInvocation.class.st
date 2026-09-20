@@ -7,7 +7,8 @@ Class {
 		'implementation',
 		'inputValue',
 		'inputValueAssigned',
-		'resultOccurrence'
+		'resultOccurrence',
+		'faultOccurrence'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -69,15 +70,28 @@ CPExternalInvocation >> implementation: anImplementation [
 { #category : 'accessing' }
 CPExternalInvocation >> resultOccurrence [ ^ resultOccurrence ]
 
-{ #category : 'testing' }
-CPExternalInvocation >> isPending [ ^ resultOccurrence isNil ]
+{ #category : 'accessing' }
+CPExternalInvocation >> faultOccurrence [ ^ faultOccurrence ]
 
 { #category : 'testing' }
-CPExternalInvocation >> isCompleted [ ^ resultOccurrence notNil ]
+CPExternalInvocation >> isPending [ ^ resultOccurrence isNil and: [ faultOccurrence isNil ] ]
+
+{ #category : 'testing' }
+CPExternalInvocation >> isCompleted [ ^ resultOccurrence notNil and: [ faultOccurrence isNil ] ]
+
+{ #category : 'testing' }
+CPExternalInvocation >> isFaulted [ ^ faultOccurrence notNil and: [ resultOccurrence isNil ] ]
 
 { #category : 'results' }
 CPExternalInvocation >> acceptResultOccurrence: anOccurrence [
-	resultOccurrence ifNotNil: [ self error: 'An external invocation result can be accepted only once.' ].
+	self isPending ifFalse: [ self error: 'An external invocation can accept only one terminal outcome.' ].
 	resultOccurrence := anOccurrence.
+	^ anOccurrence
+]
+
+{ #category : 'results' }
+CPExternalInvocation >> acceptFaultOccurrence: anOccurrence [
+	self isPending ifFalse: [ self error: 'An external invocation can accept only one terminal outcome.' ].
+	faultOccurrence := anOccurrence.
 	^ anOccurrence
 ]
