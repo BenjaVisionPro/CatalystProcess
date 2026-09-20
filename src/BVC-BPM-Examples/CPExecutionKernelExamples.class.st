@@ -2124,3 +2124,72 @@ CPExecutionKernelExamples >> linkEventDefinitionModelsSourceAndTargetRelationshi
 	self assert: target name equals: 'To Close'.
 	^ target
 ]
+
+
+{ #category : 'examples - link events' }
+CPExecutionKernelExamples >> linkThrowTransfersControlToTargetCatchInSameScope [
+	<gtExample>
+	| process before sourceEvent targetEvent after sourceDefinition targetDefinition incoming outgoing execution producer activation throwExecution targetExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	targetDefinition := CPLinkEventDefinition new identifier: 'targetDefinition'; name: 'Continue'; yourself.
+	sourceDefinition := CPLinkEventDefinition new identifier: 'sourceDefinition'; name: 'Continue'; target: targetDefinition; yourself.
+	targetDefinition sources add: sourceDefinition.
+	sourceEvent := CPLinkThrowIntermediateEvent new
+		identifier: 'sourceLink';
+		eventDefinitions: { sourceDefinition } asOrderedCollection;
+		yourself.
+	targetEvent := CPLinkIntermediateEvent new
+		identifier: 'targetLink';
+		eventDefinitions: { targetDefinition } asOrderedCollection;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: sourceEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: targetEvent; targetRef: after; yourself.
+	process addFlowElement: before.
+	process addFlowElement: sourceEvent.
+	process addFlowElement: targetEvent.
+	process addFlowElement: after.
+	process addFlowElement: incoming.
+	process addFlowElement: outgoing.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeLinkThrowEvent: sourceEvent consuming: activation.
+	targetExecution := execution eventExecutions detect: [ :each | each definition == targetEvent ].
+	self assert: throwExecution isCompleted.
+	self assert: activation isAvailable not.
+	self assert: targetExecution isTriggered.
+	self assert: targetExecution occurrence isNil.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ throwExecution
+]
+
+{ #category : 'examples - link events' }
+CPExecutionKernelExamples >> linkThrowRejectsTargetOutsideCurrentScopeBeforeMutation [
+	<gtExample>
+	| process before sourceEvent targetEvent sourceDefinition targetDefinition incoming execution producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	targetDefinition := CPLinkEventDefinition new identifier: 'targetDefinition'; name: 'Continue'; yourself.
+	sourceDefinition := CPLinkEventDefinition new identifier: 'sourceDefinition'; name: 'Continue'; target: targetDefinition; yourself.
+	targetDefinition sources add: sourceDefinition.
+	sourceEvent := CPLinkThrowIntermediateEvent new identifier: 'sourceLink'; eventDefinitions: { sourceDefinition } asOrderedCollection; yourself.
+	targetEvent := CPLinkIntermediateEvent new identifier: 'targetLink'; eventDefinitions: { targetDefinition } asOrderedCollection; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: sourceEvent; yourself.
+	process addFlowElement: before.
+	process addFlowElement: sourceEvent.
+	process addFlowElement: incoming.
+	"The target is intentionally not part of this Process level."
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	rejected := false.
+	[ execution executeLinkThrowEvent: sourceEvent consuming: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: activation isAvailable.
+	self assert: (execution eventExecutions noneSatisfy: [ :each | each definition == sourceEvent ]).
+	^ execution
+]

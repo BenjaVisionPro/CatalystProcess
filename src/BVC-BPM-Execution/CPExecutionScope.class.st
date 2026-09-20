@@ -574,6 +574,38 @@ CPExecutionScope >> triggerEventBasedGatewayExecution: aGatewayExecution subscri
 	^ eventExecution
 ]
 
+
+{ #category : 'events - link' }
+CPExecutionScope >> executeLinkThrowEvent: aLinkThrowEvent consuming: anActivation [
+	| sourceDefinitions sourceDefinition targetDefinition targetEvents targetEvent throwExecution catchExecution |
+	(anActivation isAvailable and: [ aLinkThrowEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'A Link Intermediate Throw Event requires an available activation from one of its incoming Sequence Flows.' ].
+	sourceDefinitions := aLinkThrowEvent eventDefinitions.
+	sourceDefinitions size = 1 ifFalse: [
+		self error: 'A Link Intermediate Throw Event requires exactly one Link Event Definition.' ].
+	sourceDefinition := sourceDefinitions first.
+	targetDefinition := sourceDefinition target.
+	targetDefinition ifNil: [ self error: 'A source Link Event Definition requires a target Link Event Definition.' ].
+	(targetDefinition sources identityIncludes: sourceDefinition) ifFalse: [
+		self error: 'The target Link Event Definition must reference the source Link Event Definition.' ].
+	targetEvents := definition flowElements select: [ :each |
+		each isCatchEvent and: [ each eventDefinitions identityIncludes: targetDefinition ] ].
+	targetEvents size = 1 ifFalse: [
+		self error: 'A source Link Event Definition must resolve to exactly one target Link Catch Event in the same execution scope.' ].
+	targetEvent := targetEvents first.
+	targetEvent container == aLinkThrowEvent container ifFalse: [
+		self error: 'Source and target Link Events must be in the same BPMN flow-elements container.' ].
+	throwExecution := self beginIntermediateThrowEvent: aLinkThrowEvent consuming: anActivation.
+	throwExecution complete.
+	catchExecution := CPIntermediateCatchEventExecution new
+		definition: targetEvent;
+		scope: self;
+		yourself.
+	eventExecutions add: catchExecution.
+	catchExecution triggerWithoutOccurrence.
+	^ throwExecution
+]
+
 { #category : 'events - intermediate throw' }
 CPExecutionScope >> beginIntermediateThrowEvent: anEvent consuming: anActivation [
 	| execution |
