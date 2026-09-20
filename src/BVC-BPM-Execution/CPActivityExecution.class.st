@@ -376,7 +376,7 @@ CPActivityExecution >> loopCounter [
 
 { #category : 'looping' }
 CPActivityExecution >> standardLoopMayBeginNextIteration [
-	| loop maximum condition |
+	| loop maximum condition result |
 	loop := definition loopCharacteristics.
 	loop ifNil: [ ^ true ].
 	loop isStandardLoop ifFalse: [
@@ -387,7 +387,10 @@ CPActivityExecution >> standardLoopMayBeginNextIteration [
 	condition := loop loopCondition.
 	condition ifNil: [
 		self error: 'An executable Standard Loop requires a loopCondition.' ].
-	^ scope environment evaluateExpression: condition in: scope forActivityExecution: self
+	result := scope environment evaluateExpression: condition in: scope forActivityExecution: self.
+	((result == true) or: [ result == false ]) ifFalse: [
+		self error: 'A Standard Loop loopCondition must evaluate to a boolean.' ].
+	^ result
 ]
 
 { #category : 'looping' }

@@ -7670,3 +7670,30 @@ CPExecutionKernelExamples >> manualTaskStandardLoopResolvesAssignmentsSequential
 	self assert: taskExecution loopCounter equals: 2.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> standardLoopConditionMustEvaluateToBoolean [
+	| process task loop condition execution taskExecution rejectedActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'condition'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: true;
+		loopCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'loopTask';
+		loopCharacteristics: loop;
+		yourself.
+	process flowElements add: task.
+	execution := CPProcessExecution for: process.
+	execution environment expressionResult: 1 for: condition.
+	taskExecution := execution createTaskExecutionFor: task.
+	rejectedActivation := false.
+	[ execution activateTaskExecution: taskExecution ]
+		on: Error
+		do: [ :error | rejectedActivation := true ].
+	self assert: rejectedActivation.
+	self assert: taskExecution isActive.
+	self assert: taskExecution standardLoopIterations isEmpty
+]
