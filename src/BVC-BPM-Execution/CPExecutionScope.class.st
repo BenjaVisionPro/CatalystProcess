@@ -103,6 +103,23 @@ CPExecutionScope >> hasAccessibleDataObjectReference: aDataObjectReference [
 ]
 
 { #category : 'data' }
+CPExecutionScope >> accessibleItemValueAvailableFor: anItemAwareElement [
+	| context item |
+	item := anItemAwareElement isDataObjectReference
+		ifTrue: [ anItemAwareElement dataObjectRef ]
+		ifFalse: [ anItemAwareElement ].
+	context := self executionContextForAccessibleItemValue: anItemAwareElement.
+	^ context hasItemValueFor: item
+]
+
+{ #category : 'data' }
+CPExecutionScope >> hasItemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this execution scope.' ].
+	^ itemValues includesKey: anItemAwareElement
+]
+
+{ #category : 'data' }
 CPExecutionScope >> accessibleItemValueFor: anItemAwareElement [
 	| context item |
 	item := anItemAwareElement isDataObjectReference

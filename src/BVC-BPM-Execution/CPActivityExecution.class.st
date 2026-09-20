@@ -53,6 +53,40 @@ CPActivityExecution >> ownsItemValueFor: anItemAwareElement [
 ]
 
 { #category : 'data' }
+CPActivityExecution >> accessibleItemValueAvailableFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self hasItemValueFor: anItemAwareElement ].
+	^ scope accessibleItemValueAvailableFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPActivityExecution >> hasItemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Activity execution.' ].
+	^ itemValues includesKey: anItemAwareElement
+]
+
+{ #category : 'data associations' }
+CPActivityExecution >> executeDataAssociation: aDataAssociation [
+	| source |
+	((definition dataInputAssociations identityIncludes: aDataAssociation)
+		or: [ definition dataOutputAssociations identityIncludes: aDataAssociation ]) ifFalse: [
+		self error: 'The Data Association does not belong to this Activity.' ].
+	aDataAssociation transformation ifNotNil: [
+		self error: 'Data Association transformations are not yet executable.' ].
+	aDataAssociation assignments ifNotEmpty: [
+		self error: 'Data Association assignments are not yet executable.' ].
+	aDataAssociation sourceRefs size = 1 ifFalse: [
+		self error: 'A Data Association without transformation or assignments requires exactly one source.' ].
+	aDataAssociation targetRef ifNil: [
+		self error: 'A Data Association requires a target.' ].
+	source := aDataAssociation sourceRefs first.
+	(self accessibleItemValueAvailableFor: source) ifFalse: [ ^ false ].
+	self accessibleItemValueFor: aDataAssociation targetRef put: (self accessibleItemValueFor: source).
+	^ true
+]
+
+{ #category : 'data' }
 CPActivityExecution >> accessibleItemValueFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
 		^ self itemValueFor: anItemAwareElement ].

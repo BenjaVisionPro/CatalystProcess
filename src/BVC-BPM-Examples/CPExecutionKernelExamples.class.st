@@ -4287,3 +4287,107 @@ CPExecutionKernelExamples >> inaccessibleDataObjectReferenceIsRejected [
 	self assert: rejected.
 	^ taskExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> simpleInputDataAssociationCopiesAvailableSourceValue [
+	<gtExample>
+	| process dataObject task specification input association execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'orderInput'; yourself.
+	specification dataInputs add: input.
+	task ioSpecification: specification.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: input;
+		yourself.
+	task dataInputAssociations add: association.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution itemValueFor: dataObject put: 'order-123'.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: (taskExecution executeDataAssociation: association).
+	self assert: (taskExecution itemValueFor: input) equals: 'order-123'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> simpleOutputDataAssociationCopiesAvailableSourceValue [
+	<gtExample>
+	| process dataObject task specification output association execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'result'; yourself.
+	process addFlowElement: dataObject.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	output := CPDataOutput new identifier: 'resultOutput'; yourself.
+	specification dataOutputs add: output.
+	task ioSpecification: specification.
+	association := CPDataOutputAssociation new
+		sourceRefs: { output };
+		targetRef: dataObject;
+		yourself.
+	task dataOutputAssociations add: association.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	taskExecution itemValueFor: output put: 'completed'.
+	self assert: (taskExecution executeDataAssociation: association).
+	self assert: (execution itemValueFor: dataObject) equals: 'completed'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> simpleDataAssociationWaitsForUnavailableSource [
+	<gtExample>
+	| process dataObject task specification input association execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'orderInput'; yourself.
+	specification dataInputs add: input.
+	task ioSpecification: specification.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: input;
+		yourself.
+	task dataInputAssociations add: association.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: (taskExecution executeDataAssociation: association) = false.
+	self assert: (taskExecution hasItemValueFor: input) = false.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> simpleDataAssociationPreservesAvailableNilValue [
+	<gtExample>
+	| process dataObject task specification input association execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'orderInput'; yourself.
+	specification dataInputs add: input.
+	task ioSpecification: specification.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: input;
+		yourself.
+	task dataInputAssociations add: association.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution itemValueFor: dataObject put: nil.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: (taskExecution executeDataAssociation: association).
+	self assert: (taskExecution hasItemValueFor: input).
+	self assert: (taskExecution itemValueFor: input) isNil.
+	^ taskExecution
+]
