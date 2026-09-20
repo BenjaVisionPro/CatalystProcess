@@ -12,6 +12,7 @@ Class {
 		'activityItemValuesSnapshot',
 		'scopeItemValuesSnapshot',
 		'thrownOccurrences',
+		'externalInvocation',
 		'completed',
 		'cancelled'
 	],
@@ -333,6 +334,51 @@ CPMultiInstanceActivityExecution >> hasPerInstanceOutputAssociations [
 		each sourceRefs anySatisfy: [ :source | self ownsItemValueFor: source ] ]
 ]
 
+
+
+{ #category : 'external work' }
+CPMultiInstanceActivityExecution >> externalInvocation [
+	^ externalInvocation
+]
+
+{ #category : 'external work' }
+CPMultiInstanceActivityExecution >> prepareExternalInvocationIdentifiedBy: anIdentifier [
+	| implementation inputs input |
+	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Activity instance can prepare external work.' ].
+	externalInvocation ifNotNil: [ self error: 'A Multi-Instance Activity instance can prepare external work only once.' ].
+	implementation := activityExecution resolvedImplementation.
+	implementation ifNil: [ self error: 'A Multi-Instance Service Task requires a resolved implementation before preparing external work.' ].
+	externalInvocation := CPExternalInvocation new
+		invocationIdentifier: anIdentifier;
+		activityExecution: self;
+		implementation: implementation;
+		yourself.
+	selectedInputSet ifNil: [ ^ externalInvocation ].
+	inputs := selectedInputSet dataInputRefs select: [ :each | self ownsItemValueFor: each ].
+	inputs ifEmpty: [ ^ externalInvocation ].
+	inputs size = 1 ifFalse: [
+		self error: 'A Multi-Instance Service Task Operation input requires exactly one per-instance Data Input.' ].
+	input := inputs first.
+	(self hasItemValueFor: input) ifFalse: [
+		self error: 'The Multi-Instance Service Task Data Input is unavailable for external invocation.' ].
+	externalInvocation inputValue: (self itemValueFor: input).
+	^ externalInvocation
+]
+
+{ #category : 'external work' }
+CPMultiInstanceActivityExecution >> populateSingleDataOutputFromOccurrence: anOccurrence [
+	| specification loop outputs |
+	specification := activityExecution definition ioSpecification.
+	specification ifNil: [ ^ self ].
+	loop := activityExecution definition loopCharacteristics.
+	outputs := specification dataOutputs select: [ :each |
+		loop loopDataOutputRef ~~ each and: [ self ownsItemValueFor: each ] ].
+	outputs ifEmpty: [ ^ self ].
+	outputs size = 1 ifFalse: [
+		self error: 'This Multi-Instance Activity result requires exactly one per-instance Data Output.' ].
+	self itemValueFor: outputs first put: anOccurrence payload.
+	^ self
+]
 
 { #category : 'lifecycle' }
 CPMultiInstanceActivityExecution >> isCompleted [

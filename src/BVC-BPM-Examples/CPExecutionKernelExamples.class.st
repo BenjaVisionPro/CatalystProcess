@@ -6554,3 +6554,90 @@ CPExecutionKernelExamples >> multiInstanceLoopDataOutputPublishesAfterAllItemsAr
 	^ taskExecution
 ]
 
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceServiceTaskExecutesExternalWorkPerInstance [
+	<gtExample>
+	| process serviceTask operation outMessage implementation environment execution serviceExecution loopDataInput loopDataOutput activityInput activityOutput inputDataItem outputDataItem inputSet outerInputSet outputSet outerOutputSet specification inputAssociation outputAssociation loop firstInstance secondInstance firstInvocation secondInvocation firstResult secondResult |
+	process := CPProcess new identifier: 'process'; yourself.
+	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
+	loopDataOutput := CPDataOutput new identifier: 'results'; isCollection: true; yourself.
+	activityInput := CPDataInput new identifier: 'activityInput'; yourself.
+	activityOutput := CPDataOutput new identifier: 'activityOutput'; yourself.
+	inputDataItem := CPDataInput new identifier: 'instanceInput'; yourself.
+	outputDataItem := CPDataOutput new identifier: 'instanceOutput'; yourself.
+	inputSet := CPInputSet new dataInputRefs: { activityInput }; yourself.
+	outerInputSet := CPInputSet new dataInputRefs: { loopDataInput }; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { activityOutput }; yourself.
+	outerOutputSet := CPOutputSet new dataOutputRefs: { loopDataOutput }; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput. activityInput };
+		dataOutputs: { loopDataOutput. activityOutput };
+		inputSets: { inputSet. outerInputSet };
+		outputSets: { outputSet. outerOutputSet };
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { inputDataItem };
+		targetRef: activityInput;
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { activityOutput };
+		targetRef: outputDataItem;
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopDataInputRef: loopDataInput;
+		loopDataOutputRef: loopDataOutput;
+		inputDataItem: inputDataItem;
+		outputDataItem: outputDataItem;
+		yourself.
+	outMessage := CPMessage new identifier: 'resultMessage'; yourself.
+	operation := CPOperation new identifier: 'performItem'; outMessageRef: outMessage; yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'multiService';
+		operationRef: operation;
+		ioSpecification: specification;
+		dataInputAssociations: { inputAssociation };
+		dataOutputAssociations: { outputAssociation };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: serviceTask.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	serviceExecution itemValueFor: loopDataInput put: (OrderedCollection withAll: { 'first'. 'second' }).
+	execution activateServiceTaskExecution: serviceExecution.
+	serviceExecution beginMultiInstanceActivityExecutions.
+	firstInstance := serviceExecution multiInstanceActivityExecutions first.
+	secondInstance := serviceExecution multiInstanceActivityExecutions second.
+	firstInvocation := firstInstance prepareExternalInvocationIdentifiedBy: #firstInvocation.
+	secondInvocation := secondInstance prepareExternalInvocationIdentifiedBy: #secondInvocation.
+	self assert: firstInvocation activityExecution == firstInstance.
+	self assert: secondInvocation activityExecution == secondInstance.
+	self assert: firstInvocation implementation == implementation.
+	self assert: secondInvocation implementation == implementation.
+	self assert: firstInvocation inputValue equals: 'first'.
+	self assert: secondInvocation inputValue equals: 'second'.
+	firstResult := CPExecutionOccurrence new
+		occurrenceIdentifier: #firstResult;
+		definition: firstInvocation;
+		payload: 'first result';
+		yourself.
+	secondResult := CPExecutionOccurrence new
+		occurrenceIdentifier: #secondResult;
+		definition: secondInvocation;
+		payload: 'second result';
+		yourself.
+	execution completeMultiInstanceServiceTaskExecution: firstInstance withResultOccurrence: firstResult.
+	self assert: firstInstance isCompleted.
+	self assert: secondInstance isActive.
+	self assert: serviceExecution isActive.
+	execution completeMultiInstanceServiceTaskExecution: secondInstance withResultOccurrence: secondResult.
+	self assert: secondInstance isCompleted.
+	self assert: serviceExecution isCompleted.
+	self assert: (serviceExecution itemValueFor: loopDataOutput) equals: (OrderedCollection withAll: {
+		'first result'. 'second result' }).
+	^ serviceExecution
+]

@@ -1119,6 +1119,28 @@ CPExecutionScope >> completeServiceTaskExecution: anActivityExecution withResult
 	^ anActivityExecution
 ]
 
+
+{ #category : 'activities - service' }
+CPExecutionScope >> completeMultiInstanceServiceTaskExecution: anInstance withResultOccurrence: anOccurrence [
+	| invocation outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Service Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Service Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Service Task instance can accept an external result.' ].
+	invocation := anInstance externalInvocation.
+	invocation ifNil: [ self error: 'The Multi-Instance Service Task instance has no pending external invocation.' ].
+	invocation isPending ifFalse: [ self error: 'The Multi-Instance Service Task external invocation has already accepted a result.' ].
+	self acceptOccurrence: anOccurrence.
+	invocation acceptResultOccurrence: anOccurrence.
+	outerExecution definition operationRef outMessageRef ifNotNil: [
+		anInstance populateSingleDataOutputFromOccurrence: anOccurrence ].
+	anInstance complete.
+	^ anInstance
+]
+
 { #category : 'building' }
 CPExecutionScope >> createReceiveTaskExecutionFor: aReceiveTask [
 	^ self addActivityExecution: (CPReceiveTaskExecution new
