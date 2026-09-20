@@ -1117,7 +1117,6 @@ CPExecutionScope >> matchingErrorEventSubProcessFor: anError [
 CPExecutionScope >> beginErrorEventSubProcess: anErrorSubProcess occurrence: anOccurrence [
 	| startEvent handlerExecution handlerScope |
 	startEvent := self errorStartEventFor: anErrorSubProcess.
-	(self acceptedOccurrences identityIncludes: anOccurrence) ifFalse: [ self acceptOccurrence: anOccurrence ].
 	owningActivity ifNotNil: [
 		owningActivity isActive ifFalse: [
 			self error: 'An interrupting Error Event SubProcess requires an Active owning Activity.' ].
