@@ -1972,6 +1972,6 @@ CPExecutionKernelExamples >> errorEndEventIsCaughtByMatchingBoundaryEvent [
 	self assert: boundaryExecution isTriggered.
 	self assert: boundaryExecution occurrence definition == error.
 	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
-	self assert: childScope availableFlowActivations isEmpty.
+	self assert: (childScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
 	^ boundaryExecution
 ]
