@@ -552,6 +552,8 @@ CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
 	(loop inputDataItem notNil and: [ multiInstanceInputItems notNil ]) ifTrue: [
 		instance itemValueFor: loop inputDataItem put: (multiInstanceInputItems at: anIndex) ].
 	multiInstanceActivityExecutions add: instance.
+	definition isSubProcess ifTrue: [
+		instance createSubScopeFor: definition ].
 	^ instance
 ]
 

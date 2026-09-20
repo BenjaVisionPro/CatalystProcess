@@ -5,6 +5,7 @@ Class {
 		'activityExecution',
 		'index',
 		'itemValues',
+		'subScope',
 		'completed',
 		'cancelled'
 	],
@@ -28,6 +29,34 @@ CPMultiInstanceActivityExecution >> activityExecution [
 { #category : 'accessing' }
 CPMultiInstanceActivityExecution >> activityExecution: anActivityExecution [
 	activityExecution := anActivityExecution
+]
+
+
+{ #category : 'accessing' }
+CPMultiInstanceActivityExecution >> scope [
+	^ activityExecution scope
+]
+
+{ #category : 'accessing' }
+CPMultiInstanceActivityExecution >> subScope [
+	^ subScope
+]
+
+{ #category : 'building' }
+CPMultiInstanceActivityExecution >> createSubScopeFor: aScopeDefinition [
+	subScope ifNotNil: [ self error: 'A Multi-Instance Activity instance can own only one execution scope.' ].
+	^ CPExecutionScope for: aScopeDefinition ownedBy: self
+]
+
+{ #category : 'building' }
+CPMultiInstanceActivityExecution >> attachSubScope: anExecutionScope [
+	subScope ifNotNil: [ self error: 'A Multi-Instance Activity instance already owns an execution scope.' ].
+	anExecutionScope owningActivity ifNotNil: [ self error: 'The execution scope is already owned by an Activity execution.' ].
+	self scope ifNil: [ self error: 'The Multi-Instance Activity execution must belong to a scope before its instance can own a child scope.' ].
+	anExecutionScope owningActivity: self.
+	self scope addChildScope: anExecutionScope.
+	subScope := anExecutionScope.
+	^ anExecutionScope
 ]
 
 { #category : 'accessing' }

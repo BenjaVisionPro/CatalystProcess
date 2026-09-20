@@ -5655,3 +5655,41 @@ CPExecutionKernelExamples >> completedMultiInstanceActivityCreatesCompensationHi
 	self assert: execution availableCompensationRecords first activityExecution == taskExecution.
 	^ taskExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceSubProcessInstancesOwnIndependentExecutionScopes [
+	<gtExample>
+	| process subProcess dataObject loop execution subProcessExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'instanceData'; yourself.
+	subProcess := CPSubProcess new identifier: 'multiSubProcess'; yourself.
+	subProcess addFlowElement: dataObject.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	subProcess loopCharacteristics: loop.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 2;
+			yourself).
+	subProcessExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: subProcess;
+		yourself).
+	subProcessExecution activate.
+	subProcessExecution beginMultiInstanceActivityExecutions.
+	firstInstance := subProcessExecution multiInstanceActivityExecutions first.
+	secondInstance := subProcessExecution multiInstanceActivityExecutions second.
+	self assert: firstInstance subScope notNil.
+	self assert: secondInstance subScope notNil.
+	self assert: firstInstance subScope ~~ secondInstance subScope.
+	self assert: firstInstance subScope owningActivity == firstInstance.
+	self assert: secondInstance subScope owningActivity == secondInstance.
+	firstInstance subScope itemValueFor: dataObject put: 'first'.
+	secondInstance subScope itemValueFor: dataObject put: 'second'.
+	self assert: (firstInstance subScope itemValueFor: dataObject) equals: 'first'.
+	self assert: (secondInstance subScope itemValueFor: dataObject) equals: 'second'.
+	^ subProcessExecution
+]
+
