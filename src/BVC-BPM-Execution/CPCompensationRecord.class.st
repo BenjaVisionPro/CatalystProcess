@@ -3,11 +3,18 @@ Class {
 	#superclass : 'CFIdentifiableObject',
 	#instVars : [
 		'activityExecution',
-		'boundaryEvent'
+		'boundaryEvent',
+		'claimed'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
+
+{ #category : 'initialization' }
+CPCompensationRecord >> initialize [
+	super initialize.
+	claimed := false
+]
 
 { #category : 'accessing' }
 CPCompensationRecord >> activityExecution [ ^ activityExecution ]
@@ -22,6 +29,16 @@ CPCompensationRecord >> boundaryEvent [ ^ boundaryEvent ]
 CPCompensationRecord >> boundaryEvent: aBoundaryEvent [ boundaryEvent := aBoundaryEvent ]
 
 { #category : 'testing' }
+CPCompensationRecord >> isClaimed [ ^ claimed ]
+
+{ #category : 'testing' }
 CPCompensationRecord >> isAvailable [
-	^ activityExecution isCompleted
+	^ activityExecution isCompleted and: [ claimed not ]
+]
+
+{ #category : 'lifecycle' }
+CPCompensationRecord >> claim [
+	self isAvailable ifFalse: [ self error: 'Only an available compensation record can be claimed.' ].
+	claimed := true.
+	^ self
 ]

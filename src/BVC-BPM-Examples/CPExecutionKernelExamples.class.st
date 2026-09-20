@@ -2355,3 +2355,38 @@ CPExecutionKernelExamples >> completedActivityCreatesDurableCompensationRecord [
 	self assert: record isAvailable.
 	^ record
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationRecordCanBeClaimedExactlyOnce [
+	<gtExample>
+	| process activity compensationDefinition boundary execution activityExecution record rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'work'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new
+		identifier: 'compensation';
+		yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: activity;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	activity boundaryEventRefs add: boundary.
+	process addFlowElement: activity.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	activityExecution beginCompletion.
+	activityExecution complete.
+	record := execution claimCompensationRecordFor: activityExecution.
+	self assert: record isClaimed.
+	self assert: record isAvailable not.
+	self assert: (execution availableCompensationRecords includes: record) not.
+	self assert: (execution availableCompensationRecordsFor: activity) isEmpty.
+	rejected := false.
+	[ execution claimCompensationRecordFor: activityExecution ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	^ record
+]

@@ -1206,3 +1206,19 @@ CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
 CPExecutionScope >> availableCompensationRecords [
 	^ compensationRecords select: [ :each | each isAvailable ]
 ]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> availableCompensationRecordsFor: anActivity [
+	^ self availableCompensationRecords select: [ :each |
+		each activityExecution definition == anActivity ]
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> claimCompensationRecordFor: anActivityExecution [
+	| matches |
+	matches := self availableCompensationRecords select: [ :each |
+		each activityExecution == anActivityExecution ].
+	matches size = 1 ifFalse: [
+		self error: 'A completed Activity execution must have exactly one available compensation record to be claimed.' ].
+	^ matches first claim
+]
