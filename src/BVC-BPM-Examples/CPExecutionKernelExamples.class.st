@@ -4998,3 +4998,39 @@ CPExecutionKernelExamples >> messageCatchEventCopiesPayloadThroughDataOutputAsso
 	self assert: (execution accessibleItemValueFor: dataObject) == payload.
 	^ eventExecution
 ]
+
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> messageThrowEventPreparesDataInputFromAssociation [
+	<gtExample>
+	| process start throw after message messageDefinition dataObject dataInput association incoming outgoing execution eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	dataObject := CPDataObject new identifier: 'processData'; yourself.
+	dataInput := CPDataInput new identifier: 'messageData'; yourself.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: dataInput;
+		yourself.
+	throw := CPMessageThrowIntermediateEvent new
+		identifier: 'sendMessage';
+		eventDefinitions: { messageDefinition };
+		dataInputs: { dataInput };
+		dataInputAssociations: { association };
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: start; targetRef: throw; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrow'; sourceRef: throw; targetRef: after; yourself.
+	process addFlowElement: start; addFlowElement: throw; addFlowElement: after; addFlowElement: dataObject; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	execution accessibleItemValueFor: dataObject put: 'message payload'.
+	execution start.
+	eventExecution := execution beginIntermediateThrowEvent: throw consuming: (execution availableFlowActivationsOn: incoming) first.
+	self assert: (eventExecution itemValueFor: dataInput) equals: 'message payload'.
+	self assert: eventExecution isPending.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	^ eventExecution
+]
+

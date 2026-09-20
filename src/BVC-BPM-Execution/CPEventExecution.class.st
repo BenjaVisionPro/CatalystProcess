@@ -128,3 +128,21 @@ CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
 		self scope accessibleItemValueFor: association targetRef put: (self itemValueFor: source) ].
 	^ self
 ]
+
+{ #category : 'data' }
+CPEventExecution >> prepareThrowData [
+	| source |
+	definition isThrowEvent ifFalse: [ self error: 'Only a Throw Event can prepare throw data.' ].
+	definition dataInputAssociations do: [ :association |
+		association transformation ifNotNil: [ self error: 'Event Data Association transformations are not yet executable.' ].
+		association assignments ifNotEmpty: [ self error: 'Event Data Association assignments are not yet executable.' ].
+		association sourceRefs size = 1 ifFalse: [ self error: 'An Event Data Association without transformation or assignments requires exactly one source.' ].
+		association targetRef ifNil: [ self error: 'An Event Data Association requires a target.' ].
+		(self ownsItemValueFor: association targetRef) ifFalse: [ self error: 'A Throw Event Data Association target must belong to this Event execution.' ].
+		source := association sourceRefs first.
+		(self scope accessibleItemValueAvailableFor: source) ifFalse: [
+			self error: 'A Throw Event Data Association source is unavailable.' ].
+		self itemValueFor: association targetRef put: (self scope accessibleItemValueFor: source) ].
+	^ self
+]
+
