@@ -9,6 +9,7 @@ Class {
 { #category : 'initialization' }
 CPCompensationSubProcess >> initialize [
 	super initialize.
+	self triggeredByEvent: true.
 	self isForCompensation: true
 ]
 
@@ -27,7 +28,3 @@ CPCompensationSubProcess class >> defaultIcon [
 	^ self subProcessTypeIcon
 ]
 
-{ #category : 'testing' }
-CPCompensationSubProcess >> isEventSubProcess [
-	^ true
-]

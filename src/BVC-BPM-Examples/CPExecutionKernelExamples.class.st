@@ -8589,3 +8589,125 @@ CPExecutionKernelExamples >> nestedServiceFaultPropagatesToContainingSubProcessE
 	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
 	^ boundaryExecution
 ]
+
+
+{ #category : 'examples - event sub-process model' }
+CPExecutionKernelExamples >> ordinarySubProcessCanModelErrorEventSubProcess [
+	<gtExample>
+	| handler start definition error |
+	error := CPError new identifier: 'bookingError'; yourself.
+	handler := CPSubProcess new identifier: 'errorHandler'; triggeredByEvent: true; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	definition := CPErrorEventDefinition new identifier: 'errorDefinition'; error: error; yourself.
+	start eventDefinitions add: definition.
+	handler addFlowElement: start.
+	self assert: handler isEventSubProcess.
+	self assert: handler isErrorEventSubProcess.
+	self assert: handler class equals: CPSubProcess.
+	self assert: start isInterrupting.
+	handler validateEventSubProcessStructure.
+	^ handler
+]
+
+{ #category : 'examples - event sub-process model' }
+CPExecutionKernelExamples >> specializedEventSubProcessesInitializeGenericModelState [
+	<gtExample>
+	| errorHandler compensationHandler |
+	errorHandler := CPErrorSubProcess new.
+	compensationHandler := CPCompensationSubProcess new.
+	self assert: errorHandler triggeredByEvent.
+	self assert: errorHandler isEventSubProcess.
+	self assert: compensationHandler triggeredByEvent.
+	self assert: compensationHandler isEventSubProcess.
+	self assert: compensationHandler isForCompensation.
+	^ errorHandler
+]
+
+{ #category : 'examples - event sub-process model' }
+CPExecutionKernelExamples >> escalationStartEventIsRepresentedByGenericStartEventModel [
+	<gtExample>
+	| start |
+	start := CPEscalationStartEvent new.
+	self assert: start isStartEvent.
+	self assert: start isInterrupting.
+	self assert: (CPStartEvent startEventTypes includes: CPEscalationStartEvent).
+	start isInterrupting: false.
+	self assert: start isInterrupting not.
+	^ start
+]
+
+{ #category : 'examples - event sub-process model' }
+CPExecutionKernelExamples >> ordinaryErrorEventSubProcessExecutesWithoutSpecializedSubProcessClass [
+	<gtExample>
+	| process subProcess handler start startDefinition thrownError errorEnd errorDefinition before flow execution subExecution childScope producer activation handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	thrownError := CPError new identifier: 'bookingError'; yourself.
+	handler := CPSubProcess new identifier: 'errorHandler'; triggeredByEvent: true; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; yourself.
+	startDefinition := CPErrorEventDefinition new identifier: 'catchBookingError'; error: thrownError; yourself.
+	start eventDefinitions add: startDefinition.
+	handler addFlowElement: start.
+	errorEnd := CPErrorEndEvent new identifier: 'throwError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwBookingError'; error: thrownError; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	before := CPTask new identifier: 'beforeError'; yourself.
+	flow := CPSequenceFlow new identifier: 'toError'; sourceRef: before; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: handler; addFlowElement: before; addFlowElement: errorEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	childScope executeErrorEndEvent: errorEnd consuming: activation.
+	handlerExecution := childScope activityExecutions detect: [ :each | each definition == handler ].
+	self assert: handlerExecution definition class equals: CPSubProcess.
+	self assert: handlerExecution isActive.
+	self assert: subExecution state class equals: CPActivityFailingState.
+	self assert: producer state class equals: CPActivityTerminatedState.
+	childScope completeErrorEventSubProcessActivity: handlerExecution.
+	self assert: handlerExecution isCompleted.
+	self assert: subExecution state class equals: CPActivityFailedState.
+	^ handlerExecution
+]
+
+{ #category : 'examples - event sub-process model' }
+CPExecutionKernelExamples >> nonInterruptingErrorStartIsRejectedBeforeMutation [
+	<gtExample>
+	| process subProcess handler start startDefinition thrownError errorEnd errorDefinition before flow execution subExecution childScope producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	thrownError := CPError new identifier: 'bookingError'; yourself.
+	handler := CPSubProcess new identifier: 'errorHandler'; triggeredByEvent: true; yourself.
+	start := CPErrorStartEvent new identifier: 'errorStart'; isInterrupting: false; yourself.
+	startDefinition := CPErrorEventDefinition new identifier: 'catchBookingError'; error: thrownError; yourself.
+	start eventDefinitions add: startDefinition.
+	handler addFlowElement: start.
+	errorEnd := CPErrorEndEvent new identifier: 'throwError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwBookingError'; error: thrownError; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	before := CPTask new identifier: 'beforeError'; yourself.
+	flow := CPSequenceFlow new identifier: 'toError'; sourceRef: before; targetRef: errorEnd; yourself.
+	subProcess addFlowElement: handler; addFlowElement: before; addFlowElement: errorEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	rejected := false.
+	[ childScope executeErrorEndEvent: errorEnd consuming: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: subExecution isActive.
+	self assert: producer isActive.
+	self assert: activation isAvailable.
+	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == handler ]) not.
+	^ subExecution
+]

@@ -1,10 +1,41 @@
 Class {
 	#name : 'CPStartEvent',
 	#superclass : 'CPCatchEvent',
+	#instVars : [
+		'isInterrupting'
+	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
 }
 
+
+
+{ #category : 'initialization' }
+CPStartEvent >> initialize [
+	super initialize.
+	isInterrupting := true
+]
+
+{ #category : 'accessing' }
+CPStartEvent >> isInterrupting [
+	^ isInterrupting
+]
+
+{ #category : 'accessing' }
+CPStartEvent >> isInterrupting: aBoolean [
+	isInterrupting := aBoolean
+]
+
+{ #category : 'descriptions' }
+CPStartEvent >> isInterruptingDescription [
+	<magritteDescription>
+	^ MABooleanDescription new
+		accessor: #isInterrupting;
+		label: 'Interrupting';
+		priority: 190;
+		group: 'Execution';
+		yourself
+]
 { #category : 'testing' }
 CPStartEvent >> isStartEvent [ ^ true ]
 
@@ -16,7 +47,7 @@ CPStartEvent class >> defaultIcon [
 
 { #category : 'event type' }
 CPStartEvent class >> startEventTypes [
-	^ { CPNoneStartEvent . CPMessageStartEvent . CPTimerStartEvent . CPSignalStartEvent . CPConditionalStartEvent . CPErrorStartEvent . CPCompensationStartEvent }
+	^ { CPNoneStartEvent . CPMessageStartEvent . CPTimerStartEvent . CPSignalStartEvent . CPConditionalStartEvent . CPErrorStartEvent . CPEscalationStartEvent . CPCompensationStartEvent }
 ]
 
 { #category : 'event type' }

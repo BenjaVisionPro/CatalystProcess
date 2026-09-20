@@ -8,7 +8,8 @@ Class {
 		'flowElements',
 		'laneSets',
 		'artifacts',
-		'compensable'
+		'compensable',
+		'triggeredByEvent'
 	],
 	#category : 'BVC-BPM-BPMN',
 	#package : 'BVC-BPM-BPMN'
@@ -25,7 +26,8 @@ CPSubProcess >> initialize [
 	flowElements := OrderedCollection new.
 	laneSets := OrderedCollection new.
 	artifacts := OrderedCollection new.
-	compensable := false
+	compensable := false.
+	triggeredByEvent := false
 ]
 
 { #category : 'accessing' }
@@ -201,12 +203,34 @@ CPSubProcess >> hasEmbeddedCompensationHandler [
 
 { #category : 'testing' }
 CPSubProcess >> isErrorEventSubProcess [
-	^ false
+	^ self isEventSubProcess and: [
+		flowElements anySatisfy: [ :each | each isStartEvent and: [ each isErrorStartEvent ] ] ]
 ]
 
 { #category : 'testing' }
 CPSubProcess >> isEventSubProcess [
-	^ false
+	^ triggeredByEvent
+]
+
+{ #category : 'accessing' }
+CPSubProcess >> triggeredByEvent [
+	^ triggeredByEvent
+]
+
+{ #category : 'accessing' }
+CPSubProcess >> triggeredByEvent: aBoolean [
+	triggeredByEvent := aBoolean
+]
+
+{ #category : 'descriptions' }
+CPSubProcess >> triggeredByEventDescription [
+	<magritteDescription>
+	^ MABooleanDescription new
+		accessor: #triggeredByEvent;
+		label: 'Triggered by event';
+		priority: 190;
+		group: 'Execution';
+		yourself
 ]
 
 { #category : 'validation' }

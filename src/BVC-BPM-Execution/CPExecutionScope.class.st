@@ -1626,6 +1626,8 @@ CPExecutionScope >> errorStartEventFor: anErrorSubProcess [
 	startEvent := startEvents first.
 	startEvent isErrorStartEvent ifFalse: [
 		self error: 'An Error Event SubProcess requires an Error Start Event.' ].
+	startEvent isInterrupting ifFalse: [
+		self error: 'An Error Event SubProcess Start Event must be interrupting.' ].
 	startEvent incoming isEmpty ifFalse: [
 		self error: 'An Error Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
 	startEvent eventDefinitions size = 1 ifFalse: [
@@ -1638,10 +1640,12 @@ CPExecutionScope >> matchingErrorEventSubProcessFor: anError [
 	| matches |
 	matches := definition flowElements select: [ :each |
 		each isSubProcess and: [
-			each isErrorEventSubProcess and: [
-				| startEvent |
-				startEvent := self errorStartEventFor: each.
-				startEvent eventDefinitions first catchesError: anError ] ] ].
+			each isEventSubProcess and: [
+				(each flowElements anySatisfy: [ :candidate |
+					candidate isStartEvent and: [ candidate isErrorStartEvent ] ]) and: [
+					| startEvent |
+					startEvent := self errorStartEventFor: each.
+					startEvent eventDefinitions first catchesError: anError ] ] ] ].
 	matches size > 1 ifTrue: [
 		self error: 'More than one Error Event SubProcess matches the propagated Error in the same execution scope.' ].
 	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
@@ -1667,8 +1671,9 @@ CPExecutionScope >> beginErrorEventSubProcess: anErrorSubProcess occurrence: anO
 CPExecutionScope >> completeErrorEventSubProcessActivity: anActivityExecution [
 	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
 		self error: 'The Error Event SubProcess cannot complete while nested control flow or Activities remain active.' ].
-	anActivityExecution definition isErrorEventSubProcess ifFalse: [
-		self error: 'Only an Error Event SubProcess can complete through error-handler completion.' ].
+	anActivityExecution definition isEventSubProcess ifFalse: [
+		self error: 'Only an Event SubProcess can complete through error-handler completion.' ].
+	self errorStartEventFor: anActivityExecution definition.
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.
 	owningActivity ifNotNil: [ owningActivity finishFailure ].

@@ -6,6 +6,12 @@ Class {
 	#package : 'BVC-BPM-BPMN'
 }
 
+{ #category : 'initialization' }
+CPErrorSubProcess >> initialize [
+	super initialize.
+	self triggeredByEvent: true
+]
+
 { #category : 'sub-process type' }
 CPErrorSubProcess class >> subProcessTypeLabel [
 	^ 'Error Event'
@@ -21,12 +27,4 @@ CPErrorSubProcess class >> defaultIcon [
 	^ self subProcessTypeIcon
 ]
 
-{ #category : 'testing' }
-CPErrorSubProcess >> isErrorEventSubProcess [
-	^ true
-]
 
-{ #category : 'testing' }
-CPErrorSubProcess >> isEventSubProcess [
-	^ true
-]
