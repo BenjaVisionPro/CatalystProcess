@@ -659,3 +659,12 @@ CPActivityExecution >> multiInstanceActiveCount [
 CPActivityExecution >> multiInstanceCancelledCount [
 	^ multiInstanceActivityExecutions count: [ :each | each isCancelled ]
 ]
+
+{ #category : 'activities - compensation' }
+CPActivityExecution >> isCompensationEligibleCompletion [
+	self isCompleted ifFalse: [ ^ false ].
+	definition loopCharacteristics ifNil: [ ^ true ].
+	definition loopCharacteristics isMultiInstance ifFalse: [ ^ true ].
+	^ multiInstanceCardinality notNil
+		and: [ self multiInstanceCompletedCount = multiInstanceCardinality ]
+]

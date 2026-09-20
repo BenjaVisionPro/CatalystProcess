@@ -5575,3 +5575,83 @@ CPExecutionKernelExamples >> multiInstanceOutputDataItemsBuildLoopDataOutputColl
 	self assert: taskExecution isCompleted.
 	^ taskExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCompensationRequiresAllInstancesToCompleteSuccessfully [
+	<gtExample>
+	| process task loop condition compensationDefinition boundary execution environment taskExecution firstInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: task;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 3;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	firstInstance complete.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution multiInstanceCompletedCount equals: 1.
+	self assert: taskExecution multiInstanceCancelledCount equals: 2.
+	self assert: execution availableCompensationRecords isEmpty.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> completedMultiInstanceActivityCreatesCompensationHistory [
+	<gtExample>
+	| process task loop compensationDefinition boundary execution environment taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: task;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 2;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	taskExecution multiInstanceActivityExecutions first complete.
+	taskExecution multiInstanceActivityExecutions second complete.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution multiInstanceCompletedCount equals: 2.
+	self assert: taskExecution multiInstanceCancelledCount equals: 0.
+	self assert: execution availableCompensationRecords size equals: 1.
+	self assert: execution availableCompensationRecords first activityExecution == taskExecution.
+	^ taskExecution
+]

@@ -1685,6 +1685,7 @@ CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
 		self error: 'The completed Activity execution does not belong to this execution scope.' ].
 	anActivityExecution isCompleted ifFalse: [
 		self error: 'Compensation history can be recorded only for a completed Activity execution.' ].
+	anActivityExecution isCompensationEligibleCompletion ifFalse: [ ^ anActivityExecution ].
 	"A compensation handler is compensation work, not newly completed normal work.
 	 Recording it would make compensation recursively compensate its own handlers."
 	anActivityExecution definition isForCompensation ifTrue: [ ^ anActivityExecution ].
