@@ -6368,3 +6368,65 @@ CPExecutionKernelExamples >> multiInstanceActivityLocalDataIsOwnedPerInstance [
 	self assert: (secondInstance ownsItemValueFor: loopDataInput) equals: false.
 	^ taskExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceDataAssociationsExecutePerInstance [
+	<gtExample>
+	| process task loopDataInput activityInput activityOutput inputDataItem outputDataItem inputSet outputSet specification inputAssociation outputAssociation loop execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
+	activityInput := CPDataInput new identifier: 'activityInput'; yourself.
+	activityOutput := CPDataOutput new identifier: 'activityOutput'; yourself.
+	inputDataItem := CPDataInput new identifier: 'instanceInput'; yourself.
+	outputDataItem := CPDataOutput new identifier: 'instanceOutput'; yourself.
+	inputSet := CPInputSet new dataInputRefs: { activityInput }; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { activityOutput }; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput. activityInput };
+		dataOutputs: { activityOutput };
+		inputSets: { inputSet };
+		outputSets: { outputSet };
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { inputDataItem };
+		targetRef: activityInput;
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { activityOutput };
+		targetRef: outputDataItem;
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopDataInputRef: loopDataInput;
+		inputDataItem: inputDataItem;
+		outputDataItem: outputDataItem;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		dataInputAssociations: { inputAssociation };
+		dataOutputAssociations: { outputAssociation };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: CPExampleExecutionEnvironment new.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution itemValueFor: loopDataInput put: (OrderedCollection withAll: { 'first'. 'second' }).
+	taskExecution initializeMultiInstanceCardinality.
+	firstInstance := taskExecution beginMultiInstanceActivityExecutionAt: 1.
+	secondInstance := taskExecution beginMultiInstanceActivityExecutionAt: 2.
+	self assert: (firstInstance itemValueFor: activityInput) equals: 'first'.
+	self assert: (secondInstance itemValueFor: activityInput) equals: 'second'.
+	self assert: firstInstance selectedInputSet == inputSet.
+	self assert: secondInstance selectedInputSet == inputSet.
+	firstInstance itemValueFor: activityOutput put: 'first result'.
+	secondInstance itemValueFor: activityOutput put: 'second result'.
+	firstInstance complete.
+	secondInstance complete.
+	self assert: (firstInstance itemValueFor: outputDataItem) equals: 'first result'.
+	self assert: (secondInstance itemValueFor: outputDataItem) equals: 'second result'.
+	self assert: firstInstance selectedOutputSet == outputSet.
+	self assert: secondInstance selectedOutputSet == outputSet.
+	self assert: taskExecution multiInstanceOutputItems equals: (OrderedCollection withAll: {
+		'first result'. 'second result' }).
+	^ taskExecution
+]

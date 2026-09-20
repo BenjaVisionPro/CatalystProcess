@@ -5,6 +5,9 @@ Class {
 		'activityExecution',
 		'index',
 		'itemValues',
+		'itemValueProducers',
+		'selectedInputSet',
+		'selectedOutputSet',
 		'subScope',
 		'activityItemValuesSnapshot',
 		'scopeItemValuesSnapshot',
@@ -20,6 +23,7 @@ Class {
 CPMultiInstanceActivityExecution >> initialize [
 	super initialize.
 	itemValues := IdentityDictionary new.
+	itemValueProducers := IdentityDictionary new.
 	thrownOccurrences := OrderedCollection new.
 	completed := false.
 	cancelled := false
@@ -112,6 +116,206 @@ CPMultiInstanceActivityExecution >> itemValueFor: anItemAwareElement put: aValue
 ]
 
 
+{ #category : 'accessing' }
+CPMultiInstanceActivityExecution >> selectedInputSet [
+	^ selectedInputSet
+]
+
+{ #category : 'accessing' }
+CPMultiInstanceActivityExecution >> selectedOutputSet [
+	^ selectedOutputSet
+]
+
+{ #category : 'data' }
+CPMultiInstanceActivityExecution >> accessibleItemValueAvailableFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self hasItemValueFor: anItemAwareElement ].
+	^ self scope accessibleItemValueAvailableFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueFor: anItemAwareElement ].
+	^ self scope accessibleItemValueFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueFor: anItemAwareElement put: aValue ].
+	^ self scope accessibleItemValueFor: anItemAwareElement put: aValue
+]
+
+{ #category : 'data - provenance' }
+CPMultiInstanceActivityExecution >> itemValueProducerFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Multi-Instance Activity instance.' ].
+	^ itemValueProducers at: anItemAwareElement ifAbsent: [ nil ]
+]
+
+{ #category : 'data - provenance' }
+CPMultiInstanceActivityExecution >> accessibleItemValueProducerFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueProducerFor: anItemAwareElement ].
+	^ self scope accessibleItemValueProducerFor: anItemAwareElement
+]
+
+{ #category : 'data - provenance' }
+CPMultiInstanceActivityExecution >> itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Multi-Instance Activity instance.' ].
+	itemValues at: anItemAwareElement put: aValue.
+	itemValueProducers at: anItemAwareElement put: anActivityExecution.
+	^ aValue
+]
+
+{ #category : 'data - provenance' }
+CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
+		^ self itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution ].
+	^ self scope accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> canExecuteDataAssociation: aDataAssociation [
+	| definition source |
+	definition := activityExecution definition.
+	((definition dataInputAssociations identityIncludes: aDataAssociation)
+		or: [ definition dataOutputAssociations identityIncludes: aDataAssociation ]) ifFalse: [
+		self error: 'The Data Association does not belong to this Activity.' ].
+	aDataAssociation transformation ifNotNil: [
+		self error: 'Data Association transformations are not yet executable.' ].
+	aDataAssociation assignments ifNotEmpty: [
+		self error: 'Data Association assignments are not yet executable.' ].
+	aDataAssociation sourceRefs size = 1 ifFalse: [
+		self error: 'A Data Association without transformation or assignments requires exactly one source.' ].
+	aDataAssociation targetRef ifNil: [
+		self error: 'A Data Association requires a target.' ].
+	source := aDataAssociation sourceRefs first.
+	^ self accessibleItemValueAvailableFor: source
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> executeDataAssociation: aDataAssociation [
+	| definition source producer value |
+	definition := activityExecution definition.
+	(self canExecuteDataAssociation: aDataAssociation) ifFalse: [ ^ false ].
+	source := aDataAssociation sourceRefs first.
+	producer := self accessibleItemValueProducerFor: source.
+	producer ifNotNil: [ activityExecution recordDataDependencyOn: producer ].
+	value := self accessibleItemValueFor: source.
+	(definition dataOutputAssociations identityIncludes: aDataAssociation)
+		ifTrue: [ self accessibleItemValueFor: aDataAssociation targetRef put: value producedBy: activityExecution ]
+		ifFalse: [ self accessibleItemValueFor: aDataAssociation targetRef put: value ].
+	^ true
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> dataInputAssociationsTargeting: aDataInput [
+	^ activityExecution definition dataInputAssociations select: [ :each |
+		each targetRef == aDataInput ]
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> inputSetIsAvailable: anInputSet [
+	| requiredInputs associations |
+	requiredInputs := anInputSet dataInputRefs reject: [ :each |
+		(anInputSet optionalInputRefs identityIncludes: each)
+			or: [ anInputSet whileExecutingInputRefs identityIncludes: each ] ].
+	requiredInputs do: [ :eachInput |
+		associations := self dataInputAssociationsTargeting: eachInput.
+		associations ifEmpty: [
+			(self hasItemValueFor: eachInput) ifFalse: [ ^ false ] ].
+		(associations allSatisfy: [ :each | self canExecuteDataAssociation: each ]) ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> firstAvailableInputSet [
+	activityExecution definition ioSpecification ifNil: [ ^ nil ].
+	activityExecution definition ioSpecification inputSets do: [ :each |
+		(self inputSetIsAvailable: each) ifTrue: [ ^ each ] ].
+	^ nil
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> prepareInputs [
+	| inputSet associations |
+	activityExecution definition ioSpecification ifNil: [ ^ true ].
+	inputSet := self firstAvailableInputSet.
+	inputSet ifNil: [ ^ false ].
+	selectedInputSet := inputSet.
+	inputSet dataInputRefs do: [ :eachInput |
+		associations := self dataInputAssociationsTargeting: eachInput.
+		associations do: [ :each |
+			(self canExecuteDataAssociation: each)
+				ifTrue: [ self executeDataAssociation: each ] ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> dataOutputAssociationsSourcedBy: aDataOutput [
+	^ activityExecution definition dataOutputAssociations select: [ :each |
+		each sourceRefs identityIncludes: aDataOutput ]
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> outputSetIsAvailable: anOutputSet [
+	| requiredOutputs |
+	requiredOutputs := anOutputSet dataOutputRefs reject: [ :each |
+		anOutputSet optionalOutputRefs identityIncludes: each ].
+	^ requiredOutputs allSatisfy: [ :eachOutput |
+		self hasItemValueFor: eachOutput ]
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> firstAvailableOutputSet [
+	activityExecution definition ioSpecification ifNil: [ ^ nil ].
+	activityExecution definition ioSpecification outputSets do: [ :each |
+		(self outputSetIsAvailable: each) ifTrue: [ ^ each ] ].
+	^ nil
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> selectedInputSetAllowsOutputSet: anOutputSet [
+	selectedInputSet ifNil: [ ^ true ].
+	selectedInputSet outputSetRefs ifNotEmpty: [
+		(selectedInputSet outputSetRefs identityIncludes: anOutputSet) ifFalse: [ ^ false ] ].
+	anOutputSet inputSetRefs ifNotEmpty: [
+		(anOutputSet inputSetRefs identityIncludes: selectedInputSet) ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> prepareOutputs [
+	| outputSet associations |
+	activityExecution definition ioSpecification ifNil: [ ^ true ].
+	outputSet := self firstAvailableOutputSet.
+	outputSet ifNil: [ self error: 'The Multi-Instance Activity instance has no available OutputSet.' ].
+	(self selectedInputSetAllowsOutputSet: outputSet) ifFalse: [
+		self error: 'The selected OutputSet is not compatible with the InputSet used to start the Multi-Instance Activity instance.' ].
+	selectedOutputSet := outputSet.
+	outputSet dataOutputRefs do: [ :eachOutput |
+		(self hasItemValueFor: eachOutput) ifTrue: [
+			associations := self dataOutputAssociationsSourcedBy: eachOutput.
+			associations do: [ :each | self executeDataAssociation: each ] ] ].
+	^ true
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> hasPerInstanceInputAssociations [
+	^ activityExecution definition dataInputAssociations anySatisfy: [ :each |
+		self ownsItemValueFor: each targetRef ]
+]
+
+{ #category : 'data associations' }
+CPMultiInstanceActivityExecution >> hasPerInstanceOutputAssociations [
+	^ activityExecution definition dataOutputAssociations anySatisfy: [ :each |
+		each sourceRefs anySatisfy: [ :source | self ownsItemValueFor: source ] ]
+]
+
+
 { #category : 'lifecycle' }
 CPMultiInstanceActivityExecution >> isCompleted [
 	^ completed
@@ -121,6 +325,7 @@ CPMultiInstanceActivityExecution >> isCompleted [
 CPMultiInstanceActivityExecution >> complete [
 	completed ifTrue: [ self error: 'A Multi-Instance Activity instance cannot complete twice.' ].
 	cancelled ifTrue: [ self error: 'A cancelled Multi-Instance Activity instance cannot complete.' ].
+	self hasPerInstanceOutputAssociations ifTrue: [ self prepareOutputs ].
 	activityExecution prepareMultiInstanceActivityExecutionCompletion: self.
 	activityExecution definition isSubProcess ifTrue: [ self captureCompensationDataSnapshot ].
 	completed := true.
