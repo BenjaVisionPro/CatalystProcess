@@ -7057,7 +7057,7 @@ CPExecutionKernelExamples >> userTaskPotentialOwnersConstrainClaiming [
         yourself.
     process addFlowElement: task.
     environment := CPExampleExecutionEnvironment new
-        resourceRole: potentialOwner resolvesTo: { 'alice@example.test'. 'bob@example.test' };
+        expression: assignment expression evaluatesTo: { 'alice@example.test'. 'bob@example.test' };
         yourself.
     execution := CPProcessExecution for: process environment: environment.
     taskExecution := execution createUserTaskExecutionFor: task.
@@ -7081,18 +7081,17 @@ CPExecutionKernelExamples >> userTaskPotentialOwnersConstrainClaiming [
 { #category : 'examples - tasks' }
 CPExecutionKernelExamples >> userTaskResolvesActivityResourceRoles [
     <gtExample>
-    | process task performer potentialOwner environment execution taskExecution workItem assignments |
+    | process task performer performerAssignment potentialOwner ownerAssignment environment execution taskExecution workItem assignments |
     process := CPProcess new identifier: 'process'; yourself.
-    performer := CPHumanPerformer new identifier: 'reviewer'; yourself.
-    potentialOwner := CPPotentialOwner new identifier: 'claimants'; yourself.
-    task := CPUserTask new
-        identifier: 'review';
-        resources: { performer. potentialOwner };
-        yourself.
+    performerAssignment := CPResourceAssignmentExpression new expression: (CPExpression new identifier: 'reviewerExpression'; yourself); yourself.
+    ownerAssignment := CPResourceAssignmentExpression new expression: (CPExpression new identifier: 'claimantsExpression'; yourself); yourself.
+    performer := CPHumanPerformer new identifier: 'reviewer'; resourceAssignmentExpression: performerAssignment; yourself.
+    potentialOwner := CPPotentialOwner new identifier: 'claimants'; resourceAssignmentExpression: ownerAssignment; yourself.
+    task := CPUserTask new identifier: 'review'; resources: { performer. potentialOwner }; yourself.
     process addFlowElement: task.
     environment := CPExampleExecutionEnvironment new
-        resourceRole: performer resolvesTo: { 'assigned-reviewer@example.test' };
-        resourceRole: potentialOwner resolvesTo: { 'alice@example.test'. 'bob@example.test' };
+        expression: performerAssignment expression evaluatesTo: { 'assigned-reviewer@example.test' };
+        expression: ownerAssignment expression evaluatesTo: { 'alice@example.test'. 'bob@example.test' };
         yourself.
     execution := CPProcessExecution for: process environment: environment.
     taskExecution := execution createUserTaskExecutionFor: task.
@@ -7105,5 +7104,39 @@ CPExecutionKernelExamples >> userTaskResolvesActivityResourceRoles [
     self assert: assignments second role == potentialOwner.
     self assert: assignments second resources equals: (OrderedCollection withAll: { 'alice@example.test'. 'bob@example.test' }).
     self assert: workItem potentialOwners equals: (OrderedCollection withAll: { 'alice@example.test'. 'bob@example.test' }).
+    ^ workItem
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> userTaskParameterizedResourceAssignmentEvaluatesBindings [
+    <gtExample>
+    | process task resource parameter bindingExpression binding potentialOwner environment execution taskExecution workItem parameterValue |
+    process := CPProcess new identifier: 'process'; yourself.
+    resource := CPResource new identifier: 'regionalManagers'; yourself.
+    parameter := CPResourceParameter new identifier: 'region'; yourself.
+    resource addResourceParameter: parameter.
+    bindingExpression := CPExpression new identifier: 'regionExpression'; yourself.
+    binding := CPResourceParameterBinding new parameterRef: parameter; expression: bindingExpression; yourself.
+    potentialOwner := CPPotentialOwner new
+        identifier: 'approvers';
+        resourceRef: resource;
+        resourceParameterBindings: { binding };
+        yourself.
+    task := CPUserTask new identifier: 'approve'; resources: { potentialOwner }; yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new
+        expression: bindingExpression evaluatesTo: 'APAC';
+        resource: resource resolvesTo: { 'regional-manager@example.test' };
+        yourself.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    workItem := taskExecution workItem.
+    self assert: environment lastResolvedResource == resource.
+    self assert: environment lastResourceParameterValues size equals: 1.
+    parameterValue := environment lastResourceParameterValues first.
+    self assert: parameterValue parameter == parameter.
+    self assert: parameterValue value equals: 'APAC'.
+    self assert: workItem potentialOwners equals: (OrderedCollection with: 'regional-manager@example.test').
     ^ workItem
 ]

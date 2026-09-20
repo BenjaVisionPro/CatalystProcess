@@ -10,7 +10,9 @@ Class {
 		'scriptTaskExecutions',
 		'businessRuleTaskExecutions',
 		'userTaskWorkItems',
-		'resourceRoleResolutions'
+		'resourceResolutions',
+		'lastResolvedResource',
+		'lastResourceParameterValues'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -25,7 +27,8 @@ CPExampleExecutionEnvironment >> initialize [
 	scriptTaskExecutions := OrderedCollection new.
 	businessRuleTaskExecutions := OrderedCollection new.
 	userTaskWorkItems := OrderedCollection new.
-	resourceRoleResolutions := IdentityDictionary new
+	resourceResolutions := IdentityDictionary new.
+	lastResourceParameterValues := OrderedCollection new
 ]
 
 { #category : 'configuration' }
@@ -124,14 +127,26 @@ CPExampleExecutionEnvironment >> userTaskWorkItems [
 
 
 { #category : 'configuration' }
-CPExampleExecutionEnvironment >> resourceRole: aResourceRole resolvesTo: aCollection [
-    resourceRoleResolutions at: aResourceRole put: aCollection asOrderedCollection.
-    ^ self
+CPExampleExecutionEnvironment >> resource: aResource resolvesTo: aCollection [
+	resourceResolutions at: aResource put: aCollection asOrderedCollection.
+	^ self
 ]
 
 { #category : 'resolution' }
-CPExampleExecutionEnvironment >> resolveResourceRole: aResourceRole in: anExecutionScope forActivityExecution: anActivityExecution [
-    ^ resourceRoleResolutions
-        at: aResourceRole
-        ifAbsent: [ #() ]
+CPExampleExecutionEnvironment >> resolveResource: aResource parameterValues: parameterValues in: anExecutionScope forActivityExecution: anActivityExecution [
+	lastResolvedResource := aResource.
+	lastResourceParameterValues := parameterValues asOrderedCollection.
+	^ resourceResolutions
+		at: aResource
+		ifAbsent: [ #() ]
+]
+
+{ #category : 'accessing' }
+CPExampleExecutionEnvironment >> lastResolvedResource [
+	^ lastResolvedResource
+]
+
+{ #category : 'accessing' }
+CPExampleExecutionEnvironment >> lastResourceParameterValues [
+	^ lastResourceParameterValues
 ]

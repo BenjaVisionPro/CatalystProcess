@@ -43,6 +43,6 @@ CPExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionS
 
 
 { #category : 'resolution' }
-CPExecutionEnvironment >> resolveResourceRole: aResourceRole in: anExecutionScope forActivityExecution: anActivityExecution [
-    self subclassResponsibility
+CPExecutionEnvironment >> resolveResource: aResource parameterValues: parameterValues in: anExecutionScope forActivityExecution: anActivityExecution [
+	self subclassResponsibility
 ]

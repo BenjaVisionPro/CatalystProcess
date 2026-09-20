@@ -35,3 +35,13 @@ CPResourceRole >> resourceParameterBindingsDescription [ <magritteDescription> ^
 
 { #category : 'testing' }
 CPResourceRole >> isPotentialOwner [ ^ false ]
+
+{ #category : 'testing' }
+CPResourceRole >> usesResourceAssignmentExpression [
+	^ resourceAssignmentExpression notNil
+]
+
+{ #category : 'testing' }
+CPResourceRole >> usesResourceReference [
+	^ resourceRef notNil
+]

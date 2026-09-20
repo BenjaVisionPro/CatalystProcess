@@ -2500,12 +2500,37 @@ CPExecutionScope >> completeMultiInstanceUserTaskExecution: anInstance [
 
 { #category : 'resources' }
 CPExecutionScope >> resourceAssignmentsFor: anActivity activityExecution: anActivityExecution [
-    ^ anActivity resources collect: [ :resourceRole |
-        CPResourceRoleAssignment new
-            role: resourceRole;
-            resources: (self environment
-                resolveResourceRole: resourceRole
-                in: self
-                forActivityExecution: anActivityExecution);
-            yourself ]
+	^ anActivity resources collect: [ :resourceRole |
+		CPResourceRoleAssignment new
+			role: resourceRole;
+			resources: (self resourcesForRole: resourceRole activityExecution: anActivityExecution);
+			yourself ]
+]
+
+{ #category : 'resources' }
+CPExecutionScope >> resourcesForRole: aResourceRole activityExecution: anActivityExecution [
+	| assignmentExpression parameterValues |
+	aResourceRole hasValidAssignment ifFalse: [
+		self error: 'A ResourceRole must use either a Resource reference or a ResourceAssignmentExpression, and parameter bindings require a Resource reference.' ].
+	aResourceRole usesResourceAssignmentExpression ifTrue: [
+		assignmentExpression := aResourceRole resourceAssignmentExpression expression.
+		assignmentExpression ifNil: [ self error: 'A ResourceAssignmentExpression requires an Expression.' ].
+		^ (self environment
+			evaluateExpression: assignmentExpression
+			in: self
+			forActivityExecution: anActivityExecution) asOrderedCollection ].
+	aResourceRole usesResourceReference ifFalse: [ ^ #() ].
+	parameterValues := aResourceRole resourceParameterBindings collect: [ :binding |
+		CPResourceParameterValue new
+			parameter: binding parameterRef;
+			value: (self environment
+				evaluateExpression: binding expression
+				in: self
+				forActivityExecution: anActivityExecution);
+			yourself ].
+	^ self environment
+		resolveResource: aResourceRole resourceRef
+		parameterValues: parameterValues
+		in: self
+		forActivityExecution: anActivityExecution
 ]
