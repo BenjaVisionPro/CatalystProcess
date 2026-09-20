@@ -39,3 +39,6 @@ CPAssociation >> beBoth [ associationDirection := 'Both' ]
 { #category : 'directions' }
 CPAssociation >> beNone [ associationDirection := 'None' ]
 
+
+{ #category : 'testing' }
+CPAssociation >> isAssociation [ ^ true ]

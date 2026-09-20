@@ -1249,3 +1249,21 @@ CPExecutionScope >> claimCompensationRecordFor: anActivityExecution [
 		self error: 'A completed Activity execution must have exactly one available compensation record to be claimed.' ].
 	^ matches first claim
 ]
+
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> compensationHandlerFor: aCompensationRecord [
+	| completedActivity container associations handlers |
+	completedActivity := aCompensationRecord activityExecution definition.
+	container := completedActivity container.
+	container ifNil: [
+		self error: 'A compensatable Activity must belong to a BPMN flow-elements container.' ].
+	associations := container artifacts select: [ :each |
+		each isAssociation and: [ each sourceRef == aCompensationRecord boundaryEvent ] ].
+	handlers := associations collect: [ :each | each targetRef ].
+	(handlers size = 1
+		and: [ handlers first isActivity
+		and: [ handlers first isForCompensation ] ]) ifFalse: [
+		self error: 'A compensation Boundary Event must resolve to exactly one compensation-handler Activity.' ].
+	^ handlers first
+]

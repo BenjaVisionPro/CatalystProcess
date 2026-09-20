@@ -11,3 +11,6 @@ CPArtifact >> container [ ^ container ]
 
 { #category : 'accessing' }
 CPArtifact >> container: aFlowElementsContainer [ container := aFlowElementsContainer ]
+
+{ #category : 'testing' }
+CPArtifact >> isAssociation [ ^ false ]

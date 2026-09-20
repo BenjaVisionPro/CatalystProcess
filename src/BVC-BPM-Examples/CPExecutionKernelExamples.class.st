@@ -2458,3 +2458,40 @@ CPExecutionKernelExamples >> compensationBoundaryAssociatesWithExplicitHandlerAc
 	self assert: process artifacts size equals: 1.
 	^ association
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationRecordResolvesExplicitHandlerActivity [
+	<gtExample>
+	| process activity compensationDefinition boundary handler association execution activityExecution record resolvedHandler |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'work'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: activity;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	handler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	process addFlowElement: activity.
+	process addFlowElement: handler.
+	association := CPAssociation new
+		identifier: 'compensationHandler';
+		sourceRef: boundary;
+		targetRef: handler;
+		beOne;
+		yourself.
+	process addArtifact: association.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	activityExecution beginCompletion.
+	activityExecution complete.
+	record := execution availableCompensationRecords first.
+	resolvedHandler := execution compensationHandlerFor: record.
+	self assert: resolvedHandler == handler.
+	self assert: resolvedHandler isForCompensation.
+	self assert: record boundaryEvent == boundary.
+	^ resolvedHandler
+]
