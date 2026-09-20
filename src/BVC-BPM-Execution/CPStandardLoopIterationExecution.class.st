@@ -12,7 +12,8 @@ Class {
 		'receivedOccurrence',
 		'externalInvocation',
 		'userTaskWorkItem',
-		'manualTaskResourceAssignments'
+		'manualTaskResourceAssignments',
+		'subScope'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -31,6 +32,67 @@ CPStandardLoopIterationExecution >> activityExecution [ ^ activityExecution ]
 
 { #category : 'accessing' }
 CPStandardLoopIterationExecution >> activityExecution: anActivityExecution [ activityExecution := anActivityExecution ]
+
+{ #category : 'accessing' }
+CPStandardLoopIterationExecution >> scope [ ^ activityExecution scope ]
+
+{ #category : 'accessing' }
+CPStandardLoopIterationExecution >> subScope [ ^ subScope ]
+
+{ #category : 'building' }
+CPStandardLoopIterationExecution >> createSubScopeFor: aScopeDefinition [
+	subScope ifNotNil: [ self error: 'A Standard Loop iteration can own only one execution scope.' ].
+	^ CPExecutionScope for: aScopeDefinition ownedBy: self
+]
+
+{ #category : 'building' }
+CPStandardLoopIterationExecution >> attachSubScope: anExecutionScope [
+	subScope ifNotNil: [ self error: 'A Standard Loop iteration already owns an execution scope.' ].
+	anExecutionScope owningActivity ifNotNil: [ self error: 'The execution scope is already owned by an Activity execution.' ].
+	self scope ifNil: [ self error: 'The Standard Loop iteration must belong to an Activity execution scope before it can own a child scope.' ].
+	anExecutionScope owningActivity: self.
+	self scope addChildScope: anExecutionScope.
+	subScope := anExecutionScope.
+	^ anExecutionScope
+]
+
+{ #category : 'data' }
+CPStandardLoopIterationExecution >> ownsItemValueFor: anItemAwareElement [
+	^ activityExecution ownsItemValueFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPStandardLoopIterationExecution >> hasItemValueFor: anItemAwareElement [
+	^ activityExecution hasItemValueFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPStandardLoopIterationExecution >> itemValueFor: anItemAwareElement [
+	^ activityExecution itemValueFor: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPStandardLoopIterationExecution >> itemValueFor: anItemAwareElement put: aValue [
+	^ activityExecution itemValueFor: anItemAwareElement put: aValue
+]
+
+{ #category : 'data - provenance' }
+CPStandardLoopIterationExecution >> itemValueProducerFor: anItemAwareElement [
+	^ activityExecution itemValueProducerFor: anItemAwareElement
+]
+
+{ #category : 'data - provenance' }
+CPStandardLoopIterationExecution >> itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
+	^ activityExecution itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution
+]
+
+{ #category : 'sub-process' }
+CPStandardLoopIterationExecution >> subProcessScopeDidComplete: anExecutionScope [
+	anExecutionScope == subScope ifFalse: [ self error: 'The completed Sub-Process scope does not belong to this Standard Loop iteration.' ].
+	activityExecution isActive ifFalse: [ self error: 'Only an iteration of an Active Standard Loop Activity can complete its Sub-Process scope.' ].
+	self isActive ifFalse: [ self error: 'Only an Active Standard Loop iteration can complete its Sub-Process scope.' ].
+	^ activityExecution scope completeStandardLoopIteration: self of: activityExecution
+]
 
 { #category : 'accessing' }
 CPStandardLoopIterationExecution >> index [ ^ index ]
@@ -68,6 +130,7 @@ CPStandardLoopIterationExecution >> complete [
 { #category : 'lifecycle' }
 CPStandardLoopIterationExecution >> terminate [
 	self isActive ifFalse: [ self error: 'Only an Active Standard Loop iteration can be terminated.' ].
+	subScope ifNotNil: [ subScope terminateRemainingWork ].
 	(messageSubscription notNil and: [ messageSubscription isWaiting ]) ifTrue: [
 		messageSubscription cancel ].
 	active := false.

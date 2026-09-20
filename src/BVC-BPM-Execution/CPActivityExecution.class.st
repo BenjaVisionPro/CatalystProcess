@@ -368,6 +368,17 @@ CPActivityExecution >> attachSubScope: anExecutionScope [
 ]
 
 
+{ #category : 'sub-process' }
+CPActivityExecution >> subProcessScopeDidComplete: anExecutionScope [
+	anExecutionScope == subScope ifFalse: [ self error: 'The completed Sub-Process scope does not belong to this Activity execution.' ].
+	self isActive ifFalse: [ self error: 'Only an Active Activity can complete its Sub-Process scope.' ].
+	self beginCompletion.
+	self complete.
+	scope produceOutgoingControlFor: self.
+	^ self
+]
+
+
 
 { #category : 'looping' }
 CPActivityExecution >> loopCounter [
@@ -436,12 +447,14 @@ CPActivityExecution >> beginPermittedStandardLoopIteration [
 		activate;
 		yourself.
 	standardLoopIterations add: iteration.
+	definition isSubProcess ifTrue: [ iteration createSubScopeFor: definition ].
 	self standardLoopIterationDidBegin: iteration.
 	^ iteration
 ]
 
 { #category : 'looping' }
 CPActivityExecution >> standardLoopIterationDidBegin: anIteration [
+	definition isSubProcess ifTrue: [ scope activateSubProcessScope: anIteration subScope ].
 	^ anIteration
 ]
 
@@ -614,6 +627,7 @@ CPActivityExecution >> beginMultiInstanceActivityExecutionAt: anIndex [
 
 { #category : 'multi-instance' }
 CPActivityExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
+	definition isSubProcess ifTrue: [ scope activateSubProcessScope: anInstance subScope ].
 	^ anInstance
 ]
 

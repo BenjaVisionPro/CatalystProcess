@@ -8002,3 +8002,159 @@ CPExecutionKernelExamples >> lateMultiInstanceUserCompletionDoesNotMutateTermina
 	self assert: taskExecution state class equals: CPActivityTerminatedState.
 	^ taskExecution
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceSubProcessExecutesAndCompletesSequentialInstanceScopes [
+	<gtExample>
+	| process subProcess loop cardinality execution subProcessExecution firstInstance firstScope secondInstance secondScope |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		isSequential: true;
+		loopCardinality: cardinality;
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'repeatSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: cardinality evaluatesTo: 2;
+			yourself).
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	firstInstance := subProcessExecution multiInstanceActivityExecutions first.
+	firstScope := firstInstance subScope.
+	self assert: firstInstance isActive.
+	self assert: firstScope notNil.
+	self assert: firstScope owningActivity == firstInstance.
+	self assert: firstScope canCompleteExecution.
+	firstScope completeExecution.
+	self assert: firstInstance isCompleted.
+	self assert: subProcessExecution isActive.
+	self assert: subProcessExecution multiInstanceActivityExecutions size equals: 2.
+	secondInstance := subProcessExecution multiInstanceActivityExecutions second.
+	secondScope := secondInstance subScope.
+	self assert: secondInstance isActive.
+	self assert: secondScope notNil.
+	self assert: secondScope ~~ firstScope.
+	self assert: secondScope owningActivity == secondInstance.
+	secondScope completeExecution.
+	self assert: secondInstance isCompleted.
+	self assert: subProcessExecution isCompleted.
+	^ subProcessExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> standardLoopSubProcessUsesFreshSequentialIterationScopes [
+	<gtExample>
+	| process subProcess loop condition execution subProcessExecution firstIteration firstScope secondIteration secondScope |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'repeatSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: condition evaluatesTo: true;
+			yourself).
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	firstIteration := subProcessExecution activeStandardLoopIteration.
+	firstScope := firstIteration subScope.
+	self assert: firstIteration index equals: 1.
+	self assert: firstScope notNil.
+	self assert: firstScope owningActivity == firstIteration.
+	self assert: firstScope canCompleteExecution.
+	firstScope completeExecution.
+	self assert: firstIteration isCompleted.
+	self assert: subProcessExecution loopCounter equals: 1.
+	self assert: subProcessExecution isActive.
+	secondIteration := subProcessExecution activeStandardLoopIteration.
+	secondScope := secondIteration subScope.
+	self assert: secondIteration index equals: 2.
+	self assert: secondScope notNil.
+	self assert: secondScope ~~ firstScope.
+	self assert: secondScope owningActivity == secondIteration.
+	secondScope completeExecution.
+	self assert: secondIteration isCompleted.
+	self assert: subProcessExecution loopCounter equals: 2.
+	self assert: subProcessExecution isCompleted.
+	self assert: subProcessExecution activeStandardLoopIteration isNil.
+	^ subProcessExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> standardLoopSubProcessPreTestCanPreventFirstScope [
+	<gtExample>
+	| process subProcess loop condition execution subProcessExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: true;
+		loopCondition: condition;
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'repeatSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: condition evaluatesTo: false;
+			yourself).
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	self assert: subProcessExecution isCompleted.
+	self assert: subProcessExecution loopCounter equals: 0.
+	self assert: subProcessExecution standardLoopIterations isEmpty.
+	self assert: subProcessExecution subScope isNil.
+	^ subProcessExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> terminatingStandardLoopSubProcessTerminatesActiveIterationScope [
+	<gtExample>
+	| process subProcess nestedTask loop condition execution subProcessExecution iteration subScope |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'repeatSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	nestedTask := CPTask new identifier: 'nestedTask'; yourself.
+	subProcess addFlowElement: nestedTask.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: condition evaluatesTo: true;
+			yourself).
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	iteration := subProcessExecution activeStandardLoopIteration.
+	subScope := iteration subScope.
+	self assert: (subScope flowActivations anySatisfy: [ :each | each isAvailable ]).
+	subProcessExecution beginTermination.
+	self assert: iteration isTerminated.
+	self assert: (subScope flowActivations anySatisfy: [ :each | each isAvailable ]) not.
+	subProcessExecution finishTermination.
+	self assert: subProcessExecution state class equals: CPActivityTerminatedState.
+	^ subProcessExecution
+]

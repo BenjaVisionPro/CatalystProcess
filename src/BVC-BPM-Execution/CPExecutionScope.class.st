@@ -848,25 +848,53 @@ CPExecutionScope >> activateCompensationSubProcessExecution: anActivityExecution
 
 { #category : 'activities - sub-process' }
 CPExecutionScope >> activateSubProcessExecution: anActivityExecution [
-	| subProcess startEvents subScope |
+	| subProcess loop subScope |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
 		self error: 'The Sub-Process Activity execution does not belong to this execution scope.' ].
 	anActivityExecution isReady ifFalse: [
 		self error: 'Only a Ready Sub-Process Activity can be activated.' ].
 	subProcess := anActivityExecution definition.
-	startEvents := subProcess flowElements select: [ :each | each isStartEvent ].
+	self validateControlFlowSubProcess: subProcess.
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	loop := subProcess loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
+	subScope := anActivityExecution createSubScopeFor: subProcess.
+	self activateSubProcessScope: subScope.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> validateControlFlowSubProcess: aSubProcess [
+	| startEvents |
+	startEvents := aSubProcess flowElements select: [ :each | each isStartEvent ].
 	startEvents size > 1 ifTrue: [
 		self error: 'A control-flow Sub-Process can have at most one Start Event.' ].
 	startEvents ifNotEmpty: [
 		startEvents first eventDefinitions ifNotEmpty: [
 			self error: 'A control-flow Sub-Process Start Event must be empty.' ] ].
-	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
-	anActivityExecution activate.
-	subScope := anActivityExecution createSubScopeFor: subProcess.
+	^ aSubProcess
+]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> activateSubProcessScope: aSubScope [
+	| subProcess startEvents |
+	aSubScope parentScope == self ifFalse: [
+		self error: 'The Sub-Process execution scope does not belong to this parent execution scope.' ].
+	subProcess := aSubScope definition.
+	self validateControlFlowSubProcess: subProcess.
+	startEvents := subProcess flowElements select: [ :each | each isStartEvent ].
 	startEvents
-		ifNotEmpty: [ subScope executeStartEvent: startEvents first occurrence: nil ]
-		ifEmpty: [ subScope activateImplicitSubProcessStart ].
-	^ anActivityExecution
+		ifNotEmpty: [ aSubScope executeStartEvent: startEvents first occurrence: nil ]
+		ifEmpty: [ aSubScope activateImplicitSubProcessStart ].
+	^ aSubScope
 ]
 
 { #category : 'activities - sub-process' }
@@ -884,29 +912,40 @@ CPExecutionScope >> activateImplicitSubProcessStart [
 ]
 
 { #category : 'activities - sub-process' }
+CPExecutionScope >> canCompleteExecution [
+	(flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
+	(activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
+	self allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingSignalSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingConditionalSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
+	self hasPendingEventWork ifTrue: [ ^ false ].
+	^ true
+]
+
+{ #category : 'activities - sub-process' }
+CPExecutionScope >> completeExecution [
+	owningActivity ifNil: [ self error: 'Only a nested execution scope can complete through an owning Activity execution.' ].
+	self canCompleteExecution ifFalse: [
+		self error: 'The execution scope cannot complete while nested control flow or Activities remain active.' ].
+	^ owningActivity subProcessScopeDidComplete: self
+]
+
+{ #category : 'activities - sub-process' }
 CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
 	| subScope |
 	anActivityExecution isActive ifFalse: [ ^ false ].
 	subScope := anActivityExecution subScope.
 	subScope ifNil: [ ^ false ].
-	(subScope flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
-	(subScope activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
-	subScope allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
-	subScope allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
-	subScope allWaitingSignalSubscriptions ifNotEmpty: [ ^ false ].
-	subScope allWaitingConditionalSubscriptions ifNotEmpty: [ ^ false ].
-	subScope allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
-	subScope hasPendingEventWork ifTrue: [ ^ false ].
-	^ true
+	^ subScope canCompleteExecution
 ]
 
 { #category : 'activities - sub-process' }
 CPExecutionScope >> completeSubProcessActivity: anActivityExecution [
 	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
 		self error: 'The Sub-Process cannot complete while nested control flow or Activities remain active.' ].
-	anActivityExecution beginCompletion.
-	anActivityExecution complete.
-	self produceOutgoingControlFor: anActivityExecution.
+	anActivityExecution subScope completeExecution.
 	^ anActivityExecution
 ]
 
@@ -1433,11 +1472,9 @@ CPExecutionScope >> terminateRemainingWork [
 
 { #category : 'lifecycle' }
 CPExecutionScope >> finishTermination [
-	owningActivity ifNil: [ self error: 'Only a nested execution scope can finish termination through an owning Activity.' ].
-	owningActivity isActive ifFalse: [ self error: 'A terminated nested scope requires an Active owning Activity.' ].
-	owningActivity beginCompletion.
-	owningActivity complete.
-	parentScope produceOutgoingControlFor: owningActivity.
+	owningActivity ifNil: [ self error: 'Only a nested execution scope can finish termination through an owning Activity execution.' ].
+	owningActivity isActive ifFalse: [ self error: 'A terminated nested scope requires an active owning Activity execution.' ].
+	owningActivity subProcessScopeDidComplete: self.
 	^ self
 ]
 

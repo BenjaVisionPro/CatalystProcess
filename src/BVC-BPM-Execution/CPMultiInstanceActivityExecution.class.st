@@ -73,6 +73,15 @@ CPMultiInstanceActivityExecution >> attachSubScope: anExecutionScope [
 	^ anExecutionScope
 ]
 
+{ #category : 'sub-process' }
+CPMultiInstanceActivityExecution >> subProcessScopeDidComplete: anExecutionScope [
+	anExecutionScope == subScope ifFalse: [ self error: 'The completed Sub-Process scope does not belong to this Multi-Instance Activity instance.' ].
+	activityExecution isActive ifFalse: [ self error: 'Only an instance of an Active Multi-Instance Activity can complete its Sub-Process scope.' ].
+	self isActive ifFalse: [ self error: 'Only an active Multi-Instance Activity instance can complete its Sub-Process scope.' ].
+	self complete.
+	^ self
+]
+
 { #category : 'accessing' }
 CPMultiInstanceActivityExecution >> index [
 	^ index
