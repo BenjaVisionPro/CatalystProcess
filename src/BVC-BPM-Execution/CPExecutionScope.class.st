@@ -972,6 +972,34 @@ CPExecutionScope >> waitingErrorBoundaryExecutionFor: anError attachedTo: anActi
 ]
 
 { #category : 'events - error' }
+CPExecutionScope >> errorBoundaryExecutionFor: anError propagatingFrom: aNestedScope [
+	| boundaryExecution |
+	boundaryExecution := self
+		waitingErrorBoundaryExecutionFor: anError
+		attachedTo: aNestedScope owningActivity.
+	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
+	parentScope ifNil: [ ^ nil ].
+	^ parentScope
+		errorBoundaryExecutionFor: anError
+		propagatingFrom: self
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNestedScope toBoundary: aBoundaryExecution [
+	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [
+		^ self triggerBoundaryEventExecution: aBoundaryExecution with: anOccurrence ].
+	aNestedScope owningActivity isActive ifTrue: [
+		aNestedScope owningActivity beginFailure.
+		aNestedScope owningActivity finishFailure ].
+	self terminateRemainingWork.
+	parentScope ifNil: [ self error: 'The resolved Error Boundary Event is not reachable from this execution scope.' ].
+	^ parentScope
+		propagateErrorOccurrence: anOccurrence
+		fromNestedScope: self
+		toBoundary: aBoundaryExecution
+]
+
+{ #category : 'events - error' }
 CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivation [
 	| definitions errorDefinition thrownError execution boundaryExecution occurrence |
 	definitions := anErrorEndEvent eventDefinitions.
@@ -982,16 +1010,19 @@ CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivatio
 	thrownError ifNil: [ self error: 'An Error End Event requires an Error reference.' ].
 	parentScope ifNil: [ self error: 'Uncaught Process-level Error End Event execution is not implemented yet.' ].
 	boundaryExecution := parentScope
-		waitingErrorBoundaryExecutionFor: thrownError
-		attachedTo: owningActivity.
+		errorBoundaryExecutionFor: thrownError
+		propagatingFrom: self.
 	boundaryExecution ifNil: [
-		self error: 'No matching Error Boundary Event is waiting on the containing Activity.' ].
+		self error: 'No matching Error Boundary Event is waiting in the containing execution hierarchy.' ].
 	execution := self executeEndEvent: anErrorEndEvent consuming: anActivation.
 	self terminateRemainingWork.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: UUID new asString;
 		definition: thrownError;
 		yourself.
-	parentScope triggerBoundaryEventExecution: boundaryExecution with: occurrence.
+	parentScope
+		propagateErrorOccurrence: occurrence
+		fromNestedScope: self
+		toBoundary: boundaryExecution.
 	^ execution
 ]

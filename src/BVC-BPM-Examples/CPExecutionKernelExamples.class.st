@@ -1975,3 +1975,45 @@ CPExecutionKernelExamples >> errorEndEventIsCaughtByMatchingBoundaryEvent [
 	self assert: (childScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
 	^ boundaryExecution
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEndEventPropagatesToEnclosingBoundaryEvent [
+	<gtExample>
+	| process outer inner innerStart errorEnd innerFlow error errorDefinition boundary boundaryDefinition after boundaryFlow execution outerExecution outerScope innerExecution innerScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	outer := CPSubProcess new identifier: 'outer'; yourself.
+	inner := CPSubProcess new identifier: 'inner'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	error := CPError new identifier: 'paymentError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'thrownError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: innerStart; targetRef: errorEnd; yourself.
+	inner addFlowElement: innerStart.
+	inner addFlowElement: errorEnd.
+	inner addFlowElement: innerFlow.
+	outer addFlowElement: inner.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'caughtError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'outerErrorBoundary'; attachedToRef: outer; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	outerExecution := execution createActivityExecutionFor: outer.
+	execution activateSubProcessExecution: outerExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: outerExecution.
+	outerScope := outerExecution subScope.
+	innerExecution := outerScope createActivityExecutionFor: inner.
+	outerScope activateSubProcessExecution: innerExecution.
+	innerScope := innerExecution subScope.
+	endActivation := (innerScope availableFlowActivationsOn: innerFlow) first.
+	innerScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: innerExecution state class equals: CPActivityFailedState.
+	self assert: outerExecution state class equals: CPActivityFailedState.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == error.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	self assert: (innerScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
+	self assert: (outerScope flowActivations noneSatisfy: [ :each | each isAvailable ]).
+	^ boundaryExecution
+]
