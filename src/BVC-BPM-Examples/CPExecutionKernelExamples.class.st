@@ -7286,3 +7286,74 @@ CPExecutionKernelExamples >> parallelMultiInstanceAbstractTaskCompletesAllInstan
 	self assert: taskExecution isCompleted.
 	^ taskExecution
 ]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> manualTaskWaitsForExplicitCompletion [
+	<gtExample>
+	| process task performer assignmentExpression environment execution taskExecution assignments |
+	process := CPProcess new identifier: 'process'; yourself.
+	assignmentExpression := CPResourceAssignmentExpression new
+		expression: (CPExpression new identifier: 'workers'; yourself);
+		yourself.
+	performer := CPHumanPerformer new
+		identifier: 'performer';
+		resourceAssignmentExpression: assignmentExpression;
+		yourself.
+	task := CPManualTask new identifier: 'inspect'; resources: { performer }; yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: assignmentExpression expression evaluatesTo: { 'worker@example.test' };
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createManualTaskExecutionFor: task.
+	execution activateManualTaskExecution: taskExecution.
+	assignments := taskExecution resourceAssignments.
+	self assert: taskExecution isActive.
+	self assert: assignments size equals: 1.
+	self assert: assignments first role == performer.
+	self assert: assignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	execution completeManualTaskExecution: taskExecution.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> parallelMultiInstanceManualTaskWaitsPerInstance [
+	<gtExample>
+	| process task loop cardinality performer assignmentExpression environment execution taskExecution instances |
+	process := CPProcess new identifier: 'process'; yourself.
+	cardinality := CPExpression new identifier: 'cardinality'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopCardinality: cardinality; yourself.
+	assignmentExpression := CPResourceAssignmentExpression new
+		expression: (CPExpression new identifier: 'workers'; yourself);
+		yourself.
+	performer := CPHumanPerformer new
+		identifier: 'performer';
+		resourceAssignmentExpression: assignmentExpression;
+		yourself.
+	task := CPManualTask new
+		identifier: 'inspect';
+		resources: { performer };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: cardinality evaluatesTo: 2;
+		expression: assignmentExpression expression evaluatesTo: { 'worker@example.test' };
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createManualTaskExecutionFor: task.
+	execution activateManualTaskExecution: taskExecution.
+	instances := taskExecution multiInstanceActivityExecutions.
+	self assert: instances size equals: 2.
+	self assert: taskExecution isActive.
+	self assert: instances first isActive.
+	self assert: instances second isActive.
+	self assert: instances first manualTaskResourceAssignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	self assert: instances second manualTaskResourceAssignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	execution completeMultiInstanceManualTaskExecution: instances first.
+	self assert: taskExecution isActive.
+	execution completeMultiInstanceManualTaskExecution: instances second.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]

@@ -17,6 +17,7 @@ Class {
 		'receivedOccurrence',
 		'messageDispatch',
 		'userTaskWorkItem',
+		'manualTaskResourceAssignments',
 		'completed',
 		'cancelled'
 	],
@@ -563,4 +564,18 @@ CPMultiInstanceActivityExecution >> userTaskPriority [
 CPMultiInstanceActivityExecution >> userTaskPriority: anInteger [
     userTaskWorkItem ifNil: [ self error: 'The Multi-Instance User Task instance has no distributed work item.' ].
     ^ userTaskWorkItem taskPriority: anInteger
+]
+
+
+{ #category : 'assignment' }
+CPMultiInstanceActivityExecution >> manualTaskResourceAssignments [
+	^ manualTaskResourceAssignments ifNil: [ #() ]
+]
+
+{ #category : 'assignment' }
+CPMultiInstanceActivityExecution >> manualTaskResourceAssignments: aCollection [
+	manualTaskResourceAssignments ifNotNil: [
+		self error: 'A Multi-Instance Manual Task instance can resolve its resource assignments only once.' ].
+	manualTaskResourceAssignments := aCollection asOrderedCollection.
+	^ manualTaskResourceAssignments
 ]

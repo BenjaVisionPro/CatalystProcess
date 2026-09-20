@@ -2591,3 +2591,71 @@ CPExecutionScope >> completeMultiInstanceAbstractTaskExecution: anInstance [
 	anInstance complete.
 	^ anInstance
 ]
+
+{ #category : 'building' }
+CPExecutionScope >> createManualTaskExecutionFor: aManualTask [
+	^ self addActivityExecution: (CPManualTaskExecution new
+		definition: aManualTask;
+		yourself)
+]
+
+{ #category : 'activities - manual' }
+CPExecutionScope >> activateManualTaskExecution: anActivityExecution [
+	| manualTask loop |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Manual Task execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Manual Task execution can become Active.' ].
+	manualTask := anActivityExecution definition.
+	self validateResourceAssignmentsFor: manualTask.
+	(anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+	anActivityExecution activate.
+	loop := manualTask loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+		anActivityExecution beginMultiInstanceActivityExecutions.
+		^ anActivityExecution ].
+	anActivityExecution resourceAssignments:
+		(self resourceAssignmentsFor: manualTask activityExecution: anActivityExecution).
+	^ anActivityExecution
+]
+
+{ #category : 'activities - manual' }
+CPExecutionScope >> completeManualTaskExecution: anActivityExecution [
+	anActivityExecution scope == self ifFalse: [
+		self error: 'The Manual Task execution does not belong to this execution scope.' ].
+	anActivityExecution isActive ifFalse: [
+		self error: 'Only an active Manual Task execution can complete.' ].
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	self produceOutgoingControlFor: anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'activities - manual' }
+CPExecutionScope >> assignMultiInstanceManualTaskExecution: anInstance [
+	| outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Manual Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Manual Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Manual Task instance can resolve its resource assignments.' ].
+	anInstance manualTaskResourceAssignments:
+		(self resourceAssignmentsFor: outerExecution definition activityExecution: anInstance).
+	^ anInstance
+]
+
+{ #category : 'activities - manual' }
+CPExecutionScope >> completeMultiInstanceManualTaskExecution: anInstance [
+	| outerExecution |
+	outerExecution := anInstance activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Multi-Instance Manual Task instance does not belong to this execution scope.' ].
+	(outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Manual Task instance does not belong to its outer Activity execution.' ].
+	anInstance isActive ifFalse: [
+		self error: 'Only an active Multi-Instance Manual Task instance can complete.' ].
+	anInstance complete.
+	^ anInstance
+]
