@@ -2217,3 +2217,38 @@ CPExecutionKernelExamples >> escalationEndEventAndBoundaryShareExplicitMatchingC
 	self assert: endEvent eventDefinitions first escalationRef == escalation.
 	^ endEvent
 ]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationEndEventIsCaughtByNonInterruptingBoundaryEvent [
+	<gtExample>
+	| process subProcess innerStart escalationEnd innerFlow escalation thrownDefinition boundary caughtDefinition after boundaryFlow execution subProcessExecution childScope boundaryExecution endActivation |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	innerStart := CPNoneStartEvent new identifier: 'innerStart'; yourself.
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'thrownEscalation'; escalationRef: escalation; yourself.
+	escalationEnd := CPEscalationEndEvent new identifier: 'escalationEnd'; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	innerFlow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: innerStart; targetRef: escalationEnd; yourself.
+	subProcess addFlowElement: innerStart.
+	subProcess addFlowElement: escalationEnd.
+	subProcess addFlowElement: innerFlow.
+	caughtDefinition := CPEscalationEventDefinition new identifier: 'caughtEscalation'; escalationRef: escalation; yourself.
+	boundary := CPBoundaryEvent new identifier: 'escalationBoundary'; attachedToRef: subProcess; cancelActivity: false; yourself.
+	boundary eventDefinitions add: caughtDefinition.
+	after := CPTask new identifier: 'afterEscalation'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: boundary; targetRef: after; yourself.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	execution activateSubProcessExecution: subProcessExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: subProcessExecution.
+	childScope := subProcessExecution subScope.
+	endActivation := (childScope availableFlowActivationsOn: innerFlow) first.
+	childScope executeEscalationEndEvent: escalationEnd consuming: endActivation.
+	self assert: subProcessExecution isActive.
+	self assert: boundaryExecution isTriggered.
+	self assert: boundaryExecution occurrence definition == escalation.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	self assert: endActivation isAvailable not.
+	^ boundaryExecution
+]

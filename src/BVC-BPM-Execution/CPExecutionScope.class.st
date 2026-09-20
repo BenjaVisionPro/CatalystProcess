@@ -1115,3 +1115,69 @@ CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivatio
 		toBoundary: boundaryExecution.
 	^ execution
 ]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> waitingEscalationBoundaryExecutionFor: anEscalation attachedTo: anActivityExecution [
+	| matches |
+	matches := eventExecutions select: [ :eachExecution |
+		eachExecution isBoundaryEventExecution
+			and: [ eachExecution isWaiting
+				and: [ eachExecution attachedActivityExecution == anActivityExecution
+					and: [ eachExecution definition catchesEscalation: anEscalation ] ] ] ].
+	matches size > 1 ifTrue: [
+		self error: 'More than one waiting Escalation Boundary Event matches the propagated Escalation on the same Activity execution.' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> escalationBoundaryExecutionFor: anEscalation propagatingFrom: aNestedScope [
+	| boundaryExecution |
+	boundaryExecution := self
+		waitingEscalationBoundaryExecutionFor: anEscalation
+		attachedTo: aNestedScope owningActivity.
+	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
+	parentScope ifNil: [ ^ nil ].
+	^ parentScope
+		escalationBoundaryExecutionFor: anEscalation
+		propagatingFrom: self
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> propagateEscalationOccurrence: anOccurrence fromNestedScope: aNestedScope toBoundary: aBoundaryExecution [
+	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [
+		^ self triggerBoundaryEventExecution: aBoundaryExecution with: anOccurrence ].
+	parentScope ifNil: [ self error: 'The resolved Escalation Boundary Event is not reachable from this execution scope.' ].
+	^ parentScope
+		propagateEscalationOccurrence: anOccurrence
+		fromNestedScope: self
+		toBoundary: aBoundaryExecution
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: anActivation [
+	| definitions escalationDefinition thrownEscalation execution boundaryExecution occurrence |
+	definitions := anEscalationEndEvent eventDefinitions.
+	definitions size = 1 ifFalse: [
+		self error: 'An Escalation End Event requires exactly one Escalation Event Definition.' ].
+	escalationDefinition := definitions first.
+	thrownEscalation := escalationDefinition escalationRef.
+	thrownEscalation ifNil: [ self error: 'An Escalation End Event requires an Escalation reference.' ].
+	parentScope ifNil: [ self error: 'Uncaught Process-level Escalation End Event execution is not implemented yet.' ].
+	boundaryExecution := parentScope
+		escalationBoundaryExecutionFor: thrownEscalation
+		propagatingFrom: self.
+	boundaryExecution ifNil: [
+		self error: 'No matching Escalation Boundary Event is waiting in the containing execution hierarchy.' ].
+	boundaryExecution definition cancelActivity ifTrue: [
+		self error: 'Interrupting Escalation Boundary Event execution is not implemented yet.' ].
+	execution := self executeEndEvent: anEscalationEndEvent consuming: anActivation.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: UUID new asString;
+		definition: thrownEscalation;
+		yourself.
+	parentScope
+		propagateEscalationOccurrence: occurrence
+		fromNestedScope: self
+		toBoundary: boundaryExecution.
+	^ execution
+]
