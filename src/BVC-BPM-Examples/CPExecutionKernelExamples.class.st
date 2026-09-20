@@ -3968,3 +3968,67 @@ CPExecutionKernelExamples >> nestedDefaultSubProcessCompensationStartsIndependen
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ bookingRecord
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> asynchronousScopeCompensationContinuesDependentWorkAfterThrowCompletes [
+	<gtExample>
+	| process firstWork firstBoundary firstDefinition firstHandler firstAssociation secondWork secondBoundary secondDefinition secondHandler secondAssociation dependency before throwDefinition throwEvent after incoming outgoing execution firstExecution dependencyActivation secondExecution firstRecord secondRecord producer activation throwExecution compensationExecution secondHandlerExecution firstHandlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstWork := CPTask new identifier: 'firstWork'; yourself.
+	firstDefinition := CPCompensationEventDefinition new identifier: 'firstCompensation'; yourself.
+	firstBoundary := CPBoundaryEvent new identifier: 'firstBoundary'; attachedToRef: firstWork; cancelActivity: false; yourself.
+	firstBoundary eventDefinitions add: firstDefinition.
+	firstHandler := CPTask new identifier: 'undoFirst'; isForCompensation: true; yourself.
+	firstAssociation := CPAssociation new identifier: 'firstHandler'; sourceRef: firstBoundary; targetRef: firstHandler; beOne; yourself.
+	secondWork := CPTask new identifier: 'secondWork'; yourself.
+	secondDefinition := CPCompensationEventDefinition new identifier: 'secondCompensation'; yourself.
+	secondBoundary := CPBoundaryEvent new identifier: 'secondBoundary'; attachedToRef: secondWork; cancelActivity: false; yourself.
+	secondBoundary eventDefinitions add: secondDefinition.
+	secondHandler := CPTask new identifier: 'undoSecond'; isForCompensation: true; yourself.
+	secondAssociation := CPAssociation new identifier: 'secondHandler'; sourceRef: secondBoundary; targetRef: secondHandler; beOne; yourself.
+	dependency := CPSequenceFlow new identifier: 'firstToSecond'; sourceRef: firstWork; targetRef: secondWork; yourself.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; waitForCompletion: false; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	{ firstWork. firstHandler. secondWork. secondHandler. dependency. before. throwEvent. after. incoming. outgoing } do: [ :each |
+		process addFlowElement: each ].
+	process addArtifact: firstAssociation; addArtifact: secondAssociation.
+	execution := self executionFor: process.
+	firstExecution := execution createActivityExecutionFor: firstWork.
+	firstExecution activate; beginCompletion; complete.
+	execution produceOutgoingControlFor: firstExecution.
+	dependencyActivation := (execution availableFlowActivationsOn: dependency) first.
+	secondExecution := execution readyActivityExecutionFor: secondWork.
+	secondExecution activate; beginCompletion; complete.
+	firstRecord := (execution availableCompensationRecordsFor: firstWork) first.
+	secondRecord := (execution availableCompensationRecordsFor: secondWork) first.
+	self assert: dependencyActivation producedBy == firstExecution.
+	self assert: dependencyActivation consumedBy == secondExecution.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	compensationExecution := execution eventExecutions
+		detect: [ :each | each isCompensationExecution ]
+		ifNone: [ self error: 'Asynchronous scope compensation requires a durable Compensation execution.' ].
+	self assert: throwExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	self assert: secondRecord isHandling.
+	self assert: firstRecord isAvailable.
+	self assert: compensationExecution isPendingWork.
+	secondHandlerExecution := secondRecord handlerExecution.
+	self assert: secondHandlerExecution definition == secondHandler.
+	secondHandlerExecution beginCompletion; complete.
+	self assert: secondRecord isHandled.
+	self assert: firstRecord isHandling.
+	self assert: compensationExecution isPendingWork.
+	firstHandlerExecution := firstRecord handlerExecution.
+	self assert: firstHandlerExecution definition == firstHandler.
+	firstHandlerExecution beginCompletion; complete.
+	self assert: firstRecord isHandled.
+	self assert: compensationExecution isPendingWork not.
+	^ compensationExecution
+]

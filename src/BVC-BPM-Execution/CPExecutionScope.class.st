@@ -1610,6 +1610,20 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 	^ claimedRecord
 ]
 
+{ #category : 'activities - compensation' }
+CPExecutionScope >> beginDetachedCompensationFor: compensationRecordCollection [
+	| execution |
+	compensationRecordCollection ifEmpty: [ ^ nil ].
+	execution := CPCompensationExecution new
+		scope: self;
+		compensationRecords: compensationRecordCollection;
+		yourself.
+	eventExecutions add: execution.
+	(self readyDefaultCompensationRecordsIn: compensationRecordCollection) do: [ :eachRecord |
+		self beginCompensationFor: eachRecord ].
+	^ execution
+]
+
 { #category : 'events - compensation' }
 CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consuming: anActivation [
 	| definitions compensationDefinition targetActivity records record throwExecution handlerExecution |
@@ -1654,7 +1668,7 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 					handlerExecution := self beginCompensationFor: record ] ]
 		ifFalse: [
 			targetActivity
-				ifNil: [ records do: [ :eachRecord | self beginCompensationFor: eachRecord ] ]
+				ifNil: [ self beginDetachedCompensationFor: records ]
 				ifNotNil: [ handlerExecution := self beginCompensationFor: record ].
 			self completeIntermediateThrowEventExecution: throwExecution ].
 	^ throwExecution
@@ -1706,7 +1720,7 @@ CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming
 					handlerExecution := self beginCompensationFor: record ] ]
 		ifFalse: [
 			targetActivity
-				ifNil: [ records do: [ :eachRecord | self beginCompensationFor: eachRecord ] ]
+				ifNil: [ self beginDetachedCompensationFor: records ]
 				ifNotNil: [ handlerExecution := self beginCompensationFor: record ].
 			self completeIntermediateThrowEventExecution: endExecution ].
 	^ endExecution
@@ -1715,6 +1729,18 @@ CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming
 { #category : 'events - compensation' }
 CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
 	| completedOuterRecord |
+	eventExecutions do: [ :eachExecution |
+		eachExecution isCompensationExecution ifTrue: [
+			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
+				| remaining ready |
+				remaining := eachExecution compensationRecords reject: [ :each | each isHandled ].
+				remaining
+					ifEmpty: [ eachExecution complete ]
+					ifNotEmpty: [
+						ready := self readyDefaultCompensationRecordsIn: remaining.
+						ready do: [ :eachRecord |
+							eachRecord isAvailable ifTrue: [ self beginCompensationFor: eachRecord ] ] ].
+				^ aCompensationRecord ] ] ].
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isCompensationThrowEventExecution) ifTrue: [
 			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
