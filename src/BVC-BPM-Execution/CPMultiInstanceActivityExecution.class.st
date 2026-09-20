@@ -127,9 +127,19 @@ CPMultiInstanceActivityExecution >> selectedOutputSet [
 ]
 
 { #category : 'data' }
+CPMultiInstanceActivityExecution >> isOuterMultiInstanceItemValueFor: anItemAwareElement [
+	| loop |
+	loop := activityExecution definition loopCharacteristics.
+	^ loop loopDataInputRef == anItemAwareElement
+		or: [ loop loopDataOutputRef == anItemAwareElement ]
+]
+
+{ #category : 'data' }
 CPMultiInstanceActivityExecution >> accessibleItemValueAvailableFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
 		^ self hasItemValueFor: anItemAwareElement ].
+	(self isOuterMultiInstanceItemValueFor: anItemAwareElement) ifTrue: [
+		^ activityExecution accessibleItemValueAvailableFor: anItemAwareElement ].
 	^ self scope accessibleItemValueAvailableFor: anItemAwareElement
 ]
 
@@ -137,6 +147,8 @@ CPMultiInstanceActivityExecution >> accessibleItemValueAvailableFor: anItemAware
 CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
 		^ self itemValueFor: anItemAwareElement ].
+	(self isOuterMultiInstanceItemValueFor: anItemAwareElement) ifTrue: [
+		^ activityExecution accessibleItemValueFor: anItemAwareElement ].
 	^ self scope accessibleItemValueFor: anItemAwareElement
 ]
 
@@ -144,6 +156,8 @@ CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement [
 CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue [
 	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
 		^ self itemValueFor: anItemAwareElement put: aValue ].
+	(self isOuterMultiInstanceItemValueFor: anItemAwareElement) ifTrue: [
+		^ activityExecution accessibleItemValueFor: anItemAwareElement put: aValue ].
 	^ self scope accessibleItemValueFor: anItemAwareElement put: aValue
 ]
 
@@ -158,6 +172,8 @@ CPMultiInstanceActivityExecution >> itemValueProducerFor: anItemAwareElement [
 CPMultiInstanceActivityExecution >> accessibleItemValueProducerFor: anItemAwareElement [
 	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
 		^ self itemValueProducerFor: anItemAwareElement ].
+	(self isOuterMultiInstanceItemValueFor: anItemAwareElement) ifTrue: [
+		^ activityExecution accessibleItemValueProducerFor: anItemAwareElement ].
 	^ self scope accessibleItemValueProducerFor: anItemAwareElement
 ]
 
@@ -174,6 +190,8 @@ CPMultiInstanceActivityExecution >> itemValueFor: anItemAwareElement put: aValue
 CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution [
 	(self ownsItemValueFor: anItemAwareElement) ifTrue: [
 		^ self itemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution ].
+	(self isOuterMultiInstanceItemValueFor: anItemAwareElement) ifTrue: [
+		^ activityExecution accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution ].
 	^ self scope accessibleItemValueFor: anItemAwareElement put: aValue producedBy: anActivityExecution
 ]
 

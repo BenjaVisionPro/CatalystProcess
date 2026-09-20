@@ -6422,6 +6422,8 @@ CPExecutionKernelExamples >> multiInstanceDataAssociationsExecutePerInstance [
 	secondInstance := taskExecution beginMultiInstanceActivityExecutionAt: 2.
 	self assert: (firstInstance itemValueFor: activityInput) equals: 'first'.
 	self assert: (secondInstance itemValueFor: activityInput) equals: 'second'.
+	self assert: (firstInstance accessibleItemValueFor: loopDataInput) equals: (OrderedCollection withAll: { 'first'. 'second' }).
+	self assert: (secondInstance accessibleItemValueFor: loopDataInput) equals: (OrderedCollection withAll: { 'first'. 'second' }).
 	self assert: firstInstance selectedInputSet == inputSet.
 	self assert: secondInstance selectedInputSet == inputSet.
 	firstInstance itemValueFor: activityOutput put: 'first result'.
@@ -6435,6 +6437,10 @@ CPExecutionKernelExamples >> multiInstanceDataAssociationsExecutePerInstance [
 	self assert: taskExecution multiInstanceOutputItems equals: (OrderedCollection withAll: {
 		'first result'. 'second result' }).
 	self assert: (taskExecution itemValueFor: loopDataOutput) equals: (OrderedCollection withAll: {
+		'first result'. 'second result' }).
+	self assert: (firstInstance accessibleItemValueFor: loopDataOutput) equals: (OrderedCollection withAll: {
+		'first result'. 'second result' }).
+	self assert: (secondInstance accessibleItemValueFor: loopDataOutput) equals: (OrderedCollection withAll: {
 		'first result'. 'second result' }).
 	^ taskExecution
 ]
