@@ -2407,3 +2407,90 @@ CPExecutionScope >> executeMultiInstanceBusinessRuleTaskExecution: anInstance [
 	anInstance complete.
 	^ anInstance
 ]
+
+
+{ #category : 'building' }
+CPExecutionScope >> createUserTaskExecutionFor: aUserTask [
+    ^ self addActivityExecution: (CPUserTaskExecution new
+        definition: aUserTask;
+        yourself)
+]
+
+{ #category : 'activities - user' }
+CPExecutionScope >> activateUserTaskExecution: anActivityExecution [
+    | userTask loop workItem |
+    (activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+        self error: 'The User Task execution does not belong to this execution scope.' ].
+    anActivityExecution isReady ifFalse: [
+        self error: 'Only a Ready User Task execution can become Active.' ].
+    (anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
+    anActivityExecution activate.
+    userTask := anActivityExecution definition.
+    loop := userTask loopCharacteristics.
+    (loop notNil and: [ loop isMultiInstance ]) ifTrue: [
+        anActivityExecution beginMultiInstanceActivityExecutions.
+        ^ anActivityExecution ].
+    workItem := CPUserTaskWorkItem new
+        userTask: userTask;
+        activityExecution: anActivityExecution;
+        yourself.
+    anActivityExecution workItem: workItem.
+    self environment distributeUserTaskWorkItem: workItem in: self.
+    workItem markDistributed.
+    ^ anActivityExecution
+]
+
+{ #category : 'activities - user' }
+CPExecutionScope >> completeUserTaskExecution: anActivityExecution [
+    | workItem |
+    anActivityExecution scope == self ifFalse: [
+        self error: 'The User Task execution does not belong to this execution scope.' ].
+    anActivityExecution isActive ifFalse: [
+        self error: 'Only an active User Task execution can complete.' ].
+    workItem := anActivityExecution workItem.
+    workItem ifNil: [ self error: 'The User Task execution has no distributed work item.' ].
+    workItem isPending ifFalse: [ self error: 'The User Task work item is not pending.' ].
+    workItem complete.
+    anActivityExecution beginCompletion.
+    anActivityExecution complete.
+    self produceOutgoingControlFor: anActivityExecution.
+    ^ anActivityExecution
+]
+
+{ #category : 'activities - user' }
+CPExecutionScope >> distributeMultiInstanceUserTaskExecution: anInstance [
+    | outerExecution workItem |
+    outerExecution := anInstance activityExecution.
+    outerExecution scope == self ifFalse: [
+        self error: 'The Multi-Instance User Task instance does not belong to this execution scope.' ].
+    (outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+        self error: 'The Multi-Instance User Task instance does not belong to its outer Activity execution.' ].
+    anInstance isActive ifFalse: [
+        self error: 'Only an active Multi-Instance User Task instance can distribute work.' ].
+    workItem := CPUserTaskWorkItem new
+        userTask: outerExecution definition;
+        activityExecution: anInstance;
+        yourself.
+    anInstance userTaskWorkItem: workItem.
+    self environment distributeUserTaskWorkItem: workItem in: self.
+    workItem markDistributed.
+    ^ workItem
+]
+
+{ #category : 'activities - user' }
+CPExecutionScope >> completeMultiInstanceUserTaskExecution: anInstance [
+    | outerExecution workItem |
+    outerExecution := anInstance activityExecution.
+    outerExecution scope == self ifFalse: [
+        self error: 'The Multi-Instance User Task instance does not belong to this execution scope.' ].
+    (outerExecution multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+        self error: 'The Multi-Instance User Task instance does not belong to its outer Activity execution.' ].
+    anInstance isActive ifFalse: [
+        self error: 'Only an active Multi-Instance User Task instance can complete.' ].
+    workItem := anInstance userTaskWorkItem.
+    workItem ifNil: [ self error: 'The Multi-Instance User Task instance has no distributed work item.' ].
+    workItem isPending ifFalse: [ self error: 'The Multi-Instance User Task work item is not pending.' ].
+    workItem complete.
+    anInstance complete.
+    ^ anInstance
+]

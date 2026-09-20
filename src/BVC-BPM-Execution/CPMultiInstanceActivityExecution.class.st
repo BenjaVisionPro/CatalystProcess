@@ -16,6 +16,7 @@ Class {
 		'messageSubscription',
 		'receivedOccurrence',
 		'messageDispatch',
+		'userTaskWorkItem',
 		'completed',
 		'cancelled'
 	],
@@ -525,4 +526,16 @@ CPMultiInstanceActivityExecution >> prepareMessageDispatch [
 		self error: 'The Multi-Instance Send Task Data Input is unavailable for the Message dispatch.' ].
 	messageDispatch payload: (self itemValueFor: input).
 	^ messageDispatch
+]
+
+
+{ #category : 'accessing' }
+CPMultiInstanceActivityExecution >> userTaskWorkItem [
+    ^ userTaskWorkItem
+]
+
+{ #category : 'accessing' }
+CPMultiInstanceActivityExecution >> userTaskWorkItem: aWorkItem [
+    userTaskWorkItem ifNotNil: [ self error: 'A Multi-Instance User Task instance can have only one work item.' ].
+    userTaskWorkItem := aWorkItem
 ]

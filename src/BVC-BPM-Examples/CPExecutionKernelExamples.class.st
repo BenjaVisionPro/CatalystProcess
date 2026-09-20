@@ -6905,3 +6905,68 @@ CPExecutionKernelExamples >> multiInstanceBusinessRuleTaskExecutesPerInstance [
 	self assert: taskExecution isCompleted.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> userTaskWaitsForDistributedWorkCompletion [
+    <gtExample>
+    | process task environment execution taskExecution workItem |
+    process := CPProcess new identifier: 'process'; yourself.
+    task := CPUserTask new identifier: 'review'; yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    self assert: taskExecution isActive.
+    self assert: environment userTaskWorkItems size equals: 1.
+    workItem := environment userTaskWorkItems first.
+    self assert: workItem activityExecution == taskExecution.
+    self assert: workItem userTask == task.
+    self assert: workItem isPending.
+    execution completeUserTaskExecution: taskExecution.
+    self assert: workItem isCompleted.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]
+
+{ #category : 'examples - tasks' }
+CPExecutionKernelExamples >> multiInstanceUserTaskDistributesWorkPerInstance [
+    <gtExample>
+    | process task loop cardinality environment execution taskExecution firstInstance secondInstance firstWorkItem secondWorkItem |
+    process := CPProcess new identifier: 'process'; yourself.
+    cardinality := CPExpression new identifier: 'cardinality'; yourself.
+    loop := CPMultiInstanceLoopCharacteristics new
+        loopCardinality: cardinality;
+        yourself.
+    task := CPUserTask new
+        identifier: 'review';
+        loopCharacteristics: loop;
+        yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new
+        expression: cardinality evaluatesTo: 2;
+        yourself.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    firstInstance := taskExecution multiInstanceActivityExecutions first.
+    secondInstance := taskExecution multiInstanceActivityExecutions second.
+    self assert: environment userTaskWorkItems size equals: 2.
+    firstWorkItem := environment userTaskWorkItems first.
+    secondWorkItem := environment userTaskWorkItems second.
+    self assert: firstWorkItem activityExecution == firstInstance.
+    self assert: secondWorkItem activityExecution == secondInstance.
+    self assert: firstWorkItem isPending.
+    self assert: secondWorkItem isPending.
+    execution completeMultiInstanceUserTaskExecution: firstInstance.
+    self assert: firstWorkItem isCompleted.
+    self assert: firstInstance isCompleted.
+    self assert: secondInstance isActive.
+    self assert: taskExecution isActive.
+    execution completeMultiInstanceUserTaskExecution: secondInstance.
+    self assert: secondWorkItem isCompleted.
+    self assert: secondInstance isCompleted.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]

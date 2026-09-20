@@ -34,3 +34,9 @@ CPExecutionEnvironment >> executeScriptTask: aScriptTask in: anExecutionScope fo
 CPExecutionEnvironment >> executeBusinessRuleTask: aBusinessRuleTask in: anExecutionScope forActivityExecution: anActivityExecution [
 	self subclassResponsibility
 ]
+
+
+{ #category : 'execution' }
+CPExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionScope [
+    self subclassResponsibility
+]

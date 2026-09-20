@@ -8,7 +8,8 @@ Class {
 		'lastActivityExecutionUsedForExpressionEvaluation',
 		'lastLoopCounterAtExpressionEvaluation',
 		'scriptTaskExecutions',
-		'businessRuleTaskExecutions'
+		'businessRuleTaskExecutions',
+		'userTaskWorkItems'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -21,7 +22,8 @@ CPExampleExecutionEnvironment >> initialize [
 	callableResolutions := IdentityDictionary new.
 	operationResolutions := IdentityDictionary new.
 	scriptTaskExecutions := OrderedCollection new.
-	businessRuleTaskExecutions := OrderedCollection new
+	businessRuleTaskExecutions := OrderedCollection new.
+	userTaskWorkItems := OrderedCollection new
 ]
 
 { #category : 'configuration' }
@@ -104,4 +106,16 @@ CPExampleExecutionEnvironment >> executeBusinessRuleTask: aBusinessRuleTask in: 
 { #category : 'accessing' }
 CPExampleExecutionEnvironment >> businessRuleTaskExecutions [
 	^ businessRuleTaskExecutions
+]
+
+
+{ #category : 'execution' }
+CPExampleExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionScope [
+    userTaskWorkItems add: aWorkItem.
+    ^ aWorkItem
+]
+
+{ #category : 'accessing' }
+CPExampleExecutionEnvironment >> userTaskWorkItems [
+    ^ userTaskWorkItems
 ]
