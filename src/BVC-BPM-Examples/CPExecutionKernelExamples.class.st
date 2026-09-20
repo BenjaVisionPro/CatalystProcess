@@ -5202,3 +5202,53 @@ CPExecutionKernelExamples >> callActivityRejectsMismatchedCallableInputSetsBefor
 	self assert: callExecution subScope isNil.
 	^ callExecution
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> standardLoopExecutionTracksCounterAndPostTestsCondition [
+	<gtExample>
+	| process task loop condition execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'repeat';
+		loopCharacteristics: loop;
+		yourself.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution loopCounter equals: 0.
+	self assert: taskExecution standardLoopMayBeginNextIteration.
+	self assert: taskExecution recordStandardLoopIterationCompletion equals: 1.
+	self assert: taskExecution standardLoopMayBeginNextIteration.
+	self assert: taskExecution recordStandardLoopIterationCompletion equals: 2.
+	self assert: taskExecution standardLoopMayBeginNextIteration not.
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> standardLoopPreTestCanPreventFirstIteration [
+	<gtExample>
+	| process task loop condition execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: true;
+		loopCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'repeat';
+		loopCharacteristics: loop;
+		yourself.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: false.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution standardLoopMayBeginNextIteration not.
+	self assert: taskExecution loopCounter equals: 0.
+	^ taskExecution
+]

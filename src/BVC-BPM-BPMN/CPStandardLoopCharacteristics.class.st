@@ -27,3 +27,9 @@ CPStandardLoopCharacteristics >> testBeforeDescription [ <magritteDescription> ^
 CPStandardLoopCharacteristics >> loopMaximumDescription [ <magritteDescription> ^ MANumberDescription new accessor: #loopMaximum; label: 'Maximum iterations'; priority: 110; group: 'Loop'; yourself ]
 { #category : 'descriptions' }
 CPStandardLoopCharacteristics >> loopConditionDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #loopCondition; classes: { CPExpression }; reference: CPExpression new identifierDescription; label: 'Loop condition'; priority: 120; group: 'Loop'; yourself ]
+
+
+{ #category : 'testing' }
+CPStandardLoopCharacteristics >> isStandardLoop [
+	^ true
+]

@@ -11,7 +11,8 @@ Class {
 		'itemValueProducers',
 		'dataDependencies',
 		'selectedInputSet',
-		'selectedOutputSet'
+		'selectedOutputSet',
+		'loopCounter'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -31,7 +32,8 @@ CPActivityExecution >> initialize [
 	state := CPActivityReadyState new.
 	itemValues := IdentityDictionary new.
 	itemValueProducers := IdentityDictionary new.
-	dataDependencies := OrderedCollection new
+	dataDependencies := OrderedCollection new.
+	loopCounter := 0
 ]
 
 { #category : 'accessing' }
@@ -335,6 +337,39 @@ CPActivityExecution >> attachSubScope: anExecutionScope [
 	scope addChildScope: anExecutionScope.
 	subScope := anExecutionScope.
 	^ anExecutionScope
+]
+
+
+
+{ #category : 'looping' }
+CPActivityExecution >> loopCounter [
+	^ loopCounter
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> standardLoopMayBeginNextIteration [
+	| loop maximum condition |
+	loop := definition loopCharacteristics.
+	loop ifNil: [ ^ true ].
+	loop isStandardLoop ifFalse: [
+		self error: 'This execution decision applies only to BPMN Standard Loop characteristics.' ].
+	maximum := loop loopMaximum.
+	(maximum notNil and: [ loopCounter >= maximum ]) ifTrue: [ ^ false ].
+	(loopCounter = 0 and: [ loop testBefore not ]) ifTrue: [ ^ true ].
+	condition := loop loopCondition.
+	condition ifNil: [
+		self error: 'An executable Standard Loop requires a loopCondition.' ].
+	^ scope environment evaluateExpression: condition in: scope
+]
+
+{ #category : 'looping' }
+CPActivityExecution >> recordStandardLoopIterationCompletion [
+	| loop |
+	loop := definition loopCharacteristics.
+	(loop notNil and: [ loop isStandardLoop ]) ifFalse: [
+		self error: 'Only a BPMN Standard Loop execution can complete a loop iteration.' ].
+	loopCounter := loopCounter + 1.
+	^ loopCounter
 ]
 
 { #category : 'testing' }
