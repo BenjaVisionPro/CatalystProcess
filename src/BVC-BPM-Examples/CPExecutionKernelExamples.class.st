@@ -5345,7 +5345,7 @@ CPExecutionKernelExamples >> multiInstanceCardinalityIsEvaluatedOnce [
 		expression: cardinality evaluatesTo: 3;
 		yourself.
 	execution := CPProcessExecution for: process environment: environment.
-	taskExecution := execution rootScope addActivityExecution: (CPActivityExecution new
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
 		definition: task;
 		yourself).
 	self assert: taskExecution initializeMultiInstanceCardinality equals: 3.
