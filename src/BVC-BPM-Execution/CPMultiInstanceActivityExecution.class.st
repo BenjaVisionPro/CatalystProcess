@@ -75,10 +75,18 @@ CPMultiInstanceActivityExecution >> index: anInteger [
 
 { #category : 'data' }
 CPMultiInstanceActivityExecution >> ownsItemValueFor: anItemAwareElement [
-	| loop |
-	loop := activityExecution definition loopCharacteristics.
-	^ loop inputDataItem == anItemAwareElement
-		or: [ loop outputDataItem == anItemAwareElement ]
+	| definition loop specification |
+	definition := activityExecution definition.
+	loop := definition loopCharacteristics.
+	(loop inputDataItem == anItemAwareElement
+		or: [ loop outputDataItem == anItemAwareElement ]) ifTrue: [ ^ true ].
+	(definition properties identityIncludes: anItemAwareElement) ifTrue: [ ^ true ].
+	specification := definition ioSpecification.
+	specification ifNil: [ ^ false ].
+	((specification dataInputs identityIncludes: anItemAwareElement)
+		and: [ loop loopDataInputRef ~~ anItemAwareElement ]) ifTrue: [ ^ true ].
+	^ (specification dataOutputs identityIncludes: anItemAwareElement)
+		and: [ loop loopDataOutputRef ~~ anItemAwareElement ]
 ]
 
 { #category : 'data' }

@@ -6322,3 +6322,49 @@ CPExecutionKernelExamples >> multiInstanceCompletionConditionProducesOutgoingCon
 	self assert: (execution canReadyActivity: target).
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceActivityLocalDataIsOwnedPerInstance [
+	<gtExample>
+	| process task loopDataInput activityInput activityOutput activityProperty specification loop execution taskExecution firstInstance secondInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
+	activityInput := CPDataInput new identifier: 'activityInput'; yourself.
+	activityOutput := CPDataOutput new identifier: 'activityOutput'; yourself.
+	activityProperty := CPProperty new identifier: 'activityProperty'; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput. activityInput };
+		dataOutputs: { activityOutput };
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopDataInputRef: loopDataInput; yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		properties: { activityProperty };
+		ioSpecification: specification;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: CPExampleExecutionEnvironment new.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution itemValueFor: loopDataInput put: (OrderedCollection withAll: { 'first'. 'second' }).
+	self assert: taskExecution initializeMultiInstanceCardinality equals: 2.
+	firstInstance := taskExecution beginMultiInstanceActivityExecutionAt: 1.
+	secondInstance := taskExecution beginMultiInstanceActivityExecutionAt: 2.
+	firstInstance itemValueFor: activityInput put: 'first input'.
+	secondInstance itemValueFor: activityInput put: 'second input'.
+	firstInstance itemValueFor: activityOutput put: 'first output'.
+	secondInstance itemValueFor: activityOutput put: 'second output'.
+	firstInstance itemValueFor: activityProperty put: 'first property'.
+	secondInstance itemValueFor: activityProperty put: 'second property'.
+	self assert: (firstInstance itemValueFor: activityInput) equals: 'first input'.
+	self assert: (secondInstance itemValueFor: activityInput) equals: 'second input'.
+	self assert: (firstInstance itemValueFor: activityOutput) equals: 'first output'.
+	self assert: (secondInstance itemValueFor: activityOutput) equals: 'second output'.
+	self assert: (firstInstance itemValueFor: activityProperty) equals: 'first property'.
+	self assert: (secondInstance itemValueFor: activityProperty) equals: 'second property'.
+	self assert: taskExecution ownsItemValueFor: loopDataInput.
+	self assert: (firstInstance ownsItemValueFor: loopDataInput) equals: false.
+	self assert: (secondInstance ownsItemValueFor: loopDataInput) equals: false.
+	^ taskExecution
+]
