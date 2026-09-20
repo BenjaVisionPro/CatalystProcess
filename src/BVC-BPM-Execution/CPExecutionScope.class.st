@@ -14,7 +14,8 @@ Class {
 		'timerSubscriptions',
 		'messageSubscriptions',
 		'signalSubscriptions',
-		'conditionalSubscriptions'
+		'conditionalSubscriptions',
+		'compensationRecords'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -39,7 +40,8 @@ CPExecutionScope >> initialize [
 	timerSubscriptions := OrderedCollection new.
 	messageSubscriptions := OrderedCollection new.
 	signalSubscriptions := OrderedCollection new.
-	conditionalSubscriptions := OrderedCollection new
+	conditionalSubscriptions := OrderedCollection new.
+	compensationRecords := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -64,6 +66,9 @@ CPExecutionScope >> owningActivity: anActivityExecution [ owningActivity := anAc
 CPExecutionScope >> childScopes [ ^ childScopes ]
 { #category : 'accessing' }
 CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
+
+{ #category : 'accessing' }
+CPExecutionScope >> compensationRecords [ ^ compensationRecords ]
 { #category : 'accessing' }
 CPExecutionScope >> gatewayExecutions [ ^ gatewayExecutions ]
 { #category : 'accessing' }
@@ -1181,4 +1186,23 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 		fromNestedScope: self
 		toBoundary: boundaryExecution.
 	^ execution
+]
+
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
+	anActivityExecution scope == self ifFalse: [
+		self error: 'The completed Activity execution does not belong to this execution scope.' ].
+	anActivityExecution definition boundaryEventRefs do: [ :eachBoundary |
+		(eachBoundary eventDefinitions anySatisfy: [ :eachDefinition | eachDefinition isCompensationEventDefinition ]) ifTrue: [
+			compensationRecords add: (CPCompensationRecord new
+				activityExecution: anActivityExecution;
+				boundaryEvent: eachBoundary;
+				yourself) ] ].
+	^ anActivityExecution
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> availableCompensationRecords [
+	^ compensationRecords select: [ :each | each isAvailable ]
 ]

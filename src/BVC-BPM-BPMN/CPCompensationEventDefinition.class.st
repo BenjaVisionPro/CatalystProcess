@@ -17,3 +17,9 @@ CPCompensationEventDefinition >> waitForCompletion: aBoolean [ waitForCompletion
 CPCompensationEventDefinition >> activityRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #activityRef; classes: { CPActivity }; reference: CPActivity new labelDescription; label: 'Activity'; priority: 100; group: 'Relations'; yourself ]
 { #category : 'descriptions' }
 CPCompensationEventDefinition >> waitForCompletionDescription [ <magritteDescription> ^ MABooleanDescription new accessor: #waitForCompletion; label: 'Wait for completion'; priority: 110; group: 'Compensation'; yourself ]
+
+
+{ #category : 'execution semantics' }
+CPCompensationEventDefinition >> isCompensationEventDefinition [
+	^ true
+]

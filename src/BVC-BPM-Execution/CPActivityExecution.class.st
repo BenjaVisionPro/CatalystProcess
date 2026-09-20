@@ -99,7 +99,8 @@ CPActivityExecution >> beginCompletion [
 { #category : 'lifecycle' }
 CPActivityExecution >> complete [
 	self isCompleting ifFalse: [ self error: 'Only a Completing Activity can become Completed.' ].
-	state := CPActivityCompletedState new
+	state := CPActivityCompletedState new.
+	scope activityExecutionDidComplete: self
 ]
 { #category : 'lifecycle' }
 CPActivityExecution >> beginFailure [

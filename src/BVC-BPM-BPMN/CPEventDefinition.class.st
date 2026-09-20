@@ -47,3 +47,9 @@ CPEventDefinition >> catchesError: anError [
 CPEventDefinition >> catchesEscalation: anEscalation [
 	^ false
 ]
+
+
+{ #category : 'execution semantics' }
+CPEventDefinition >> isCompensationEventDefinition [
+	^ false
+]

@@ -2322,3 +2322,35 @@ CPExecutionKernelExamples >> compensationEventFamilyIsExplicitlyModelled [
 	self assert: endEvent eventDefinitions first activityRef == activity.
 	^ boundary
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> completedActivityCreatesDurableCompensationRecord [
+	<gtExample>
+	| process activity boundary definition execution activityExecution records record |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'compensatedActivity'; yourself.
+	process addFlowElement: activity.
+	definition := CPCompensationEventDefinition new
+		identifier: 'compensation';
+		activityRef: activity;
+		yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: activity;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: definition.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	activityExecution beginCompletion.
+	activityExecution complete.
+	records := execution availableCompensationRecords.
+	self assert: records size equals: 1.
+	record := records first.
+	self assert: record activityExecution == activityExecution.
+	self assert: record boundaryEvent == boundary.
+	self assert: record isAvailable.
+	^ record
+]
