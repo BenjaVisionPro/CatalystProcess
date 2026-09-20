@@ -9,3 +9,9 @@ CPSignalEventDefinition >> signalRef [ ^ signalRef ]
 CPSignalEventDefinition >> signalRef: aSignal [ signalRef := aSignal ]
 { #category : 'descriptions' }
 CPSignalEventDefinition >> signalRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #signalRef; classes: { CPSignal }; reference: CPSignal new labelDescription; label: 'Signal'; priority: 100; group: 'Relations'; yourself ]
+
+
+{ #category : 'execution semantics' }
+CPSignalEventDefinition >> resultDefinition [
+	^ signalRef
+]

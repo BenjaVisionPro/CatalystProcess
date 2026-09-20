@@ -7,6 +7,7 @@ Class {
 		'consumedFlowActivation',
 		'producedFlowActivations',
 		'occurrence',
+		'thrownOccurrences',
 		'itemValues'
 	],
 	#category : 'BVC-BPM-Execution',
@@ -17,6 +18,7 @@ Class {
 CPEventExecution >> initialize [
 	super initialize.
 	producedFlowActivations := OrderedCollection new.
+	thrownOccurrences := OrderedCollection new.
 	itemValues := IdentityDictionary new
 ]
 
@@ -146,3 +148,37 @@ CPEventExecution >> prepareThrowData [
 	^ self
 ]
 
+
+
+{ #category : 'accessing' }
+CPEventExecution >> thrownOccurrences [ ^ thrownOccurrences ]
+
+{ #category : 'data' }
+CPEventExecution >> prepareThrownOccurrences [
+	| definitions inputs |
+	definition isThrowEvent ifFalse: [ self error: 'Only a Throw Event can prepare thrown occurrences.' ].
+	definitions := definition eventDefinitions.
+	inputs := definition dataInputs.
+	definitions withIndexDo: [ :eventDefinition :index |
+		| resultDefinition thrownOccurrence |
+		resultDefinition := eventDefinition resultDefinition.
+		resultDefinition ifNotNil: [
+			thrownOccurrence := CPExecutionOccurrence new
+				occurrenceIdentifier: UUID new asString;
+				definition: resultDefinition;
+				yourself.
+			index <= inputs size ifTrue: [
+				(self hasItemValueFor: (inputs at: index)) ifFalse: [
+					self error: 'A Throw Event Data Input is unavailable for its corresponding Event Definition.' ].
+				thrownOccurrence payload: (self itemValueFor: (inputs at: index)) ].
+			thrownOccurrences add: thrownOccurrence ] ].
+	^ thrownOccurrences
+]
+
+
+{ #category : 'data' }
+CPEventExecution >> hasItemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Event execution.' ].
+	^ itemValues includesKey: anItemAwareElement
+]

@@ -53,3 +53,9 @@ CPEventDefinition >> catchesEscalation: anEscalation [
 CPEventDefinition >> isCompensationEventDefinition [
 	^ false
 ]
+
+
+{ #category : 'execution semantics' }
+CPEventDefinition >> resultDefinition [
+	^ nil
+]

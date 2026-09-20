@@ -19,3 +19,9 @@ CPErrorEventDefinition >> interruptsActivityWithFailure [
 CPErrorEventDefinition >> catchesError: anError [
 	^ error isNil or: [ error == anError ]
 ]
+
+
+{ #category : 'execution semantics' }
+CPErrorEventDefinition >> resultDefinition [
+	^ error
+]

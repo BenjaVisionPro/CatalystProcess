@@ -21,3 +21,9 @@ CPMessageEventDefinition >> operationRef: anOperation [ operationRef := anOperat
 CPMessageEventDefinition >> messageRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #messageRef; classes: { CPMessage }; reference: CPMessage new labelDescription; label: 'Message'; priority: 100; group: 'Relations'; yourself ]
 { #category : 'descriptions' }
 CPMessageEventDefinition >> operationRefDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #operationRef; classes: { CPOperation }; reference: CPOperation new labelDescription; label: 'Operation'; priority: 110; group: 'Relations'; yourself ]
+
+
+{ #category : 'execution semantics' }
+CPMessageEventDefinition >> resultDefinition [
+	^ messageRef
+]

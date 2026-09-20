@@ -15,3 +15,9 @@ CPEscalationEventDefinition >> escalationRefDescription [ <magritteDescription> 
 CPEscalationEventDefinition >> catchesEscalation: anEscalation [
 	^ escalationRef == anEscalation
 ]
+
+
+{ #category : 'execution semantics' }
+CPEscalationEventDefinition >> resultDefinition [
+	^ escalationRef
+]

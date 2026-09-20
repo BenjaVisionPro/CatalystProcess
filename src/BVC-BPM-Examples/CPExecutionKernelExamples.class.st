@@ -5029,6 +5029,9 @@ CPExecutionKernelExamples >> messageThrowEventPreparesDataInputFromAssociation [
 	execution start.
 	eventExecution := execution beginIntermediateThrowEvent: throw consuming: (execution availableFlowActivationsOn: incoming) first.
 	self assert: (eventExecution itemValueFor: dataInput) equals: 'message payload'.
+	self assert: eventExecution thrownOccurrences size equals: 1.
+	self assert: eventExecution thrownOccurrences first definition == message.
+	self assert: eventExecution thrownOccurrences first payload equals: 'message payload'.
 	self assert: eventExecution isPending.
 	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
 	^ eventExecution

@@ -752,6 +752,7 @@ CPExecutionScope >> beginIntermediateThrowEvent: anEvent consuming: anActivation
 		scope: self;
 		yourself.
 	execution prepareThrowData.
+	execution prepareThrownOccurrences.
 	eventExecutions add: execution.
 	execution consumeFlowActivation: anActivation.
 	^ execution
