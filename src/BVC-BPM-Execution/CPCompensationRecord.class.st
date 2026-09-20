@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'activityExecution',
 		'boundaryEvent',
-		'claimed'
+		'claimed',
+		'handlerExecution'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -41,4 +42,26 @@ CPCompensationRecord >> claim [
 	self isAvailable ifFalse: [ self error: 'Only an available compensation record can be claimed.' ].
 	claimed := true.
 	^ self
+]
+
+
+{ #category : 'accessing' }
+CPCompensationRecord >> handlerExecution [ ^ handlerExecution ]
+
+{ #category : 'lifecycle' }
+CPCompensationRecord >> beginHandlingWith: anActivityExecution [
+	self isClaimed ifFalse: [ self error: 'A compensation record must be claimed before its handler can begin.' ].
+	handlerExecution ifNotNil: [ self error: 'A compensation record can begin its handler only once.' ].
+	handlerExecution := anActivityExecution.
+	^ anActivityExecution
+]
+
+{ #category : 'testing' }
+CPCompensationRecord >> isHandling [
+	^ handlerExecution notNil and: [ handlerExecution isFinal not ]
+]
+
+{ #category : 'testing' }
+CPCompensationRecord >> isHandled [
+	^ handlerExecution notNil and: [ handlerExecution isCompleted ]
 ]

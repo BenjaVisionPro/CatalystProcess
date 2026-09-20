@@ -2495,3 +2495,50 @@ CPExecutionKernelExamples >> compensationRecordResolvesExplicitHandlerActivity [
 	self assert: record boundaryEvent == boundary.
 	^ resolvedHandler
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationRecordBeginsExplicitHandlerExactlyOnce [
+	<gtExample>
+	| process activity compensationDefinition boundary handler association execution activityExecution record handlerExecution rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	activity := CPTask new identifier: 'work'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: activity;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	handler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	process addFlowElement: activity.
+	process addFlowElement: handler.
+	association := CPAssociation new
+		identifier: 'compensationHandler';
+		sourceRef: boundary;
+		targetRef: handler;
+		beOne;
+		yourself.
+	process addArtifact: association.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: activity.
+	activityExecution activate.
+	activityExecution beginCompletion.
+	activityExecution complete.
+	record := execution availableCompensationRecords first.
+	handlerExecution := execution beginCompensationFor: record.
+	self assert: record isClaimed.
+	self assert: record isHandling.
+	self assert: record handlerExecution == handlerExecution.
+	self assert: handlerExecution definition == handler.
+	self assert: handlerExecution scope == execution.
+	self assert: handlerExecution isActive.
+	self assert: (execution availableCompensationRecords includes: record) not.
+	rejected := false.
+	[ execution beginCompensationFor: record ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: record handlerExecution == handlerExecution.
+	^ record
+]

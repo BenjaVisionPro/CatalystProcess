@@ -1267,3 +1267,22 @@ CPExecutionScope >> compensationHandlerFor: aCompensationRecord [
 		self error: 'A compensation Boundary Event must resolve to exactly one compensation-handler Activity.' ].
 	^ handlers first
 ]
+
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> beginCompensationFor: aCompensationRecord [
+	| owningScope handler handlerExecution claimedRecord |
+	aCompensationRecord isAvailable ifFalse: [
+		self error: 'Only an available compensation record can begin compensation.' ].
+	owningScope := aCompensationRecord activityExecution scope.
+	owningScope ifNil: [
+		self error: 'A compensation record requires its completed Activity execution to belong to an execution scope.' ].
+	handler := owningScope compensationHandlerFor: aCompensationRecord.
+	claimedRecord := owningScope claimCompensationRecordFor: aCompensationRecord activityExecution.
+	claimedRecord == aCompensationRecord ifFalse: [
+		self error: 'The claimed compensation record does not match the requested record.' ].
+	handlerExecution := owningScope createActivityExecutionFor: handler.
+	claimedRecord beginHandlingWith: handlerExecution.
+	handlerExecution activate.
+	^ handlerExecution
+]
