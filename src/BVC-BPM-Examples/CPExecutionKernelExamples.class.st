@@ -7385,3 +7385,62 @@ CPExecutionKernelExamples >> abstractTaskStandardLoopExecutesTaskSemanticsPerIte
 	self assert: (taskExecution standardLoopIterations allSatisfy: [ :each | each isCompleted ]).
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> scriptTaskStandardLoopExecutesScriptPerIteration [
+	<gtExample>
+	| process task loop condition execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 3;
+		loopCondition: condition;
+		yourself.
+	task := CPScriptTask new
+		identifier: 'repeatScript';
+		scriptFormat: 'example';
+		script: 'do work';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createScriptTaskExecutionFor: task.
+	execution activateScriptTaskExecution: taskExecution.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 3.
+	self assert: taskExecution standardLoopIterations size equals: 3.
+	self assert: execution environment scriptTaskExecutions size equals: 3.
+	self assert: (execution environment scriptTaskExecutions allSatisfy: [ :each | each == taskExecution ]).
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> businessRuleTaskStandardLoopExecutesRulePerIteration [
+	<gtExample>
+	| process task loop condition execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 3;
+		loopCondition: condition;
+		yourself.
+	task := CPBusinessRuleTask new
+		identifier: 'repeatRule';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createBusinessRuleTaskExecutionFor: task.
+	execution activateBusinessRuleTaskExecution: taskExecution.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 3.
+	self assert: taskExecution standardLoopIterations size equals: 3.
+	self assert: execution environment businessRuleTaskExecutions size equals: 3.
+	self assert: (execution environment businessRuleTaskExecutions allSatisfy: [ :each | each == taskExecution ]).
+	^ taskExecution
+]

@@ -2331,6 +2331,11 @@ CPExecutionScope >> activateScriptTaskExecution: anActivityExecution [
 	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
 		anActivityExecution beginMultiInstanceActivityExecutions.
 		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	self environment
 		executeScriptTask: scriptTask
 		in: self
@@ -2339,6 +2344,24 @@ CPExecutionScope >> activateScriptTaskExecution: anActivityExecution [
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
+]
+
+{ #category : 'activities - script' }
+CPExecutionScope >> executeStandardLoopScriptTaskIteration: anIteration [
+	| outerExecution |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop Script Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop Script Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop Script Task iteration can execute its script.' ].
+	self environment
+		executeScriptTask: outerExecution definition
+		in: self
+		forActivityExecution: outerExecution.
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
 ]
 
 { #category : 'activities - script' }
@@ -2380,6 +2403,11 @@ CPExecutionScope >> activateBusinessRuleTaskExecution: anActivityExecution [
 	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
 		anActivityExecution beginMultiInstanceActivityExecutions.
 		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	self environment
 		executeBusinessRuleTask: businessRuleTask
 		in: self
@@ -2388,6 +2416,24 @@ CPExecutionScope >> activateBusinessRuleTaskExecution: anActivityExecution [
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
+]
+
+{ #category : 'activities - business rule' }
+CPExecutionScope >> executeStandardLoopBusinessRuleTaskIteration: anIteration [
+	| outerExecution |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [
+		self error: 'The Standard Loop Business Rule Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [
+		self error: 'The Standard Loop Business Rule Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [
+		self error: 'Only an active Standard Loop Business Rule Task iteration can execute its business rule.' ].
+	self environment
+		executeBusinessRuleTask: outerExecution definition
+		in: self
+		forActivityExecution: outerExecution.
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
 ]
 
 { #category : 'activities - business rule' }
