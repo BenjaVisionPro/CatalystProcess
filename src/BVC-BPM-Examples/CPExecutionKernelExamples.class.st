@@ -4086,3 +4086,98 @@ CPExecutionKernelExamples >> asynchronousScopeCompensationContinuesDependentWork
 	self assert: compensationExecution isPendingWork not.
 	^ compensationExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityExecutionsOwnIndependentDataInputValues [
+	<gtExample>
+	| process task specification input execution first second |
+	process := CPProcess new identifier: 'process'; yourself.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'input'; yourself.
+	specification dataInputs add: input.
+	task ioSpecification: specification.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	first := execution createActivityExecutionFor: task.
+	second := execution createActivityExecutionFor: task.
+	first itemValueFor: input put: 'first'.
+	second itemValueFor: input put: 'second'.
+	self assert: (first itemValueFor: input) equals: 'first'.
+	self assert: (second itemValueFor: input) equals: 'second'.
+	^ execution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> processExecutionsOwnIndependentDataObjectValues [
+	<gtExample>
+	| process dataObject first second |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	first := self executionFor: process.
+	second := self executionFor: process.
+	first itemValueFor: dataObject put: 'first order'.
+	second itemValueFor: dataObject put: 'second order'.
+	self assert: (first itemValueFor: dataObject) equals: 'first order'.
+	self assert: (second itemValueFor: dataObject) equals: 'second order'.
+	^ first
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> processExecutionOwnsProcessPropertyValue [
+	<gtExample>
+	| process property execution |
+	process := CPProcess new identifier: 'process'; yourself.
+	property := CPProperty new identifier: 'property'; yourself.
+	process properties add: property.
+	execution := self executionFor: process.
+	execution itemValueFor: property put: 42.
+	self assert: (execution itemValueFor: property) equals: 42.
+	^ execution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> nestedExecutionScopeOwnsContainedDataObjectValue [
+	<gtExample>
+	| process subProcess dataObject execution subProcessExecution subScope |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPSubProcess new identifier: 'subProcess'; yourself.
+	dataObject := CPDataObject new identifier: 'localData'; yourself.
+	subProcess addFlowElement: dataObject.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subProcessExecution := execution createActivityExecutionFor: subProcess.
+	subScope := subProcessExecution createSubScopeFor: subProcess.
+	subScope itemValueFor: dataObject put: 'local'.
+	self assert: (subScope itemValueFor: dataObject) equals: 'local'.
+	^ subScope
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> executionDataRejectsItemOwnedByAnotherContext [
+	<gtExample>
+	| process task specification input dataObject execution activityExecution scopeRejected activityRejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'processData'; yourself.
+	process addFlowElement: dataObject.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'input'; yourself.
+	specification dataInputs add: input.
+	task ioSpecification: specification.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	activityExecution := execution createActivityExecutionFor: task.
+	scopeRejected := false.
+	[ execution itemValueFor: input put: 'wrong owner' ]
+		on: Error
+		do: [ :error | scopeRejected := true ].
+	activityRejected := false.
+	[ activityExecution itemValueFor: dataObject put: 'wrong owner' ]
+		on: Error
+		do: [ :error | activityRejected := true ].
+	self assert: scopeRejected.
+	self assert: activityRejected.
+	^ execution
+]

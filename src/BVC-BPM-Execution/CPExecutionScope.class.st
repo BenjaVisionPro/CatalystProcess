@@ -15,7 +15,8 @@ Class {
 		'messageSubscriptions',
 		'signalSubscriptions',
 		'conditionalSubscriptions',
-		'compensationRecords'
+		'compensationRecords',
+		'itemValues'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -41,7 +42,8 @@ CPExecutionScope >> initialize [
 	messageSubscriptions := OrderedCollection new.
 	signalSubscriptions := OrderedCollection new.
 	conditionalSubscriptions := OrderedCollection new.
-	compensationRecords := OrderedCollection new
+	compensationRecords := OrderedCollection new.
+	itemValues := IdentityDictionary new
 ]
 
 { #category : 'accessing' }
@@ -66,6 +68,30 @@ CPExecutionScope >> owningActivity: anActivityExecution [ owningActivity := anAc
 CPExecutionScope >> childScopes [ ^ childScopes ]
 { #category : 'accessing' }
 CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
+
+
+{ #category : 'data' }
+CPExecutionScope >> ownsItemValueFor: anItemAwareElement [
+	((definition flowElements identityIncludes: anItemAwareElement)
+		and: [ anItemAwareElement isDataObject ]) ifTrue: [ ^ true ].
+	definition isSubProcess ifTrue: [ ^ false ].
+	^ definition properties identityIncludes: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPExecutionScope >> itemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this execution scope.' ].
+	^ itemValues at: anItemAwareElement ifAbsent: [ nil ]
+]
+
+{ #category : 'data' }
+CPExecutionScope >> itemValueFor: anItemAwareElement put: aValue [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this execution scope.' ].
+	itemValues at: anItemAwareElement put: aValue.
+	^ aValue
+]
 
 { #category : 'accessing' }
 CPExecutionScope >> compensationRecords [ ^ compensationRecords ]

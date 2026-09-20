@@ -6,7 +6,8 @@ Class {
 		'scope',
 		'subScope',
 		'consumedFlowActivations',
-		'state'
+		'state',
+		'itemValues'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -23,7 +24,8 @@ CPActivityExecution class >> for: anActivity in: anExecutionScope [
 CPActivityExecution >> initialize [
 	super initialize.
 	consumedFlowActivations := OrderedCollection new.
-	state := CPActivityReadyState new
+	state := CPActivityReadyState new.
+	itemValues := IdentityDictionary new
 ]
 
 { #category : 'accessing' }
@@ -40,6 +42,30 @@ CPActivityExecution >> subScope [ ^ subScope ]
 CPActivityExecution >> state [ ^ state ]
 { #category : 'accessing' }
 CPActivityExecution >> consumedFlowActivations [ ^ consumedFlowActivations ]
+
+
+{ #category : 'data' }
+CPActivityExecution >> ownsItemValueFor: anItemAwareElement [
+	(definition properties identityIncludes: anItemAwareElement) ifTrue: [ ^ true ].
+	definition ioSpecification ifNil: [ ^ false ].
+	(definition ioSpecification dataInputs identityIncludes: anItemAwareElement) ifTrue: [ ^ true ].
+	^ definition ioSpecification dataOutputs identityIncludes: anItemAwareElement
+]
+
+{ #category : 'data' }
+CPActivityExecution >> itemValueFor: anItemAwareElement [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Activity execution.' ].
+	^ itemValues at: anItemAwareElement ifAbsent: [ nil ]
+]
+
+{ #category : 'data' }
+CPActivityExecution >> itemValueFor: anItemAwareElement put: aValue [
+	(self ownsItemValueFor: anItemAwareElement) ifFalse: [
+		self error: 'The item-aware element does not belong to this Activity execution.' ].
+	itemValues at: anItemAwareElement put: aValue.
+	^ aValue
+]
 
 { #category : 'control flow' }
 CPActivityExecution >> consumeFlowActivation: anActivation [
