@@ -11,7 +11,8 @@ Class {
 		'completionSequence',
 		'compensationRecords',
 		'activityItemValuesSnapshot',
-		'scopeItemValuesSnapshot'
+		'scopeItemValuesSnapshot',
+		'multiInstanceActivityExecutions'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -23,7 +24,8 @@ CPCompensationRecord >> initialize [
 	claimed := false.
 	handling := false.
 	handled := false.
-	compensationRecords := OrderedCollection new
+	compensationRecords := OrderedCollection new.
+	multiInstanceActivityExecutions := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -138,3 +140,28 @@ CPCompensationRecord >> restoreDataSnapshot [
 	^ self
 ]
 
+
+
+{ #category : 'activities - multi-instance' }
+CPCompensationRecord >> multiInstanceActivityExecutions [
+	^ multiInstanceActivityExecutions
+]
+
+{ #category : 'activities - multi-instance' }
+CPCompensationRecord >> captureMultiInstanceActivityExecutionsFrom: anActivityExecution [
+	| loop instances |
+	loop := anActivityExecution definition loopCharacteristics.
+	(loop notNil and: [ loop isMultiInstance ]) ifFalse: [
+		self error: 'Multi-Instance compensation instances require a Multi-Instance Activity execution.' ].
+	anActivityExecution definition isSubProcess ifFalse: [
+		self error: 'Instance-specific compensation state applies only to a Multi-Instance SubProcess.' ].
+	multiInstanceActivityExecutions isEmpty ifFalse: [
+		self error: 'Multi-Instance compensation instances can only be captured once.' ].
+	instances := anActivityExecution multiInstanceActivityExecutions.
+	instances size = anActivityExecution multiInstanceCardinality ifFalse: [
+		self error: 'Multi-Instance compensation requires every configured instance to exist.' ].
+	(instances allSatisfy: [ :each | each isCompleted ]) ifFalse: [
+		self error: 'Multi-Instance compensation requires every instance to have completed successfully.' ].
+	multiInstanceActivityExecutions addAll: instances.
+	^ self
+]

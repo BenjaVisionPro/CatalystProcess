@@ -1703,8 +1703,13 @@ CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
 				activityExecution: anActivityExecution;
 				completionSequence: completionSequence;
 				yourself.
+			(anActivityExecution definition loopCharacteristics notNil
+				and: [ anActivityExecution definition loopCharacteristics isMultiInstance
+				and: [ anActivityExecution definition isSubProcess ] ]) ifTrue: [
+				record captureMultiInstanceActivityExecutionsFrom: anActivityExecution ].
 			anActivityExecution definition hasCustomCompensationHandler ifTrue: [
-			record captureDataSnapshotFrom: anActivityExecution ].
+				record multiInstanceActivityExecutions isEmpty ifTrue: [
+					record captureDataSnapshotFrom: anActivityExecution ] ].
 			compensationRecords add: record ]
 		ifNotEmpty: [
 			newBoundaries do: [ :eachBoundary |

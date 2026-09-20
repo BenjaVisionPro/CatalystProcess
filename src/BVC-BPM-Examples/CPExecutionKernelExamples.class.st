@@ -5728,3 +5728,54 @@ CPExecutionKernelExamples >> multiInstanceSubProcessInstanceCapturesCompletionDa
 	self assert: subProcessExecution isActive.
 	^ instance
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCompensationRecordRetainsCompletedInstanceExecutions [
+	<gtExample>
+	| process subProcess loop compensationHandler compensationStart compensationDefinition execution activityExecution firstInstance secondInstance firstData secondData record |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'multiSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	compensationHandler := CPCompensationSubProcess new identifier: 'compensationHandler'; yourself.
+	compensationStart := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	compensationStart eventDefinitions add: compensationDefinition.
+	compensationHandler addFlowElement: compensationStart.
+	firstData := CPDataObject new identifier: 'firstData'; yourself.
+	secondData := CPDataObject new identifier: 'secondData'; yourself.
+	subProcess addFlowElement: firstData; addFlowElement: secondData; addFlowElement: compensationHandler.
+	process addFlowElement: subProcess.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 2;
+			yourself).
+	activityExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: subProcess;
+		yourself).
+	activityExecution activate.
+	activityExecution beginMultiInstanceActivityExecutions.
+	firstInstance := activityExecution multiInstanceActivityExecutions first.
+	secondInstance := activityExecution multiInstanceActivityExecutions second.
+	firstInstance subScope itemValueFor: firstData put: 'first snapshot'.
+	secondInstance subScope itemValueFor: secondData put: 'second snapshot'.
+	firstInstance complete.
+	secondInstance complete.
+	record := (execution availableCompensationRecordsFor: subProcess) first.
+	self assert: record multiInstanceActivityExecutions size equals: 2.
+	self assert: record multiInstanceActivityExecutions first == firstInstance.
+	self assert: record multiInstanceActivityExecutions second == secondInstance.
+	firstInstance subScope itemValueFor: firstData put: 'changed first'.
+	secondInstance subScope itemValueFor: secondData put: 'changed second'.
+	firstInstance restoreCompensationDataSnapshot.
+	secondInstance restoreCompensationDataSnapshot.
+	self assert: (firstInstance subScope itemValueFor: firstData) equals: 'first snapshot'.
+	self assert: (secondInstance subScope itemValueFor: secondData) equals: 'second snapshot'.
+	^ record
+]
