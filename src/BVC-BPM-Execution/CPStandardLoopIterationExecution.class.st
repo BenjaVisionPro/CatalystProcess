@@ -36,6 +36,11 @@ CPStandardLoopIterationExecution >> index [ ^ index ]
 { #category : 'accessing' }
 CPStandardLoopIterationExecution >> index: anInteger [ index := anInteger ]
 
+{ #category : 'standard loop - runtime attributes' }
+CPStandardLoopIterationExecution >> loopCounter [
+	^ index
+]
+
 { #category : 'testing' }
 CPStandardLoopIterationExecution >> isActive [ ^ active ]
 

@@ -7655,11 +7655,15 @@ CPExecutionKernelExamples >> manualTaskStandardLoopResolvesAssignmentsSequential
 	firstIteration := taskExecution standardLoopIterations first.
 	self assert: firstIteration isActive.
 	self assert: firstIteration manualTaskResourceAssignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == firstIteration.
+	self assert: environment lastLoopCounterAtExpressionEvaluation equals: 1.
 	self assert: taskExecution standardLoopIterations size equals: 1.
 	execution completeStandardLoopManualTaskIteration: firstIteration.
 	secondIteration := taskExecution standardLoopIterations second.
 	self assert: secondIteration isActive.
 	self assert: secondIteration manualTaskResourceAssignments first resources equals: (OrderedCollection with: 'worker@example.test').
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == secondIteration.
+	self assert: environment lastLoopCounterAtExpressionEvaluation equals: 2.
 	self assert: taskExecution standardLoopIterations size equals: 2.
 	execution completeStandardLoopManualTaskIteration: secondIteration.
 	self assert: taskExecution isCompleted.
