@@ -5168,3 +5168,37 @@ CPExecutionKernelExamples >> callActivityMapsCallableProcessDataInterface [
 	self assert: (execution itemValueFor: result) equals: 'response'.
 	^ callExecution
 ]
+
+
+{ #category : 'examples - call activity' }
+CPExecutionKernelExamples >> callActivityRejectsMismatchedCallableInputSetsBeforeActivation [
+	<gtExample>
+	| caller calledProcess call callSpecification callInput calledSpecification calledInput secondCalledInputSet execution callExecution errorRaised |
+	caller := CPProcess new identifier: 'caller'; yourself.
+	calledProcess := CPProcess new identifier: 'called'; yourself.
+	calledSpecification := CPInputOutputSpecification new.
+	calledInput := CPDataInput new identifier: 'calledInput'; yourself.
+	calledSpecification dataInputs add: calledInput.
+	calledSpecification inputSets first dataInputRefs add: calledInput.
+	secondCalledInputSet := CPInputSet new.
+	secondCalledInputSet dataInputRefs add: calledInput.
+	calledSpecification inputSets add: secondCalledInputSet.
+	calledProcess ioSpecification: calledSpecification.
+	call := CPCallActivity new identifier: 'call'; calledElement: calledProcess; yourself.
+	callSpecification := CPInputOutputSpecification new.
+	callInput := CPDataInput new identifier: 'callInput'; yourself.
+	callSpecification dataInputs add: callInput.
+	callSpecification inputSets first dataInputRefs add: callInput.
+	call ioSpecification: callSpecification.
+	caller addFlowElement: call.
+	execution := self executionFor: caller.
+	execution environment callableElement: calledProcess resolvesTo: calledProcess.
+	callExecution := execution createActivityExecutionFor: call.
+	callExecution itemValueFor: callInput put: 'request'.
+	errorRaised := false.
+	[ execution activateCallActivityExecution: callExecution ] on: Error do: [ :error | errorRaised := true ].
+	self assert: errorRaised.
+	self assert: callExecution isReady.
+	self assert: callExecution subScope isNil.
+	^ callExecution
+]

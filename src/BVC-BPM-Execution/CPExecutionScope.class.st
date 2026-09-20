@@ -927,6 +927,7 @@ CPExecutionScope >> activateCallActivityExecution: anActivityExecution [
 	startEvents := startEvents select: [ :each | each eventDefinitions isEmpty ].
 	startEvents size > 1 ifTrue: [
 		self error: 'A called Process can have at most one empty Start Event for control-flow invocation.' ].
+	self validateCallActivityDataInterface: anActivityExecution against: calledProcess.
 	anActivityExecution activate.
 	calledScope := anActivityExecution createSubScopeFor: calledProcess.
 	self mapCallActivityInputsFrom: anActivityExecution to: calledScope.
@@ -952,6 +953,75 @@ CPExecutionScope >> completeCallActivity: anActivityExecution [
 	^ anActivityExecution
 ]
 
+
+{ #category : 'activities - call - data' }
+CPExecutionScope >> validateCallActivityDataInterface: anActivityExecution against: aCallableElement [
+	| activitySpecification callableSpecification |
+	activitySpecification := anActivityExecution definition ioSpecification.
+	callableSpecification := aCallableElement ioSpecification.
+	activitySpecification ifNil: [
+		callableSpecification ifNil: [ ^ self ].
+		self error: 'The Call Activity InputOutputSpecification must exactly match the called Process.' ].
+	callableSpecification ifNil: [
+		self error: 'The Call Activity InputOutputSpecification must exactly match the called Process.' ].
+	activitySpecification dataInputs size = callableSpecification dataInputs size ifFalse: [
+		self error: 'The Call Activity DataInputs must exactly match the called Process DataInputs.' ].
+	activitySpecification dataOutputs size = callableSpecification dataOutputs size ifFalse: [
+		self error: 'The Call Activity DataOutputs must exactly match the called Process DataOutputs.' ].
+	activitySpecification inputSets size = callableSpecification inputSets size ifFalse: [
+		self error: 'The Call Activity InputSets must exactly match the called Process InputSets.' ].
+	activitySpecification outputSets size = callableSpecification outputSets size ifFalse: [
+		self error: 'The Call Activity OutputSets must exactly match the called Process OutputSets.' ].
+	1 to: activitySpecification inputSets size do: [ :index |
+		| activitySet callableSet |
+		activitySet := activitySpecification inputSets at: index.
+		callableSet := callableSpecification inputSets at: index.
+		activitySet dataInputRefs size = callableSet dataInputRefs size ifFalse: [
+			self error: 'Corresponding Call Activity and called Process InputSets must contain the same number of DataInputs.' ].
+		activitySet optionalInputRefs size = callableSet optionalInputRefs size ifFalse: [
+			self error: 'Corresponding Call Activity and called Process InputSets must have matching optional DataInputs.' ].
+		activitySet whileExecutingInputRefs size = callableSet whileExecutingInputRefs size ifFalse: [
+			self error: 'Corresponding Call Activity and called Process InputSets must have matching while-executing DataInputs.' ].
+		1 to: activitySpecification dataInputs size do: [ :inputIndex |
+			((activitySet dataInputRefs identityIncludes: (activitySpecification dataInputs at: inputIndex))
+				= (callableSet dataInputRefs identityIncludes: (callableSpecification dataInputs at: inputIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process InputSets must reference corresponding DataInputs.' ].
+			((activitySet optionalInputRefs identityIncludes: (activitySpecification dataInputs at: inputIndex))
+				= (callableSet optionalInputRefs identityIncludes: (callableSpecification dataInputs at: inputIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process InputSets must mark corresponding DataInputs optional.' ].
+			((activitySet whileExecutingInputRefs identityIncludes: (activitySpecification dataInputs at: inputIndex))
+				= (callableSet whileExecutingInputRefs identityIncludes: (callableSpecification dataInputs at: inputIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process InputSets must mark corresponding DataInputs while-executing.' ] ].
+		1 to: activitySpecification outputSets size do: [ :outputSetIndex |
+			((activitySet outputSetRefs identityIncludes: (activitySpecification outputSets at: outputSetIndex))
+				= (callableSet outputSetRefs identityIncludes: (callableSpecification outputSets at: outputSetIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process InputSets must reference corresponding OutputSets.' ] ] ].
+	1 to: activitySpecification outputSets size do: [ :index |
+		| activitySet callableSet |
+		activitySet := activitySpecification outputSets at: index.
+		callableSet := callableSpecification outputSets at: index.
+		activitySet dataOutputRefs size = callableSet dataOutputRefs size ifFalse: [
+			self error: 'Corresponding Call Activity and called Process OutputSets must contain the same number of DataOutputs.' ].
+		activitySet optionalOutputRefs size = callableSet optionalOutputRefs size ifFalse: [
+			self error: 'Corresponding Call Activity and called Process OutputSets must have matching optional DataOutputs.' ].
+		activitySet whileExecutingOutputRefs size = callableSet whileExecutingOutputRefs size ifFalse: [
+			self error: 'Corresponding Call Activity and called Process OutputSets must have matching while-executing DataOutputs.' ].
+		1 to: activitySpecification dataOutputs size do: [ :outputIndex |
+			((activitySet dataOutputRefs identityIncludes: (activitySpecification dataOutputs at: outputIndex))
+				= (callableSet dataOutputRefs identityIncludes: (callableSpecification dataOutputs at: outputIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process OutputSets must reference corresponding DataOutputs.' ].
+			((activitySet optionalOutputRefs identityIncludes: (activitySpecification dataOutputs at: outputIndex))
+				= (callableSet optionalOutputRefs identityIncludes: (callableSpecification dataOutputs at: outputIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process OutputSets must mark corresponding DataOutputs optional.' ].
+			((activitySet whileExecutingOutputRefs identityIncludes: (activitySpecification dataOutputs at: outputIndex))
+				= (callableSet whileExecutingOutputRefs identityIncludes: (callableSpecification dataOutputs at: outputIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process OutputSets must mark corresponding DataOutputs while-executing.' ] ].
+		1 to: activitySpecification inputSets size do: [ :inputSetIndex |
+			((activitySet inputSetRefs identityIncludes: (activitySpecification inputSets at: inputSetIndex))
+				= (callableSet inputSetRefs identityIncludes: (callableSpecification inputSets at: inputSetIndex))) ifFalse: [
+				self error: 'Corresponding Call Activity and called Process OutputSets must reference corresponding InputSets.' ] ] ].
+	^ self
+]
 
 { #category : 'activities - call - data' }
 CPExecutionScope >> mapCallActivityInputsFrom: anActivityExecution to: calledScope [
