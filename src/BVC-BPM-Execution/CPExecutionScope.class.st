@@ -1312,8 +1312,6 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 	targetActivity := compensationDefinition activityRef.
 	targetActivity
 		ifNil: [
-			compensationDefinition waitForCompletion ifTrue: [
-				self error: 'Synchronous scope compensation is not yet supported.' ].
 			records := self allAvailableCompensationRecordsInReverseCompletionOrder.
 			"Resolve every handler before consuming control flow so an invalid compensation model cannot partially execute."
 			records do: [ :eachRecord |
@@ -1331,21 +1329,36 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 		yourself.
 	eventExecutions add: throwExecution.
 	throwExecution consumeFlowActivation: anActivation.
-	targetActivity
-		ifNil: [ records do: [ :eachRecord | self beginCompensationFor: eachRecord ] ]
-		ifNotNil: [ handlerExecution := self beginCompensationFor: record ].
 	compensationDefinition waitForCompletion
-		ifTrue: [ throwExecution compensationRecord: record ]
-		ifFalse: [ self completeIntermediateThrowEventExecution: throwExecution ].
+		ifTrue: [
+			targetActivity
+				ifNil: [
+					records
+						ifEmpty: [ self completeIntermediateThrowEventExecution: throwExecution ]
+						ifNotEmpty: [
+							throwExecution compensationRecords: records.
+							handlerExecution := self beginCompensationFor: throwExecution currentCompensationRecord ] ]
+				ifNotNil: [
+					throwExecution compensationRecord: record.
+					handlerExecution := self beginCompensationFor: record ] ]
+		ifFalse: [
+			targetActivity
+				ifNil: [ records do: [ :eachRecord | self beginCompensationFor: eachRecord ] ]
+				ifNotNil: [ handlerExecution := self beginCompensationFor: record ].
+			self completeIntermediateThrowEventExecution: throwExecution ].
 	^ throwExecution
 ]
 
 { #category : 'events - compensation' }
 CPExecutionScope >> completeCompensationThrowsWaitingFor: anActivityExecution [
+	| nextRecord |
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isCompensationThrowEventExecution) ifTrue: [
 			(eachExecution isWaitingForHandlerExecution: anActivityExecution) ifTrue: [
-				self completeIntermediateThrowEventExecution: eachExecution ] ] ].
+				nextRecord := eachExecution advanceAfterHandlerExecution: anActivityExecution.
+				nextRecord
+					ifNil: [ self completeIntermediateThrowEventExecution: eachExecution ]
+					ifNotNil: [ self beginCompensationFor: nextRecord ] ] ] ].
 	parentScope ifNotNil: [ parentScope completeCompensationThrowsWaitingFor: anActivityExecution ].
 	^ anActivityExecution
 ]
