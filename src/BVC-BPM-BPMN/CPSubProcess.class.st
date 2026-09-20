@@ -181,3 +181,10 @@ CPSubProcess >> compensableDescription [
 		group: 'Execution';
 		yourself
 ]
+
+{ #category : 'testing' }
+CPSubProcess >> hasEmbeddedCompensationHandler [
+	^ compensable or: [
+		flowElements anySatisfy: [ :each |
+			each isSubProcess and: [ each isForCompensation ] ] ]
+]

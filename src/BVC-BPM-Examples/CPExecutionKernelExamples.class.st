@@ -2953,3 +2953,21 @@ CPExecutionKernelExamples >> subProcessCanDeclareImplicitDefaultCompensation [
 	self assert: subProcess isForCompensation not.
 	^ subProcess
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> completedCompensableSubProcessEntersCompensationHistory [
+	<gtExample>
+	| process subProcess execution subExecution records |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate; beginCompletion; complete.
+	records := execution availableCompensationRecordsFor: subProcess.
+	self assert: records size equals: 1.
+	self assert: records first activityExecution == subExecution.
+	self assert: records first boundaryEvent isNil.
+	self assert: records first isAvailable.
+	^ records first
+]

@@ -207,3 +207,8 @@ CPActivity >> resourcesDescription [
 CPActivity >> isActivity [
 	^ true
 ]
+
+{ #category : 'testing' }
+CPActivity >> hasEmbeddedCompensationHandler [
+	^ false
+]

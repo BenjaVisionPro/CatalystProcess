@@ -1213,14 +1213,22 @@ CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
 			and: [ compensationRecords noneSatisfy: [ :eachRecord |
 				eachRecord activityExecution == anActivityExecution
 					and: [ eachRecord boundaryEvent == eachBoundary ] ] ] ].
-	newBoundaries ifEmpty: [ ^ anActivityExecution ].
+	(newBoundaries isEmpty and: [ anActivityExecution definition hasEmbeddedCompensationHandler not ]) ifTrue: [
+		^ anActivityExecution ].
 	completionSequence := self processExecution nextCompensationCompletionSequence.
-	newBoundaries do: [ :eachBoundary |
-		compensationRecords add: (CPCompensationRecord new
-			activityExecution: anActivityExecution;
-			boundaryEvent: eachBoundary;
-			completionSequence: completionSequence;
-			yourself) ].
+	newBoundaries
+		ifEmpty: [
+			compensationRecords add: (CPCompensationRecord new
+				activityExecution: anActivityExecution;
+				completionSequence: completionSequence;
+				yourself) ]
+		ifNotEmpty: [
+			newBoundaries do: [ :eachBoundary |
+				compensationRecords add: (CPCompensationRecord new
+					activityExecution: anActivityExecution;
+					boundaryEvent: eachBoundary;
+					completionSequence: completionSequence;
+					yourself) ] ].
 	^ anActivityExecution
 ]
 
