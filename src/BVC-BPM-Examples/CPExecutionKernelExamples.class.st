@@ -3467,3 +3467,87 @@ CPExecutionKernelExamples >> nestedUncaughtErrorCompensatesEachExitedScopeBefore
 	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
 	^ errorExecution
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> propagatedErrorIsCaughtByIntermediateErrorEventSubProcess [
+	<gtExample>
+	| process outer middle inner outerWork innerWork outerCompensationDefinition innerCompensationDefinition outerCompensationBoundary innerCompensationBoundary outerHandler innerHandler outerAssociation innerAssociation error handler handlerStart handlerDefinition errorDefinition errorEnd beforeError errorFlow errorBoundary errorBoundaryDefinition after boundaryFlow execution outerExecution outerScope middleExecution middleScope innerExecution innerScope outerWorkExecution innerWorkExecution outerRecord innerRecord errorBoundaryExecution producer endActivation errorExecution innerHandlerExecution errorHandlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	outer := CPSubProcess new identifier: 'outer'; yourself.
+	middle := CPSubProcess new identifier: 'middle'; yourself.
+	inner := CPSubProcess new identifier: 'inner'; yourself.
+	outerWork := CPTask new identifier: 'outerWork'; yourself.
+	innerWork := CPTask new identifier: 'innerWork'; yourself.
+	outerCompensationDefinition := CPCompensationEventDefinition new identifier: 'outerCompensation'; yourself.
+	outerCompensationBoundary := CPBoundaryEvent new identifier: 'outerCompensationBoundary'; attachedToRef: outerWork; cancelActivity: false; yourself.
+	outerCompensationBoundary eventDefinitions add: outerCompensationDefinition.
+	outerHandler := CPTask new identifier: 'undoOuterWork'; isForCompensation: true; yourself.
+	outerAssociation := CPAssociation new identifier: 'outerAssociation'; sourceRef: outerCompensationBoundary; targetRef: outerHandler; beOne; yourself.
+	innerCompensationDefinition := CPCompensationEventDefinition new identifier: 'innerCompensation'; yourself.
+	innerCompensationBoundary := CPBoundaryEvent new identifier: 'innerCompensationBoundary'; attachedToRef: innerWork; cancelActivity: false; yourself.
+	innerCompensationBoundary eventDefinitions add: innerCompensationDefinition.
+	innerHandler := CPTask new identifier: 'undoInnerWork'; isForCompensation: true; yourself.
+	innerAssociation := CPAssociation new identifier: 'innerAssociation'; sourceRef: innerCompensationBoundary; targetRef: innerHandler; beOne; yourself.
+	error := CPError new identifier: 'nestedError'; yourself.
+	handler := CPErrorSubProcess new identifier: 'middleErrorHandler'; yourself.
+	handlerStart := CPErrorStartEvent new identifier: 'middleErrorStart'; yourself.
+	handlerDefinition := CPErrorEventDefinition new identifier: 'catchNestedErrorInMiddle'; error: error; yourself.
+	handlerStart eventDefinitions add: handlerDefinition.
+	handler addFlowElement: handlerStart.
+	errorDefinition := CPErrorEventDefinition new identifier: 'throwNestedError'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	beforeError := CPTask new identifier: 'beforeError'; yourself.
+	errorFlow := CPSequenceFlow new identifier: 'toError'; sourceRef: beforeError; targetRef: errorEnd; yourself.
+	inner addFlowElement: innerWork; addFlowElement: innerHandler; addFlowElement: beforeError; addFlowElement: errorEnd; addFlowElement: errorFlow; addArtifact: innerAssociation.
+	middle addFlowElement: inner; addFlowElement: handler.
+	outer addFlowElement: outerWork; addFlowElement: outerHandler; addFlowElement: middle; addArtifact: outerAssociation.
+	errorBoundaryDefinition := CPErrorEventDefinition new identifier: 'outerCatch'; error: error; yourself.
+	errorBoundary := CPBoundaryEvent new identifier: 'outerErrorBoundary'; attachedToRef: outer; cancelActivity: true; yourself.
+	errorBoundary eventDefinitions add: errorBoundaryDefinition.
+	after := CPTask new identifier: 'afterError'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterBoundary'; sourceRef: errorBoundary; targetRef: after; yourself.
+	process addFlowElement: outer; addFlowElement: after; addFlowElement: boundaryFlow.
+	execution := self executionFor: process.
+	outerExecution := execution createActivityExecutionFor: outer.
+	outerExecution activate.
+	outerScope := outerExecution createSubScopeFor: outer.
+	errorBoundaryExecution := execution beginBoundaryEvent: errorBoundary attachedTo: outerExecution.
+	outerWorkExecution := outerScope createActivityExecutionFor: outerWork.
+	outerWorkExecution activate; beginCompletion; complete.
+	outerRecord := (outerScope availableCompensationRecordsFor: outerWork) first.
+	middleExecution := outerScope createActivityExecutionFor: middle.
+	middleExecution activate.
+	middleScope := middleExecution createSubScopeFor: middle.
+	innerExecution := middleScope createActivityExecutionFor: inner.
+	innerExecution activate.
+	innerScope := innerExecution createSubScopeFor: inner.
+	innerWorkExecution := innerScope createActivityExecutionFor: innerWork.
+	innerWorkExecution activate; beginCompletion; complete.
+	innerRecord := (innerScope availableCompensationRecordsFor: innerWork) first.
+	producer := innerScope createActivityExecutionFor: beforeError.
+	producer activate.
+	endActivation := innerScope activateSequenceFlow: errorFlow producedBy: producer.
+	errorExecution := innerScope executeErrorEndEvent: errorEnd consuming: endActivation.
+	self assert: innerRecord isHandling.
+	self assert: outerRecord isAvailable.
+	self assert: errorBoundaryExecution isTriggered not.
+	innerHandlerExecution := innerRecord handlerExecution.
+	innerHandlerExecution beginCompletion; complete.
+	self assert: innerRecord isHandled.
+	self assert: innerExecution isFailed.
+	self assert: outerRecord isAvailable.
+	self assert: errorBoundaryExecution isTriggered not.
+	errorHandlerExecution := middleScope activityExecutions detect: [ :each | each definition == handler ].
+	self assert: errorHandlerExecution isActive.
+	self assert: errorHandlerExecution subScope eventExecutions first occurrence == errorExecution occurrence.
+	self assert: middleExecution state class equals: CPActivityFailingState.
+	middleScope completeErrorEventSubProcessActivity: errorHandlerExecution.
+	self assert: errorHandlerExecution isCompleted.
+	self assert: middleExecution isFailed.
+	self assert: outerExecution isActive.
+	self assert: outerRecord isAvailable.
+	self assert: errorBoundaryExecution isTriggered not.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) isEmpty.
+	^ errorHandlerExecution
+]

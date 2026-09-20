@@ -1168,29 +1168,37 @@ CPExecutionScope >> errorBoundaryExecutionFor: anError propagatingFrom: aNestedS
 ]
 
 { #category : 'events - error' }
-CPExecutionScope >> validatePresumedAbortPropagationToBoundary: aBoundaryExecution fromNestedScope: aNestedScope [
-	| records |
-	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [ ^ aBoundaryExecution ].
+CPExecutionScope >> validateErrorPropagationFor: anError toBoundary: aBoundaryExecution fromNestedScope: aNestedScope [
+	| handler records |
+	(aBoundaryExecution notNil and: [ eventExecutions identityIncludes: aBoundaryExecution ]) ifTrue: [ ^ aBoundaryExecution ].
+	handler := self matchingErrorEventSubProcessFor: anError.
+	handler ifNotNil: [
+		self errorStartEventFor: handler.
+		^ handler ].
 	records := self defaultCompensationRecords.
 	records do: [ :eachRecord |
 		eachRecord activityExecution scope validateCompensationRecord: eachRecord ].
-	parentScope ifNil: [ self error: 'The resolved Error Boundary Event is not reachable from this execution scope.' ].
+	parentScope ifNil: [ self error: 'No matching Error Event SubProcess or Error Boundary Event is available in the containing execution hierarchy.' ].
 	^ parentScope
-		validatePresumedAbortPropagationToBoundary: aBoundaryExecution
+		validateErrorPropagationFor: anError
+		toBoundary: aBoundaryExecution
 		fromNestedScope: self
 ]
 
 { #category : 'events - error' }
 CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNestedScope toBoundary: aBoundaryExecution [
-	| records propagationExecution |
-	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [
+	| handler records propagationExecution |
+	(aBoundaryExecution notNil and: [ eventExecutions identityIncludes: aBoundaryExecution ]) ifTrue: [
 		^ self triggerBoundaryEventExecution: aBoundaryExecution with: anOccurrence ].
 	aNestedScope owningActivity isActive ifTrue: [
 		aNestedScope owningActivity beginFailure.
 		aNestedScope owningActivity finishFailure ].
+	handler := self matchingErrorEventSubProcessFor: anOccurrence definition.
+	handler ifNotNil: [
+		^ self beginErrorEventSubProcess: handler occurrence: anOccurrence ].
 	records := self defaultCompensationRecords.
 	self terminateRemainingWork.
-	parentScope ifNil: [ self error: 'The resolved Error Boundary Event is not reachable from this execution scope.' ].
+	parentScope ifNil: [ self error: 'No matching Error Event SubProcess or Error Boundary Event is available in the containing execution hierarchy.' ].
 	records ifEmpty: [
 		^ parentScope
 			propagateErrorOccurrence: anOccurrence
@@ -1222,13 +1230,12 @@ CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivatio
 		boundaryExecution := parentScope
 			errorBoundaryExecutionFor: thrownError
 			propagatingFrom: self.
-		boundaryExecution ifNil: [
-			self error: 'No matching Error Event SubProcess or Error Boundary Event is available in the containing execution hierarchy.' ].
 		records := self defaultCompensationRecords.
 		records do: [ :eachRecord |
 			eachRecord activityExecution scope validateCompensationRecord: eachRecord ].
 		parentScope
-			validatePresumedAbortPropagationToBoundary: boundaryExecution
+			validateErrorPropagationFor: thrownError
+			toBoundary: boundaryExecution
 			fromNestedScope: self ].
 	(anActivation isAvailable and: [ anErrorEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
 		self error: 'An Error End Event requires an available activation from one of its incoming Sequence Flows.' ].
