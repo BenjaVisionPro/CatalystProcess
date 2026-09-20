@@ -33,5 +33,21 @@ CPServiceTaskExecution >> prepareExternalInvocationIdentifiedBy: anIdentifier [
 		activityExecution: self;
 		implementation: resolvedImplementation;
 		yourself.
+	self populateExternalInvocationInput.
 	^ externalInvocation
+]
+
+{ #category : 'external work' }
+CPServiceTaskExecution >> populateExternalInvocationInput [
+	| inputs input |
+	definition ioSpecification ifNil: [ ^ self ].
+	inputs := definition ioSpecification dataInputs.
+	inputs ifEmpty: [ ^ self ].
+	inputs size = 1 ifFalse: [
+		self error: 'A Service Task Operation input requires exactly one Data Input.' ].
+	input := inputs first.
+	(self hasItemValueFor: input) ifFalse: [
+		self error: 'The Service Task Data Input is unavailable for external invocation.' ].
+	externalInvocation inputValue: (self itemValueFor: input).
+	^ self
 ]

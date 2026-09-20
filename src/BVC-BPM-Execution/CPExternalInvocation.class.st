@@ -5,11 +5,37 @@ Class {
 		'invocationIdentifier',
 		'activityExecution',
 		'implementation',
+		'inputValue',
+		'inputValueAssigned',
 		'resultOccurrence'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
+
+
+{ #category : 'initialization' }
+CPExternalInvocation >> initialize [
+	super initialize.
+	inputValueAssigned := false
+]
+
+{ #category : 'accessing' }
+CPExternalInvocation >> hasInputValue [ ^ inputValueAssigned ]
+
+{ #category : 'accessing' }
+CPExternalInvocation >> inputValue [
+	inputValueAssigned ifFalse: [ self error: 'The external invocation has no input value.' ].
+	^ inputValue
+]
+
+{ #category : 'accessing' }
+CPExternalInvocation >> inputValue: aValue [
+	inputValueAssigned ifTrue: [ self error: 'An external invocation input value can be assigned only once.' ].
+	inputValue := aValue.
+	inputValueAssigned := true.
+	^ aValue
+]
 
 { #category : 'accessing' }
 CPExternalInvocation >> invocationIdentifier [ ^ invocationIdentifier ]

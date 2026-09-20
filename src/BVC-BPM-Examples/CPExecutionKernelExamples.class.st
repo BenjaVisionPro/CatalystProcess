@@ -4743,3 +4743,72 @@ CPExecutionKernelExamples >> receiveTaskMessagePopulatesDataOutputBeforeCompleti
 	self assert: (execution itemValueFor: target) == payload.
 	^ receiveExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> serviceTaskExternalInvocationCarriesResolvedInputValue [
+	<gtExample>
+	| process dataObject serviceTask specification input inputSet association operation implementation environment execution serviceExecution invocation |
+	process := CPProcess new identifier: 'process'; yourself.
+	dataObject := CPDataObject new identifier: 'order'; yourself.
+	process addFlowElement: dataObject.
+	operation := CPOperation new identifier: 'chargeAccount'; yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'charge';
+		operationRef: operation;
+		yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'orderInput'; yourself.
+	specification dataInputs: { input }.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification inputSets: { inputSet }.
+	serviceTask ioSpecification: specification.
+	association := CPDataInputAssociation new
+		sourceRefs: { dataObject };
+		targetRef: input;
+		yourself.
+	serviceTask dataInputAssociations: { association }.
+	process addFlowElement: serviceTask.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution itemValueFor: dataObject put: 'order-42'.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	execution activateServiceTaskExecution: serviceExecution.
+	invocation := serviceExecution prepareExternalInvocationIdentifiedBy: #chargeOrder42.
+	self assert: invocation hasInputValue.
+	self assert: invocation inputValue equals: 'order-42'.
+	^ invocation
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> serviceTaskExternalInvocationPreservesNilInputValue [
+	<gtExample>
+	| process serviceTask specification input inputSet operation implementation environment execution serviceExecution invocation |
+	process := CPProcess new identifier: 'process'; yourself.
+	operation := CPOperation new identifier: 'inspect'; yourself.
+	serviceTask := CPServiceTask new
+		identifier: 'inspect';
+		operationRef: operation;
+		yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'input'; yourself.
+	specification dataInputs: { input }.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification inputSets: { inputSet }.
+	serviceTask ioSpecification: specification.
+	process addFlowElement: serviceTask.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new
+		operation: operation resolvesTo: implementation;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	serviceExecution := execution createServiceTaskExecutionFor: serviceTask.
+	serviceExecution itemValueFor: input put: nil.
+	execution activateServiceTaskExecution: serviceExecution.
+	invocation := serviceExecution prepareExternalInvocationIdentifiedBy: #inspectNil.
+	self assert: invocation hasInputValue.
+	self assert: invocation inputValue isNil.
+	^ invocation
+]
