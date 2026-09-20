@@ -109,6 +109,11 @@ CPActivityExecution >> canExecuteDataAssociation: aDataAssociation [
 
 { #category : 'data associations' }
 CPActivityExecution >> dataInputAssociationsTargeting: aDataInput [
+	| loop |
+	loop := definition loopCharacteristics.
+	(loop notNil
+		and: [ loop isMultiInstance
+		and: [ loop loopDataInputRef ~~ aDataInput ] ]) ifTrue: [ ^ #() ].
 	^ definition dataInputAssociations select: [ :each |
 		each targetRef == aDataInput ]
 ]
