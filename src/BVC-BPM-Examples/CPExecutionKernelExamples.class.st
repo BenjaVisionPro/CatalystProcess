@@ -6372,7 +6372,7 @@ CPExecutionKernelExamples >> multiInstanceActivityLocalDataIsOwnedPerInstance [
 { #category : 'examples - multi-instance' }
 CPExecutionKernelExamples >> multiInstanceDataAssociationsExecutePerInstance [
 	<gtExample>
-	| process task loopDataInput loopDataOutput activityInput activityOutput inputDataItem outputDataItem inputSet outputSet specification inputAssociation outputAssociation loop execution taskExecution firstInstance secondInstance |
+	| process task loopDataInput loopDataOutput activityInput activityOutput inputDataItem outputDataItem inputSet outerInputSet outputSet outerOutputSet specification inputAssociation outputAssociation loop execution taskExecution firstInstance secondInstance |
 	process := CPProcess new identifier: 'process'; yourself.
 	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
 	loopDataOutput := CPDataOutput new identifier: 'results'; isCollection: true; yourself.
@@ -6381,12 +6381,14 @@ CPExecutionKernelExamples >> multiInstanceDataAssociationsExecutePerInstance [
 	inputDataItem := CPDataInput new identifier: 'instanceInput'; yourself.
 	outputDataItem := CPDataOutput new identifier: 'instanceOutput'; yourself.
 	inputSet := CPInputSet new dataInputRefs: { activityInput }; yourself.
+	outerInputSet := CPInputSet new dataInputRefs: { loopDataInput }; yourself.
 	outputSet := CPOutputSet new dataOutputRefs: { activityOutput }; yourself.
+	outerOutputSet := CPOutputSet new dataOutputRefs: { loopDataOutput }; yourself.
 	specification := CPInputOutputSpecification new
 		dataInputs: { loopDataInput. activityInput };
 		dataOutputs: { loopDataOutput. activityOutput };
-		inputSets: { inputSet };
-		outputSets: { outputSet };
+		inputSets: { inputSet. outerInputSet };
+		outputSets: { outputSet. outerOutputSet };
 		yourself.
 	inputAssociation := CPDataInputAssociation new
 		sourceRefs: { inputDataItem };
