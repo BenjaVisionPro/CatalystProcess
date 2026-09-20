@@ -5841,3 +5841,62 @@ CPExecutionKernelExamples >> multiInstanceCustomCompensationRunsOncePerCompleted
 	self assert: record isHandled.
 	^ record
 ]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceBoundaryCompensationRunsOncePerCompletedInstance [
+	<gtExample>
+	| process subProcess loop compensationDefinition boundary handler association execution activityExecution record handlerExecutions |
+	process := CPProcess new identifier: 'process'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		yourself.
+	subProcess := CPNoneSubProcess new
+		identifier: 'multiSubProcess';
+		loopCharacteristics: loop;
+		yourself.
+	compensationDefinition := CPCompensationEventDefinition new identifier: 'compensation'; yourself.
+	boundary := CPBoundaryEvent new
+		identifier: 'compensationBoundary';
+		attachedToRef: subProcess;
+		cancelActivity: false;
+		yourself.
+	boundary eventDefinitions add: compensationDefinition.
+	handler := CPTask new identifier: 'undo'; isForCompensation: true; yourself.
+	process addFlowElement: subProcess.
+	process addFlowElement: handler.
+	association := CPAssociation new
+		identifier: 'compensationHandler';
+		sourceRef: boundary;
+		targetRef: handler;
+		beOne;
+		yourself.
+	process addArtifact: association.
+	execution := CPProcessExecution
+		for: process
+		environment: (CPExampleExecutionEnvironment new
+			expression: loop loopCardinality evaluatesTo: 2;
+			yourself).
+	activityExecution := execution createActivityExecutionFor: subProcess.
+	activityExecution activate.
+	activityExecution beginMultiInstanceActivityExecutions.
+	activityExecution multiInstanceActivityExecutions first complete.
+	activityExecution multiInstanceActivityExecutions second complete.
+	record := (execution availableCompensationRecordsFor: subProcess) first.
+	self assert: record boundaryEvent == boundary.
+	self assert: record multiInstanceActivityExecutions size equals: 2.
+	handlerExecutions := execution beginCompensationFor: record.
+	self assert: handlerExecutions size equals: 2.
+	self assert: handlerExecutions first ~~ handlerExecutions second.
+	self assert: handlerExecutions first scope == execution.
+	self assert: handlerExecutions second scope == execution.
+	self assert: handlerExecutions first definition == handler.
+	self assert: handlerExecutions second definition == handler.
+	self assert: handlerExecutions first isActive.
+	self assert: handlerExecutions second isActive.
+	handlerExecutions first beginCompletion; complete.
+	self assert: record isHandling.
+	self assert: record isHandled not.
+	handlerExecutions second beginCompletion; complete.
+	self assert: record isHandled.
+	^ record
+]

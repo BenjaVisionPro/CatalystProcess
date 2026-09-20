@@ -1715,11 +1715,16 @@ CPExecutionScope >> ensureCompensationRecordsFor: anActivityExecution [
 			compensationRecords add: record ]
 		ifNotEmpty: [
 			newBoundaries do: [ :eachBoundary |
-				compensationRecords add: (CPCompensationRecord new
+				record := CPCompensationRecord new
 					activityExecution: anActivityExecution;
 					boundaryEvent: eachBoundary;
 					completionSequence: completionSequence;
-					yourself) ] ].
+					yourself.
+				(anActivityExecution definition loopCharacteristics notNil
+					and: [ anActivityExecution definition loopCharacteristics isMultiInstance
+						and: [ anActivityExecution definition isSubProcess ] ]) ifTrue: [
+					record captureMultiInstanceActivityExecutionsFrom: anActivityExecution ].
+				compensationRecords add: record ] ].
 	^ anActivityExecution
 ]
 
@@ -1900,6 +1905,13 @@ CPExecutionScope >> beginCompensationFor: aCompensationRecord [
 	claimedRecord := owningScope claimCompensationRecord: aCompensationRecord.
 	claimedRecord boundaryEvent ifNotNil: [
 		handler := owningScope compensationHandlerFor: claimedRecord.
+		claimedRecord multiInstanceActivityExecutions ifNotEmpty: [
+			| handlerExecutions |
+			handlerExecutions := claimedRecord multiInstanceActivityExecutions collect: [ :eachInstance |
+				owningScope createActivityExecutionFor: handler ].
+			claimedRecord beginHandlingWithAll: handlerExecutions.
+			handlerExecutions do: [ :eachExecution | eachExecution activate ].
+			^ handlerExecutions ].
 		handlerExecution := owningScope createActivityExecutionFor: handler.
 		claimedRecord beginHandlingWith: handlerExecution.
 		handlerExecution activate.
