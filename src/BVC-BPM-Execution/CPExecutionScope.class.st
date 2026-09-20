@@ -1163,6 +1163,11 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
 		anActivityExecution beginMultiInstanceActivityExecutions.
 		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	subscription := CPMessageSubscription new
 		waitingExecution: anActivityExecution;
 		message: anActivityExecution definition messageRef;
@@ -2267,6 +2272,11 @@ CPExecutionScope >> activateSendTaskExecution: anActivityExecution [
 	(loop notNil and: [ loop isMultiInstance ]) ifTrue: [
 		anActivityExecution beginMultiInstanceActivityExecutions.
 		^ anActivityExecution ].
+	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
+		anActivityExecution standardLoopMayBeginNextIteration
+			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
+		^ anActivityExecution ].
 	anActivityExecution prepareMessageDispatch.
 	^ anActivityExecution
 ]
@@ -2709,4 +2719,52 @@ CPExecutionScope >> completeMultiInstanceManualTaskExecution: anInstance [
 		self error: 'Only an active Multi-Instance Manual Task instance can complete.' ].
 	anInstance complete.
 	^ anInstance
+]
+
+
+{ #category : 'activities - send' }
+CPExecutionScope >> completeStandardLoopSendTaskIteration: anIteration [
+	| outerExecution dispatch |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [ self error: 'The Standard Loop Send Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [ self error: 'The Standard Loop Send Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [ self error: 'Only an active Standard Loop Send Task iteration can complete its Message dispatch.' ].
+	dispatch := anIteration messageDispatch.
+	dispatch ifNil: [ self error: 'The Standard Loop Send Task iteration has no pending Message dispatch.' ].
+	dispatch isPending ifFalse: [ self error: 'The Standard Loop Send Task Message has already been sent.' ].
+	dispatch markSent.
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
+]
+
+{ #category : 'activities - receive' }
+CPExecutionScope >> subscribeStandardLoopReceiveTaskIteration: anIteration [
+	| outerExecution subscription |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [ self error: 'The Standard Loop Receive Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [ self error: 'The Standard Loop Receive Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isActive ifFalse: [ self error: 'Only an active Standard Loop Receive Task iteration can wait for a Message.' ].
+	subscription := CPMessageSubscription new
+		waitingExecution: anIteration;
+		message: outerExecution definition messageRef;
+		yourself.
+	anIteration messageSubscription: subscription.
+	messageSubscriptions add: subscription.
+	^ subscription
+]
+
+{ #category : 'activities - receive' }
+CPExecutionScope >> triggerStandardLoopReceiveTaskIteration: anIteration with: anOccurrence [
+	| outerExecution subscription |
+	outerExecution := anIteration activityExecution.
+	outerExecution scope == self ifFalse: [ self error: 'The Standard Loop Receive Task iteration does not belong to this execution scope.' ].
+	(outerExecution standardLoopIterations identityIncludes: anIteration) ifFalse: [ self error: 'The Standard Loop Receive Task iteration does not belong to its outer Activity execution.' ].
+	anIteration isWaitingForMessage ifFalse: [ self error: 'Only a waiting Standard Loop Receive Task iteration can accept a message occurrence.' ].
+	subscription := anIteration messageSubscription.
+	anOccurrence definition == subscription message ifFalse: [ self error: 'The occurrence does not carry the Message awaited by this Standard Loop Receive Task iteration.' ].
+	self acceptOccurrence: anOccurrence.
+	anIteration acceptReceivedOccurrence: anOccurrence.
+	subscription triggerWith: anOccurrence.
+	self completeStandardLoopIteration: anIteration of: outerExecution.
+	^ anIteration
 ]

@@ -45,3 +45,11 @@ CPReceiveTaskExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
 	self scope subscribeMultiInstanceReceiveTaskExecution: anInstance.
 	^ anInstance
 ]
+
+
+{ #category : 'looping' }
+CPReceiveTaskExecution >> standardLoopIterationDidBegin: anIteration [
+	super standardLoopIterationDidBegin: anIteration.
+	scope subscribeStandardLoopReceiveTaskIteration: anIteration.
+	^ anIteration
+]

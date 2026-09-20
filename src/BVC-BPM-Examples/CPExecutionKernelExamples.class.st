@@ -7444,3 +7444,84 @@ CPExecutionKernelExamples >> businessRuleTaskStandardLoopExecutesRulePerIteratio
 	self assert: (execution environment businessRuleTaskExecutions allSatisfy: [ :each | each == taskExecution ]).
 	^ taskExecution
 ]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> sendTaskStandardLoopDispatchesSequentiallyPerIteration [
+	<gtExample>
+	| process message task loop condition execution taskExecution firstIteration firstDispatch secondIteration secondDispatch |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'notification'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPSendTask new
+		identifier: 'repeatSend';
+		messageRef: message;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createSendTaskExecutionFor: task.
+	execution activateSendTaskExecution: taskExecution.
+	firstIteration := taskExecution standardLoopIterations first.
+	firstDispatch := firstIteration messageDispatch.
+	self assert: firstDispatch isPending.
+	self assert: taskExecution standardLoopIterations size equals: 1.
+	execution completeStandardLoopSendTaskIteration: firstIteration.
+	self assert: firstDispatch isSent.
+	secondIteration := taskExecution standardLoopIterations second.
+	secondDispatch := secondIteration messageDispatch.
+	self assert: secondDispatch isPending.
+	self assert: taskExecution isActive.
+	execution completeStandardLoopSendTaskIteration: secondIteration.
+	self assert: secondDispatch isSent.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 2.
+	^ taskExecution
+]
+
+{ #category : 'examples - standard loop' }
+CPExecutionKernelExamples >> receiveTaskStandardLoopWaitsSequentiallyPerIteration [
+	<gtExample>
+	| process message task loop condition execution taskExecution firstIteration firstSubscription firstOccurrence secondIteration secondSubscription secondOccurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'request'; yourself.
+	condition := CPFormalExpression new identifier: 'continueLoop'; yourself.
+	loop := CPStandardLoopCharacteristics new
+		testBefore: false;
+		loopMaximum: 2;
+		loopCondition: condition;
+		yourself.
+	task := CPReceiveTask new
+		identifier: 'repeatReceive';
+		messageRef: message;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := self executionFor: process.
+	execution environment expression: condition evaluatesTo: true.
+	taskExecution := execution createReceiveTaskExecutionFor: task.
+	execution activateReceiveTaskExecution: taskExecution.
+	firstIteration := taskExecution standardLoopIterations first.
+	firstSubscription := firstIteration messageSubscription.
+	self assert: firstSubscription isWaiting.
+	self assert: execution waitingMessageSubscriptions size equals: 1.
+	firstOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #firstRequest; definition: message; yourself.
+	firstSubscription deliverOccurrence: firstOccurrence.
+	self assert: firstIteration isCompleted.
+	secondIteration := taskExecution standardLoopIterations second.
+	secondSubscription := secondIteration messageSubscription.
+	self assert: secondSubscription isWaiting.
+	self assert: execution waitingMessageSubscriptions size equals: 1.
+	secondOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #secondRequest; definition: message; yourself.
+	secondSubscription deliverOccurrence: secondOccurrence.
+	self assert: secondIteration isCompleted.
+	self assert: taskExecution isCompleted.
+	self assert: taskExecution loopCounter equals: 2.
+	self assert: execution waitingMessageSubscriptions isEmpty.
+	^ taskExecution
+]

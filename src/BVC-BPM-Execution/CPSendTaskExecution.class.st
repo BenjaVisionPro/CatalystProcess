@@ -39,3 +39,11 @@ CPSendTaskExecution >> multiInstanceActivityExecutionDidBegin: anInstance [
 	anInstance prepareMessageDispatch.
 	^ anInstance
 ]
+
+
+{ #category : 'looping' }
+CPSendTaskExecution >> standardLoopIterationDidBegin: anIteration [
+	super standardLoopIterationDidBegin: anIteration.
+	anIteration prepareMessageDispatch.
+	^ anIteration
+]
