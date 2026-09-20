@@ -3535,7 +3535,7 @@ CPExecutionKernelExamples >> propagatedErrorIsCaughtByIntermediateErrorEventSubP
 	innerHandlerExecution := innerRecord handlerExecution.
 	innerHandlerExecution beginCompletion; complete.
 	self assert: innerRecord isHandled.
-	self assert: innerExecution isFailed.
+	self assert: innerExecution state class equals: CPActivityFailedState.
 	self assert: outerRecord isAvailable.
 	self assert: errorBoundaryExecution isTriggered not.
 	errorHandlerExecution := middleScope activityExecutions detect: [ :each | each definition == handler ].
@@ -3544,7 +3544,7 @@ CPExecutionKernelExamples >> propagatedErrorIsCaughtByIntermediateErrorEventSubP
 	self assert: middleExecution state class equals: CPActivityFailingState.
 	middleScope completeErrorEventSubProcessActivity: errorHandlerExecution.
 	self assert: errorHandlerExecution isCompleted.
-	self assert: middleExecution isFailed.
+	self assert: middleExecution state class equals: CPActivityFailedState.
 	self assert: outerExecution isActive.
 	self assert: outerRecord isAvailable.
 	self assert: errorBoundaryExecution isTriggered not.
