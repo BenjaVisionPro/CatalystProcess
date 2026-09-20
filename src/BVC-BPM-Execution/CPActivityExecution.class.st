@@ -623,13 +623,16 @@ CPActivityExecution >> multiInstanceActivityExecutionDidComplete: anInstance [
 
 { #category : 'multi-instance' }
 CPActivityExecution >> multiInstanceCompletionConditionSatisfied [
-	| condition |
+	| condition result |
 	condition := definition loopCharacteristics completionCondition.
 	condition ifNil: [ ^ false ].
-	^ scope environment
+	result := scope environment
 		evaluateExpression: condition
 		in: scope
-		forActivityExecution: self
+		forActivityExecution: self.
+	((result == true) or: [ result == false ]) ifFalse: [
+		self error: 'A Multi-Instance completionCondition must evaluate to a boolean.' ].
+	^ result
 ]
 
 { #category : 'multi-instance' }

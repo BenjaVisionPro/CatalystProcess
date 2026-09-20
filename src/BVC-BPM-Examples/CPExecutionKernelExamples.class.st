@@ -5900,3 +5900,108 @@ CPExecutionKernelExamples >> multiInstanceBoundaryCompensationRunsOncePerComplet
 	self assert: record isHandled.
 	^ record
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> sequentialMultiInstanceCompletionConditionStopsBeforeNextInstance [
+	<gtExample>
+	| process task loop condition execution environment taskExecution firstInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		isSequential: true;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 3;
+		expression: condition evaluatesTo: true;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 1.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	firstInstance complete.
+	self assert: taskExecution multiInstanceActivityExecutions size equals: 1.
+	self assert: taskExecution multiInstanceCompletedCount equals: 1.
+	self assert: taskExecution multiInstanceCancelledCount equals: 0.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceFalseCompletionConditionWaitsForAllInstances [
+	<gtExample>
+	| process task loop condition execution environment taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 2;
+		expression: condition evaluatesTo: false;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	taskExecution multiInstanceActivityExecutions first complete.
+	self assert: taskExecution isActive.
+	self assert: taskExecution multiInstanceCompletedCount equals: 1.
+	taskExecution multiInstanceActivityExecutions second complete.
+	self assert: taskExecution multiInstanceCompletedCount equals: 2.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCompletionConditionRequiresBooleanResult [
+	<gtExample>
+	| process task loop condition execution environment taskExecution error |
+	process := CPProcess new identifier: 'process'; yourself.
+	condition := CPExpression new identifier: 'completionCondition'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		completionCondition: condition;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 1;
+		expression: condition evaluatesTo: 'not boolean';
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	error := nil.
+	[ taskExecution multiInstanceActivityExecutions first complete ]
+		on: Error
+		do: [ :caught | error := caught ].
+	self assert: error notNil.
+	self assert: error messageText equals: 'A Multi-Instance completionCondition must evaluate to a boolean.'.
+	^ taskExecution
+]
