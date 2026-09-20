@@ -33,3 +33,8 @@ CPStartEvent class >> eventTypeIcon [
 CPStartEvent >> isStartEvent [
 	^ true
 ]
+
+{ #category : 'execution' }
+CPStartEvent >> matchesInstantiationOccurrence: anOccurrence [
+	^ false
+]

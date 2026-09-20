@@ -8,3 +8,11 @@ Class {
 CPMessageStartEvent class >> eventTypeLabel [ ^ 'Message' ]
 { #category : 'event type' }
 CPMessageStartEvent class >> eventTypeIcon [ ^ #message ]
+
+{ #category : 'execution' }
+CPMessageStartEvent >> matchesInstantiationOccurrence: anOccurrence [
+	| definitions |
+	definitions := self eventDefinitions.
+	definitions size = 1 ifFalse: [ ^ false ].
+	^ definitions first messageRef == anOccurrence definition
+]

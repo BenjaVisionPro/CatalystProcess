@@ -102,3 +102,18 @@ CPProcessExecution >> finishTermination [
 CPProcessExecution >> processExecution [
 	^ self
 ]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> startWithOccurrence: anOccurrence [
+	| matchingStartEvents |
+	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
+	anOccurrence ifNil: [ self error: 'Triggered Process instantiation requires an occurrence.' ].
+	matchingStartEvents := self definition flowElements select: [ :each |
+		each isStartEvent and: [ each matchesInstantiationOccurrence: anOccurrence ] ].
+	matchingStartEvents ifEmpty: [
+		self error: 'No Start Event matches the instantiating occurrence.' ].
+	matchingStartEvents size > 1 ifTrue: [
+		self error: 'The instantiating occurrence matches more than one Start Event.' ].
+	started := true.
+	^ self executeStartEvent: matchingStartEvents first occurrence: anOccurrence
+]

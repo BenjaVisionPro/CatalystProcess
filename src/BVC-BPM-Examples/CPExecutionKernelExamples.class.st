@@ -1621,3 +1621,56 @@ CPExecutionKernelExamples >> terminateEndEventWithdrawsPendingIntermediateThrowE
 	self assert: execution isCompleted.
 	^ execution
 ]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> messageOccurrenceInstantiatesProcessThroughMatchingStartEvent [
+	<gtExample>
+	| process message otherMessage messageDefinition otherDefinition messageStart otherStart after otherAfter flow otherFlow execution occurrence eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	otherMessage := CPMessage new identifier: 'otherMessage'; yourself.
+	messageDefinition := CPMessageEventDefinition new identifier: 'messageDefinition'; messageRef: message; yourself.
+	otherDefinition := CPMessageEventDefinition new identifier: 'otherDefinition'; messageRef: otherMessage; yourself.
+	messageStart := CPMessageStartEvent new identifier: 'messageStart'; yourself.
+	messageStart eventDefinitions add: messageDefinition.
+	otherStart := CPMessageStartEvent new identifier: 'otherStart'; yourself.
+	otherStart eventDefinitions add: otherDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	otherAfter := CPTask new identifier: 'otherAfter'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: messageStart; targetRef: after; yourself.
+	otherFlow := CPSequenceFlow new identifier: 'otherFlow'; sourceRef: otherStart; targetRef: otherAfter; yourself.
+	process flowElements addAll: { messageStart. otherStart. after. otherAfter. flow. otherFlow }.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #messageStart1; definition: message; yourself.
+	eventExecution := execution startWithOccurrence: occurrence.
+	self assert: execution isStarted.
+	self assert: eventExecution definition == messageStart.
+	self assert: eventExecution occurrence == occurrence.
+	self assert: (execution acceptedOccurrences identityIncludes: occurrence).
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: otherFlow) isEmpty.
+	^ execution
+]
+
+{ #category : 'examples - process lifecycle' }
+CPExecutionKernelExamples >> unmatchedMessageOccurrenceCannotInstantiateProcess [
+	<gtExample>
+	| process message otherMessage messageDefinition messageStart execution occurrence rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	otherMessage := CPMessage new identifier: 'otherMessage'; yourself.
+	messageDefinition := CPMessageEventDefinition new identifier: 'messageDefinition'; messageRef: message; yourself.
+	messageStart := CPMessageStartEvent new identifier: 'messageStart'; yourself.
+	messageStart eventDefinitions add: messageDefinition.
+	process addFlowElement: messageStart.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongMessage; definition: otherMessage; yourself.
+	rejected := false.
+	[ execution startWithOccurrence: occurrence ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isStarted not.
+	self assert: execution acceptedOccurrences isEmpty.
+	^ execution
+]
