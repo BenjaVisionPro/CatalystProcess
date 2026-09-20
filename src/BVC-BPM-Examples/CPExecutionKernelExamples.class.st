@@ -5355,3 +5355,39 @@ CPExecutionKernelExamples >> multiInstanceCardinalityIsEvaluatedOnce [
 	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceCardinalityComesFromLoopDataInput [
+	<gtExample>
+	| process task loopDataInput specification loop execution taskExecution values |
+	process := CPProcess new identifier: 'process'; yourself.
+	loopDataInput := CPDataInput new
+		identifier: 'items';
+		isCollection: true;
+		yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput };
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopDataInputRef: loopDataInput;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: CPExampleExecutionEnvironment new.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	values := OrderedCollection withAll: { 'alpha'. 'beta'. 'gamma' }.
+	taskExecution itemValueFor: loopDataInput put: values.
+	self assert: taskExecution initializeMultiInstanceCardinality equals: 3.
+	self assert: taskExecution multiInstanceInputItems equals: values.
+	values add: 'delta'.
+	self assert: taskExecution initializeMultiInstanceCardinality equals: 3.
+	self assert: taskExecution multiInstanceInputItems size equals: 3.
+	^ taskExecution
+]

@@ -14,7 +14,8 @@ Class {
 		'selectedOutputSet',
 		'loopCounter',
 		'standardLoopIterations',
-		'multiInstanceCardinality'
+		'multiInstanceCardinality',
+		'multiInstanceInputItems'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -37,7 +38,8 @@ CPActivityExecution >> initialize [
 	dataDependencies := OrderedCollection new.
 	loopCounter := 0.
 	standardLoopIterations := OrderedCollection new.
-	multiInstanceCardinality := nil
+	multiInstanceCardinality := nil.
+	multiInstanceInputItems := nil
 ]
 
 { #category : 'accessing' }
@@ -491,22 +493,35 @@ CPActivityExecution >> multiInstanceCardinality [
 
 { #category : 'multi-instance' }
 CPActivityExecution >> initializeMultiInstanceCardinality [
-	| loop expression cardinality |
+	| loop expression cardinality loopDataInput collection |
 	multiInstanceCardinality ifNotNil: [ ^ multiInstanceCardinality ].
 	loop := definition loopCharacteristics.
 	(loop notNil and: [ loop isMultiInstance ]) ifFalse: [
 		self error: 'Only a BPMN Multi-Instance Activity can initialize instance cardinality.' ].
 	expression := loop loopCardinality.
-	expression ifNil: [
-		loop loopDataInputRef ifNotNil: [
-			self error: 'Data-driven Multi-Instance cardinality is not implemented yet.' ].
+	expression ifNotNil: [
+		cardinality := scope environment
+			evaluateExpression: expression
+			in: scope
+			forActivityExecution: self.
+		(cardinality isInteger and: [ cardinality >= 0 ]) ifFalse: [
+			self error: 'A Multi-Instance loopCardinality must evaluate to a non-negative integer.' ].
+		multiInstanceCardinality := cardinality.
+		^ multiInstanceCardinality ].
+	loopDataInput := loop loopDataInputRef.
+	loopDataInput ifNil: [
 		self error: 'A Multi-Instance Activity requires loopCardinality or loopDataInputRef.' ].
-	cardinality := scope environment
-		evaluateExpression: expression
-		in: scope
-		forActivityExecution: self.
-	(cardinality isInteger and: [ cardinality >= 0 ]) ifFalse: [
-		self error: 'A Multi-Instance loopCardinality must evaluate to a non-negative integer.' ].
-	multiInstanceCardinality := cardinality.
+	loopDataInput isCollection ifFalse: [
+		self error: 'A Multi-Instance loopDataInputRef must reference collection-valued data.' ].
+	(self accessibleItemValueAvailableFor: loopDataInput) ifFalse: [
+		self error: 'The Multi-Instance loopDataInputRef value is unavailable.' ].
+	collection := self accessibleItemValueFor: loopDataInput.
+	multiInstanceInputItems := collection asOrderedCollection.
+	multiInstanceCardinality := multiInstanceInputItems size.
 	^ multiInstanceCardinality
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceInputItems [
+	^ multiInstanceInputItems
 ]
