@@ -2423,9 +2423,10 @@ CPExecutionScope >> activateUserTaskExecution: anActivityExecution [
         self error: 'The User Task execution does not belong to this execution scope.' ].
     anActivityExecution isReady ifFalse: [
         self error: 'Only a Ready User Task execution can become Active.' ].
+    userTask := anActivityExecution definition.
+    self validateResourceAssignmentsFor: userTask.
     (anActivityExecution prepareForActivation) ifFalse: [ ^ false ].
     anActivityExecution activate.
-    userTask := anActivityExecution definition.
     loop := userTask loopCharacteristics.
     (loop notNil and: [ loop isMultiInstance ]) ifTrue: [
         anActivityExecution beginMultiInstanceActivityExecutions.
@@ -2497,6 +2498,19 @@ CPExecutionScope >> completeMultiInstanceUserTaskExecution: anInstance [
     ^ anInstance
 ]
 
+
+{ #category : 'resources' }
+CPExecutionScope >> validateResourceAssignmentsFor: anActivity [
+	anActivity resources do: [ :resourceRole |
+		resourceRole hasValidAssignment ifFalse: [
+			self error: 'A ResourceRole must use either a Resource reference or a ResourceAssignmentExpression, and parameter bindings require a Resource reference.' ].
+		resourceRole hasValidResourceParameterBindings ifFalse: [
+			self error: 'Each ResourceParameterBinding must reference a parameter defined by the Resource and must contain an Expression.' ].
+		(resourceRole usesResourceAssignmentExpression
+			and: [ resourceRole resourceAssignmentExpression expression isNil ]) ifTrue: [
+			self error: 'A ResourceAssignmentExpression requires an Expression.' ] ].
+	^ anActivity
+]
 
 { #category : 'resources' }
 CPExecutionScope >> resourceAssignmentsFor: anActivity activityExecution: anActivityExecution [
