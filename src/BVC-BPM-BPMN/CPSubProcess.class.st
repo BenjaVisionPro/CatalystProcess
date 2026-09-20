@@ -183,8 +183,17 @@ CPSubProcess >> compensableDescription [
 ]
 
 { #category : 'testing' }
+CPSubProcess >> hasCustomCompensationHandler [
+	^ flowElements anySatisfy: [ :each |
+		each isSubProcess and: [ each isForCompensation ] ]
+]
+
+{ #category : 'testing' }
+CPSubProcess >> usesDefaultCompensationHandler [
+	^ compensable and: [ self hasCustomCompensationHandler not ]
+]
+
+{ #category : 'testing' }
 CPSubProcess >> hasEmbeddedCompensationHandler [
-	^ compensable or: [
-		flowElements anySatisfy: [ :each |
-			each isSubProcess and: [ each isForCompensation ] ] ]
+	^ self usesDefaultCompensationHandler or: [ self hasCustomCompensationHandler ]
 ]

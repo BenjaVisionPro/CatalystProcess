@@ -212,3 +212,14 @@ CPActivity >> isActivity [
 CPActivity >> hasEmbeddedCompensationHandler [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPActivity >> hasCustomCompensationHandler [
+	^ false
+]
+
+{ #category : 'testing' }
+CPActivity >> usesDefaultCompensationHandler [
+	^ false
+]

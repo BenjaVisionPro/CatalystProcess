@@ -2378,13 +2378,13 @@ CPExecutionKernelExamples >> compensationRecordCanBeClaimedExactlyOnce [
 	activityExecution activate.
 	activityExecution beginCompletion.
 	activityExecution complete.
-	record := execution claimCompensationRecordFor: activityExecution.
+	record := execution claimCompensationRecord: execution availableCompensationRecords first.
 	self assert: record isClaimed.
 	self assert: record isAvailable not.
 	self assert: (execution availableCompensationRecords includes: record) not.
 	self assert: (execution availableCompensationRecordsFor: activity) isEmpty.
 	rejected := false.
-	[ execution claimCompensationRecordFor: activityExecution ]
+	[ execution claimCompensationRecord: record ]
 		on: Error
 		do: [ :error | rejected := true ].
 	self assert: rejected.
@@ -2970,4 +2970,93 @@ CPExecutionKernelExamples >> completedCompensableSubProcessEntersCompensationHis
 	self assert: records first boundaryEvent isNil.
 	self assert: records first isAvailable.
 	^ records first
+]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> targetedDefaultSubProcessCompensationUsesExactCompletedScope [
+	<gtExample>
+	| process outside outsideBoundary outsideDefinition outsideHandler outsideAssociation booking work workBoundary workDefinition workHandler workAssociation before throwDefinition throwEvent after incoming outgoing execution outsideExecution bookingExecution bookingScope workExecution bookingRecord producer activation throwExecution workRecord handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	outside := CPTask new identifier: 'outside'; yourself.
+	outsideDefinition := CPCompensationEventDefinition new identifier: 'outsideCompensation'; yourself.
+	outsideBoundary := CPBoundaryEvent new identifier: 'outsideBoundary'; attachedToRef: outside; cancelActivity: false; yourself.
+	outsideBoundary eventDefinitions add: outsideDefinition.
+	outsideHandler := CPTask new identifier: 'undoOutside'; isForCompensation: true; yourself.
+	booking := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	work := CPTask new identifier: 'work'; yourself.
+	workDefinition := CPCompensationEventDefinition new identifier: 'workCompensation'; yourself.
+	workBoundary := CPBoundaryEvent new identifier: 'workBoundary'; attachedToRef: work; cancelActivity: false; yourself.
+	workBoundary eventDefinitions add: workDefinition.
+	workHandler := CPTask new identifier: 'undoWork'; isForCompensation: true; yourself.
+	booking addFlowElement: work; addFlowElement: workHandler.
+	workAssociation := CPAssociation new identifier: 'workAssociation'; sourceRef: workBoundary; targetRef: workHandler; beOne; yourself.
+	booking addArtifact: workAssociation.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; activityRef: booking; waitForCompletion: true; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	process addFlowElement: outside; addFlowElement: outsideHandler; addFlowElement: booking; addFlowElement: before; addFlowElement: throwEvent; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	outsideAssociation := CPAssociation new identifier: 'outsideAssociation'; sourceRef: outsideBoundary; targetRef: outsideHandler; beOne; yourself.
+	process addArtifact: outsideAssociation.
+	execution := self executionFor: process.
+	outsideExecution := execution createActivityExecutionFor: outside.
+	outsideExecution activate; beginCompletion; complete.
+	bookingExecution := execution createActivityExecutionFor: booking.
+	bookingExecution activate.
+	bookingScope := bookingExecution createSubScopeFor: booking.
+	workExecution := bookingScope createActivityExecutionFor: work.
+	workExecution activate; beginCompletion; complete.
+	bookingExecution beginCompletion; complete.
+	bookingRecord := (execution availableCompensationRecordsFor: booking) first.
+	workRecord := (bookingScope availableCompensationRecordsFor: work) first.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	self assert: throwExecution isPending.
+	self assert: bookingRecord isHandling.
+	self assert: bookingRecord currentCompensationRecord == workRecord.
+	self assert: workRecord isHandling.
+	self assert: outsideExecution isCompleted.
+	self assert: (execution availableCompensationRecordsFor: outside) size equals: 1.
+	handlerExecution := workRecord handlerExecution.
+	self assert: handlerExecution definition == workHandler.
+	handlerExecution beginCompletion; complete.
+	self assert: workRecord isHandled.
+	self assert: bookingRecord isHandled.
+	self assert: throwExecution isCompleted.
+	self assert: (execution availableCompensationRecordsFor: outside) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ bookingRecord
+]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> emptyDefaultSubProcessCompensationCompletesSynchronously [
+	<gtExample>
+	| process booking before throwDefinition throwEvent after incoming outgoing execution bookingExecution producer activation throwExecution bookingRecord |
+	process := CPProcess new identifier: 'process'; yourself.
+	booking := CPNoneSubProcess new identifier: 'booking'; compensable: true; yourself.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; activityRef: booking; waitForCompletion: true; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	process addFlowElement: booking; addFlowElement: before; addFlowElement: throwEvent; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	bookingExecution := execution createActivityExecutionFor: booking.
+	bookingExecution activate.
+	bookingExecution createSubScopeFor: booking.
+	bookingExecution beginCompletion; complete.
+	bookingRecord := (execution availableCompensationRecordsFor: booking) first.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	self assert: bookingRecord isHandled.
+	self assert: throwExecution isCompleted.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ bookingRecord
 ]

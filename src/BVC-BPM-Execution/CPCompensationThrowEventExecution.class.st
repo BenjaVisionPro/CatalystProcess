@@ -54,9 +54,9 @@ CPCompensationThrowEventExecution >> hasMoreCompensationRecords [
 ]
 
 { #category : 'lifecycle' }
-CPCompensationThrowEventExecution >> advanceAfterHandlerExecution: anActivityExecution [
-	(self isWaitingForHandlerExecution: anActivityExecution) ifFalse: [
-		self error: 'Only completion of the current compensation handler can advance a synchronous Compensation Throw Event.' ].
+CPCompensationThrowEventExecution >> advanceAfterCompensationRecord: aCompensationRecord [
+	(self isWaitingForCompensationRecord: aCompensationRecord) ifFalse: [
+		self error: 'Only completion of the current compensation record can advance a synchronous Compensation Throw Event.' ].
 	self hasMoreCompensationRecords ifFalse: [ ^ nil ].
 	currentCompensationRecordIndex := currentCompensationRecordIndex + 1.
 	^ self currentCompensationRecord
@@ -68,9 +68,9 @@ CPCompensationThrowEventExecution >> isWaitingForCompensation [
 ]
 
 { #category : 'testing' }
-CPCompensationThrowEventExecution >> isWaitingForHandlerExecution: anActivityExecution [
+CPCompensationThrowEventExecution >> isWaitingForCompensationRecord: aCompensationRecord [
 	^ self isWaitingForCompensation
-		and: [ self currentCompensationRecord handlerExecution == anActivityExecution ]
+		and: [ self currentCompensationRecord == aCompensationRecord ]
 ]
 
 { #category : 'testing' }

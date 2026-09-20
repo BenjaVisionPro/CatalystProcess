@@ -1193,8 +1193,14 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> activityExecutionDidComplete: anActivityExecution [
+	| handledRecord |
 	self ensureCompensationRecordsFor: anActivityExecution.
-	self completeCompensationThrowsWaitingFor: anActivityExecution.
+	handledRecord := compensationRecords
+		detect: [ :each | each handlerExecution == anActivityExecution and: [ each isHandling ] ]
+		ifNone: [ nil ].
+	handledRecord ifNotNil: [
+		handledRecord completeHandling.
+		self compensationRecordDidComplete: handledRecord ].
 	^ anActivityExecution
 ]
 
@@ -1266,20 +1272,19 @@ CPExecutionScope >> allAvailableCompensationRecordsInReverseCompletionOrder [
 ]
 
 { #category : 'activities - compensation' }
-CPExecutionScope >> claimCompensationRecordFor: anActivityExecution [
-	| matches |
-	self ensureCompensationRecordsFor: anActivityExecution.
-	matches := self availableCompensationRecords select: [ :each |
-		each activityExecution == anActivityExecution ].
-	matches size = 1 ifFalse: [
-		self error: 'A completed Activity execution must have exactly one available compensation record to be claimed.' ].
-	^ matches first claim
+CPExecutionScope >> claimCompensationRecord: aCompensationRecord [
+	(compensationRecords identityIncludes: aCompensationRecord) ifFalse: [
+		self error: 'The compensation record does not belong to this execution scope.' ].
+	aCompensationRecord activityExecution scope == self ifFalse: [
+		self error: 'The compensation record Activity execution does not belong to this execution scope.' ].
+	^ aCompensationRecord claim
 ]
-
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> compensationHandlerFor: aCompensationRecord [
 	| completedActivity container associations handlers |
+	aCompensationRecord boundaryEvent ifNil: [
+		self error: 'Only a compensation Boundary Event record resolves an associated compensation-handler Activity.' ].
 	completedActivity := aCompensationRecord activityExecution definition.
 	container := completedActivity container.
 	container ifNil: [
@@ -1294,23 +1299,64 @@ CPExecutionScope >> compensationHandlerFor: aCompensationRecord [
 	^ handlers first
 ]
 
+{ #category : 'activities - compensation' }
+CPExecutionScope >> defaultCompensationRecords [
+	| records |
+	records := self availableCompensationRecords asOrderedCollection.
+	childScopes do: [ :eachScope |
+		(compensationRecords anySatisfy: [ :eachRecord | eachRecord activityExecution == eachScope owningActivity ]) ifFalse: [
+			records addAll: eachScope defaultCompensationRecords ] ].
+	^ records sorted: [ :earlier :later |
+		earlier completionSequence > later completionSequence ]
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> validateCompensationRecord: aCompensationRecord [
+	| definition nestedRecords |
+	(compensationRecords identityIncludes: aCompensationRecord) ifFalse: [
+		self error: 'The compensation record does not belong to this execution scope.' ].
+	aCompensationRecord isAvailable ifFalse: [
+		self error: 'Only an available compensation record can begin compensation.' ].
+	aCompensationRecord boundaryEvent ifNotNil: [
+		self compensationHandlerFor: aCompensationRecord.
+		^ aCompensationRecord ].
+	definition := aCompensationRecord activityExecution definition.
+	definition usesDefaultCompensationHandler ifTrue: [
+		aCompensationRecord activityExecution subScope ifNil: [
+			self error: 'Default SubProcess compensation requires the exact completed SubProcess execution scope.' ].
+		nestedRecords := aCompensationRecord activityExecution subScope defaultCompensationRecords.
+		nestedRecords do: [ :eachRecord |
+			eachRecord activityExecution scope validateCompensationRecord: eachRecord ].
+		^ aCompensationRecord ].
+	definition hasCustomCompensationHandler ifTrue: [
+		self error: 'Compensation Event SubProcess execution is not implemented yet.' ].
+	self error: 'The compensation record has no BPMN compensation handler.'
+]
 
 { #category : 'activities - compensation' }
 CPExecutionScope >> beginCompensationFor: aCompensationRecord [
-	| owningScope handler handlerExecution claimedRecord |
-	aCompensationRecord isAvailable ifFalse: [
-		self error: 'Only an available compensation record can begin compensation.' ].
+	| owningScope handler handlerExecution nestedRecords claimedRecord |
 	owningScope := aCompensationRecord activityExecution scope.
+	"keep the exact execution scope as the authority for this record"
 	owningScope ifNil: [
 		self error: 'A compensation record requires its completed Activity execution to belong to an execution scope.' ].
-	handler := owningScope compensationHandlerFor: aCompensationRecord.
-	claimedRecord := owningScope claimCompensationRecordFor: aCompensationRecord activityExecution.
-	claimedRecord == aCompensationRecord ifFalse: [
-		self error: 'The claimed compensation record does not match the requested record.' ].
-	handlerExecution := owningScope createActivityExecutionFor: handler.
-	claimedRecord beginHandlingWith: handlerExecution.
-	handlerExecution activate.
-	^ handlerExecution
+	owningScope validateCompensationRecord: aCompensationRecord.
+	claimedRecord := owningScope claimCompensationRecord: aCompensationRecord.
+	claimedRecord boundaryEvent ifNotNil: [
+		handler := owningScope compensationHandlerFor: claimedRecord.
+		handlerExecution := owningScope createActivityExecutionFor: handler.
+		claimedRecord beginHandlingWith: handlerExecution.
+		handlerExecution activate.
+		^ handlerExecution ].
+	nestedRecords := claimedRecord activityExecution subScope defaultCompensationRecords.
+	claimedRecord beginHandling.
+	claimedRecord compensationRecords: nestedRecords.
+	nestedRecords ifEmpty: [
+		claimedRecord completeHandling.
+		owningScope compensationRecordDidComplete: claimedRecord.
+		^ claimedRecord ].
+	self beginCompensationFor: claimedRecord currentCompensationRecord.
+	^ claimedRecord
 ]
 
 { #category : 'events - compensation' }
@@ -1325,17 +1371,17 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 	targetActivity := compensationDefinition activityRef.
 	targetActivity
 		ifNil: [
-			records := self allAvailableCompensationRecordsInReverseCompletionOrder.
+			records := self defaultCompensationRecords.
 			"Resolve every handler before consuming control flow so an invalid compensation model cannot partially execute."
 			records do: [ :eachRecord |
-				eachRecord activityExecution scope compensationHandlerFor: eachRecord ] ]
+				eachRecord activityExecution scope validateCompensationRecord: eachRecord ] ]
 		ifNotNil: [
 			records := self allAvailableCompensationRecordsFor: targetActivity.
 			records size = 1 ifFalse: [
 				self error: 'Targeted compensation must resolve to exactly one available completed Activity execution.' ].
 			record := records first.
 			"Resolve the handler before consuming control flow so an invalid compensation model cannot partially execute."
-			record activityExecution scope compensationHandlerFor: record ].
+			record activityExecution scope validateCompensationRecord: record ].
 	throwExecution := CPCompensationThrowEventExecution new
 		definition: aCompensationThrowEvent;
 		scope: self;
@@ -1378,15 +1424,15 @@ CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming
 	targetActivity := compensationDefinition activityRef.
 	targetActivity
 		ifNil: [
-			records := self allAvailableCompensationRecordsInReverseCompletionOrder.
+			records := self defaultCompensationRecords.
 			records do: [ :eachRecord |
-				eachRecord activityExecution scope compensationHandlerFor: eachRecord ] ]
+				eachRecord activityExecution scope validateCompensationRecord: eachRecord ] ]
 		ifNotNil: [
 			records := self allAvailableCompensationRecordsFor: targetActivity.
 			records size = 1 ifFalse: [
 				self error: 'Targeted compensation must resolve to exactly one available completed Activity execution.' ].
 			record := records first.
-			record activityExecution scope compensationHandlerFor: record ].
+			record activityExecution scope validateCompensationRecord: record ].
 	endExecution := CPCompensationThrowEventExecution new
 		definition: aCompensationEndEvent;
 		scope: self;
@@ -1414,15 +1460,26 @@ CPExecutionScope >> executeCompensationEndEvent: aCompensationEndEvent consuming
 ]
 
 { #category : 'events - compensation' }
-CPExecutionScope >> completeCompensationThrowsWaitingFor: anActivityExecution [
-	| nextRecord |
+CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
+	| nextRecord completedOuterRecord |
 	eventExecutions do: [ :eachExecution |
 		(eachExecution isCompensationThrowEventExecution) ifTrue: [
-			(eachExecution isWaitingForHandlerExecution: anActivityExecution) ifTrue: [
-				nextRecord := eachExecution advanceAfterHandlerExecution: anActivityExecution.
+			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
+				nextRecord := eachExecution advanceAfterCompensationRecord: aCompensationRecord.
 				nextRecord
 					ifNil: [ self completeIntermediateThrowEventExecution: eachExecution ]
 					ifNotNil: [ self beginCompensationFor: nextRecord ] ] ] ].
-	parentScope ifNotNil: [ parentScope completeCompensationThrowsWaitingFor: anActivityExecution ].
-	^ anActivityExecution
+	completedOuterRecord := compensationRecords
+		detect: [ :eachRecord | eachRecord isWaitingForCompensationRecord: aCompensationRecord ]
+		ifNone: [ nil ].
+	completedOuterRecord ifNotNil: [
+		nextRecord := completedOuterRecord advanceAfterCompensationRecord: aCompensationRecord.
+		nextRecord
+			ifNil: [
+				completedOuterRecord completeHandling.
+				self compensationRecordDidComplete: completedOuterRecord ]
+			ifNotNil: [ self beginCompensationFor: nextRecord ].
+		^ aCompensationRecord ].
+	parentScope ifNotNil: [ parentScope compensationRecordDidComplete: aCompensationRecord ].
+	^ aCompensationRecord
 ]
