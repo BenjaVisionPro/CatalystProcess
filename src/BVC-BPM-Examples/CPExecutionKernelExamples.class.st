@@ -2918,3 +2918,24 @@ CPExecutionKernelExamples >> compensationActivityIsOutsideNormalFlow [
 	self assert: subExecution subScope flowActivations isEmpty.
 	^ handler
 ]
+
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> compensationEventSubProcessIsExplicitCompensationHandler [
+	<gtExample>
+	| handler start definition |
+	handler := CPCompensationSubProcess new identifier: 'compensationHandler'; yourself.
+	start := CPCompensationStartEvent new identifier: 'compensationStart'; yourself.
+	definition := CPCompensationEventDefinition new identifier: 'compensationDefinition'; yourself.
+	start eventDefinitions add: definition.
+	handler addFlowElement: start.
+	self assert: handler isSubProcess.
+	self assert: handler isForCompensation.
+	self assert: start isStartEvent.
+	self assert: start container == handler.
+	self assert: start eventDefinitions size equals: 1.
+	self assert: start eventDefinitions first == definition.
+	self assert: definition isCompensationEventDefinition.
+	self assert: (CPStartEvent startEventTypes includes: CPCompensationStartEvent).
+	^ handler
+]

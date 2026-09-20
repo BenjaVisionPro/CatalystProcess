@@ -5,6 +5,13 @@ Class {
 	#package : 'BVC-BPM-BPMN'
 }
 
+
+{ #category : 'initialization' }
+CPCompensationSubProcess >> initialize [
+	super initialize.
+	self isForCompensation: true
+]
+
 { #category : 'sub-process type' }
 CPCompensationSubProcess class >> subProcessTypeLabel [
 	^ 'Compensation'
