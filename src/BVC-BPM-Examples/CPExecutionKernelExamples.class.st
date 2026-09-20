@@ -5037,3 +5037,46 @@ CPExecutionKernelExamples >> messageThrowEventPreparesDataInputFromAssociation [
 	^ eventExecution
 ]
 
+
+{ #category : 'examples - data' }
+CPExecutionKernelExamples >> messageStartEventPopulatesProcessDataInput [
+	<gtExample>
+	| process specification processInput message messageDefinition messageStart eventOutput association after flow execution occurrence eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	processInput := CPDataInput new identifier: 'processInput'; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { processInput };
+		yourself.
+	process ioSpecification: specification.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new
+		identifier: 'messageDefinition';
+		messageRef: message;
+		yourself.
+	eventOutput := CPDataOutput new identifier: 'eventOutput'; yourself.
+	association := CPDataOutputAssociation new
+		identifier: 'startOutput';
+		sourceRefs: { eventOutput };
+		targetRef: processInput;
+		yourself.
+	messageStart := CPMessageStartEvent new
+		identifier: 'messageStart';
+		dataOutputs: { eventOutput };
+		dataOutputAssociations: { association };
+		yourself.
+	messageStart eventDefinitions add: messageDefinition.
+	after := CPTask new identifier: 'after'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: messageStart; targetRef: after; yourself.
+	process flowElements addAll: { messageStart. after. flow }.
+	execution := self executionFor: process.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #messageStartWithData1;
+		definition: message;
+		payload: 'process input value';
+		yourself.
+	eventExecution := execution startWithOccurrence: occurrence.
+	self assert: (eventExecution itemValueFor: eventOutput) equals: 'process input value'.
+	self assert: (execution itemValueFor: processInput) equals: 'process input value'.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ eventExecution
+]

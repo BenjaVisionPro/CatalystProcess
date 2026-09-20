@@ -77,7 +77,11 @@ CPExecutionScope >> ownsItemValueFor: anItemAwareElement [
 	((definition flowElements identityIncludes: anItemAwareElement)
 		and: [ anItemAwareElement isDataObject ]) ifTrue: [ ^ true ].
 	definition isSubProcess ifTrue: [ ^ false ].
-	^ definition properties identityIncludes: anItemAwareElement
+	(definition properties identityIncludes: anItemAwareElement) ifTrue: [ ^ true ].
+	definition ioSpecification ifNotNil: [ :specification |
+		(specification dataInputs identityIncludes: anItemAwareElement) ifTrue: [ ^ true ].
+		(specification dataOutputs identityIncludes: anItemAwareElement) ifTrue: [ ^ true ] ].
+	^ false
 ]
 
 { #category : 'data' }
@@ -564,6 +568,7 @@ CPExecutionScope >> executeStartEvent: aStartEvent occurrence: anOccurrence [
 		(self acceptedOccurrences identityIncludes: anOccurrence) ifFalse: [ self acceptOccurrence: anOccurrence ] ].
 	execution := self createEventExecutionFor: aStartEvent.
 	execution occurrence: anOccurrence.
+	anOccurrence ifNotNil: [ execution populateCatchEventDataFrom: anOccurrence ].
 	aStartEvent outgoing do: [ :eachFlow |
 		execution recordProducedFlowActivation:
 			(self activateSequenceFlow: eachFlow producedBy: execution) ].
