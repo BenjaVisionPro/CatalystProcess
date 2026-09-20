@@ -1101,7 +1101,7 @@ CPExecutionScope >> activateServiceTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	^ anActivityExecution
@@ -1195,7 +1195,7 @@ CPExecutionScope >> activateReceiveTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	subscription := CPMessageSubscription new
@@ -2304,7 +2304,7 @@ CPExecutionScope >> activateSendTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	anActivityExecution prepareMessageDispatch.
@@ -2373,7 +2373,7 @@ CPExecutionScope >> activateScriptTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	self environment
@@ -2445,7 +2445,7 @@ CPExecutionScope >> activateBusinessRuleTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	self environment
@@ -2519,7 +2519,7 @@ CPExecutionScope >> activateUserTaskExecution: anActivityExecution [
         ^ anActivityExecution ].
     (loop notNil and: [ loop isStandardLoop ]) ifTrue: [
         anActivityExecution standardLoopMayBeginNextIteration
-            ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+            ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
             ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
         ^ anActivityExecution ].
     workItem := CPUserTaskWorkItem new
@@ -2665,7 +2665,7 @@ CPExecutionScope >> activateTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	anActivityExecution beginCompletion.
@@ -2712,7 +2712,7 @@ CPExecutionScope >> activateManualTaskExecution: anActivityExecution [
 		^ anActivityExecution ].
 	(loop notNil and: [ loop isStandardLoop ]) ifTrue: [
 		anActivityExecution standardLoopMayBeginNextIteration
-			ifTrue: [ anActivityExecution beginStandardLoopIteration ]
+			ifTrue: [ anActivityExecution beginPermittedStandardLoopIteration ]
 			ifFalse: [ self completeStandardLoopExecution: anActivityExecution ].
 		^ anActivityExecution ].
 	anActivityExecution resourceAssignments:
