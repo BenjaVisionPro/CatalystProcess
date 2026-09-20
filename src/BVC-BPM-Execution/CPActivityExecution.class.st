@@ -16,6 +16,7 @@ Class {
 		'standardLoopIterations',
 		'multiInstanceCardinality',
 		'multiInstanceInputItems',
+		'multiInstanceOutputItems',
 		'multiInstanceActivityExecutions'
 	],
 	#category : 'BVC-BPM-Execution',
@@ -41,6 +42,7 @@ CPActivityExecution >> initialize [
 	standardLoopIterations := OrderedCollection new.
 	multiInstanceCardinality := nil.
 	multiInstanceInputItems := nil.
+	multiInstanceOutputItems := nil.
 	multiInstanceActivityExecutions := OrderedCollection new
 ]
 
@@ -566,6 +568,35 @@ CPActivityExecution >> beginMultiInstanceActivityExecutions [
 	1 to: multiInstanceCardinality do: [ :index |
 		self beginMultiInstanceActivityExecutionAt: index ].
 	^ multiInstanceActivityExecutions
+]
+
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> multiInstanceOutputItems [
+	^ multiInstanceOutputItems
+]
+
+{ #category : 'multi-instance' }
+CPActivityExecution >> prepareMultiInstanceActivityExecutionCompletion: anInstance [
+	| loop outputDataItem loopDataOutput |
+	(multiInstanceActivityExecutions identityIncludes: anInstance) ifFalse: [
+		self error: 'The Multi-Instance Activity instance does not belong to this Activity execution.' ].
+	loop := definition loopCharacteristics.
+	outputDataItem := loop outputDataItem.
+	outputDataItem ifNil: [ ^ anInstance ].
+	loopDataOutput := loop loopDataOutputRef.
+	loopDataOutput ifNil: [
+		self error: 'A Multi-Instance outputDataItem requires loopDataOutputRef.' ].
+	(anInstance hasItemValueFor: outputDataItem) ifFalse: [
+		self error: 'A completing Multi-Instance Activity instance has no outputDataItem value.' ].
+	multiInstanceOutputItems ifNil: [
+		multiInstanceOutputItems := OrderedCollection new.
+		1 to: multiInstanceCardinality do: [ :index | multiInstanceOutputItems add: nil ] ].
+	multiInstanceOutputItems
+		at: anInstance index
+		put: (anInstance itemValueFor: outputDataItem).
+	self itemValueFor: loopDataOutput put: multiInstanceOutputItems.
+	^ anInstance
 ]
 
 { #category : 'multi-instance' }

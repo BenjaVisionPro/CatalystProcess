@@ -5525,3 +5525,53 @@ CPExecutionKernelExamples >> multiInstanceCompletionConditionCancelsRemainingIns
 	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
 	^ taskExecution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceOutputDataItemsBuildLoopDataOutputCollection [
+	<gtExample>
+	| process task specification loopDataOutput instanceOutput loop execution taskExecution firstInstance secondInstance thirdInstance |
+	process := CPProcess new identifier: 'process'; yourself.
+	loopDataOutput := CPDataOutput new
+		identifier: 'results';
+		isCollection: true;
+		yourself.
+	specification := CPInputOutputSpecification new
+		dataOutputs: { loopDataOutput };
+		yourself.
+	instanceOutput := CPDataOutput new identifier: 'instanceResult'; yourself.
+	loop := CPMultiInstanceLoopCharacteristics new
+		loopCardinality: (CPExpression new identifier: 'cardinality'; yourself);
+		loopDataOutputRef: loopDataOutput;
+		outputDataItem: instanceOutput;
+		yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	execution := CPProcessExecution for: process environment: (CPExampleExecutionEnvironment new
+		expression: loop loopCardinality evaluatesTo: 3;
+		yourself).
+	taskExecution := execution addActivityExecution: (CPActivityExecution new
+		definition: task;
+		yourself).
+	taskExecution activate.
+	taskExecution beginMultiInstanceActivityExecutions.
+	firstInstance := taskExecution multiInstanceActivityExecutions first.
+	secondInstance := taskExecution multiInstanceActivityExecutions second.
+	thirdInstance := taskExecution multiInstanceActivityExecutions third.
+	firstInstance itemValueFor: instanceOutput put: 'alpha result'.
+	secondInstance itemValueFor: instanceOutput put: 'beta result'.
+	thirdInstance itemValueFor: instanceOutput put: 'gamma result'.
+	firstInstance complete.
+	self assert: (taskExecution itemValueFor: loopDataOutput) first equals: 'alpha result'.
+	secondInstance complete.
+	thirdInstance complete.
+	self assert: taskExecution multiInstanceOutputItems equals: (OrderedCollection withAll: {
+		'alpha result'. 'beta result'. 'gamma result' }).
+	self assert: (taskExecution itemValueFor: loopDataOutput) == taskExecution multiInstanceOutputItems.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]

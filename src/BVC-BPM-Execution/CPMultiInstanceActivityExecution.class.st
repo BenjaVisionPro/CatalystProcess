@@ -42,7 +42,10 @@ CPMultiInstanceActivityExecution >> index: anInteger [
 
 { #category : 'data' }
 CPMultiInstanceActivityExecution >> ownsItemValueFor: anItemAwareElement [
-	^ activityExecution definition loopCharacteristics inputDataItem == anItemAwareElement
+	| loop |
+	loop := activityExecution definition loopCharacteristics.
+	^ loop inputDataItem == anItemAwareElement
+		or: [ loop outputDataItem == anItemAwareElement ]
 ]
 
 { #category : 'data' }
@@ -76,6 +79,8 @@ CPMultiInstanceActivityExecution >> isCompleted [
 { #category : 'lifecycle' }
 CPMultiInstanceActivityExecution >> complete [
 	completed ifTrue: [ self error: 'A Multi-Instance Activity instance cannot complete twice.' ].
+	cancelled ifTrue: [ self error: 'A cancelled Multi-Instance Activity instance cannot complete.' ].
+	activityExecution prepareMultiInstanceActivityExecutionCompletion: self.
 	completed := true.
 	activityExecution multiInstanceActivityExecutionDidComplete: self.
 	^ self
