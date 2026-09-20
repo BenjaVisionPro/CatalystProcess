@@ -12,7 +12,8 @@ Class {
 		'flowActivations',
 		'acceptedOccurrences',
 		'timerSubscriptions',
-		'messageSubscriptions'
+		'messageSubscriptions',
+		'signalSubscriptions'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -35,7 +36,8 @@ CPExecutionScope >> initialize [
 	flowActivations := OrderedCollection new.
 	acceptedOccurrences := OrderedCollection new.
 	timerSubscriptions := OrderedCollection new.
-	messageSubscriptions := OrderedCollection new
+	messageSubscriptions := OrderedCollection new.
+	signalSubscriptions := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -141,6 +143,28 @@ CPExecutionScope >> deliverMessageOccurrence: anOccurrence [
 	^ matches first deliverOccurrence: anOccurrence
 ]
 
+
+{ #category : 'accessing' }
+CPExecutionScope >> signalSubscriptions [ ^ signalSubscriptions ]
+
+{ #category : 'signals' }
+CPExecutionScope >> waitingSignalSubscriptions [
+	^ signalSubscriptions select: #isWaiting
+]
+
+{ #category : 'signals' }
+CPExecutionScope >> allWaitingSignalSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingSignalSubscriptions asOrderedCollection.
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingSignalSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'signals' }
+CPExecutionScope >> allWaitingSignalSubscriptionsFor: aSignal [
+	^ self allWaitingSignalSubscriptions select: [ :each | each signal == aSignal ]
+]
 
 { #category : 'accessing' }
 CPExecutionScope >> flowActivations [ ^ flowActivations ]
@@ -606,6 +630,7 @@ CPExecutionScope >> canCompleteSubProcessActivity: anActivityExecution [
 	(subScope activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
 	subScope allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
+	subScope allWaitingSignalSubscriptions ifNotEmpty: [ ^ false ].
 	subScope allWaitingEventBasedGatewaySubscriptions ifNotEmpty: [ ^ false ].
 	subScope hasPendingEventWork ifTrue: [ ^ false ].
 	^ true
@@ -818,6 +843,41 @@ CPExecutionScope >> triggerMessageIntermediateCatchEventExecution: anEventExecut
 	^ anEventExecution
 ]
 
+{ #category : 'events - signal' }
+CPExecutionScope >> beginSignalIntermediateCatchEvent: anEvent consuming: anActivation [
+	| execution signalDefinition subscription |
+	anEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Signal Intermediate Catch Event requires exactly one Signal Event Definition.' ].
+	signalDefinition := anEvent eventDefinitions first.
+	signalDefinition signalRef ifNil: [
+		self error: 'A Signal Intermediate Catch Event requires a Signal.' ].
+	execution := self beginIntermediateCatchEvent: anEvent consuming: anActivation.
+	subscription := CPSignalSubscription new
+		waitingExecution: execution;
+		signal: signalDefinition signalRef;
+		yourself.
+	execution subscription: subscription.
+	signalSubscriptions add: subscription.
+	^ execution
+]
+
+{ #category : 'events - signal' }
+CPExecutionScope >> triggerSignalIntermediateCatchEventExecution: anEventExecution with: anOccurrence [
+	| subscription |
+	(eventExecutions identityIncludes: anEventExecution) ifFalse: [
+		self error: 'The Signal Intermediate Catch Event execution does not belong to this execution scope.' ].
+	anEventExecution isWaiting ifFalse: [
+		self error: 'Only a waiting Signal Intermediate Catch Event can accept an occurrence.' ].
+	subscription := anEventExecution subscription.
+	subscription ifNil: [ self error: 'The Signal Intermediate Catch Event has no Signal subscription.' ].
+	anOccurrence definition == subscription signal ifFalse: [
+		self error: 'The occurrence does not match this Signal subscription.' ].
+	self acceptOccurrence: anOccurrence.
+	subscription triggerWith: anOccurrence.
+	anEventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ anEventExecution
+]
+
 { #category : 'lifecycle' }
 CPExecutionScope >> terminateRemainingWork [
 	childScopes do: [ :eachScope | eachScope terminateRemainingWork ].
@@ -833,6 +893,8 @@ CPExecutionScope >> terminateRemainingWork [
 	messageSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	signalSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	gatewayExecutions do: [ :eachExecution |
 		eachExecution subscriptions do: [ :eachSubscription |

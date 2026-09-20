@@ -1822,3 +1822,82 @@ CPExecutionKernelExamples >> unsatisfiedConditionalStartCannotInstantiateProcess
 	self assert: execution eventExecutions isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> signalIntermediateCatchEventCreatesDurableSubscription [
+	<gtExample>
+	| process before signalEvent after signal signalDefinition incoming outgoing execution producer activation eventExecution subscription occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	signal := CPSignal new identifier: 'ready'; yourself.
+	signalDefinition := CPSignalEventDefinition new
+		identifier: 'readyDefinition';
+		signalRef: signal;
+		yourself.
+	signalEvent := CPSignalIntermediateEvent new
+		identifier: 'waitForReady';
+		eventDefinitions: { signalDefinition } asOrderedCollection;
+		yourself.
+	after := CPTask new identifier: 'after'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toSignal'; sourceRef: before; targetRef: signalEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterSignal'; sourceRef: signalEvent; targetRef: after; yourself.
+	process addFlowElement: before; addFlowElement: signalEvent; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginSignalIntermediateCatchEvent: signalEvent consuming: activation.
+	subscription := eventExecution subscription.
+	self assert: eventExecution isWaiting.
+	self assert: subscription waitingExecution == eventExecution.
+	self assert: subscription signal == signal.
+	self assert: subscription isWaiting.
+	self assert: (execution signalSubscriptions occurrencesOf: subscription) equals: 1.
+	self assert: (execution waitingSignalSubscriptions occurrencesOf: subscription) equals: 1.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #readySignal1; definition: signal; yourself.
+	subscription deliverOccurrence: occurrence.
+	self assert: eventExecution isTriggered.
+	self assert: subscription isTriggered.
+	self assert: subscription occurrence == occurrence.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #readySignal1).
+	self assert: (execution waitingSignalSubscriptions includes: subscription) not.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> signalIntermediateCatchEventRejectsDifferentSignal [
+	<gtExample>
+	| eventExecution execution subscription otherSignal occurrence rejected |
+	eventExecution := self signalIntermediateCatchEventWaitingExecution.
+	execution := eventExecution scope.
+	subscription := eventExecution subscription.
+	otherSignal := CPSignal new identifier: 'other'; yourself.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #wrongSignal1; definition: otherSignal; yourself.
+	rejected := false.
+	[ subscription deliverOccurrence: occurrence ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: eventExecution isWaiting.
+	self assert: subscription isWaiting.
+	self assert: (execution hasAcceptedOccurrenceIdentifiedBy: #wrongSignal1) not.
+	^ eventExecution
+]
+
+{ #category : 'examples - events' }
+CPExecutionKernelExamples >> signalIntermediateCatchEventWaitingExecution [
+	<gtExample>
+	| process before signalEvent signal signalDefinition incoming execution producer activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	signal := CPSignal new identifier: 'expected'; yourself.
+	signalDefinition := CPSignalEventDefinition new identifier: 'expectedSignalDefinition'; signalRef: signal; yourself.
+	signalEvent := CPSignalIntermediateEvent new identifier: 'wait'; eventDefinitions: { signalDefinition } asOrderedCollection; yourself.
+	incoming := CPSequenceFlow new identifier: 'toWait'; sourceRef: before; targetRef: signalEvent; yourself.
+	process addFlowElement: before; addFlowElement: signalEvent; addFlowElement: incoming.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginSignalIntermediateCatchEvent: signalEvent consuming: activation.
+	self assert: eventExecution isWaiting.
+	^ eventExecution
+]
