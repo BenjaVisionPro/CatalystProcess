@@ -1168,18 +1168,43 @@ CPExecutionScope >> errorBoundaryExecutionFor: anError propagatingFrom: aNestedS
 ]
 
 { #category : 'events - error' }
+CPExecutionScope >> validatePresumedAbortPropagationToBoundary: aBoundaryExecution fromNestedScope: aNestedScope [
+	| records |
+	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [ ^ aBoundaryExecution ].
+	records := self defaultCompensationRecords.
+	records do: [ :eachRecord |
+		eachRecord activityExecution scope validateCompensationRecord: eachRecord ].
+	parentScope ifNil: [ self error: 'The resolved Error Boundary Event is not reachable from this execution scope.' ].
+	^ parentScope
+		validatePresumedAbortPropagationToBoundary: aBoundaryExecution
+		fromNestedScope: self
+]
+
+{ #category : 'events - error' }
 CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNestedScope toBoundary: aBoundaryExecution [
+	| records propagationExecution |
 	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [
 		^ self triggerBoundaryEventExecution: aBoundaryExecution with: anOccurrence ].
 	aNestedScope owningActivity isActive ifTrue: [
 		aNestedScope owningActivity beginFailure.
 		aNestedScope owningActivity finishFailure ].
+	records := self defaultCompensationRecords.
 	self terminateRemainingWork.
 	parentScope ifNil: [ self error: 'The resolved Error Boundary Event is not reachable from this execution scope.' ].
-	^ parentScope
-		propagateErrorOccurrence: anOccurrence
-		fromNestedScope: self
-		toBoundary: aBoundaryExecution
+	records ifEmpty: [
+		^ parentScope
+			propagateErrorOccurrence: anOccurrence
+			fromNestedScope: self
+			toBoundary: aBoundaryExecution ].
+	propagationExecution := CPErrorPropagationExecution new
+		scope: self;
+		occurrence: anOccurrence;
+		boundaryExecution: aBoundaryExecution;
+		compensationRecords: records;
+		yourself.
+	eventExecutions add: propagationExecution.
+	self beginCompensationFor: propagationExecution currentCompensationRecord.
+	^ propagationExecution
 ]
 
 { #category : 'events - error' }
@@ -1201,7 +1226,10 @@ CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivatio
 			self error: 'No matching Error Event SubProcess or Error Boundary Event is available in the containing execution hierarchy.' ].
 		records := self defaultCompensationRecords.
 		records do: [ :eachRecord |
-			eachRecord activityExecution scope validateCompensationRecord: eachRecord ] ].
+			eachRecord activityExecution scope validateCompensationRecord: eachRecord ].
+		parentScope
+			validatePresumedAbortPropagationToBoundary: boundaryExecution
+			fromNestedScope: self ].
 	(anActivation isAvailable and: [ anErrorEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
 		self error: 'An Error End Event requires an available activation from one of its incoming Sequence Flows.' ].
 	execution := CPErrorEndEventExecution new
@@ -1241,6 +1269,16 @@ CPExecutionScope >> completeErrorPropagationExecution: anErrorEndEventExecution 
 		propagateErrorOccurrence: anErrorEndEventExecution occurrence
 		fromNestedScope: self
 		toBoundary: anErrorEndEventExecution boundaryExecution
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> completePropagatedErrorExecution: anErrorPropagationExecution [
+	anErrorPropagationExecution complete.
+	parentScope ifNil: [ self error: 'Presumed-abort Error propagation requires a containing execution scope.' ].
+	^ parentScope
+		propagateErrorOccurrence: anErrorPropagationExecution occurrence
+		fromNestedScope: self
+		toBoundary: anErrorPropagationExecution boundaryExecution
 ]
 
 { #category : 'events - escalation' }
@@ -1628,6 +1666,14 @@ CPExecutionScope >> compensationRecordDidComplete: aCompensationRecord [
 				nextRecord := eachExecution advanceAfterCompensationRecord: aCompensationRecord.
 				nextRecord
 					ifNil: [ self completeErrorPropagationExecution: eachExecution ]
+					ifNotNil: [ self beginCompensationFor: nextRecord ].
+				^ aCompensationRecord ] ] ].
+	eventExecutions do: [ :eachExecution |
+		(eachExecution isErrorPropagationExecution) ifTrue: [
+			(eachExecution isWaitingForCompensationRecord: aCompensationRecord) ifTrue: [
+				nextRecord := eachExecution advanceAfterCompensationRecord: aCompensationRecord.
+				nextRecord
+					ifNil: [ self completePropagatedErrorExecution: eachExecution ]
 					ifNotNil: [ self beginCompensationFor: nextRecord ].
 				^ aCompensationRecord ] ] ].
 	completedOuterRecord := compensationRecords

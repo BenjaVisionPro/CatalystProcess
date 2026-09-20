@@ -72,3 +72,9 @@ CPEventExecution >> isCompensationThrowEventExecution [
 CPEventExecution >> isErrorEndEventExecution [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPEventExecution >> isErrorPropagationExecution [
+	^ false
+]
