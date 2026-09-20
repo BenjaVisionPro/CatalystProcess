@@ -3787,3 +3787,45 @@ CPExecutionKernelExamples >> compensationSubProcessUsesEventSubProcessStructural
 	self assert: rejected.
 	^ handler
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> defaultCompensationReadinessPreservesIndependentWork [
+	<gtExample>
+	| process firstWork firstDefinition firstBoundary secondWork secondDefinition secondBoundary independentWork independentDefinition independentBoundary flow execution firstExecution activation secondExecution independentExecution records firstRecord secondRecord independentRecord ready |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstWork := CPTask new identifier: 'firstWork'; yourself.
+	firstDefinition := CPCompensationEventDefinition new identifier: 'firstCompensation'; yourself.
+	firstBoundary := CPBoundaryEvent new identifier: 'firstBoundary'; attachedToRef: firstWork; cancelActivity: false; yourself.
+	firstBoundary eventDefinitions add: firstDefinition.
+	secondWork := CPTask new identifier: 'secondWork'; yourself.
+	secondDefinition := CPCompensationEventDefinition new identifier: 'secondCompensation'; yourself.
+	secondBoundary := CPBoundaryEvent new identifier: 'secondBoundary'; attachedToRef: secondWork; cancelActivity: false; yourself.
+	secondBoundary eventDefinitions add: secondDefinition.
+	independentWork := CPTask new identifier: 'independentWork'; yourself.
+	independentDefinition := CPCompensationEventDefinition new identifier: 'independentCompensation'; yourself.
+	independentBoundary := CPBoundaryEvent new identifier: 'independentBoundary'; attachedToRef: independentWork; cancelActivity: false; yourself.
+	independentBoundary eventDefinitions add: independentDefinition.
+	flow := CPSequenceFlow new identifier: 'firstToSecond'; sourceRef: firstWork; targetRef: secondWork; yourself.
+	{ firstWork. secondWork. independentWork. flow } do: [ :each | process addFlowElement: each ].
+	execution := self executionFor: process.
+	firstExecution := execution createActivityExecutionFor: firstWork.
+	firstExecution activate; beginCompletion; complete.
+	execution produceOutgoingControlFor: firstExecution.
+	activation := (execution availableFlowActivationsOn: flow) first.
+	secondExecution := execution readyActivityExecutionFor: secondWork.
+	secondExecution activate; beginCompletion; complete.
+	independentExecution := execution createActivityExecutionFor: independentWork.
+	independentExecution activate; beginCompletion; complete.
+	records := execution availableCompensationRecords.
+	firstRecord := records detect: [ :each | each activityExecution == firstExecution ].
+	secondRecord := records detect: [ :each | each activityExecution == secondExecution ].
+	independentRecord := records detect: [ :each | each activityExecution == independentExecution ].
+	ready := execution readyDefaultCompensationRecordsIn: records.
+	self assert: activation producedBy == firstExecution.
+	self assert: activation consumedBy == secondExecution.
+	self assert: ready size equals: 2.
+	self assert: (ready identityIncludes: secondRecord).
+	self assert: (ready identityIncludes: independentRecord).
+	self assert: (ready identityIncludes: firstRecord) not.
+	^ ready
+]

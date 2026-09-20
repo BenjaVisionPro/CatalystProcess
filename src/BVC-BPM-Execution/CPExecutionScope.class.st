@@ -1509,19 +1509,33 @@ CPExecutionScope >> compensationRecord: aRecord mustPrecede: anotherRecord [
 ]
 
 { #category : 'activities - compensation' }
+CPExecutionScope >> readyDefaultCompensationRecordsIn: compensationRecordCollection [
+	^ compensationRecordCollection select: [ :candidate |
+		(compensationRecordCollection anySatisfy: [ :other |
+			other ~~ candidate and: [ self compensationRecord: other mustPrecede: candidate ] ]) not ]
+]
+
+{ #category : 'activities - compensation' }
+CPExecutionScope >> nextDefaultCompensationRecordFrom: readyCompensationRecords [
+	| next |
+	readyCompensationRecords isEmpty ifTrue: [
+		self error: 'Default compensation requires at least one ready compensation record.' ].
+	next := readyCompensationRecords first.
+	readyCompensationRecords do: [ :candidate |
+		candidate completionSequence > next completionSequence ifTrue: [ next := candidate ] ].
+	^ next
+]
+
+{ #category : 'activities - compensation' }
 CPExecutionScope >> orderDefaultCompensationRecords: compensationRecordCollection [
-	| remaining ordered eligible next |
+	| remaining ordered ready next |
 	remaining := compensationRecordCollection asOrderedCollection.
 	ordered := OrderedCollection new.
 	[ remaining isEmpty ] whileFalse: [
-		eligible := remaining select: [ :candidate |
-			(remaining anySatisfy: [ :other |
-				other ~~ candidate and: [ self compensationRecord: other mustPrecede: candidate ] ]) not ].
-		eligible isEmpty ifTrue: [
+		ready := self readyDefaultCompensationRecordsIn: remaining.
+		ready isEmpty ifTrue: [
 			self error: 'Default compensation dependencies contain a cycle.' ].
-		next := eligible first.
-		eligible do: [ :candidate |
-			candidate completionSequence > next completionSequence ifTrue: [ next := candidate ] ].
+		next := self nextDefaultCompensationRecordFrom: ready.
 		ordered add: next.
 		remaining remove: next ].
 	^ ordered
