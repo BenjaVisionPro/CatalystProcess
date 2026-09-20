@@ -1310,21 +1310,30 @@ CPExecutionScope >> executeCompensationThrowEvent: aCompensationThrowEvent consu
 		self error: 'A Compensation Intermediate Throw Event requires exactly one Compensation Event Definition.' ].
 	compensationDefinition := definitions first.
 	targetActivity := compensationDefinition activityRef.
-	targetActivity ifNil: [
-		self error: 'Scope compensation without an activityRef is not yet supported.' ].
-	records := self allAvailableCompensationRecordsFor: targetActivity.
-	records size = 1 ifFalse: [
-		self error: 'Targeted compensation must resolve to exactly one available completed Activity execution.' ].
-	record := records first.
-	"Resolve the handler before consuming control flow so an invalid compensation model cannot partially execute."
-	record activityExecution scope compensationHandlerFor: record.
+	targetActivity
+		ifNil: [
+			compensationDefinition waitForCompletion ifTrue: [
+				self error: 'Synchronous scope compensation is not yet supported.' ].
+			records := self allAvailableCompensationRecordsInReverseCompletionOrder.
+			"Resolve every handler before consuming control flow so an invalid compensation model cannot partially execute."
+			records do: [ :eachRecord |
+				eachRecord activityExecution scope compensationHandlerFor: eachRecord ] ]
+		ifNotNil: [
+			records := self allAvailableCompensationRecordsFor: targetActivity.
+			records size = 1 ifFalse: [
+				self error: 'Targeted compensation must resolve to exactly one available completed Activity execution.' ].
+			record := records first.
+			"Resolve the handler before consuming control flow so an invalid compensation model cannot partially execute."
+			record activityExecution scope compensationHandlerFor: record ].
 	throwExecution := CPCompensationThrowEventExecution new
 		definition: aCompensationThrowEvent;
 		scope: self;
 		yourself.
 	eventExecutions add: throwExecution.
 	throwExecution consumeFlowActivation: anActivation.
-	handlerExecution := self beginCompensationFor: record.
+	targetActivity
+		ifNil: [ records do: [ :eachRecord | self beginCompensationFor: eachRecord ] ]
+		ifNotNil: [ handlerExecution := self beginCompensationFor: record ].
 	compensationDefinition waitForCompletion
 		ifTrue: [ throwExecution compensationRecord: record ]
 		ifFalse: [ self completeIntermediateThrowEventExecution: throwExecution ].

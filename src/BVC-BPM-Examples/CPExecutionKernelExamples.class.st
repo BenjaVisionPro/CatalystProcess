@@ -2701,3 +2701,53 @@ CPExecutionKernelExamples >> compensationHistoryPreservesGlobalReverseCompletion
 	self assert: ordered first completionSequence > ordered second completionSequence.
 	^ ordered
 ]
+
+{ #category : 'examples - compensation events' }
+CPExecutionKernelExamples >> asynchronousScopeCompensationBeginsHandlersInReverseCompletionOrderAndContinues [
+	<gtExample>
+	| process firstWork firstBoundary firstDefinition firstHandler firstAssociation secondWork secondBoundary secondDefinition secondHandler secondAssociation before throwDefinition throwEvent after incoming outgoing execution firstExecution secondExecution ordered producer activation throwExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstWork := CPTask new identifier: 'firstWork'; yourself.
+	firstDefinition := CPCompensationEventDefinition new identifier: 'firstCompensation'; yourself.
+	firstBoundary := CPBoundaryEvent new identifier: 'firstBoundary'; attachedToRef: firstWork; cancelActivity: false; yourself.
+	firstBoundary eventDefinitions add: firstDefinition.
+	firstHandler := CPTask new identifier: 'undoFirst'; isForCompensation: true; yourself.
+	secondWork := CPTask new identifier: 'secondWork'; yourself.
+	secondDefinition := CPCompensationEventDefinition new identifier: 'secondCompensation'; yourself.
+	secondBoundary := CPBoundaryEvent new identifier: 'secondBoundary'; attachedToRef: secondWork; cancelActivity: false; yourself.
+	secondBoundary eventDefinitions add: secondDefinition.
+	secondHandler := CPTask new identifier: 'undoSecond'; isForCompensation: true; yourself.
+	before := CPTask new identifier: 'beforeThrow'; yourself.
+	throwDefinition := CPCompensationEventDefinition new identifier: 'throwDefinition'; waitForCompletion: false; yourself.
+	throwEvent := CPCompensationThrowIntermediateEvent new identifier: 'throwCompensation'; yourself.
+	throwEvent eventDefinitions add: throwDefinition.
+	after := CPTask new identifier: 'afterThrow'; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: before; targetRef: throwEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterThrowFlow'; sourceRef: throwEvent; targetRef: after; yourself.
+	{ firstWork. firstHandler. secondWork. secondHandler. before. throwEvent. after. incoming. outgoing } do: [ :each | process addFlowElement: each ].
+	firstAssociation := CPAssociation new identifier: 'firstHandler'; sourceRef: firstBoundary; targetRef: firstHandler; beOne; yourself.
+	secondAssociation := CPAssociation new identifier: 'secondHandler'; sourceRef: secondBoundary; targetRef: secondHandler; beOne; yourself.
+	process addArtifact: firstAssociation; addArtifact: secondAssociation.
+	execution := self executionFor: process.
+	firstExecution := execution createActivityExecutionFor: firstWork.
+	firstExecution activate; beginCompletion; complete.
+	secondExecution := execution createActivityExecutionFor: secondWork.
+	secondExecution activate; beginCompletion; complete.
+	ordered := execution allAvailableCompensationRecordsInReverseCompletionOrder.
+	self assert: ordered size equals: 2.
+	self assert: ordered first activityExecution == secondExecution.
+	self assert: ordered second activityExecution == firstExecution.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	throwExecution := execution executeCompensationThrowEvent: throwEvent consuming: activation.
+	self assert: throwExecution isCompleted.
+	self assert: activation isAvailable not.
+	self assert: ordered first isHandling.
+	self assert: ordered second isHandling.
+	self assert: ordered first handlerExecution definition == secondHandler.
+	self assert: ordered second handlerExecution definition == firstHandler.
+	self assert: ordered first handlerExecution isActive.
+	self assert: ordered second handlerExecution isActive.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ throwExecution
+]
