@@ -8,6 +8,13 @@ Class {
 	#package : 'BVC-BPM-Automation'
 }
 
+
+
+{ #category : 'capabilities' }
+CPBpmService class >> requiredCapabilities [
+	^ { CRSchedulingCapability }
+]
+
 { #category : 'configuration' }
 CPBpmService class >> configurationClass [
 	^ CPBpmServiceConfiguration
@@ -119,4 +126,27 @@ CPBpmService >> triggerTimerWorkUnit: aCPTriggerTimerWorkUnit [
 	^ execution
 		deliverTimerOccurrence: occurrence
 		toSubscriptionIdentifiedBy: subscription identifier
+]
+
+
+{ #category : 'lifecycle' }
+CPBpmService >> start [
+	| scheduling backgroundSchedule |
+	super start.
+	scheduling := self capability: CRSchedulingCapability.
+	backgroundSchedule := CRRepeatingSchedule
+		workUnitFactory: [ CPProcessBackgroundWorkUnit new ]
+		key: configuration backgroundScheduleKey
+		intervalMillis: configuration backgroundIntervalMillis
+		scheduledMillis: scheduling currentMillis.
+	scheduling addSchedule: backgroundSchedule.
+	^ self
+]
+
+{ #category : 'background processing' }
+CPBpmService >> processBackgroundWorkUnit: aCPProcessBackgroundWorkUnit [
+	"This is the Runtime-owned autonomous BPM processing boundary. Timer due-time
+	interpretation and other autonomous Process responsibilities are added here in
+	later semantic slices; the semantic kernel remains Runtime-unaware."
+	^ self
 ]

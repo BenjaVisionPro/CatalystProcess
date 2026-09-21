@@ -9582,3 +9582,24 @@ CPExecutionKernelExamples >> bpmTimerWorkUnitTriggersExactSubscriptionThroughRun
 	self assert: successor identifier ~= subscription identifier.
 	^ handler
 ]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmServiceDeclaresAutonomousSchedulingCapability [
+	<gtExample>
+	| configuration |
+	configuration := CPBpmServiceConfiguration new.
+	self assert: (CPBpmService requiredCapabilities includes: CRSchedulingCapability).
+	self assert: configuration backgroundScheduleKey equals: #bpmBackgroundProcessing.
+	self assert: configuration backgroundIntervalMillis equals: 1000.
+	^ configuration
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmBackgroundWorkUnitUsesBpmService [
+	<gtExample>
+	| workUnit |
+	workUnit := CPProcessBackgroundWorkUnit new.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	^ workUnit
+]
