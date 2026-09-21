@@ -22,11 +22,20 @@ CPEventBasedGatewayExecution >> subscribeToOutgoingFlow: aSequenceFlow [
 	| subscription target definitions |
 	(self definition outgoing identityIncludes: aSequenceFlow) ifFalse: [ self error: 'The Sequence Flow is not an outgoing alternative of this Event-Based Gateway.' ].
 	target := aSequenceFlow targetRef.
+	target isReceiveTask ifTrue: [
+		target messageRef ifNil: [ self error: 'A Receive Task following an Event-Based Gateway requires a Message.' ].
+		subscription := CPEventBasedGatewayReceiveTaskSubscription new
+			sequenceFlow: aSequenceFlow;
+			target: target;
+			gatewayExecution: self;
+			yourself.
+		subscriptions add: subscription.
+		^ subscription ].
 	(target isEvent and: [ target isIntermediateEvent and: [ target isCatchEvent ] ]) ifFalse: [
-		self error: 'An Event-Based Gateway outgoing Sequence Flow must target an Intermediate Catch Event.' ].
+		self error: 'An Event-Based Gateway outgoing Sequence Flow must target an Intermediate Catch Event or Receive Task.' ].
 	definitions := target eventDefinitions.
 	definitions size = 1 ifFalse: [
-		self error: 'An Event-Based Gateway target requires exactly one Event Definition.' ].
+		self error: 'An Event-Based Gateway Intermediate Catch Event target requires exactly one Event Definition.' ].
 	subscription := CPEventBasedGatewaySubscription new
 		sequenceFlow: aSequenceFlow;
 		target: target;

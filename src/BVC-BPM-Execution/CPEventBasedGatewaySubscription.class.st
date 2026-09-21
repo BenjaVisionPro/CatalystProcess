@@ -181,3 +181,27 @@ CPEventBasedGatewaySubscription >> triggerWithoutOccurrence [
 CPEventBasedGatewaySubscription >> triggerInScope: anExecutionScope [
 	^ anExecutionScope triggerConditionalEventBasedGatewaySubscription: self
 ]
+
+{ #category : 'continuation' }
+CPEventBasedGatewaySubscription >> continueWithOccurrence: anOccurrence inScope: anExecutionScope [
+	| eventExecution |
+	eventExecution := CPIntermediateCatchEventExecution new
+		definition: target;
+		scope: anExecutionScope;
+		yourself.
+	anExecutionScope eventExecutions add: eventExecution.
+	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ eventExecution
+]
+
+{ #category : 'continuation' }
+CPEventBasedGatewaySubscription >> continueConditionalInScope: anExecutionScope [
+	| eventExecution |
+	eventExecution := CPIntermediateCatchEventExecution new
+		definition: target;
+		scope: anExecutionScope;
+		yourself.
+	anExecutionScope eventExecutions add: eventExecution.
+	eventExecution triggerWithoutOccurrence.
+	^ eventExecution
+]

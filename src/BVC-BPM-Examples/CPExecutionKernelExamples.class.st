@@ -10540,3 +10540,38 @@ CPExecutionKernelExamples >> eventBasedGatewayConditionalAlternativeCancelsMessa
 	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
 	^ gatewayExecution
 ]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> eventBasedGatewayReceiveTaskUsesCanonicalMessageDelivery [
+	<gtExample>
+	| process before gateway receiveTask timerEvent afterReceive incoming receiveFlow timerFlow outgoing message timerDefinition execution producer activation gatewayExecution occurrence receiveExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'wait'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	receiveTask := CPReceiveTask new identifier: 'receive'; messageRef: message; yourself.
+	timerDefinition := CPTimerEventDefinition new.
+	timerEvent := CPTimerIntermediateEvent new identifier: 'timerEvent'; eventDefinitions: { timerDefinition }; yourself.
+	afterReceive := CPTask new identifier: 'afterReceive'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	receiveFlow := CPSequenceFlow new identifier: 'receiveFlow'; sourceRef: gateway; targetRef: receiveTask; yourself.
+	timerFlow := CPSequenceFlow new identifier: 'timerFlow'; sourceRef: gateway; targetRef: timerEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: receiveTask; targetRef: afterReceive; yourself.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution beginExclusiveEventBasedGateway: gateway consuming: activation.
+	self assert: (execution allWaitingMessageSubscriptionsFor: message) size equals: 1.
+	self assert: execution allWaitingDeliverableTimerSubscriptions size equals: 1.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #receive1; definition: message; yourself.
+	execution deliverMessageOccurrence: occurrence.
+	self assert: gatewayExecution isResolved.
+	receiveExecution := execution activityExecutions detect: [ :each | each definition == receiveTask ].
+	self assert: receiveExecution class == CPReceiveTaskExecution.
+	self assert: receiveExecution isCompleted.
+	self assert: receiveExecution receivedOccurrence == occurrence.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	self assert: execution allWaitingDeliverableTimerSubscriptions isEmpty.
+	self assert: (gatewayExecution subscriptions detect: [ :each | each sequenceFlow == timerFlow ]) isWithdrawn.
+	^ gatewayExecution
+]

@@ -47,6 +47,11 @@ CPFlowElement >> isTask [
 ]
 
 { #category : 'testing' }
+CPFlowElement >> isReceiveTask [
+	^ false
+]
+
+{ #category : 'testing' }
 CPFlowElement >> isSubProcess [
 	^ false
 ]

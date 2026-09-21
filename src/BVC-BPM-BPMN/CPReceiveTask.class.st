@@ -6,6 +6,9 @@ Class {
 	#package : 'BVC-BPM-BPMN'
 }
 
+{ #category : 'testing' }
+CPReceiveTask >> isReceiveTask [ ^ true ]
+
 { #category : 'task type' }
 CPReceiveTask class >> taskTypeLabel [ ^ 'Receive' ]
 { #category : 'task type' }

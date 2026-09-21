@@ -1132,50 +1132,30 @@ CPExecutionScope >> triggerIntermediateCatchEventExecution: anEventExecution wit
 
 { #category : 'events - event based' }
 CPExecutionScope >> triggerEventBasedGatewayExecution: aGatewayExecution subscription: aSubscription with: anOccurrence [
-	| eventExecution |
 	(gatewayExecutions identityIncludes: aGatewayExecution) ifFalse: [
 		self error: 'The Event-Based Gateway execution does not belong to this execution scope.' ].
 	aGatewayExecution acceptOccurrence: anOccurrence for: aSubscription.
-	eventExecution := CPIntermediateCatchEventExecution new
-		definition: aSubscription target;
-		scope: self;
-		yourself.
-	eventExecutions add: eventExecution.
-	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
-	^ eventExecution
+	^ aSubscription continueWithOccurrence: anOccurrence inScope: self
 ]
 
 { #category : 'events - event based' }
 CPExecutionScope >> triggerEventBasedGatewayExecutionWithAcceptedOccurrence: aGatewayExecution subscription: aSubscription with: anOccurrence [
-	| eventExecution |
 	(gatewayExecutions identityIncludes: aGatewayExecution) ifFalse: [
 		self error: 'The Event-Based Gateway execution does not belong to this execution scope.' ].
 	(self processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
 		self error: 'The occurrence must already be accepted before broadcast gateway delivery.' ].
 	aGatewayExecution triggerAcceptedOccurrence: anOccurrence for: aSubscription.
-	eventExecution := CPIntermediateCatchEventExecution new
-		definition: aSubscription target;
-		scope: self;
-		yourself.
-	eventExecutions add: eventExecution.
-	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
-	^ eventExecution
+	^ aSubscription continueWithOccurrence: anOccurrence inScope: self
 ]
 
 { #category : 'events - event based' }
 CPExecutionScope >> triggerConditionalEventBasedGatewaySubscription: aSubscription [
-	| gatewayExecution eventExecution |
+	| gatewayExecution |
 	gatewayExecution := aSubscription gatewayExecution.
 	(gatewayExecutions identityIncludes: gatewayExecution) ifFalse: [
 		self error: 'The Event-Based Gateway execution does not belong to this execution scope.' ].
 	gatewayExecution triggerConditionalSubscription: aSubscription.
-	eventExecution := CPIntermediateCatchEventExecution new
-		definition: aSubscription target;
-		scope: self;
-		yourself.
-	eventExecutions add: eventExecution.
-	eventExecution triggerWithoutOccurrence.
-	^ eventExecution
+	^ aSubscription continueConditionalInScope: self
 ]
 
 
@@ -1903,6 +1883,27 @@ CPExecutionScope >> triggerReceiveTaskExecution: anActivityExecution with: anOcc
 	anActivityExecution complete.
 	self produceOutgoingControlFor: anActivityExecution.
 	^ anActivityExecution
+]
+
+
+{ #category : 'gateways - event based' }
+CPExecutionScope >> completeEventBasedGatewayReceiveTask: aReceiveTask withAcceptedOccurrence: anOccurrence [
+	| execution |
+	aReceiveTask messageRef ifNil: [ self error: 'A Receive Task requires a Message.' ].
+	anOccurrence definition == aReceiveTask messageRef ifFalse: [
+		self error: 'The occurrence does not carry the Message awaited by this Receive Task.' ].
+	(self processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
+		self error: 'The Event-Based Gateway occurrence must be accepted before the Receive Task continues.' ].
+	execution := self createReceiveTaskExecutionFor: aReceiveTask.
+	(execution prepareForActivation) ifFalse: [
+		self error: 'The Receive Task following the Event-Based Gateway does not have its required inputs available.' ].
+	execution activate.
+	execution acceptReceivedOccurrence: anOccurrence.
+	execution populateSingleDataOutputFromOccurrence: anOccurrence.
+	execution beginCompletion.
+	execution complete.
+	self produceOutgoingControlFor: execution.
+	^ execution
 ]
 
 
