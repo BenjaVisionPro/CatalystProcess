@@ -251,3 +251,17 @@ CPBpmService >> terminateProcessWorkUnit: aCPTerminateProcessWorkUnit [
 	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
 	^ execution terminate
 ]
+
+{ #category : 'process query' }
+CPBpmService >> processExecutionSnapshotForIdentifier: anExecutionIdentifier [
+	| execution |
+	execution := self processExecutionForIdentifier: anExecutionIdentifier.
+	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	^ CPProcessExecutionSnapshot from: execution
+]
+
+{ #category : 'process query' }
+CPBpmService >> queryProcessExecutionWorkUnit: aCPQueryProcessExecutionWorkUnit [
+	^ self processExecutionSnapshotForIdentifier:
+		aCPQueryProcessExecutionWorkUnit processExecutionIdentifier
+]
