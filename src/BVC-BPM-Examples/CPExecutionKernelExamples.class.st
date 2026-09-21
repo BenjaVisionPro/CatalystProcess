@@ -10243,3 +10243,59 @@ CPExecutionKernelExamples >> bpmProcessExecutionSnapshotIncludesTenantIdentity [
 	self assert: snapshot deploymentIdentifier isNil.
 	^ snapshot
 ]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmQueryProcessDeploymentsWorkUnitDiscoversRegisteredDeployments [
+	<gtExample>
+	| tenant process activeDeployment draftDeployment root configuration service workUnit context snapshots activeSnapshot draftSnapshot returnedSnapshots |
+	tenant := CPTenant new identifier: 'deployment-query-tenant'; yourself.
+	process := CPProcess new identifier: 'deployment-query-process'; yourself.
+	activeDeployment := CPProcessDeployment new
+		identifier: 'active-deployment';
+		label: 'Active deployment';
+		tenant: tenant;
+		processDefinition: process;
+		processKey: 'orders';
+		version: 3;
+		deployedAt: (DateAndTime year: 2026 month: 9 day: 21 hour: 12 minute: 0 second: 0 offset: 0 hours);
+		yourself.
+	activeDeployment activate.
+	draftDeployment := CPProcessDeployment new
+		identifier: 'draft-deployment';
+		label: 'Draft deployment';
+		processKey: 'draft-orders';
+		version: 4;
+		yourself.
+	root := CPSystemRoot new.
+	root addProcessDeployment: activeDeployment.
+	root addProcessDeployment: draftDeployment.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPQueryProcessDeploymentsWorkUnit new.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	snapshots := workUnit executeInContext: context.
+	self assert: snapshots size equals: 2.
+	activeSnapshot := snapshots first.
+	draftSnapshot := snapshots second.
+	self assert: activeSnapshot class == CPProcessDeploymentSnapshot.
+	self assert: activeSnapshot deploymentIdentifier equals: activeDeployment identifier.
+	self assert: activeSnapshot label equals: activeDeployment label.
+	self assert: activeSnapshot tenantIdentifier equals: tenant identifier.
+	self assert: activeSnapshot processIdentifier equals: process identifier.
+	self assert: activeSnapshot processKey equals: 'orders'.
+	self assert: activeSnapshot version equals: 3.
+	self assert: activeSnapshot deployedAt equals: activeDeployment deployedAt.
+	self assert: activeSnapshot isActive.
+	self assert: draftSnapshot deploymentIdentifier equals: draftDeployment identifier.
+	self assert: draftSnapshot tenantIdentifier isNil.
+	self assert: draftSnapshot processIdentifier isNil.
+	self assert: draftSnapshot isActive not.
+	returnedSnapshots := snapshots copy.
+	returnedSnapshots at: 1 put: nil.
+	self assert: service processDeploymentSnapshots first deploymentIdentifier equals: activeDeployment identifier.
+	^ snapshots
+]

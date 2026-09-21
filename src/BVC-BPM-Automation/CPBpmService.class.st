@@ -277,3 +277,14 @@ CPBpmService >> processExecutionSnapshots [
 CPBpmService >> queryProcessExecutionsWorkUnit: aCPQueryProcessExecutionsWorkUnit [
 	^ self processExecutionSnapshots
 ]
+
+{ #category : 'deployment query' }
+CPBpmService >> processDeploymentSnapshots [
+	^ (systemRoot processDeployments collect: [ :each |
+		CPProcessDeploymentSnapshot from: each ]) asArray
+]
+
+{ #category : 'deployment query' }
+CPBpmService >> queryProcessDeploymentsWorkUnit: aCPQueryProcessDeploymentsWorkUnit [
+	^ self processDeploymentSnapshots
+]
