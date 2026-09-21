@@ -97,7 +97,7 @@ CPBpmService >> deliverSignalWorkUnit: aCPDeliverSignalWorkUnit [
 CPBpmService >> waitingSignalIn: aProcessExecution identifiedBy: aSignalIdentifier [
 	| signals |
 	aSignalIdentifier ifNil: [ self error: 'A Signal identifier is required.' ].
-	signals := (aProcessExecution allWaitingSignalSubscriptions collect: #signal)
+	signals := (aProcessExecution allWaitingDeliverableSignalSubscriptions collect: #signal)
 		select: [ :each | each identifier = aSignalIdentifier ].
 	signals := signals asSet asOrderedCollection.
 	signals isEmpty ifTrue: [ self error: 'No waiting Signal has the requested identifier.' ].
