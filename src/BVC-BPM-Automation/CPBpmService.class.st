@@ -200,3 +200,12 @@ CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
 	systemRoot addProcessExecution: execution.
 	^ execution
 ]
+
+{ #category : 'user task completion' }
+CPBpmService >> completeUserTaskWorkUnit: aCPCompleteUserTaskWorkUnit [
+    | execution workItem |
+    execution := self processExecutionForIdentifier: aCPCompleteUserTaskWorkUnit processExecutionIdentifier.
+    execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+    workItem := execution pendingUserTaskWorkItemIdentifiedBy: aCPCompleteUserTaskWorkUnit workItemIdentifier.
+    ^ workItem completeThroughExecution
+]

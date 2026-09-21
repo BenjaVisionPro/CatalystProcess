@@ -594,3 +594,8 @@ CPMultiInstanceActivityExecution >> manualTaskResourceAssignments: aCollection [
 	manualTaskResourceAssignments := aCollection asOrderedCollection.
 	^ manualTaskResourceAssignments
 ]
+
+{ #category : 'work items' }
+CPMultiInstanceActivityExecution >> completeUserTaskWorkInScope: anExecutionScope [
+    ^ anExecutionScope completeMultiInstanceUserTaskExecution: self
+]

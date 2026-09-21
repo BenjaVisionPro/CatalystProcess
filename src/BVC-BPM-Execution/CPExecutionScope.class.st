@@ -3584,3 +3584,14 @@ CPExecutionScope >> completeStandardLoopManualTaskIteration: anIteration [
 	self completeStandardLoopIteration: anIteration of: outerExecution.
 	^ anIteration
 ]
+
+{ #category : 'work items' }
+CPExecutionScope >> allPendingUserTaskWorkItems [
+    | items |
+    items := OrderedCollection new.
+    activityExecutions do: [ :each |
+        items addAll: (each userTaskWorkItems select: [ :item | item isPending ]) ].
+    childScopes do: [ :each |
+        items addAll: each allPendingUserTaskWorkItems ].
+    ^ items
+]

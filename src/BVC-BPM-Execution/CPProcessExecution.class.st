@@ -228,3 +228,14 @@ CPProcessExecution >> nextCompensationCompletionSequence [
 	nextCompensationCompletionSequence := nextCompensationCompletionSequence + 1.
 	^ sequence
 ]
+
+{ #category : 'work items' }
+CPProcessExecution >> pendingUserTaskWorkItemIdentifiedBy: aWorkItemIdentifier [
+    | matches |
+    aWorkItemIdentifier ifNil: [ self error: 'A User Task work item identifier is required.' ].
+    matches := self allPendingUserTaskWorkItems select: [ :each |
+        each identifier = aWorkItemIdentifier ].
+    matches isEmpty ifTrue: [ self error: 'No pending User Task work item has the requested identifier.' ].
+    matches size = 1 ifFalse: [ self error: 'More than one pending User Task work item has the requested identifier.' ].
+    ^ matches first
+]

@@ -850,3 +850,8 @@ CPActivityExecution >> throwMultiInstanceBehaviorEventDefinition: anEventDefinit
 	anInstance recordThrownOccurrence: occurrence.
 	^ occurrence
 ]
+
+{ #category : 'work items' }
+CPActivityExecution >> userTaskWorkItems [
+    ^ #()
+]

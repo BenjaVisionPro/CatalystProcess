@@ -9825,3 +9825,102 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitRejectsInactiveDeploymentWit
 	self assert: root processExecutions isEmpty.
 	^ deployment
 ]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitCompletesExactPendingWorkItem [
+    <gtExample>
+    | process task environment execution taskExecution workItem root configuration service workUnit context result |
+    process := CPProcess new identifier: 'runtime-user-task-process'; yourself.
+    task := CPUserTask new identifier: 'review'; yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    workItem := taskExecution workItem.
+    root := CPSystemRoot new.
+    root addProcessExecution: execution.
+    configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+    service := CPBpmService new installWithConfiguration: configuration.
+    workUnit := CPCompleteUserTaskWorkUnit
+        processExecutionIdentifier: execution executionIdentifier
+        workItemIdentifier: workItem identifier.
+    self assert: workUnit class serviceClass == CPBpmService.
+    self assert: workUnit class requiredCapabilities isEmpty.
+    context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+    context service: service.
+    context bindCapabilities: Dictionary new.
+    result := workUnit executeInContext: context.
+    self assert: result == taskExecution.
+    self assert: workItem isCompleted.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitTargetsMultiInstanceWorkItemIdentity [
+    <gtExample>
+    | process task loop cardinality environment execution taskExecution firstInstance secondInstance firstWorkItem secondWorkItem root configuration service workUnit context |
+    process := CPProcess new identifier: 'runtime-mi-user-task-process'; yourself.
+    cardinality := CPExpression new identifier: 'cardinality'; yourself.
+    loop := CPMultiInstanceLoopCharacteristics new
+        loopCardinality: cardinality;
+        yourself.
+    task := CPUserTask new
+        identifier: 'review';
+        loopCharacteristics: loop;
+        yourself.
+    process addFlowElement: task.
+    environment := CPExampleExecutionEnvironment new
+        expression: cardinality evaluatesTo: 2;
+        yourself.
+    execution := CPProcessExecution for: process environment: environment.
+    taskExecution := execution createUserTaskExecutionFor: task.
+    execution activateUserTaskExecution: taskExecution.
+    firstInstance := taskExecution multiInstanceActivityExecutions first.
+    secondInstance := taskExecution multiInstanceActivityExecutions second.
+    firstWorkItem := firstInstance userTaskWorkItem.
+    secondWorkItem := secondInstance userTaskWorkItem.
+    root := CPSystemRoot new.
+    root addProcessExecution: execution.
+    configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+    service := CPBpmService new installWithConfiguration: configuration.
+    workUnit := CPCompleteUserTaskWorkUnit
+        processExecutionIdentifier: execution executionIdentifier
+        workItemIdentifier: firstWorkItem identifier.
+    context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+    context service: service.
+    context bindCapabilities: Dictionary new.
+    workUnit executeInContext: context.
+    self assert: firstWorkItem isCompleted.
+    self assert: firstInstance isCompleted.
+    self assert: secondWorkItem isPending.
+    self assert: secondInstance isActive.
+    self assert: taskExecution isActive.
+    ^ taskExecution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitRejectsCompletedWorkItemIdentity [
+    <gtExample>
+    | taskExecution execution workItem root configuration service workUnit context rejected |
+    taskExecution := self userTaskWaitsForDistributedWorkCompletion.
+    execution := taskExecution scope.
+    workItem := taskExecution workItem.
+    root := CPSystemRoot new.
+    root addProcessExecution: execution.
+    configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+    service := CPBpmService new installWithConfiguration: configuration.
+    workUnit := CPCompleteUserTaskWorkUnit
+        processExecutionIdentifier: execution executionIdentifier
+        workItemIdentifier: workItem identifier.
+    context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+    context service: service.
+    context bindCapabilities: Dictionary new.
+    rejected := false.
+    [ workUnit executeInContext: context ] on: Error do: [ :error | rejected := true ].
+    self assert: rejected.
+    self assert: workItem isCompleted.
+    self assert: taskExecution isCompleted.
+    ^ taskExecution
+]

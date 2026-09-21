@@ -251,3 +251,8 @@ CPStandardLoopIterationExecution >> manualTaskResourceAssignments: aCollection [
 	manualTaskResourceAssignments := aCollection asOrderedCollection.
 	^ manualTaskResourceAssignments
 ]
+
+{ #category : 'work items' }
+CPStandardLoopIterationExecution >> completeUserTaskWorkInScope: anExecutionScope [
+    ^ anExecutionScope completeStandardLoopUserTaskIteration: self
+]

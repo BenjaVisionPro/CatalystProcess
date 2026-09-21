@@ -56,3 +56,20 @@ CPUserTaskExecution >> standardLoopIterationDidBegin: anIteration [
 	scope distributeStandardLoopUserTaskIteration: anIteration.
 	^ anIteration
 ]
+
+{ #category : 'work items' }
+CPUserTaskExecution >> userTaskWorkItems [
+    | items |
+    items := OrderedCollection new.
+    workItem ifNotNil: [ items add: workItem ].
+    self multiInstanceActivityExecutions do: [ :each |
+        each userTaskWorkItem ifNotNil: [ :item | items add: item ] ].
+    self standardLoopIterations do: [ :each |
+        each userTaskWorkItem ifNotNil: [ :item | items add: item ] ].
+    ^ items
+]
+
+{ #category : 'work items' }
+CPUserTaskExecution >> completeUserTaskWorkInScope: anExecutionScope [
+    ^ anExecutionScope completeUserTaskExecution: self
+]

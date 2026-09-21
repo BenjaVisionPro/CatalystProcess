@@ -116,3 +116,10 @@ CPUserTaskWorkItem >> taskPriority: anInteger [
     taskPriority := anInteger.
     ^ taskPriority
 ]
+
+{ #category : 'lifecycle' }
+CPUserTaskWorkItem >> completeThroughExecution [
+    self isPending ifFalse: [ self error: 'Only a pending User Task work item can complete.' ].
+    activityExecution ifNil: [ self error: 'A User Task work item requires its Activity execution to complete.' ].
+    ^ activityExecution completeUserTaskWorkInScope: activityExecution scope
+]
