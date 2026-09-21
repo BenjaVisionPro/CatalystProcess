@@ -4,6 +4,7 @@ Class {
 	#instVars : [
 		'attachedActivityExecution',
 		'waiting',
+		'subscription',
 	'withdrawn'
 	],
 	#category : 'BVC-BPM-Execution',
@@ -38,6 +39,7 @@ CPBoundaryEventExecution >> isWithdrawn [ ^ withdrawn ]
 CPBoundaryEventExecution >> withdraw [
 	waiting ifFalse: [ self error: 'Only a waiting Boundary Event can be withdrawn.' ].
 	waiting := false.
+	subscription ifNotNil: [ subscription isWaiting ifTrue: [ subscription cancel ] ].
 	withdrawn := true.
 	^ self
 ]
@@ -67,3 +69,23 @@ CPBoundaryEventExecution >> triggerWithAcceptedOccurrence: anOccurrence [
 
 { #category : 'testing' }
 CPBoundaryEventExecution >> isBoundaryEventExecution [ ^ true ]
+
+{ #category : 'accessing' }
+CPBoundaryEventExecution >> subscription [ ^ subscription ]
+{ #category : 'accessing' }
+CPBoundaryEventExecution >> subscription: aSubscription [ subscription := aSubscription ]
+{ #category : 'conditional events' }
+CPBoundaryEventExecution >> triggerWithoutOccurrence [
+	waiting ifFalse: [ self error: 'This Boundary Event has already been triggered.' ].
+	attachedActivityExecution isActive ifFalse: [ self error: 'A Boundary Event can trigger only while its attached Activity is Active.' ].
+	waiting := false.
+	self definition cancelActivity ifTrue: [
+		attachedActivityExecution subScope ifNotNil: [ :aSubScope | aSubScope terminateRemainingWork ].
+		self definition interruptsActivityWithFailure
+			ifTrue: [ attachedActivityExecution beginFailure. attachedActivityExecution finishFailure ]
+			ifFalse: [ attachedActivityExecution beginTermination. attachedActivityExecution finishTermination ].
+		self scope withdrawBoundaryEventsAttachedTo: attachedActivityExecution ].
+	self definition outgoing do: [ :eachFlow |
+		self recordProducedFlowActivation: (self scope activateSequenceFlow: eachFlow producedBy: self) ].
+	^ self
+]

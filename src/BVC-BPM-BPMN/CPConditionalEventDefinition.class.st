@@ -9,3 +9,6 @@ CPConditionalEventDefinition >> condition [ ^ condition ]
 CPConditionalEventDefinition >> condition: anExpression [ condition := anExpression ]
 { #category : 'descriptions' }
 CPConditionalEventDefinition >> conditionDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #condition; classes: { CPExpression }; reference: CPExpression new identifierDescription; label: 'Condition'; priority: 100; group: 'Condition'; beRequired; yourself ]
+
+{ #category : 'testing' }
+CPConditionalEventDefinition >> isConditionalEventDefinition [ ^ true ]

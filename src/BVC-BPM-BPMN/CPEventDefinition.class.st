@@ -59,3 +59,6 @@ CPEventDefinition >> isCompensationEventDefinition [
 CPEventDefinition >> resultDefinition [
 	^ nil
 ]
+
+{ #category : 'testing' }
+CPEventDefinition >> isConditionalEventDefinition [ ^ false ]

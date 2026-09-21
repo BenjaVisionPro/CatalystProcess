@@ -18,6 +18,7 @@ Class {
 		'eventSubProcessTimerSubscriptions',
 		'signalSubscriptions',
 		'conditionalSubscriptions',
+		'eventSubProcessConditionalSubscriptions',
 		'compensationRecords',
 		'itemValues',
 		'itemValueProducers'
@@ -49,6 +50,7 @@ CPExecutionScope >> initialize [
 	eventSubProcessTimerSubscriptions := OrderedCollection new.
 	signalSubscriptions := OrderedCollection new.
 	conditionalSubscriptions := OrderedCollection new.
+	eventSubProcessConditionalSubscriptions := OrderedCollection new.
 	compensationRecords := OrderedCollection new.
 	itemValues := IdentityDictionary new.
 	itemValueProducers := IdentityDictionary new
@@ -161,6 +163,7 @@ CPExecutionScope >> acceptSignalEventSubProcessSubscription: aSubscription accep
 	handlerScope armMessageEventSubProcesses.
 	handlerScope armSignalEventSubProcesses.
 	handlerScope armTimerEventSubProcesses.
+	handlerScope armConditionalEventSubProcesses.
 	startEvent isInterrupting ifFalse: [ self armSignalEventSubProcess: aSubscription eventSubProcess ].
 	^ handlerExecution
 ]
@@ -262,6 +265,7 @@ CPExecutionScope >> acceptTimerEventSubProcessSubscription: aSubscription occurr
 	handlerScope armMessageEventSubProcesses.
 	handlerScope armSignalEventSubProcesses.
 	handlerScope armTimerEventSubProcesses.
+	handlerScope armConditionalEventSubProcesses.
 	startEvent isInterrupting ifFalse: [ self armTimerEventSubProcess: aSubscription eventSubProcess ].
 	^ handlerExecution
 ]
@@ -623,6 +627,7 @@ CPExecutionScope >> acceptMessageEventSubProcessSubscription: aSubscription occu
 	handlerScope armMessageEventSubProcesses.
 	handlerScope armSignalEventSubProcesses.
 	handlerScope armTimerEventSubProcesses.
+	handlerScope armConditionalEventSubProcesses.
 	startEvent isInterrupting ifFalse: [ self armMessageEventSubProcess: aSubscription eventSubProcess ].
 	^ handlerExecution
 ]
@@ -668,9 +673,7 @@ CPExecutionScope >> evaluateConditionalSubscription: aSubscription [
 	aSubscription isWaiting ifFalse: [
 		self error: 'Only a waiting Conditional subscription can be evaluated.' ].
 	(self environment evaluateExpression: aSubscription condition in: self) ifFalse: [ ^ false ].
-	aSubscription trigger.
-	aSubscription waitingExecution triggerWithoutOccurrence.
-	^ true
+	^ aSubscription triggerInScope: self
 ]
 
 
@@ -1305,6 +1308,7 @@ CPExecutionScope >> activateSubProcessScope: aSubScope [
 	aSubScope armMessageEventSubProcesses.
 	aSubScope armSignalEventSubProcesses.
 	aSubScope armTimerEventSubProcesses.
+	aSubScope armConditionalEventSubProcesses.
 	^ aSubScope
 ]
 
@@ -1343,6 +1347,7 @@ CPExecutionScope >> completeExecution [
 	self cancelMessageEventSubProcessSubscriptions.
 	self cancelSignalEventSubProcessSubscriptions.
 	self cancelTimerEventSubProcessSubscriptions.
+	self cancelConditionalEventSubProcessSubscriptions.
 	^ owningActivity subProcessScopeDidComplete: self
 ]
 
@@ -1994,6 +1999,8 @@ CPExecutionScope >> terminateRemainingWork [
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	eventSubProcessTimerSubscriptions do: [ :eachSubscription |
 		eachSubscription canReceiveOccurrence ifTrue: [ eachSubscription cancel ] ].
+	eventSubProcessConditionalSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
 		eachSubscription canReceiveOccurrence ifTrue: [ eachSubscription cancel ] ].
 	signalSubscriptions do: [ :eachSubscription |
@@ -3606,3 +3613,105 @@ CPExecutionScope >> allPendingExternalInvocations [
 		invocations addAll: each allPendingExternalInvocations ].
 	^ invocations
 ]
+
+{ #category : 'events - conditional boundary' }
+CPExecutionScope >> beginConditionalBoundaryEvent: aBoundaryEvent attachedTo: anActivityExecution [
+	| definitions conditionalDefinition execution subscription |
+	definitions := aBoundaryEvent eventDefinitions.
+	(definitions size = 1 and: [ definitions first isConditionalEventDefinition ]) ifFalse: [
+		self error: 'A Conditional Boundary Event requires exactly one Conditional Event Definition.' ].
+	conditionalDefinition := definitions first.
+	conditionalDefinition condition ifNil: [ self error: 'A Conditional Boundary Event requires a condition.' ].
+	execution := self beginBoundaryEvent: aBoundaryEvent attachedTo: anActivityExecution.
+	subscription := CPConditionalSubscription new
+		waitingExecution: execution;
+		condition: conditionalDefinition condition;
+		yourself.
+	execution subscription: subscription.
+	conditionalSubscriptions add: subscription.
+	self evaluateConditionalSubscription: subscription.
+	^ execution
+]
+
+{ #category : 'events - conditional event sub-process' }
+CPExecutionScope >> conditionalStartEventFor: anEventSubProcess [
+	| startEvents startEvent definitions |
+	anEventSubProcess validateEventSubProcessStructure.
+	startEvents := anEventSubProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [ self error: 'A Conditional Event SubProcess requires exactly one Start Event.' ].
+	startEvent := startEvents first.
+	startEvent isConditionalStartEvent ifFalse: [ self error: 'A Conditional Event SubProcess requires a Conditional Start Event.' ].
+	startEvent incoming isEmpty ifFalse: [ self error: 'A Conditional Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	definitions := startEvent eventDefinitions.
+	(definitions size = 1 and: [ definitions first isConditionalEventDefinition ]) ifFalse: [
+		self error: 'A Conditional Start Event requires exactly one Conditional Event Definition.' ].
+	definitions first condition ifNil: [ self error: 'A Conditional Start Event requires a condition.' ].
+	^ startEvent
+]
+
+{ #category : 'events - conditional event sub-process' }
+CPExecutionScope >> armConditionalEventSubProcesses [
+	definition flowElements do: [ :each |
+		(each isSubProcess and: [ each isEventSubProcess and: [
+			each flowElements anySatisfy: [ :candidate | candidate isStartEvent and: [ candidate isConditionalStartEvent ] ] ] ]) ifTrue: [
+			self armConditionalEventSubProcess: each ] ].
+	^ self
+]
+
+{ #category : 'events - conditional event sub-process' }
+CPExecutionScope >> armConditionalEventSubProcess: anEventSubProcess [
+	| startEvent subscription |
+	(eventSubProcessConditionalSubscriptions anySatisfy: [ :each | each isWaiting and: [ each eventSubProcess == anEventSubProcess ] ]) ifTrue: [
+		self error: 'A Conditional Event SubProcess already has a waiting subscription in this execution scope.' ].
+	startEvent := self conditionalStartEventFor: anEventSubProcess.
+	subscription := CPConditionalEventSubProcessSubscription new
+		scope: self;
+		eventSubProcess: anEventSubProcess;
+		startEvent: startEvent;
+		condition: startEvent eventDefinitions first condition;
+		yourself.
+	eventSubProcessConditionalSubscriptions add: subscription.
+	self evaluateConditionalEventSubProcessSubscription: subscription.
+	^ subscription
+]
+
+{ #category : 'events - conditional event sub-process' }
+CPExecutionScope >> evaluateConditionalEventSubProcessSubscription: aSubscription [
+	(eventSubProcessConditionalSubscriptions identityIncludes: aSubscription) ifFalse: [ self error: 'The Conditional Event SubProcess subscription does not belong to this execution scope.' ].
+	aSubscription isWaiting ifFalse: [ self error: 'Only a waiting Conditional Event SubProcess subscription can be evaluated.' ].
+	(self environment evaluateExpression: aSubscription condition in: self) ifFalse: [ ^ false ].
+	^ aSubscription triggerInScope: self
+]
+
+{ #category : 'events - conditional event sub-process' }
+CPExecutionScope >> acceptConditionalEventSubProcessSubscription: aSubscription [
+	| startEvent handlerExecution handlerScope |
+	(eventSubProcessConditionalSubscriptions identityIncludes: aSubscription) ifFalse: [ self error: 'The Conditional Event SubProcess subscription does not belong to this execution scope.' ].
+	aSubscription isWaiting ifFalse: [ self error: 'Only a waiting Conditional Event SubProcess subscription can trigger.' ].
+	self canInitiateSignalEventSubProcess ifFalse: [ self error: 'A Conditional Event SubProcess can be initiated only while its containing scope is active.' ].
+	startEvent := aSubscription startEvent.
+	aSubscription trigger.
+	startEvent isInterrupting ifTrue: [
+		owningActivity ifNotNil: [ owningActivity beginTermination ].
+		self terminateRemainingWork ].
+	handlerExecution := self createActivityExecutionFor: aSubscription eventSubProcess.
+	handlerExecution activate.
+	handlerScope := handlerExecution createSubScopeFor: aSubscription eventSubProcess.
+	handlerScope executeStartEvent: startEvent occurrence: nil.
+	handlerScope armMessageEventSubProcesses.
+	handlerScope armSignalEventSubProcesses.
+	handlerScope armTimerEventSubProcesses.
+	handlerScope armConditionalEventSubProcesses.
+	startEvent isInterrupting ifFalse: [ self armConditionalEventSubProcess: aSubscription eventSubProcess ].
+	^ handlerExecution
+]
+
+{ #category : 'events - conditional event sub-process' }
+CPExecutionScope >> cancelConditionalEventSubProcessSubscriptions [
+	eventSubProcessConditionalSubscriptions do: [ :each | each isWaiting ifTrue: [ each cancel ] ].
+	^ self
+]
+
+{ #category : 'accessing' }
+CPExecutionScope >> eventSubProcessConditionalSubscriptions [ ^ eventSubProcessConditionalSubscriptions ]
+

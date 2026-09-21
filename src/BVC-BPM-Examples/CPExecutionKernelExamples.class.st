@@ -10384,3 +10384,68 @@ CPExecutionKernelExamples >> bpmReevaluateConditionalWorkUnitLeavesUnsatisfiedSu
 	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
 	^ eventExecution
 ]
+
+{ #category : 'examples - conditional events' }
+CPExecutionKernelExamples >> interruptingConditionalBoundaryEventTriggersWhenConditionBecomesTrue [
+	<gtExample>
+	| process task boundary condition definition after boundaryFlow environment execution taskExecution boundaryExecution subscription |
+	process := CPProcess new identifier: 'conditionalBoundaryProcess'; yourself.
+	task := CPUserTask new identifier: 'work'; yourself.
+	condition := CPExpression new identifier: 'boundaryCondition'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'boundaryConditionalDefinition'; condition: condition; yourself.
+	boundary := CPBoundaryEvent new identifier: 'conditionalBoundary'; attachedToRef: task; cancelActivity: true; yourself.
+	boundary eventDefinitions add: definition.
+	after := CPTask new identifier: 'afterBoundary'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'conditionalBoundaryFlow'; sourceRef: boundary; targetRef: after; yourself.
+	process addFlowElement: task; addFlowElement: boundary; addFlowElement: after; addFlowElement: boundaryFlow.
+	environment := CPExampleExecutionEnvironment new.
+	environment expression: condition evaluatesTo: false.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution readyActivityExecution: taskExecution.
+	execution activateUserTaskExecution: taskExecution.
+	boundaryExecution := execution beginConditionalBoundaryEvent: boundary attachedTo: taskExecution.
+	subscription := boundaryExecution subscription.
+	self assert: subscription isWaiting.
+	self assert: boundaryExecution isWaiting.
+	environment expression: condition evaluatesTo: true.
+	self assert: (execution evaluateConditionalSubscription: subscription).
+	self assert: subscription isTriggered.
+	self assert: boundaryExecution isTriggered not.
+	self assert: boundaryExecution isWaiting not.
+	self assert: taskExecution state class equals: CPActivityTerminatedState.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - conditional events' }
+CPExecutionKernelExamples >> nonInterruptingConditionalEventSubProcessRearmsAfterTrigger [
+	<gtExample>
+	| process start condition definition eventSubProcess conditionalStart environment execution firstSubscription firstHandler secondSubscription |
+	process := CPProcess new identifier: 'conditionalEventSubProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	condition := CPExpression new identifier: 'eventSubProcessCondition'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'eventSubProcessConditionalDefinition'; condition: condition; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'conditionalHandler'; triggeredByEvent: true; yourself.
+	conditionalStart := CPConditionalStartEvent new identifier: 'conditionalStart'; isInterrupting: false; yourself.
+	conditionalStart eventDefinitions add: definition.
+	eventSubProcess addFlowElement: conditionalStart.
+	process addFlowElement: start; addFlowElement: eventSubProcess.
+	environment := CPExampleExecutionEnvironment new.
+	environment expression: condition evaluatesTo: false.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	self assert: execution eventSubProcessConditionalSubscriptions size equals: 1.
+	firstSubscription := execution eventSubProcessConditionalSubscriptions first.
+	self assert: firstSubscription isWaiting.
+	environment expression: condition evaluatesTo: true.
+	firstHandler := firstSubscription reevaluateInScope: execution.
+	self assert: firstSubscription isTriggered.
+	self assert: firstHandler definition == eventSubProcess.
+	self assert: firstHandler isActive.
+	self assert: execution eventSubProcessConditionalSubscriptions size equals: 2.
+	secondSubscription := execution eventSubProcessConditionalSubscriptions last.
+	self assert: secondSubscription ~~ firstSubscription.
+	self assert: secondSubscription isWaiting.
+	^ execution
+]

@@ -42,3 +42,16 @@ CPConditionalSubscription >> cancel [
 	cancelled := true.
 	^ self
 ]
+
+{ #category : 'conditional events' }
+CPConditionalSubscription >> triggerInScope: anExecutionScope [
+	self trigger.
+	waitingExecution triggerWithoutOccurrence.
+	^ true
+]
+
+{ #category : 'accessing' }
+CPConditionalSubscription >> executionScope [ ^ waitingExecution scope ]
+
+{ #category : 'conditional events' }
+CPConditionalSubscription >> reevaluateInScope: anExecutionScope [ ^ anExecutionScope evaluateConditionalSubscription: self ]

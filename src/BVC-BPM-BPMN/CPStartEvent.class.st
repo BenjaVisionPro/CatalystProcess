@@ -100,3 +100,6 @@ CPStartEvent >> isSignalStartEvent [
 CPStartEvent >> isTimerStartEvent [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPStartEvent >> isConditionalStartEvent [ ^ false ]

@@ -18,3 +18,6 @@ CPConditionalStartEvent >> conditionAllowsInstantiationIn: anExecutionScope [
 	condition ifNil: [ ^ false ].
 	^ anExecutionScope environment evaluateExpression: condition in: anExecutionScope
 ]
+
+{ #category : 'testing' }
+CPConditionalStartEvent >> isConditionalStartEvent [ ^ true ]

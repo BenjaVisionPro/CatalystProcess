@@ -71,6 +71,7 @@ CPProcessExecution >> start [
 	self armMessageEventSubProcesses.
 	self armSignalEventSubProcesses.
 	self armTimerEventSubProcesses.
+	self armConditionalEventSubProcesses.
 	^ executions
 ]
 
@@ -102,6 +103,7 @@ CPProcessExecution >> complete [
 	self cancelMessageEventSubProcessSubscriptions.
 	self cancelSignalEventSubProcessSubscriptions.
 	self cancelTimerEventSubProcessSubscriptions.
+	self cancelConditionalEventSubProcessSubscriptions.
 	completed := true.
 	^ self
 ]
@@ -134,6 +136,7 @@ CPProcessExecution >> startWithOccurrence: anOccurrence [
 	self armMessageEventSubProcesses.
 	self armSignalEventSubProcesses.
 	self armTimerEventSubProcesses.
+	self armConditionalEventSubProcesses.
 	^ execution
 ]
 
@@ -152,6 +155,7 @@ CPProcessExecution >> startWhenConditionSatisfied [
 	self armMessageEventSubProcesses.
 	self armSignalEventSubProcesses.
 	self armTimerEventSubProcesses.
+	self armConditionalEventSubProcesses.
 	^ execution
 ]
 
