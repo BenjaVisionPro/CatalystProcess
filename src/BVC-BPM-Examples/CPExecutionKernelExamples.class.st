@@ -9412,7 +9412,7 @@ CPExecutionKernelExamples >> timerEventSubProcessIsArmedWithoutBlockingCompletio
 	timerStart eventDefinitions add: timerDefinition.
 	eventSubProcess addFlowElement: timerStart.
 	process addFlowElement: start; addFlowElement: eventSubProcess.
-	execution := CPProcessExecution for: process environment: nil.
+	execution := CPProcessExecution for: process environment: CPExampleExecutionEnvironment new.
 	execution start.
 	self assert: (execution activityExecutions noneSatisfy: [ :each | each definition == eventSubProcess ]).
 	self assert: execution eventSubProcessTimerSubscriptions size = 1.
