@@ -10575,3 +10575,84 @@ CPExecutionKernelExamples >> eventBasedGatewayReceiveTaskUsesCanonicalMessageDel
 	self assert: (gatewayExecution subscriptions detect: [ :each | each sequenceFlow == timerFlow ]) isWithdrawn.
 	^ gatewayExecution
 ]
+
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> deploymentTimerInitiationIsArmedInDeploymentContext [
+	<gtExample>
+	| process gateway timerDefinition timerEvent flow deployment environment root configuration service subscription |
+	process := CPProcess new identifier: 'timer-initiation-process'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'timer-initiation-gateway'; instantiate: true; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'deployment-timer'; yourself.
+	timerEvent := CPTimerIntermediateEvent new identifier: 'timer-alternative'; eventDefinitions: { timerDefinition } asOrderedCollection; yourself.
+	flow := CPSequenceFlow new identifier: 'timer-initiation-flow'; sourceRef: gateway; targetRef: timerEvent; yourself.
+	process addFlowElement: gateway; addFlowElement: timerEvent; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'timer-initiation-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new currentTimerTime: 100; yourself.
+	environment timerDefinition: timerDefinition dueAt: 200.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	self assert: deployment initiationSubscriptions size equals: 1.
+	subscription := deployment initiationSubscriptions first.
+	self assert: subscription isTimerSubscription.
+	self assert: subscription processDeployment == deployment.
+	self assert: subscription armedAt equals: 100.
+	self assert: (subscription dueAtUsing: environment) equals: 200.
+	self assert: subscription isWaitingTimer.
+	^ subscription
+]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> bpmBackgroundPassClaimsDueDeploymentTimerInitiationOnce [
+	<gtExample>
+	| subscription deployment environment root configuration service enqueue workUnit |
+	subscription := self deploymentTimerInitiationIsArmedInDeploymentContext.
+	deployment := subscription processDeployment.
+	environment := CPExampleExecutionEnvironment new currentTimerTime: 200; yourself.
+	environment timerDefinition: subscription eventDefinition dueAt: 200.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueProcessInitiationTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	workUnit := enqueue workUnits first.
+	self assert: workUnit class == CPDeliverProcessInitiationOccurrenceWorkUnit.
+	self assert: workUnit initiationSubscription == subscription.
+	self assert: workUnit occurrence definition == subscription eventDefinition.
+	self assert: subscription isTimerDispatchPending.
+	self assert: subscription dispatchOccurrenceIdentifier equals: workUnit occurrence occurrenceIdentifier.
+	service enqueueDueProcessInitiationTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	^ workUnit
+]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> dueDeploymentTimerInitiationCreatesExactlyOneProcessExecution [
+	<gtExample>
+	| workUnit subscription deployment environment root configuration service enqueue context execution |
+	workUnit := self bpmBackgroundPassClaimsDueDeploymentTimerInitiationOnce.
+	subscription := workUnit initiationSubscription.
+	deployment := subscription processDeployment.
+	environment := CPExampleExecutionEnvironment new currentTimerTime: 200; yourself.
+	environment timerDefinition: subscription eventDefinition dueAt: 200.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	execution := workUnit executeInContext: context.
+	self assert: root processExecutions size equals: 1.
+	self assert: root processExecutions first == execution.
+	self assert: execution deployment == deployment.
+	self assert: execution isStarted.
+	self assert: subscription isTimerDispatchPending not.
+	self assert: subscription isWaitingTimer not.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueProcessInitiationTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits isEmpty.
+	^ execution
+]

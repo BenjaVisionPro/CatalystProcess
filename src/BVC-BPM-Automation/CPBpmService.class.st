@@ -121,6 +121,7 @@ CPBpmService >> processBackgroundWorkUnit: aCPProcessBackgroundWorkUnit [
 	| localEnqueue |
 	localEnqueue := self capability: CRLocalEnqueueCapability.
 	self enqueueDueTimerWorkUnitsUsing: localEnqueue.
+	self enqueueDueProcessInitiationTimerWorkUnitsUsing: localEnqueue.
 	^ self
 ]
 
@@ -141,6 +142,32 @@ CPBpmService >> enqueueDueTimerWorkUnitsUsing: anEnqueueCapability [
 				timerSubscription: subscription
 				occurrenceIdentifier: occurrenceIdentifier.
 			anEnqueueCapability enqueue: workUnit ] ].
+	^ self
+]
+
+
+{ #category : 'background processing' }
+CPBpmService >> enqueueDueProcessInitiationTimerWorkUnitsUsing: anEnqueueCapability [
+	| environment currentTime |
+	environment := configuration executionEnvironment.
+	environment ifNil: [ ^ self ].
+	currentTime := environment currentTimerTime.
+	systemRoot processDeployments do: [ :deployment |
+		deployment acceptsNewProcessExecutions ifTrue: [
+			(deployment initiationSubscriptions select: [ :each |
+				each isTimerSubscription and: [ each isDueAt: currentTime using: environment ] ])
+				do: [ :subscription |
+					| occurrenceIdentifier occurrence workUnit |
+					occurrenceIdentifier := UUID new asString.
+					subscription markTimerDispatchPendingWithOccurrenceIdentifier: occurrenceIdentifier.
+					occurrence := CPExecutionOccurrence new
+						occurrenceIdentifier: occurrenceIdentifier;
+						definition: subscription eventDefinition;
+						yourself.
+					workUnit := CPDeliverProcessInitiationOccurrenceWorkUnit
+						initiationSubscription: subscription
+						occurrence: occurrence.
+					anEnqueueCapability enqueue: workUnit ] ] ].
 	^ self
 ]
 
@@ -330,6 +357,12 @@ CPBpmService >> armInitiatingEventBasedGatewaysFor: aDeployment [
 				subscription := CPEventBasedGatewayInitiationSubscription new
 					processDeployment: aDeployment; gateway: element; sequenceFlow: flow; eventDefinition: definition; yourself.
 				subscriptions add: subscription ] ] ].
+	(subscriptions anySatisfy: [ :each | each isTimerSubscription ]) ifTrue: [
+		| environment armingTime |
+		environment := configuration executionEnvironment.
+		environment ifNil: [ self error: 'BPM service configuration requires an execution environment to arm deployment Timer initiation.' ].
+		armingTime := environment currentTimerTime.
+		subscriptions do: [ :each | each isTimerSubscription ifTrue: [ each armTimerAt: armingTime ] ] ].
 	aDeployment replaceInitiationSubscriptionsWith: subscriptions.
 	^ subscriptions
 ]
@@ -350,7 +383,7 @@ CPBpmService >> initiationSubscriptionsForSignal: aSignal [
 
 { #category : 'process initiation' }
 CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
-	| subscription occurrence instantiateWorkUnit |
+	| subscription occurrence instantiateWorkUnit execution |
 	subscription := aWorkUnit initiationSubscription.
 	subscription ifNil: [ self error: 'A Process initiation subscription is required.' ].
 	occurrence := aWorkUnit occurrence.
@@ -361,5 +394,8 @@ CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
 		gateway: subscription gateway
 		sequenceFlow: subscription sequenceFlow
 		occurrence: occurrence.
-	^ self instantiateEventBasedGatewayWorkUnit: instantiateWorkUnit
+	execution := self instantiateEventBasedGatewayWorkUnit: instantiateWorkUnit.
+	subscription isTimerSubscription ifTrue: [
+		subscription acceptTimerOccurrenceAt: configuration executionEnvironment currentTimerTime ].
+	^ execution
 ]

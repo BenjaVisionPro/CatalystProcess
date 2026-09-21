@@ -60,3 +60,11 @@ CPExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: anArming
 	The semantic kernel consumes only the resulting comparable due time."
 	self subclassResponsibility
 ]
+
+
+{ #category : 'timing' }
+CPExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: anArmingTime forProcessDeployment: aProcessDeployment [
+	"Evaluate a Timer that exists before a Process execution/scope. Deployment-level
+	initiation deliberately has no fake execution scope."
+	self subclassResponsibility
+]

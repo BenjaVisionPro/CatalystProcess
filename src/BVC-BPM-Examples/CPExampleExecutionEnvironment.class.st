@@ -179,3 +179,11 @@ CPExampleExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: a
 		at: aTimerEventDefinition
 		ifAbsent: [ self error: 'No example Timer due time has been configured.' ]
 ]
+
+
+{ #category : 'timing' }
+CPExampleExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: anArmingTime forProcessDeployment: aProcessDeployment [
+	^ timerDueTimes
+		at: aTimerEventDefinition
+		ifAbsent: [ self error: 'No example Timer due time has been configured.' ]
+]
