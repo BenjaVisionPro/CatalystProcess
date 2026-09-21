@@ -10938,3 +10938,92 @@ CPExecutionKernelExamples >> throwEventDataAssociationExecutesAssignmentBeforeOc
 	self assert: eventExecution thrownOccurrences first payload equals: 'assigned message'.
 	^ eventExecution
 ]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> activeDeploymentArmsMessageStartEventInitiation [
+	<gtExample>
+	| process start task flow message definition deployment environment root configuration service subscription occurrence workUnit execution |
+	process := CPProcess new identifier: 'message-start-process'; yourself.
+	message := CPMessage new identifier: 'start-message'; yourself.
+	definition := CPMessageEventDefinition new messageRef: message; yourself.
+	start := CPMessageStartEvent new identifier: 'message-start'; eventDefinitions: { definition }; yourself.
+	task := CPTask new identifier: 'after-start'; yourself.
+	flow := CPSequenceFlow new identifier: 'start-flow'; sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'message-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	self assert: deployment initiationSubscriptions size equals: 1.
+	subscription := deployment initiationSubscriptions first.
+	self assert: subscription class == CPStartEventInitiationSubscription.
+	self assert: subscription startEvent == start.
+	self assert: (service initiationSubscriptionsForMessage: message) size equals: 1.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: 'message-start-1'; definition: message; yourself.
+	workUnit := CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: subscription occurrence: occurrence.
+	execution := service deliverProcessInitiationOccurrenceWorkUnit: workUnit.
+	self assert: root processExecutions size equals: 1.
+	self assert: execution isStarted.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> dueTimerStartEventCreatesProcessExecution [
+	<gtExample>
+	| process start task flow timerDefinition deployment environment root configuration service subscription enqueue workUnit execution |
+	process := CPProcess new identifier: 'timer-start-process'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'start-timer'; yourself.
+	start := CPTimerStartEvent new identifier: 'timer-start'; eventDefinitions: { timerDefinition }; yourself.
+	task := CPTask new identifier: 'after-start'; yourself.
+	flow := CPSequenceFlow new identifier: 'timer-start-flow'; sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'timer-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new currentTimerTime: 100; yourself.
+	environment timerDefinition: timerDefinition dueAt: 200.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	subscription := deployment initiationSubscriptions first.
+	self assert: subscription class == CPStartEventInitiationSubscription.
+	self assert: subscription armedAt equals: 100.
+	environment currentTimerTime: 200.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueProcessInitiationTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	workUnit := enqueue workUnits first.
+	execution := service deliverProcessInitiationOccurrenceWorkUnit: workUnit.
+	self assert: root processExecutions size equals: 1.
+	self assert: execution isStarted.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> retiredDeploymentMakesQueuedTimerInitiationHarmless [
+	<gtExample>
+	| process start timerDefinition deployment environment root configuration service enqueue workUnit result |
+	process := CPProcess new identifier: 'retired-timer-start-process'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'retired-start-timer'; yourself.
+	start := CPTimerStartEvent new identifier: 'retired-timer-start'; eventDefinitions: { timerDefinition }; yourself.
+	process addFlowElement: start.
+	deployment := CPProcessDeployment new identifier: 'retired-timer-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new currentTimerTime: 100; yourself.
+	environment timerDefinition: timerDefinition dueAt: 100.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueProcessInitiationTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	workUnit := enqueue workUnits first.
+	service retireProcessDeploymentWorkUnit: (CPRetireProcessDeploymentWorkUnit processDeployment: deployment).
+	result := service deliverProcessInitiationOccurrenceWorkUnit: workUnit.
+	self assert: result isNil.
+	self assert: root processExecutions isEmpty.
+	^ deployment
+]

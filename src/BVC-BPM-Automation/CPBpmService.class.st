@@ -196,6 +196,24 @@ CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
 	^ execution
 ]
 
+
+{ #category : 'process start' }
+CPBpmService >> instantiateStartEvent: aStartEvent fromDeployment: aDeployment occurrence: anOccurrence [
+	| process environment execution |
+	aDeployment ifNil: [ self error: 'A Process deployment is required.' ].
+	aDeployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
+	process := aDeployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	(process flowElements includes: aStartEvent) ifFalse: [ self error: 'The Start Event does not belong to the deployed Process definition.' ].
+	environment := configuration executionEnvironment.
+	environment ifNil: [ self error: 'BPM service configuration requires an execution environment to start a Process.' ].
+	execution := CPProcessExecution for: process environment: environment.
+	execution deployment: aDeployment; tenant: aDeployment tenant.
+	execution startWithOccurrence: anOccurrence.
+	systemRoot addProcessExecution: execution.
+	^ execution
+]
+
 { #category : 'user task completion' }
 CPBpmService >> completeUserTaskWorkUnit: aCPCompleteUserTaskWorkUnit [
     | workItem |
@@ -285,7 +303,7 @@ CPBpmService >> activateProcessDeploymentWorkUnit: aCPActivateProcessDeploymentW
 	deployment := aCPActivateProcessDeploymentWorkUnit processDeployment.
 	deployment ifNil: [ self error: 'A Process deployment is required.' ].
 	deployment activate.
-	self armInitiatingEventBasedGatewaysFor: deployment.
+	self armProcessInitiationSubscriptionsFor: deployment.
 	^ deployment
 ]
 
@@ -332,7 +350,7 @@ CPBpmService >> instantiateEventBasedGatewayWorkUnit: aWorkUnit [
 
 
 { #category : 'process initiation' }
-CPBpmService >> armInitiatingEventBasedGatewaysFor: aDeployment [
+CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 	| process subscriptions |
 	process := aDeployment processDefinition.
 	subscriptions := OrderedCollection new.
@@ -340,6 +358,13 @@ CPBpmService >> armInitiatingEventBasedGatewaysFor: aDeployment [
 		aDeployment replaceInitiationSubscriptionsWith: subscriptions.
 		^ subscriptions ].
 	process flowElements do: [ :element |
+		(element isStartEvent and: [ element isMessageStartEvent or: [ element isSignalStartEvent or: [ element isTimerStartEvent ] ] ]) ifTrue: [
+			| definition subscription |
+			element eventDefinitions size = 1 ifFalse: [ self error: 'A triggered top-level Start Event requires exactly one Event Definition.' ].
+			definition := element eventDefinitions first.
+			subscription := CPStartEventInitiationSubscription new
+				processDeployment: aDeployment; startEvent: element; eventDefinition: definition; yourself.
+			subscriptions add: subscription ].
 		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
 			element outgoing do: [ :flow |
 				| target definition subscription |
@@ -383,18 +408,15 @@ CPBpmService >> initiationSubscriptionsForSignal: aSignal [
 
 { #category : 'process initiation' }
 CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
-	| subscription occurrence instantiateWorkUnit execution |
+	| subscription occurrence execution |
 	subscription := aWorkUnit initiationSubscription.
 	subscription ifNil: [ self error: 'A Process initiation subscription is required.' ].
 	occurrence := aWorkUnit occurrence.
 	occurrence ifNil: [ self error: 'A Process initiation occurrence is required.' ].
+	(subscription isTimerSubscription and: [ subscription processDeployment acceptsNewProcessExecutions not ]) ifTrue: [ ^ nil ].
+	(subscription isTimerSubscription and: [ subscription isTimerDispatchPending not ]) ifTrue: [ ^ nil ].
 	(subscription matchesOccurrence: occurrence) ifFalse: [ self error: 'The occurrence does not match an active Process initiation subscription.' ].
-	instantiateWorkUnit := CPInstantiateEventBasedGatewayWorkUnit
-		processDeployment: subscription processDeployment
-		gateway: subscription gateway
-		sequenceFlow: subscription sequenceFlow
-		occurrence: occurrence.
-	execution := self instantiateEventBasedGatewayWorkUnit: instantiateWorkUnit.
+	execution := subscription instantiateUsingService: self occurrence: occurrence.
 	subscription isTimerSubscription ifTrue: [
 		subscription acceptTimerOccurrenceAt: configuration executionEnvironment currentTimerTime ].
 	^ execution

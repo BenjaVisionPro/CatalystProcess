@@ -118,3 +118,14 @@ CPEventBasedGatewayInitiationSubscription >> matchesOccurrence: anOccurrence [
 			and: [ anOccurrence occurrenceIdentifier = dispatchOccurrenceIdentifier ] ] ].
 	^ false
 ]
+
+{ #category : 'process initiation' }
+CPEventBasedGatewayInitiationSubscription >> instantiateUsingService: aBpmService occurrence: anOccurrence [
+	| workUnit |
+	workUnit := CPInstantiateEventBasedGatewayWorkUnit
+		processDeployment: processDeployment
+		gateway: gateway
+		sequenceFlow: sequenceFlow
+		occurrence: anOccurrence.
+	^ aBpmService instantiateEventBasedGatewayWorkUnit: workUnit
+]
