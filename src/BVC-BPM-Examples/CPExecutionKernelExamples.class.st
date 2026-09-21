@@ -9349,3 +9349,52 @@ CPExecutionKernelExamples >> bpmMessageWorkUnitDeliversThroughRuntimeService [
 	self assert: (occurrence payload at: 'value') = 42.
 	^ handler
 ]
+
+{ #category : 'examples - BPM runtime service' }
+CPExecutionKernelExamples >> bpmSignalWorkUnitBroadcastsThroughRuntimeService [
+	<gtExample>
+	| process start signal firstSubProcess secondSubProcess firstStart secondStart execution root configuration service workUnit context matches handlers occurrences |
+	process := CPProcess new identifier: 'runtimeSignalProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	signal := CPSignal new identifier: 'runtimeSignal'; yourself.
+	firstSubProcess := CPNoneSubProcess new identifier: 'firstSignalHandler'; triggeredByEvent: true; yourself.
+	firstStart := CPSignalStartEvent new identifier: 'firstSignalStart'; isInterrupting: false; yourself.
+	firstStart eventDefinitions add: (CPSignalEventDefinition new signalRef: signal; yourself).
+	firstSubProcess addFlowElement: firstStart.
+	secondSubProcess := CPNoneSubProcess new identifier: 'secondSignalHandler'; triggeredByEvent: true; yourself.
+	secondStart := CPSignalStartEvent new identifier: 'secondSignalStart'; isInterrupting: false; yourself.
+	secondStart eventDefinitions add: (CPSignalEventDefinition new signalRef: signal; yourself).
+	secondSubProcess addFlowElement: secondStart.
+	process
+		addFlowElement: start;
+		addFlowElement: firstSubProcess;
+		addFlowElement: secondSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPDeliverSignalWorkUnit
+		processExecutionIdentifier: execution executionIdentifier
+		signalIdentifier: signal identifier
+		occurrenceIdentifier: 'runtime-signal-1'
+		payload: (Dictionary new at: 'value' put: 84; yourself).
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	matches := workUnit executeInContext: context.
+	self assert: matches size = 2.
+	handlers := execution activityExecutions select: [ :each |
+		each definition == firstSubProcess or: [ each definition == secondSubProcess ] ].
+	self assert: handlers size = 2.
+	self assert: (handlers allSatisfy: [ :each | each isActive ]).
+	occurrences := handlers collect: [ :each | each subScope eventExecutions first occurrence ].
+	self assert: (occurrences allSatisfy: [ :each | each occurrenceIdentifier = 'runtime-signal-1' ]).
+	self assert: (occurrences allSatisfy: [ :each | each definition == signal ]).
+	self assert: (occurrences allSatisfy: [ :each | (each payload at: 'value') = 84 ]).
+	self assert: occurrences asSet size = 1.
+	^ matches
+]
