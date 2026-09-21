@@ -9759,3 +9759,69 @@ CPExecutionKernelExamples >> pendingAutonomousTimerTriggerCompletesExactSubscrip
 	self assert: subscription dispatchOccurrenceIdentifier isNil.
 	^ subscription
 ]
+
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmStartProcessWorkUnitStartsRegisteredExecutionFromDeployment [
+	<gtExample>
+	| process startEvent deployment root environment configuration service workUnit context execution |
+	process := CPProcess new identifier: 'runtime-start-process'; yourself.
+	startEvent := CPStartEvent new identifier: 'start'; yourself.
+	process addFlowElement: startEvent.
+	deployment := CPProcessDeployment new
+		identifier: 'runtime-start-deployment';
+		processDefinition: process;
+		yourself.
+	deployment activate.
+	root := CPSystemRoot new.
+	root addProcessDeployment: deployment.
+	environment := CPExampleExecutionEnvironment new.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: environment;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPStartProcessWorkUnit processDeploymentIdentifier: deployment identifier.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	execution := workUnit executeInContext: context.
+	self assert: execution definition == process.
+	self assert: execution deployment == deployment.
+	self assert: execution tenant == deployment tenant.
+	self assert: execution environment == environment.
+	self assert: execution isStarted.
+	self assert: (root processExecutionForIdentifier: execution executionIdentifier) == execution.
+	^ execution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmStartProcessWorkUnitRejectsInactiveDeploymentWithoutRegisteringExecution [
+	<gtExample>
+	| process startEvent deployment root configuration service workUnit context rejected |
+	process := CPProcess new identifier: 'inactive-runtime-start-process'; yourself.
+	startEvent := CPStartEvent new identifier: 'start'; yourself.
+	process addFlowElement: startEvent.
+	deployment := CPProcessDeployment new
+		identifier: 'inactive-runtime-start-deployment';
+		processDefinition: process;
+		yourself.
+	root := CPSystemRoot new.
+	root addProcessDeployment: deployment.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: CPExampleExecutionEnvironment new;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPStartProcessWorkUnit processDeploymentIdentifier: deployment identifier.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	rejected := false.
+	[ workUnit executeInContext: context ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: root processExecutions isEmpty.
+	^ deployment
+]

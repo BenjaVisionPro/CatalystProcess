@@ -7,6 +7,7 @@ Class {
 		'processKey',
 		'version',
 		'compiledDefinition',
+		'processDefinition',
 		'deployedAt',
 		'deployedBy',
 		'status'
@@ -63,6 +64,17 @@ CPProcessDeployment >> compiledDefinition [
 { #category : 'accessing' }
 CPProcessDeployment >> compiledDefinition: anObject [
 	compiledDefinition := anObject
+]
+
+
+{ #category : 'accessing' }
+CPProcessDeployment >> processDefinition [
+	^ processDefinition
+]
+
+{ #category : 'accessing' }
+CPProcessDeployment >> processDefinition: aProcess [
+	processDefinition := aProcess
 ]
 
 { #category : 'accessing' }

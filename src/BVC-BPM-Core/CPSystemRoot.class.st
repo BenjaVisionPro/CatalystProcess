@@ -180,6 +180,16 @@ CPSystemRoot >> addProcessDeployment: aProcessDeployment [
 	^ aProcessDeployment
 ]
 
+{ #category : 'accessing' }
+CPSystemRoot >> processDeploymentForIdentifier: anIdentifier [
+	| matches |
+	anIdentifier ifNil: [ self error: 'A Process deployment identifier is required.' ].
+	matches := processDeployments select: [ :each | each identifier = anIdentifier ].
+	matches size > 1 ifTrue: [
+		self error: 'More than one Process deployment has the same identifier.' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
+]
+
 { #category : 'adding' }
 CPSystemRoot >> addProcessInstance: aProcessInstance [
 	processInstances add: aProcessInstance.

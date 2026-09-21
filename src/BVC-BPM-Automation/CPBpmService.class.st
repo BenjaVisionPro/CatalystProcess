@@ -175,3 +175,28 @@ CPBpmService >> enqueueDueTimerWorkUnitsUsing: anEnqueueCapability [
 			anEnqueueCapability enqueue: workUnit ] ].
 	^ self
 ]
+
+
+{ #category : 'process start' }
+CPBpmService >> processDeploymentForIdentifier: aDeploymentIdentifier [
+	^ systemRoot processDeploymentForIdentifier: aDeploymentIdentifier
+]
+
+{ #category : 'process start' }
+CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
+	| deployment process environment execution |
+	deployment := self processDeploymentForIdentifier: aCPStartProcessWorkUnit processDeploymentIdentifier.
+	deployment ifNil: [ self error: 'No Process deployment has the requested identifier.' ].
+	deployment isActive ifFalse: [ self error: 'A Process can only be started from an active deployment.' ].
+	process := deployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	environment := configuration executionEnvironment.
+	environment ifNil: [ self error: 'BPM service configuration requires an execution environment to start a Process.' ].
+	execution := CPProcessExecution for: process environment: environment.
+	execution
+		deployment: deployment;
+		tenant: deployment tenant.
+	execution start.
+	systemRoot addProcessExecution: execution.
+	^ execution
+]

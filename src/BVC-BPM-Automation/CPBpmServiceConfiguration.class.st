@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'systemRoot',
 		'backgroundScheduleKey',
-		'backgroundIntervalMillis'
+		'backgroundIntervalMillis',
+		'executionEnvironment'
 	],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
@@ -51,4 +52,15 @@ CPBpmServiceConfiguration >> backgroundIntervalMillis: anInteger [
 	anInteger isInteger ifFalse: [ self error: 'BPM background interval must be an Integer.' ].
 	anInteger <= 0 ifTrue: [ self error: 'BPM background interval must be positive.' ].
 	backgroundIntervalMillis := anInteger
+]
+
+
+{ #category : 'execution environment' }
+CPBpmServiceConfiguration >> executionEnvironment [
+	^ executionEnvironment
+]
+
+{ #category : 'execution environment' }
+CPBpmServiceConfiguration >> executionEnvironment: anExecutionEnvironment [
+	executionEnvironment := anExecutionEnvironment
 ]
