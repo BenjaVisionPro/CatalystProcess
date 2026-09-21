@@ -11,6 +11,7 @@ BaselineOfCatalystProcess >> baseline: spec [
 	^ spec
 		for: #common
 		do: [
+			spec baseline: 'CatalystRuntime'.
 			spec
 				baseline: 'CatalystFoundation'
 				with: [ spec repository: 'git@github.com:BenjaVisionPro/CatalystFoundation.git' ].
