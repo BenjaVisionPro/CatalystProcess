@@ -8833,3 +8833,101 @@ CPExecutionKernelExamples >> ambiguousEscalationEventSubProcessesAreRejectedBefo
 	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == secondHandler ]) not.
 	^ subExecution
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventSubProcessMatchingExcludesPropagatingHandlerDefinition [
+	<gtExample>
+	| process scopeDefinition error firstHandler secondHandler firstStart secondStart execution scopeExecution scope match |
+	process := CPProcess new identifier: 'process'; yourself.
+	scopeDefinition := CPNoneSubProcess new identifier: 'scope'; yourself.
+	error := CPError new identifier: 'rethrowError'; yourself.
+	firstHandler := CPNoneSubProcess new identifier: 'firstHandler'; triggeredByEvent: true; yourself.
+	firstStart := CPErrorStartEvent new identifier: 'firstStart'; yourself.
+	firstStart eventDefinitions add: (CPErrorEventDefinition new identifier: 'firstCatch'; error: error; yourself).
+	firstHandler addFlowElement: firstStart.
+	secondHandler := CPNoneSubProcess new identifier: 'secondHandler'; triggeredByEvent: true; yourself.
+	secondStart := CPErrorStartEvent new identifier: 'secondStart'; yourself.
+	secondStart eventDefinitions add: (CPErrorEventDefinition new identifier: 'secondCatch'; error: error; yourself).
+	secondHandler addFlowElement: secondStart.
+	scopeDefinition addFlowElement: firstHandler; addFlowElement: secondHandler.
+	process addFlowElement: scopeDefinition.
+	execution := self executionFor: process.
+	scopeExecution := execution createActivityExecutionFor: scopeDefinition.
+	scopeExecution activate.
+	scope := scopeExecution createSubScopeFor: scopeDefinition.
+	match := scope matchingErrorEventSubProcessFor: error excluding: firstHandler.
+	self assert: match == secondHandler.
+	self assert: (scope matchingErrorEventSubProcessFor: error excluding: secondHandler) == firstHandler.
+	^ match
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationEventSubProcessMatchingExcludesPropagatingHandlerDefinition [
+	<gtExample>
+	| process scopeDefinition escalation firstHandler secondHandler firstStart secondStart execution scopeExecution scope match |
+	process := CPProcess new identifier: 'process'; yourself.
+	scopeDefinition := CPNoneSubProcess new identifier: 'scope'; yourself.
+	escalation := CPEscalation new identifier: 'rethrowEscalation'; yourself.
+	firstHandler := CPNoneSubProcess new identifier: 'firstHandler'; triggeredByEvent: true; yourself.
+	firstStart := CPEscalationStartEvent new identifier: 'firstStart'; isInterrupting: false; yourself.
+	firstStart eventDefinitions add: (CPEscalationEventDefinition new identifier: 'firstCatch'; escalationRef: escalation; yourself).
+	firstHandler addFlowElement: firstStart.
+	secondHandler := CPNoneSubProcess new identifier: 'secondHandler'; triggeredByEvent: true; yourself.
+	secondStart := CPEscalationStartEvent new identifier: 'secondStart'; isInterrupting: false; yourself.
+	secondStart eventDefinitions add: (CPEscalationEventDefinition new identifier: 'secondCatch'; escalationRef: escalation; yourself).
+	secondHandler addFlowElement: secondStart.
+	scopeDefinition addFlowElement: firstHandler; addFlowElement: secondHandler.
+	process addFlowElement: scopeDefinition.
+	execution := self executionFor: process.
+	scopeExecution := execution createActivityExecutionFor: scopeDefinition.
+	scopeExecution activate.
+	scope := scopeExecution createSubScopeFor: scopeDefinition.
+	match := scope matchingEscalationEventSubProcessFor: escalation excluding: firstHandler.
+	self assert: match == secondHandler.
+	self assert: (scope matchingEscalationEventSubProcessFor: escalation excluding: secondHandler) == firstHandler.
+	^ match
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationRethrowDoesNotReenterItsOwnEventSubProcessDefinition [
+	<gtExample>
+	| process subProcess escalation firstHandler firstStart firstCatch before escalationEnd throwDefinition flow secondHandler secondStart secondCatch execution subExecution childScope occurrence firstExecution firstScope producer activation secondExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	firstHandler := CPNoneSubProcess new identifier: 'firstHandler'; triggeredByEvent: true; yourself.
+	firstStart := CPEscalationStartEvent new identifier: 'firstStart'; isInterrupting: false; yourself.
+	firstCatch := CPEscalationEventDefinition new identifier: 'firstCatch'; escalationRef: escalation; yourself.
+	firstStart eventDefinitions add: firstCatch.
+	before := CPTask new identifier: 'beforeRethrow'; yourself.
+	escalationEnd := CPEscalationEndEvent new identifier: 'rethrow'; yourself.
+	throwDefinition := CPEscalationEventDefinition new identifier: 'rethrowDefinition'; escalationRef: escalation; yourself.
+	escalationEnd eventDefinitions add: throwDefinition.
+	flow := CPSequenceFlow new identifier: 'toRethrow'; sourceRef: before; targetRef: escalationEnd; yourself.
+	firstHandler addFlowElement: firstStart; addFlowElement: before; addFlowElement: escalationEnd; addFlowElement: flow.
+	secondHandler := CPNoneSubProcess new identifier: 'secondHandler'; triggeredByEvent: true; yourself.
+	secondStart := CPEscalationStartEvent new identifier: 'secondStart'; isInterrupting: false; yourself.
+	secondCatch := CPEscalationEventDefinition new identifier: 'secondCatch'; escalationRef: escalation; yourself.
+	secondStart eventDefinitions add: secondCatch.
+	secondHandler addFlowElement: secondStart.
+	subProcess addFlowElement: firstHandler; addFlowElement: secondHandler.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #'initialEscalation'; definition: escalation; yourself.
+	firstExecution := childScope beginEscalationEventSubProcess: firstHandler occurrence: occurrence.
+	firstScope := firstExecution subScope.
+	producer := firstScope createActivityExecutionFor: before.
+	producer activate.
+	activation := firstScope activateSequenceFlow: flow producedBy: producer.
+	firstScope executeEscalationEndEvent: escalationEnd consuming: activation.
+	self assert: (childScope activityExecutions count: [ :each | each definition == firstHandler ]) equals: 1.
+	secondExecution := childScope activityExecutions detect: [ :each | each definition == secondHandler ].
+	self assert: firstExecution isActive.
+	self assert: secondExecution isActive.
+	self assert: secondExecution subScope eventExecutions first occurrence definition == escalation.
+	self assert: subExecution isActive.
+	^ secondExecution
+]

@@ -1637,15 +1637,21 @@ CPExecutionScope >> errorStartEventFor: anErrorSubProcess [
 
 { #category : 'events - error' }
 CPExecutionScope >> matchingErrorEventSubProcessFor: anError [
+	^ self matchingErrorEventSubProcessFor: anError excluding: nil
+]
+
+{ #category : 'events - error' }
+CPExecutionScope >> matchingErrorEventSubProcessFor: anError excluding: anExcludedSubProcess [
 	| matches |
 	matches := definition flowElements select: [ :each |
-		each isSubProcess and: [
-			each isEventSubProcess and: [
-				(each flowElements anySatisfy: [ :candidate |
-					candidate isStartEvent and: [ candidate isErrorStartEvent ] ]) and: [
-					| startEvent |
-					startEvent := self errorStartEventFor: each.
-					startEvent eventDefinitions first catchesError: anError ] ] ] ].
+		each ~~ anExcludedSubProcess and: [
+			each isSubProcess and: [
+				each isEventSubProcess and: [
+					(each flowElements anySatisfy: [ :candidate |
+						candidate isStartEvent and: [ candidate isErrorStartEvent ] ]) and: [
+						| startEvent |
+						startEvent := self errorStartEventFor: each.
+						startEvent eventDefinitions first catchesError: anError ] ] ] ] ].
 	matches size > 1 ifTrue: [
 		self error: 'More than one Error Event SubProcess matches the propagated Error in the same execution scope.' ].
 	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
@@ -1710,7 +1716,9 @@ CPExecutionScope >> errorBoundaryExecutionFor: anError propagatingFrom: aNestedS
 CPExecutionScope >> validateErrorPropagationFor: anError toBoundary: aBoundaryExecution fromNestedScope: aNestedScope [
 	| handler records |
 	(aBoundaryExecution notNil and: [ eventExecutions identityIncludes: aBoundaryExecution ]) ifTrue: [ ^ aBoundaryExecution ].
-	handler := self matchingErrorEventSubProcessFor: anError.
+	handler := self
+		matchingErrorEventSubProcessFor: anError
+		excluding: aNestedScope owningActivity definition.
 	handler ifNotNil: [
 		self errorStartEventFor: handler.
 		^ handler ].
@@ -1732,7 +1740,9 @@ CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNes
 	aNestedScope owningActivity modeledActivityExecution isActive ifTrue: [
 		aNestedScope owningActivity modeledActivityExecution beginFailure.
 		aNestedScope owningActivity modeledActivityExecution finishFailure ].
-	handler := self matchingErrorEventSubProcessFor: anOccurrence definition.
+	handler := self
+		matchingErrorEventSubProcessFor: anOccurrence definition
+		excluding: aNestedScope owningActivity definition.
 	handler ifNotNil: [
 		^ self beginErrorEventSubProcess: handler occurrence: anOccurrence ].
 	records := self defaultCompensationRecords.
@@ -1848,15 +1858,21 @@ CPExecutionScope >> escalationStartEventFor: anEscalationSubProcess [
 
 { #category : 'events - escalation' }
 CPExecutionScope >> matchingEscalationEventSubProcessFor: anEscalation [
+	^ self matchingEscalationEventSubProcessFor: anEscalation excluding: nil
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> matchingEscalationEventSubProcessFor: anEscalation excluding: anExcludedSubProcess [
 	| matches |
 	matches := definition flowElements select: [ :each |
-		each isSubProcess and: [
-			each isEventSubProcess and: [
-				(each flowElements anySatisfy: [ :candidate |
-					candidate isStartEvent and: [ candidate isEscalationStartEvent ] ]) and: [
-					| startEvent |
-					startEvent := self escalationStartEventFor: each.
-					startEvent eventDefinitions first catchesEscalation: anEscalation ] ] ] ].
+		each ~~ anExcludedSubProcess and: [
+			each isSubProcess and: [
+				each isEventSubProcess and: [
+					(each flowElements anySatisfy: [ :candidate |
+						candidate isStartEvent and: [ candidate isEscalationStartEvent ] ]) and: [
+						| startEvent |
+						startEvent := self escalationStartEventFor: each.
+						startEvent eventDefinitions first catchesEscalation: anEscalation ] ] ] ] ].
 	matches size > 1 ifTrue: [
 		self error: 'More than one Escalation Event SubProcess matches the propagated Escalation in the same execution scope.' ].
 	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
@@ -1897,7 +1913,9 @@ CPExecutionScope >> completeEscalationEventSubProcessActivity: anActivityExecuti
 { #category : 'events - escalation' }
 CPExecutionScope >> validateEscalationPropagationFor: anEscalation fromNestedScope: aNestedScope [
 	| handler boundaryExecution |
-	handler := self matchingEscalationEventSubProcessFor: anEscalation.
+	handler := self
+		matchingEscalationEventSubProcessFor: anEscalation
+		excluding: aNestedScope owningActivity definition.
 	handler ifNotNil: [
 		self escalationStartEventFor: handler.
 		^ handler ].
@@ -1928,7 +1946,9 @@ CPExecutionScope >> waitingEscalationBoundaryExecutionFor: anEscalation attached
 { #category : 'events - escalation' }
 CPExecutionScope >> propagateEscalationOccurrence: anOccurrence fromNestedScope: aNestedScope [
 	| handler boundaryExecution |
-	handler := self matchingEscalationEventSubProcessFor: anOccurrence definition.
+	handler := self
+		matchingEscalationEventSubProcessFor: anOccurrence definition
+		excluding: aNestedScope owningActivity definition.
 	handler ifNotNil: [
 		^ self beginEscalationEventSubProcess: handler occurrence: anOccurrence ].
 	boundaryExecution := self
