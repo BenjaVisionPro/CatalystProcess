@@ -97,16 +97,6 @@ CPProcessDeployment >> deployedBy: anObject [
 	deployedBy := anObject
 ]
 
-{ #category : 'accessing' }
-CPProcessDeployment >> status [
-	^ status
-]
-
-{ #category : 'accessing' }
-CPProcessDeployment >> status: anObject [
-	status := anObject
-]
-
 { #category : 'initialization' }
 CPProcessDeployment >> initialize [
 	super initialize.
@@ -114,17 +104,33 @@ CPProcessDeployment >> initialize [
 ]
 
 { #category : 'testing' }
+CPProcessDeployment >> isDraft [
+	^ status = #draft
+]
+
+{ #category : 'testing' }
 CPProcessDeployment >> isActive [
 	^ status = #active
 ]
 
+{ #category : 'testing' }
+CPProcessDeployment >> isRetired [
+	^ status = #retired
+]
+
+{ #category : 'testing' }
+CPProcessDeployment >> acceptsNewProcessExecutions [
+	^ self isActive
+]
+
 { #category : 'actions' }
 CPProcessDeployment >> activate [
+	self isDraft ifFalse: [ self error: 'Only a draft Process deployment can be activated.' ].
 	status := #active
 ]
 
 { #category : 'actions' }
 CPProcessDeployment >> retire [
+	self isActive ifFalse: [ self error: 'Only an active Process deployment can be retired.' ].
 	status := #retired
 ]
-

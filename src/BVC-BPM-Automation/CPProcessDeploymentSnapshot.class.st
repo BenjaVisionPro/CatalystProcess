@@ -9,7 +9,10 @@ Class {
 		'processKey',
 		'version',
 		'deployedAt',
-		'active'
+		'draft',
+		'active',
+		'retired',
+		'acceptsNewProcessExecutions'
 	],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
@@ -33,7 +36,10 @@ CPProcessDeploymentSnapshot >> initializeFrom: aCPProcessDeployment [
 	processKey := aCPProcessDeployment processKey.
 	version := aCPProcessDeployment version.
 	deployedAt := aCPProcessDeployment deployedAt.
+	draft := aCPProcessDeployment isDraft.
 	active := aCPProcessDeployment isActive.
+	retired := aCPProcessDeployment isRetired.
+	acceptsNewProcessExecutions := aCPProcessDeployment acceptsNewProcessExecutions.
 	^ self
 ]
 
@@ -52,4 +58,10 @@ CPProcessDeploymentSnapshot >> version [ ^ version ]
 { #category : 'accessing' }
 CPProcessDeploymentSnapshot >> deployedAt [ ^ deployedAt ]
 { #category : 'testing' }
+CPProcessDeploymentSnapshot >> isDraft [ ^ draft ]
+{ #category : 'testing' }
 CPProcessDeploymentSnapshot >> isActive [ ^ active ]
+{ #category : 'testing' }
+CPProcessDeploymentSnapshot >> isRetired [ ^ retired ]
+{ #category : 'testing' }
+CPProcessDeploymentSnapshot >> acceptsNewProcessExecutions [ ^ acceptsNewProcessExecutions ]

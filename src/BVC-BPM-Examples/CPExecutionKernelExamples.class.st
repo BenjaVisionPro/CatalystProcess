@@ -10299,3 +10299,57 @@ CPExecutionKernelExamples >> bpmQueryProcessDeploymentsWorkUnitDiscoversRegister
 	self assert: service processDeploymentSnapshots first deploymentIdentifier equals: activeDeployment identifier.
 	^ snapshots
 ]
+
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> processDeploymentLifecycleIsExplicitAndIrreversible [
+	<gtExample>
+	| deployment activationRejected retirementRejected |
+	deployment := CPProcessDeployment new.
+	self assert: deployment isDraft.
+	self assert: deployment isActive not.
+	self assert: deployment isRetired not.
+	self assert: deployment acceptsNewProcessExecutions not.
+	deployment activate.
+	self assert: deployment isDraft not.
+	self assert: deployment isActive.
+	self assert: deployment acceptsNewProcessExecutions.
+	activationRejected := false.
+	[ deployment activate ] on: Error do: [ :error | activationRejected := true ].
+	self assert: activationRejected.
+	self assert: deployment isActive.
+	deployment retire.
+	self assert: deployment isActive not.
+	self assert: deployment isRetired.
+	self assert: deployment acceptsNewProcessExecutions not.
+	retirementRejected := false.
+	[ deployment retire ] on: Error do: [ :error | retirementRejected := true ].
+	self assert: retirementRejected.
+	self assert: deployment isRetired.
+	^ deployment
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmDeploymentSnapshotDescribesLifecycleWithoutStatusSymbol [
+	<gtExample>
+	| deployment draftSnapshot activeSnapshot retiredSnapshot |
+	deployment := CPProcessDeployment new identifier: 'lifecycle-deployment'; yourself.
+	draftSnapshot := CPProcessDeploymentSnapshot from: deployment.
+	self assert: draftSnapshot isDraft.
+	self assert: draftSnapshot isActive not.
+	self assert: draftSnapshot isRetired not.
+	self assert: draftSnapshot acceptsNewProcessExecutions not.
+	deployment activate.
+	activeSnapshot := CPProcessDeploymentSnapshot from: deployment.
+	self assert: activeSnapshot isDraft not.
+	self assert: activeSnapshot isActive.
+	self assert: activeSnapshot isRetired not.
+	self assert: activeSnapshot acceptsNewProcessExecutions.
+	deployment retire.
+	retiredSnapshot := CPProcessDeploymentSnapshot from: deployment.
+	self assert: retiredSnapshot isDraft not.
+	self assert: retiredSnapshot isActive not.
+	self assert: retiredSnapshot isRetired.
+	self assert: retiredSnapshot acceptsNewProcessExecutions not.
+	^ retiredSnapshot
+]

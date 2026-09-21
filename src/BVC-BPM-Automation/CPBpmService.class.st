@@ -187,7 +187,7 @@ CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
 	| deployment process environment execution |
 	deployment := self processDeploymentForIdentifier: aCPStartProcessWorkUnit processDeploymentIdentifier.
 	deployment ifNil: [ self error: 'No Process deployment has the requested identifier.' ].
-	deployment isActive ifFalse: [ self error: 'A Process can only be started from an active deployment.' ].
+	deployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
 	process := deployment processDefinition.
 	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
 	environment := configuration executionEnvironment.
