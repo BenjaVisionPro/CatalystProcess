@@ -107,6 +107,29 @@ CPExecutionKernelExamples >> activityConsumesIncomingControlFlow [
 ]
 
 { #category : 'examples - control flow' }
+CPExecutionKernelExamples >> specializedActivityExecutionConsumesIncomingControlFlow [
+	<gtExample>
+	| process source task flow execution sourceExecution taskExecution activation |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPTask new identifier: 'source'; yourself.
+	task := CPUserTask new identifier: 'userTask'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: source; targetRef: task; yourself.
+	process addFlowElement: source; addFlowElement: task; addFlowElement: flow.
+	execution := self executionFor: process.
+	sourceExecution := execution createActivityExecutionFor: source.
+	sourceExecution activate; beginCompletion; complete.
+	activation := execution activateSequenceFlow: flow producedBy: sourceExecution.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	self assert: taskExecution class = CPUserTaskExecution.
+	execution readyActivityExecution: taskExecution.
+	self assert: taskExecution isReady.
+	self assert: activation isAvailable not.
+	self assert: activation consumedBy == taskExecution.
+	self assert: taskExecution consumedFlowActivations size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - control flow' }
 CPExecutionKernelExamples >> completedActivityProducesOutgoingControlFlow [
 	<gtExample>
 	| process source target flow execution activity |
@@ -9087,7 +9110,7 @@ CPExecutionKernelExamples >> interruptingMessageEventSubProcessTerminatesOrdinar
 	execution := CPProcessExecution for: process environment: environment.
 	execution start.
 	taskExecution := execution createUserTaskExecutionFor: task.
-	taskExecution consumeFlowActivation: (execution availableIncomingFlowActivationsFor: task) first.
+	execution readyActivityExecution: taskExecution.
 	execution activateUserTaskExecution: taskExecution.
 	self assert: taskExecution isActive.
 	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #interruptMessage1; definition: message; yourself.

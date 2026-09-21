@@ -505,19 +505,28 @@ CPExecutionScope >> canReadyActivity: anActivity [
 ]
 
 { #category : 'control flow' }
-CPExecutionScope >> readyActivityExecutionFor: anActivity [
-	| available execution |
-	anActivity isForCompensation ifTrue: [
+CPExecutionScope >> readyActivityExecution: anActivityExecution [
+	| activity available |
+	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
+		self error: 'The Activity execution does not belong to this execution scope.' ].
+	anActivityExecution isReady ifFalse: [
+		self error: 'Only a Ready Activity execution can consume normal incoming control flow.' ].
+	activity := anActivityExecution definition.
+	activity isForCompensation ifTrue: [
 		self error: 'A Compensation Activity cannot become Ready from normal Sequence Flow.' ].
-	(anActivity isSubProcess and: [ anActivity isEventSubProcess ]) ifTrue: [
+	(activity isSubProcess and: [ activity isEventSubProcess ]) ifTrue: [
 		self error: 'An Event SubProcess cannot become Ready from normal Sequence Flow.' ].
-	available := self availableIncomingFlowActivationsFor: anActivity.
-	available size < anActivity startQuantity ifTrue: [
+	available := self availableIncomingFlowActivationsFor: activity.
+	available size < activity startQuantity ifTrue: [
 		self error: 'The Activity does not have enough incoming control-flow activations to become Ready.' ].
-	execution := self createActivityExecutionFor: anActivity.
-	1 to: anActivity startQuantity do: [ :index |
-		execution consumeFlowActivation: (available at: index) ].
-	^ execution
+	1 to: activity startQuantity do: [ :index |
+		anActivityExecution consumeFlowActivation: (available at: index) ].
+	^ anActivityExecution
+]
+
+{ #category : 'control flow' }
+CPExecutionScope >> readyActivityExecutionFor: anActivity [
+	^ self readyActivityExecution: (self createActivityExecutionFor: anActivity)
 ]
 
 { #category : 'control flow' }
