@@ -79,3 +79,8 @@ CPStartEvent >> conditionAllowsInstantiationIn: anExecutionScope [
 CPStartEvent >> isErrorStartEvent [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPStartEvent >> isEscalationStartEvent [
+	^ false
+]

@@ -8711,3 +8711,125 @@ CPExecutionKernelExamples >> nonInterruptingErrorStartIsRejectedBeforeMutation [
 	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == handler ]) not.
 	^ subExecution
 ]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> interruptingEscalationEventSubProcessTerminatesContainingActivity [
+	<gtExample>
+	| process subProcess handler start caughtDefinition escalation escalationEnd thrownDefinition before flow execution subExecution childScope producer activation handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	handler := CPNoneSubProcess new identifier: 'escalationHandler'; triggeredByEvent: true; yourself.
+	start := CPEscalationStartEvent new identifier: 'escalationStart'; isInterrupting: true; yourself.
+	caughtDefinition := CPEscalationEventDefinition new identifier: 'catchEscalation'; escalationRef: escalation; yourself.
+	start eventDefinitions add: caughtDefinition.
+	handler addFlowElement: start.
+	escalationEnd := CPEscalationEndEvent new identifier: 'throwEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'throwDefinition'; escalationRef: escalation; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	before := CPTask new identifier: 'beforeEscalation'; yourself.
+	flow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: before; targetRef: escalationEnd; yourself.
+	subProcess addFlowElement: handler; addFlowElement: before; addFlowElement: escalationEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	childScope executeEscalationEndEvent: escalationEnd consuming: activation.
+	handlerExecution := childScope activityExecutions detect: [ :each | each definition == handler ].
+	self assert: subExecution state class equals: CPActivityTerminatingState.
+	self assert: producer state class equals: CPActivityTerminatedState.
+	self assert: handlerExecution isActive.
+	self assert: handlerExecution subScope eventExecutions first occurrence definition == escalation.
+	childScope completeEscalationEventSubProcessActivity: handlerExecution.
+	self assert: handlerExecution isCompleted.
+	self assert: subExecution state class equals: CPActivityTerminatedState.
+	^ handlerExecution
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> nonInterruptingEscalationEventSubProcessLeavesContainingWorkActive [
+	<gtExample>
+	| process subProcess handler start caughtDefinition escalation escalationEnd thrownDefinition before competing flow execution subExecution childScope producer competingExecution activation handlerExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	handler := CPNoneSubProcess new identifier: 'escalationHandler'; triggeredByEvent: true; yourself.
+	start := CPEscalationStartEvent new identifier: 'escalationStart'; isInterrupting: false; yourself.
+	caughtDefinition := CPEscalationEventDefinition new identifier: 'catchEscalation'; escalationRef: escalation; yourself.
+	start eventDefinitions add: caughtDefinition.
+	handler addFlowElement: start.
+	escalationEnd := CPEscalationEndEvent new identifier: 'throwEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'throwDefinition'; escalationRef: escalation; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	before := CPTask new identifier: 'beforeEscalation'; yourself.
+	competing := CPTask new identifier: 'competingWork'; yourself.
+	flow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: before; targetRef: escalationEnd; yourself.
+	subProcess addFlowElement: handler; addFlowElement: before; addFlowElement: competing; addFlowElement: escalationEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	competingExecution := childScope createActivityExecutionFor: competing.
+	competingExecution activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	childScope executeEscalationEndEvent: escalationEnd consuming: activation.
+	handlerExecution := childScope activityExecutions detect: [ :each | each definition == handler ].
+	self assert: subExecution isActive.
+	self assert: producer isActive.
+	self assert: competingExecution isActive.
+	self assert: handlerExecution isActive.
+	childScope completeEscalationEventSubProcessActivity: handlerExecution.
+	self assert: handlerExecution isCompleted.
+	self assert: subExecution isActive.
+	self assert: competingExecution isActive.
+	^ handlerExecution
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> ambiguousEscalationEventSubProcessesAreRejectedBeforeMutation [
+	<gtExample>
+	| process subProcess firstHandler secondHandler firstStart secondStart escalation escalationEnd thrownDefinition before flow execution subExecution childScope producer activation rejected |
+	process := CPProcess new identifier: 'process'; yourself.
+	subProcess := CPNoneSubProcess new identifier: 'booking'; yourself.
+	escalation := CPEscalation new identifier: 'businessEscalation'; yourself.
+	firstHandler := CPNoneSubProcess new identifier: 'firstHandler'; triggeredByEvent: true; yourself.
+	firstStart := CPEscalationStartEvent new identifier: 'firstStart'; yourself.
+	firstStart eventDefinitions add: (CPEscalationEventDefinition new identifier: 'firstCatch'; escalationRef: escalation; yourself).
+	firstHandler addFlowElement: firstStart.
+	secondHandler := CPNoneSubProcess new identifier: 'secondHandler'; triggeredByEvent: true; yourself.
+	secondStart := CPEscalationStartEvent new identifier: 'secondStart'; yourself.
+	secondStart eventDefinitions add: (CPEscalationEventDefinition new identifier: 'secondCatch'; escalationRef: escalation; yourself).
+	secondHandler addFlowElement: secondStart.
+	escalationEnd := CPEscalationEndEvent new identifier: 'throwEscalation'; yourself.
+	thrownDefinition := CPEscalationEventDefinition new identifier: 'throwDefinition'; escalationRef: escalation; yourself.
+	escalationEnd eventDefinitions add: thrownDefinition.
+	before := CPTask new identifier: 'beforeEscalation'; yourself.
+	flow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: before; targetRef: escalationEnd; yourself.
+	subProcess addFlowElement: firstHandler; addFlowElement: secondHandler; addFlowElement: before; addFlowElement: escalationEnd; addFlowElement: flow.
+	process addFlowElement: subProcess.
+	execution := self executionFor: process.
+	subExecution := execution createActivityExecutionFor: subProcess.
+	subExecution activate.
+	childScope := subExecution createSubScopeFor: subProcess.
+	producer := childScope createActivityExecutionFor: before.
+	producer activate.
+	activation := childScope activateSequenceFlow: flow producedBy: producer.
+	rejected := false.
+	[ childScope executeEscalationEndEvent: escalationEnd consuming: activation ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: activation isAvailable.
+	self assert: producer isActive.
+	self assert: subExecution isActive.
+	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == firstHandler ]) not.
+	self assert: (childScope activityExecutions anySatisfy: [ :each | each definition == secondHandler ]) not.
+	^ subExecution
+]

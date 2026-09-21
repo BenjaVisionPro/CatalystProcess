@@ -14,3 +14,8 @@ CPEscalationStartEvent class >> eventTypeLabel [
 CPEscalationStartEvent class >> eventTypeIcon [
 	^ #chevronsUp
 ]
+
+{ #category : 'testing' }
+CPEscalationStartEvent >> isEscalationStartEvent [
+	^ true
+]

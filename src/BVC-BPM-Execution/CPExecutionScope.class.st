@@ -1830,6 +1830,89 @@ CPExecutionScope >> completePropagatedErrorExecution: anErrorPropagationExecutio
 ]
 
 { #category : 'events - escalation' }
+CPExecutionScope >> escalationStartEventFor: anEscalationSubProcess [
+	| startEvents startEvent |
+	anEscalationSubProcess validateEventSubProcessStructure.
+	startEvents := anEscalationSubProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'An Escalation Event SubProcess requires exactly one Start Event.' ].
+	startEvent := startEvents first.
+	startEvent isEscalationStartEvent ifFalse: [
+		self error: 'An Escalation Event SubProcess requires an Escalation Start Event.' ].
+	startEvent incoming isEmpty ifFalse: [
+		self error: 'An Escalation Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	startEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'An Escalation Start Event requires exactly one Escalation Event Definition.' ].
+	^ startEvent
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> matchingEscalationEventSubProcessFor: anEscalation [
+	| matches |
+	matches := definition flowElements select: [ :each |
+		each isSubProcess and: [
+			each isEventSubProcess and: [
+				(each flowElements anySatisfy: [ :candidate |
+					candidate isStartEvent and: [ candidate isEscalationStartEvent ] ]) and: [
+					| startEvent |
+					startEvent := self escalationStartEventFor: each.
+					startEvent eventDefinitions first catchesEscalation: anEscalation ] ] ] ].
+	matches size > 1 ifTrue: [
+		self error: 'More than one Escalation Event SubProcess matches the propagated Escalation in the same execution scope.' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> beginEscalationEventSubProcess: anEscalationSubProcess occurrence: anOccurrence [
+	| startEvent handlerExecution handlerScope |
+	startEvent := self escalationStartEventFor: anEscalationSubProcess.
+	startEvent isInterrupting ifTrue: [
+		owningActivity ifNotNil: [
+			owningActivity isActive ifFalse: [
+				self error: 'An interrupting Escalation Event SubProcess requires an Active owning Activity.' ].
+			owningActivity beginTermination ].
+		self terminateRemainingWork ].
+	handlerExecution := self createActivityExecutionFor: anEscalationSubProcess.
+	handlerExecution activate.
+	handlerScope := handlerExecution createSubScopeFor: anEscalationSubProcess.
+	handlerScope executeStartEvent: startEvent occurrence: anOccurrence.
+	^ handlerExecution
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> completeEscalationEventSubProcessActivity: anActivityExecution [
+	| startEvent |
+	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
+		self error: 'The Escalation Event SubProcess cannot complete while nested control flow or Activities remain active.' ].
+	anActivityExecution definition isEventSubProcess ifFalse: [
+		self error: 'Only an Event SubProcess can complete through escalation-handler completion.' ].
+	startEvent := self escalationStartEventFor: anActivityExecution definition.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	(startEvent isInterrupting and: [ owningActivity notNil ]) ifTrue: [
+		owningActivity finishTermination ].
+	^ anActivityExecution
+]
+
+{ #category : 'events - escalation' }
+CPExecutionScope >> validateEscalationPropagationFor: anEscalation fromNestedScope: aNestedScope [
+	| handler boundaryExecution |
+	handler := self matchingEscalationEventSubProcessFor: anEscalation.
+	handler ifNotNil: [
+		self escalationStartEventFor: handler.
+		^ handler ].
+	boundaryExecution := self
+		waitingEscalationBoundaryExecutionFor: anEscalation
+		attachedTo: aNestedScope owningActivity modeledActivityExecution.
+	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
+	parentScope ifNil: [
+		self error: 'No matching Escalation Event SubProcess or Escalation Boundary Event is available in the containing execution hierarchy.' ].
+	^ parentScope
+		validateEscalationPropagationFor: anEscalation
+		fromNestedScope: self
+]
+
+{ #category : 'events - escalation' }
 CPExecutionScope >> waitingEscalationBoundaryExecutionFor: anEscalation attachedTo: anActivityExecution [
 	| matches |
 	matches := eventExecutions select: [ :eachExecution |
@@ -1843,53 +1926,49 @@ CPExecutionScope >> waitingEscalationBoundaryExecutionFor: anEscalation attached
 ]
 
 { #category : 'events - escalation' }
-CPExecutionScope >> escalationBoundaryExecutionFor: anEscalation propagatingFrom: aNestedScope [
-	| boundaryExecution |
+CPExecutionScope >> propagateEscalationOccurrence: anOccurrence fromNestedScope: aNestedScope [
+	| handler boundaryExecution |
+	handler := self matchingEscalationEventSubProcessFor: anOccurrence definition.
+	handler ifNotNil: [
+		^ self beginEscalationEventSubProcess: handler occurrence: anOccurrence ].
 	boundaryExecution := self
-		waitingEscalationBoundaryExecutionFor: anEscalation
+		waitingEscalationBoundaryExecutionFor: anOccurrence definition
 		attachedTo: aNestedScope owningActivity modeledActivityExecution.
-	boundaryExecution ifNotNil: [ ^ boundaryExecution ].
-	parentScope ifNil: [ ^ nil ].
-	^ parentScope
-		escalationBoundaryExecutionFor: anEscalation
-		propagatingFrom: self
-]
-
-{ #category : 'events - escalation' }
-CPExecutionScope >> propagateEscalationOccurrence: anOccurrence fromNestedScope: aNestedScope toBoundary: aBoundaryExecution [
-	(eventExecutions identityIncludes: aBoundaryExecution) ifTrue: [
-		^ self triggerBoundaryEventExecution: aBoundaryExecution with: anOccurrence ].
-	parentScope ifNil: [ self error: 'The resolved Escalation Boundary Event is not reachable from this execution scope.' ].
+	boundaryExecution ifNotNil: [
+		^ self triggerBoundaryEventExecution: boundaryExecution with: anOccurrence ].
+	parentScope ifNil: [
+		self error: 'No matching Escalation Event SubProcess or Escalation Boundary Event is available in the containing execution hierarchy.' ].
 	^ parentScope
 		propagateEscalationOccurrence: anOccurrence
 		fromNestedScope: self
-		toBoundary: aBoundaryExecution
 ]
 
 { #category : 'events - escalation' }
 CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: anActivation [
-	| definitions escalationDefinition thrownEscalation execution boundaryExecution occurrence |
+	| definitions escalationDefinition thrownEscalation execution handler occurrence |
 	definitions := anEscalationEndEvent eventDefinitions.
 	definitions size = 1 ifFalse: [
 		self error: 'An Escalation End Event requires exactly one Escalation Event Definition.' ].
 	escalationDefinition := definitions first.
 	thrownEscalation := escalationDefinition escalationRef.
 	thrownEscalation ifNil: [ self error: 'An Escalation End Event requires an Escalation reference.' ].
-	parentScope ifNil: [ self error: 'Uncaught Process-level Escalation End Event execution is not implemented yet.' ].
-	boundaryExecution := parentScope
-		escalationBoundaryExecutionFor: thrownEscalation
-		propagatingFrom: self.
-	boundaryExecution ifNil: [
-		self error: 'No matching Escalation Boundary Event is waiting in the containing execution hierarchy.' ].
+	handler := self matchingEscalationEventSubProcessFor: thrownEscalation.
+	handler
+		ifNotNil: [ self escalationStartEventFor: handler ]
+		ifNil: [
+			parentScope ifNil: [ self error: 'Uncaught Process-level Escalation End Event execution is not implemented yet.' ].
+			parentScope validateEscalationPropagationFor: thrownEscalation fromNestedScope: self ].
+	(anActivation isAvailable and: [ anEscalationEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
+		self error: 'An Escalation End Event requires an available activation from one of its incoming Sequence Flows.' ].
 	execution := self executeEndEvent: anEscalationEndEvent consuming: anActivation.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: UUID new asString;
 		definition: thrownEscalation;
 		yourself.
-	parentScope
-		propagateEscalationOccurrence: occurrence
-		fromNestedScope: self
-		toBoundary: boundaryExecution.
+	handler ifNotNil: [
+		self beginEscalationEventSubProcess: handler occurrence: occurrence.
+		^ execution ].
+	parentScope propagateEscalationOccurrence: occurrence fromNestedScope: self.
 	^ execution
 ]
 
