@@ -185,17 +185,22 @@ CPProcessExecution >> waitingDeliverableTimerSubscriptionIdentifiedBy: aSubscrip
 
 
 { #category : 'events - timer' }
-CPProcessExecution >> deliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier [
+CPProcessExecution >> deliverableTimerSubscriptionIdentifiedByOrNil: aSubscriptionIdentifier [
 	| matches |
 	aSubscriptionIdentifier ifNil: [
 		self error: 'A Timer subscription identifier is required.' ].
 	matches := (self allWaitingDeliverableTimerSubscriptions , self allDispatchPendingTimerSubscriptions)
 		select: [ :each | each identifier = aSubscriptionIdentifier ].
-	matches isEmpty ifTrue: [
-		self error: 'No deliverable Timer subscription has the requested identifier.' ].
+	matches isEmpty ifTrue: [ ^ nil ].
 	matches size = 1 ifFalse: [
 		self error: 'More than one deliverable Timer subscription has the requested identifier.' ].
 	^ matches first
+]
+
+{ #category : 'events - timer' }
+CPProcessExecution >> deliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier [
+	^ (self deliverableTimerSubscriptionIdentifiedByOrNil: aSubscriptionIdentifier)
+		ifNil: [ self error: 'No deliverable Timer subscription has the requested identifier.' ]
 ]
 
 { #category : 'events - timer' }

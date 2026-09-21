@@ -117,8 +117,9 @@ CPBpmService >> triggerTimerWorkUnit: aCPTriggerTimerWorkUnit [
 	| execution subscription occurrence |
 	execution := self processExecutionForIdentifier: aCPTriggerTimerWorkUnit processExecutionIdentifier.
 	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	subscription := execution deliverableTimerSubscriptionIdentifiedBy:
+	subscription := execution deliverableTimerSubscriptionIdentifiedByOrNil:
 		aCPTriggerTimerWorkUnit timerSubscriptionIdentifier.
+	subscription ifNil: [ ^ nil ].
 	subscription isDispatchPending ifTrue: [
 		subscription dispatchOccurrenceIdentifier = aCPTriggerTimerWorkUnit occurrenceIdentifier ifFalse: [
 			self error: 'Timer trigger occurrence identifier does not match the pending dispatch.' ] ].

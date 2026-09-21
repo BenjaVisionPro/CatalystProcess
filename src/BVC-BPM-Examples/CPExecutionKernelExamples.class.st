@@ -9675,6 +9675,66 @@ CPExecutionKernelExamples >> bpmServiceAutonomousPassClaimsAndEnqueuesDueTimerOn
 ]
 
 { #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> cancelledAutonomousTimerTriggerIsHarmlessStaleWork [
+	<gtExample>
+	| execution subscription environment root configuration service enqueue workUnit context result |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	environment := execution environment.
+	subscription armedAt: 100.
+	environment
+		currentTimerTime: 200;
+		timerDefinition: subscription timerDefinition dueAt: 200.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueTimerWorkUnitsUsing: enqueue.
+	workUnit := enqueue workUnits first.
+	subscription cancel.
+	context := CRWorkUnitExecutionContext new service: service; yourself.
+	result := workUnit executeInContext: context.
+	self assert: result isNil.
+	self assert: subscription isCancelled.
+	self assert: subscription isTriggered not.
+	^ subscription
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> mismatchedPendingAutonomousTimerTriggerIsRejected [
+	<gtExample>
+	| execution subscription environment root configuration service enqueue workUnit context mismatched rejected |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	environment := execution environment.
+	subscription armedAt: 100.
+	environment
+		currentTimerTime: 200;
+		timerDefinition: subscription timerDefinition dueAt: 200.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueTimerWorkUnitsUsing: enqueue.
+	workUnit := enqueue workUnits first.
+	mismatched := CPTriggerTimerWorkUnit new
+		processExecutionIdentifier: workUnit processExecutionIdentifier;
+		timerSubscriptionIdentifier: workUnit timerSubscriptionIdentifier;
+		occurrenceIdentifier: #wrongPendingTimerOccurrence;
+		yourself.
+	context := CRWorkUnitExecutionContext new service: service; yourself.
+	rejected := false.
+	[ mismatched executeInContext: context ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: subscription isDispatchPending.
+	self assert: subscription dispatchOccurrenceIdentifier equals: workUnit occurrenceIdentifier.
+	^ subscription
+]
+
+{ #category : 'examples - runtime service' }
 CPExecutionKernelExamples >> pendingAutonomousTimerTriggerCompletesExactSubscription [
 	<gtExample>
 	| execution subscription environment root configuration service enqueue workUnit context |
