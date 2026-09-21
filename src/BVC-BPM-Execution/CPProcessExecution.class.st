@@ -266,3 +266,39 @@ CPProcessExecution >> terminate [
 	self finishTermination.
 	^ self
 ]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> startAtInstantiatingEventBasedGateway: aGateway via: aSequenceFlow occurrence: anOccurrence [
+	| target continuation |
+	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
+	aGateway instantiate ifFalse: [ self error: 'Process instantiation requires an instantiating Event-Based Gateway.' ].
+	(aGateway outgoing includes: aSequenceFlow) ifFalse: [ self error: 'The Sequence Flow does not leave the instantiating Event-Based Gateway.' ].
+	target := aSequenceFlow targetRef.
+	(target isReceiveTask or: [ target isIntermediateEvent ]) ifFalse: [ self error: 'An instantiating Event-Based Gateway must target a Receive Task or Intermediate Catch Event.' ].
+	anOccurrence ifNil: [ self error: 'Event-Based Gateway instantiation requires an occurrence.' ].
+	started := true.
+	self acceptOccurrence: anOccurrence.
+	target isReceiveTask
+		ifTrue: [ continuation := self completeEventBasedGatewayReceiveTask: target withAcceptedOccurrence: anOccurrence ]
+		ifFalse: [ continuation := self continueInstantiatingEventBasedGatewayCatchEvent: target withAcceptedOccurrence: anOccurrence ].
+	self armMessageEventSubProcesses.
+	self armSignalEventSubProcesses.
+	self armTimerEventSubProcesses.
+	self armConditionalEventSubProcesses.
+	^ continuation
+]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> continueInstantiatingEventBasedGatewayCatchEvent: anEvent withAcceptedOccurrence: anOccurrence [
+	| definition eventExecution |
+	anEvent eventDefinitions size = 1 ifFalse: [ self error: 'An Event-Based Gateway Intermediate Catch Event requires exactly one Event Definition.' ].
+	definition := anEvent eventDefinitions first.
+	definition isMessageEventDefinition ifTrue: [ anOccurrence definition == definition messageRef ifFalse: [ self error: 'The occurrence does not match the Message gateway alternative.' ] ].
+	definition isSignalEventDefinition ifTrue: [ anOccurrence definition == definition signalRef ifFalse: [ self error: 'The occurrence does not match the Signal gateway alternative.' ] ].
+	definition isTimerEventDefinition ifTrue: [ anOccurrence definition == definition ifFalse: [ self error: 'The occurrence does not match the Timer gateway alternative.' ] ].
+	(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition ] ]) ifFalse: [ self error: 'This Event Definition cannot instantiate through an occurrence.' ].
+	eventExecution := CPIntermediateCatchEventExecution new definition: anEvent; scope: self; yourself.
+	self eventExecutions add: eventExecution.
+	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ eventExecution
+]

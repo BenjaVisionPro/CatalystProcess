@@ -278,3 +278,23 @@ CPBpmService >> reevaluateConditionalWorkUnit: aCPReevaluateConditionalWorkUnit 
 	scope ifNil: [ self error: 'The Conditional subscription has no execution scope.' ].
 	^ subscription reevaluateInScope: scope
 ]
+
+{ #category : 'process start' }
+CPBpmService >> instantiateEventBasedGatewayWorkUnit: aWorkUnit [
+	| deployment process gateway execution environment |
+	deployment := aWorkUnit processDeployment.
+	deployment ifNil: [ self error: 'A Process deployment is required.' ].
+	deployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
+	process := deployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	gateway := aWorkUnit gateway.
+	gateway ifNil: [ self error: 'An instantiating Event-Based Gateway is required.' ].
+	(process flowElements includes: gateway) ifFalse: [ self error: 'The Event-Based Gateway does not belong to the deployed Process definition.' ].
+	environment := configuration executionEnvironment.
+	environment ifNil: [ self error: 'BPM service configuration requires an execution environment to start a Process.' ].
+	execution := CPProcessExecution for: process environment: environment.
+	execution deployment: deployment; tenant: deployment tenant.
+	execution startAtInstantiatingEventBasedGateway: gateway via: aWorkUnit sequenceFlow occurrence: aWorkUnit occurrence.
+	systemRoot addProcessExecution: execution.
+	^ execution
+]
