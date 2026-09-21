@@ -1,38 +1,50 @@
 Class {
 	#name : 'CPBpmService',
-	#superclass : 'CFLabelledObject',
+	#superclass : 'CRWorkerService',
 	#instVars : [
-		'systemRoot',
-		'runtimeEngine'
+		'systemRoot'
 	],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
+
+{ #category : 'configuration' }
+CPBpmService class >> configurationClass [
+	^ CPBpmServiceConfiguration
+]
+
+{ #category : 'configuration' }
+CPBpmService class >> appearsInServiceAddMenu [
+	^ self == CPBpmService
+]
+
+{ #category : 'configuration' }
+CPBpmService class >> isSingletonService [
+	^ self == CPBpmService
+]
+
+{ #category : 'configuration' }
+CPBpmService class >> serviceAddMenuDisplayName [
+	^ 'BPM'
+]
 
 { #category : 'accessing' }
 CPBpmService >> systemRoot [
 	^ systemRoot
 ]
 
-{ #category : 'accessing' }
-CPBpmService >> systemRoot: anObject [
-	systemRoot := anObject
+{ #category : 'lifecycle' }
+CPBpmService >> installWithConfiguration: aCPBpmServiceConfiguration [
+	aCPBpmServiceConfiguration ifNil: [
+		self error: 'BPM service configuration must not be nil.' ].
+	aCPBpmServiceConfiguration systemRoot ifNil: [
+		self error: 'BPM service configuration requires a system root.' ].
+	configuration := aCPBpmServiceConfiguration.
+	systemRoot := aCPBpmServiceConfiguration systemRoot.
+	^ self
 ]
 
-{ #category : 'accessing' }
-CPBpmService >> runtimeEngine [
-	^ runtimeEngine
+{ #category : 'execution lookup' }
+CPBpmService >> processExecutionForIdentifier: anExecutionIdentifier [
+	^ systemRoot processExecutionForIdentifier: anExecutionIdentifier
 ]
-
-{ #category : 'accessing' }
-CPBpmService >> runtimeEngine: anObject [
-	runtimeEngine := anObject
-]
-
-{ #category : 'initialization' }
-CPBpmService >> initialize [
-	super initialize.
-	systemRoot := CPSystemRoot new.
-	runtimeEngine := CPRuntimeEngine new
-]
-

@@ -9285,3 +9285,28 @@ CPExecutionKernelExamples >> duplicateProcessExecutionIdentityIsRejected [
     self assert: root processExecutions first == execution.
     ^ root
 ]
+
+{ #category : 'examples - BPM runtime service' }
+CPExecutionKernelExamples >> bpmServiceConfigurationOwnsSystemRoot [
+	<gtExample>
+	| configuration |
+	configuration := CPBpmServiceConfiguration new.
+	self assert: configuration serviceClass == CPBpmService.
+	self assert: configuration systemRoot notNil.
+	^ configuration
+]
+
+{ #category : 'examples - BPM runtime service' }
+CPExecutionKernelExamples >> bpmServiceUsesConfiguredSystemRoot [
+	<gtExample>
+	| root execution configuration service |
+	root := CPSystemRoot new.
+	execution := self processExecutionHasStableIdentity.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new.
+	service installWithConfiguration: configuration.
+	self assert: service systemRoot == root.
+	self assert: (service processExecutionForIdentifier: execution executionIdentifier) == execution.
+	^ service
+]

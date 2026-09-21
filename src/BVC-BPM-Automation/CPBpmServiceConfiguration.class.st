@@ -1,12 +1,19 @@
 Class {
 	#name : 'CPBpmServiceConfiguration',
-	#superclass : 'CFLabelledObject',
+	#superclass : 'CRServiceConfiguration',
 	#instVars : [
 		'systemRoot'
 	],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
+
+{ #category : 'initialization' }
+CPBpmServiceConfiguration >> initialize [
+	super initialize.
+	self serviceClass: CPBpmService.
+	systemRoot := CPSystemRoot new
+]
 
 { #category : 'accessing' }
 CPBpmServiceConfiguration >> systemRoot [
@@ -17,4 +24,3 @@ CPBpmServiceConfiguration >> systemRoot [
 CPBpmServiceConfiguration >> systemRoot: anObject [
 	systemRoot := anObject
 ]
-
