@@ -9398,3 +9398,91 @@ CPExecutionKernelExamples >> bpmSignalWorkUnitBroadcastsThroughRuntimeService [
 	self assert: occurrences asSet size = 1.
 	^ matches
 ]
+
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> timerEventSubProcessIsArmedWithoutBlockingCompletion [
+	<gtExample>
+	| process start timerDefinition eventSubProcess timerStart execution subscription |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'timerDefinition'; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'timerHandler'; triggeredByEvent: true; yourself.
+	timerStart := CPTimerStartEvent new identifier: 'timerStart'; isInterrupting: false; yourself.
+	timerStart eventDefinitions add: timerDefinition.
+	eventSubProcess addFlowElement: timerStart.
+	process addFlowElement: start; addFlowElement: eventSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	self assert: (execution activityExecutions noneSatisfy: [ :each | each definition == eventSubProcess ]).
+	self assert: execution eventSubProcessTimerSubscriptions size = 1.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	self assert: subscription isWaiting.
+	self assert: subscription eventSubProcess == eventSubProcess.
+	self assert: subscription startEvent == timerStart.
+	self assert: subscription timerDefinition == timerDefinition.
+	self assert: execution allWaitingTimerSubscriptions isEmpty.
+	self assert: execution allWaitingDeliverableTimerSubscriptions size = 1.
+	self assert: execution canComplete.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> nonInterruptingTimerEventSubProcessCanBeTriggeredRepeatedly [
+	<gtExample>
+	| execution process eventSubProcess timerDefinition firstSubscription firstOccurrence secondSubscription secondOccurrence handlers |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	process := execution definition.
+	eventSubProcess := process flowElements detect: [ :each | each isSubProcess and: [ each isEventSubProcess ] ].
+	firstSubscription := execution eventSubProcessTimerSubscriptions first.
+	timerDefinition := firstSubscription timerDefinition.
+	firstOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #timerEventSubProcess1; definition: timerDefinition; yourself.
+	firstSubscription deliverOccurrence: firstOccurrence.
+	handlers := execution activityExecutions select: [ :each | each definition == eventSubProcess ].
+	self assert: handlers size = 1.
+	self assert: handlers first isActive.
+	self assert: handlers first subScope eventExecutions first occurrence == firstOccurrence.
+	secondSubscription := execution eventSubProcessTimerSubscriptions last.
+	self assert: secondSubscription ~~ firstSubscription.
+	self assert: secondSubscription isWaiting.
+	secondOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #timerEventSubProcess2; definition: timerDefinition; yourself.
+	secondSubscription deliverOccurrence: secondOccurrence.
+	handlers := execution activityExecutions select: [ :each | each definition == eventSubProcess ].
+	self assert: handlers size = 2.
+	self assert: handlers first ~~ handlers last.
+	self assert: handlers last subScope eventExecutions first occurrence == secondOccurrence.
+	self assert: execution eventSubProcessTimerSubscriptions last isWaiting.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> interruptingTimerEventSubProcessTerminatesOrdinaryWorkAndDoesNotRearm [
+	<gtExample>
+	| process start task flow timerDefinition eventSubProcess timerStart environment execution taskExecution subscription occurrence handler |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	task := CPUserTask new identifier: 'ordinaryWork'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: start; targetRef: task; yourself.
+	timerDefinition := CPTimerEventDefinition new identifier: 'interruptTimer'; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'interruptHandler'; triggeredByEvent: true; yourself.
+	timerStart := CPTimerStartEvent new identifier: 'timerStart'; isInterrupting: true; yourself.
+	timerStart eventDefinitions add: timerDefinition.
+	eventSubProcess addFlowElement: timerStart.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow; addFlowElement: eventSubProcess.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution readyActivityExecution: taskExecution.
+	execution activateUserTaskExecution: taskExecution.
+	self assert: taskExecution isActive.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #interruptTimer1; definition: timerDefinition; yourself.
+	subscription deliverOccurrence: occurrence.
+	handler := execution activityExecutions detect: [ :each | each definition == eventSubProcess ].
+	self assert: taskExecution state class = CPActivityTerminatedState.
+	self assert: handler isActive.
+	self assert: (execution eventSubProcessTimerSubscriptions noneSatisfy: [ :each | each isWaiting ]).
+	self assert: handler subScope eventExecutions first occurrence == occurrence.
+	^ execution
+]

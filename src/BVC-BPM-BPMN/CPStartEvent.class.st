@@ -95,3 +95,8 @@ CPStartEvent >> isMessageStartEvent [
 CPStartEvent >> isSignalStartEvent [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPStartEvent >> isTimerStartEvent [
+	^ false
+]

@@ -70,6 +70,7 @@ CPProcessExecution >> start [
 	executions := startEvents collect: [ :each | self executeStartEvent: each occurrence: nil ].
 	self armMessageEventSubProcesses.
 	self armSignalEventSubProcesses.
+	self armTimerEventSubProcesses.
 	^ executions
 ]
 
@@ -100,6 +101,7 @@ CPProcessExecution >> complete [
 		self error: 'A Process execution cannot complete while executable or waiting work remains.' ].
 	self cancelMessageEventSubProcessSubscriptions.
 	self cancelSignalEventSubProcessSubscriptions.
+	self cancelTimerEventSubProcessSubscriptions.
 	completed := true.
 	^ self
 ]
@@ -131,6 +133,7 @@ CPProcessExecution >> startWithOccurrence: anOccurrence [
 	execution := self executeStartEvent: matchingStartEvents first occurrence: anOccurrence.
 	self armMessageEventSubProcesses.
 	self armSignalEventSubProcesses.
+	self armTimerEventSubProcesses.
 	^ execution
 ]
 
@@ -148,6 +151,7 @@ CPProcessExecution >> startWhenConditionSatisfied [
 	execution := self executeStartEvent: matchingStartEvents first occurrence: nil.
 	self armMessageEventSubProcesses.
 	self armSignalEventSubProcesses.
+	self armTimerEventSubProcesses.
 	^ execution
 ]
 

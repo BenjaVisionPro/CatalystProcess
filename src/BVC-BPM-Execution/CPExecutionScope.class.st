@@ -15,6 +15,7 @@ Class {
 		'messageSubscriptions',
 		'eventSubProcessMessageSubscriptions',
 		'eventSubProcessSignalSubscriptions',
+		'eventSubProcessTimerSubscriptions',
 		'signalSubscriptions',
 		'conditionalSubscriptions',
 		'compensationRecords',
@@ -45,6 +46,7 @@ CPExecutionScope >> initialize [
 	messageSubscriptions := OrderedCollection new.
 	eventSubProcessMessageSubscriptions := OrderedCollection new.
 	eventSubProcessSignalSubscriptions := OrderedCollection new.
+	eventSubProcessTimerSubscriptions := OrderedCollection new.
 	signalSubscriptions := OrderedCollection new.
 	conditionalSubscriptions := OrderedCollection new.
 	compensationRecords := OrderedCollection new.
@@ -158,6 +160,7 @@ CPExecutionScope >> acceptSignalEventSubProcessSubscription: aSubscription accep
 	handlerScope executeStartEvent: startEvent withAcceptedOccurrence: anOccurrence.
 	handlerScope armMessageEventSubProcesses.
 	handlerScope armSignalEventSubProcesses.
+	handlerScope armTimerEventSubProcesses.
 	startEvent isInterrupting ifFalse: [ self armSignalEventSubProcess: aSubscription eventSubProcess ].
 	^ handlerExecution
 ]
@@ -170,6 +173,106 @@ CPExecutionScope >> completeSignalEventSubProcessActivity: anActivityExecution [
 	anActivityExecution definition isEventSubProcess ifFalse: [
 		self error: 'Only an Event SubProcess can complete through Signal-handler completion.' ].
 	startEvent := self signalStartEventFor: anActivityExecution definition.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	(startEvent isInterrupting and: [ owningActivity notNil ]) ifTrue: [ owningActivity finishTermination ].
+	^ anActivityExecution
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> timerStartEventFor: anEventSubProcess [
+	| startEvents startEvent |
+	anEventSubProcess validateEventSubProcessStructure.
+	startEvents := anEventSubProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'A Timer Event SubProcess requires exactly one Start Event.' ].
+	startEvent := startEvents first.
+	startEvent isTimerStartEvent ifFalse: [
+		self error: 'A Timer Event SubProcess requires a Timer Start Event.' ].
+	startEvent incoming isEmpty ifFalse: [
+		self error: 'A Timer Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	startEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Timer Start Event requires exactly one Timer Event Definition.' ].
+	^ startEvent
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> armTimerEventSubProcesses [
+	definition flowElements do: [ :each |
+		(each isSubProcess and: [
+			each isEventSubProcess and: [
+				each flowElements anySatisfy: [ :candidate |
+					candidate isStartEvent and: [ candidate isTimerStartEvent ] ] ] ]) ifTrue: [
+			self armTimerEventSubProcess: each ] ].
+	^ self
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> armTimerEventSubProcess: anEventSubProcess [
+	| startEvent subscription |
+	(eventSubProcessTimerSubscriptions anySatisfy: [ :each |
+		each isWaiting and: [ each eventSubProcess == anEventSubProcess ] ]) ifTrue: [
+		self error: 'A Timer Event SubProcess already has a waiting subscription in this execution scope.' ].
+	startEvent := self timerStartEventFor: anEventSubProcess.
+	subscription := CPTimerEventSubProcessSubscription new
+		scope: self;
+		eventSubProcess: anEventSubProcess;
+		startEvent: startEvent;
+		timerDefinition: startEvent eventDefinitions first;
+		yourself.
+	eventSubProcessTimerSubscriptions add: subscription.
+	^ subscription
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> cancelTimerEventSubProcessSubscriptions [
+	eventSubProcessTimerSubscriptions do: [ :each |
+		each isWaiting ifTrue: [ each cancel ] ].
+	^ self
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> canInitiateTimerEventSubProcess [
+	owningActivity ifNotNil: [ ^ owningActivity isActive ].
+	^ self processExecution isStarted and: [ self processExecution isCompleted not ]
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> acceptTimerEventSubProcessSubscription: aSubscription occurrence: anOccurrence [
+	| startEvent handlerExecution handlerScope |
+	(eventSubProcessTimerSubscriptions identityIncludes: aSubscription) ifFalse: [
+		self error: 'The Timer Event SubProcess subscription does not belong to this execution scope.' ].
+	aSubscription isWaiting ifFalse: [
+		self error: 'Only a waiting Timer Event SubProcess subscription can accept an occurrence.' ].
+	self canInitiateTimerEventSubProcess ifFalse: [
+		self error: 'A Timer Event SubProcess can be initiated only while its containing scope is active.' ].
+	anOccurrence definition == aSubscription timerDefinition ifFalse: [
+		self error: 'The occurrence does not match this Timer Event SubProcess subscription.' ].
+	startEvent := aSubscription startEvent.
+	self acceptOccurrence: anOccurrence.
+	aSubscription triggerWith: anOccurrence.
+	startEvent isInterrupting ifTrue: [
+		owningActivity ifNotNil: [ owningActivity beginTermination ].
+		self terminateRemainingWork ].
+	handlerExecution := self createActivityExecutionFor: aSubscription eventSubProcess.
+	handlerExecution activate.
+	handlerScope := handlerExecution createSubScopeFor: aSubscription eventSubProcess.
+	handlerScope executeStartEvent: startEvent withAcceptedOccurrence: anOccurrence.
+	handlerScope armMessageEventSubProcesses.
+	handlerScope armSignalEventSubProcesses.
+	handlerScope armTimerEventSubProcesses.
+	startEvent isInterrupting ifFalse: [ self armTimerEventSubProcess: aSubscription eventSubProcess ].
+	^ handlerExecution
+]
+
+{ #category : 'events - timer event sub-process' }
+CPExecutionScope >> completeTimerEventSubProcessActivity: anActivityExecution [
+	| startEvent |
+	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
+		self error: 'The Timer Event SubProcess cannot complete while nested control flow or Activities remain active.' ].
+	anActivityExecution definition isEventSubProcess ifFalse: [
+		self error: 'Only an Event SubProcess can complete through Timer-handler completion.' ].
+	startEvent := self timerStartEventFor: anActivityExecution definition.
 	anActivityExecution beginCompletion.
 	anActivityExecution complete.
 	(startEvent isInterrupting and: [ owningActivity notNil ]) ifTrue: [ owningActivity finishTermination ].
@@ -354,6 +457,25 @@ CPExecutionScope >> allWaitingTimerSubscriptionsFor: aTimerDefinition [
 	^ self allWaitingTimerSubscriptions select: [ :each | each timerDefinition == aTimerDefinition ]
 ]
 
+
+{ #category : 'accessing' }
+CPExecutionScope >> eventSubProcessTimerSubscriptions [ ^ eventSubProcessTimerSubscriptions ]
+
+{ #category : 'events - timer' }
+CPExecutionScope >> allWaitingDeliverableTimerSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingTimerSubscriptions asOrderedCollection.
+	subscriptions addAll: (eventSubProcessTimerSubscriptions select: #isWaiting).
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingDeliverableTimerSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'events - timer' }
+CPExecutionScope >> allWaitingDeliverableTimerSubscriptionsFor: aTimerDefinition [
+	^ self allWaitingDeliverableTimerSubscriptions select: [ :each | each timerDefinition == aTimerDefinition ]
+]
+
 { #category : 'accessing' }
 CPExecutionScope >> messageSubscriptions [ ^ messageSubscriptions ]
 
@@ -489,6 +611,7 @@ CPExecutionScope >> acceptMessageEventSubProcessSubscription: aSubscription occu
 	handlerScope executeStartEvent: startEvent occurrence: anOccurrence.
 	handlerScope armMessageEventSubProcesses.
 	handlerScope armSignalEventSubProcesses.
+	handlerScope armTimerEventSubProcesses.
 	startEvent isInterrupting ifFalse: [ self armMessageEventSubProcess: aSubscription eventSubProcess ].
 	^ handlerExecution
 ]
@@ -1162,6 +1285,7 @@ CPExecutionScope >> activateSubProcessScope: aSubScope [
 		ifEmpty: [ aSubScope activateImplicitSubProcessStart ].
 	aSubScope armMessageEventSubProcesses.
 	aSubScope armSignalEventSubProcesses.
+	aSubScope armTimerEventSubProcesses.
 	^ aSubScope
 ]
 
@@ -1199,6 +1323,7 @@ CPExecutionScope >> completeExecution [
 		self error: 'The execution scope cannot complete while nested control flow or Activities remain active.' ].
 	self cancelMessageEventSubProcessSubscriptions.
 	self cancelSignalEventSubProcessSubscriptions.
+	self cancelTimerEventSubProcessSubscriptions.
 	^ owningActivity subProcessScopeDidComplete: self
 ]
 
@@ -1846,6 +1971,8 @@ CPExecutionScope >> terminateRemainingWork [
 	eventSubProcessMessageSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	eventSubProcessSignalSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	eventSubProcessTimerSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].

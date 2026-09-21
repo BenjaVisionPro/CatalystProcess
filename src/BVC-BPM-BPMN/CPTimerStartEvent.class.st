@@ -16,3 +16,8 @@ CPTimerStartEvent >> matchesInstantiationOccurrence: anOccurrence [
 	definitions size = 1 ifFalse: [ ^ false ].
 	^ definitions first == anOccurrence definition
 ]
+
+{ #category : 'testing' }
+CPTimerStartEvent >> isTimerStartEvent [
+	^ true
+]
