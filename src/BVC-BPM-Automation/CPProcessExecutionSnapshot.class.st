@@ -5,6 +5,7 @@ Class {
 		'executionIdentifier',
 		'processIdentifier',
 		'deploymentIdentifier',
+		'tenantIdentifier',
 		'started',
 		'completed',
 		'pendingUserTaskWorkItems',
@@ -27,6 +28,8 @@ CPProcessExecutionSnapshot >> initializeFrom: aCPProcessExecution [
 	processIdentifier := aCPProcessExecution definition identifier.
 	deploymentIdentifier := aCPProcessExecution deployment
 		ifNotNil: [ :deployment | deployment identifier ].
+	tenantIdentifier := aCPProcessExecution tenant
+		ifNotNil: [ :tenant | tenant identifier ].
 	started := aCPProcessExecution isStarted.
 	completed := aCPProcessExecution isCompleted.
 	pendingUserTaskWorkItems := (aCPProcessExecution allPendingUserTaskWorkItems collect: [ :each |
@@ -42,6 +45,8 @@ CPProcessExecutionSnapshot >> executionIdentifier [ ^ executionIdentifier ]
 CPProcessExecutionSnapshot >> processIdentifier [ ^ processIdentifier ]
 { #category : 'accessing' }
 CPProcessExecutionSnapshot >> deploymentIdentifier [ ^ deploymentIdentifier ]
+{ #category : 'accessing' }
+CPProcessExecutionSnapshot >> tenantIdentifier [ ^ tenantIdentifier ]
 { #category : 'testing' }
 CPProcessExecutionSnapshot >> isStarted [ ^ started ]
 { #category : 'testing' }

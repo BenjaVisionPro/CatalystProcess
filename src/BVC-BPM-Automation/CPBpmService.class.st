@@ -265,3 +265,15 @@ CPBpmService >> queryProcessExecutionWorkUnit: aCPQueryProcessExecutionWorkUnit 
 	^ self processExecutionSnapshotForIdentifier:
 		aCPQueryProcessExecutionWorkUnit processExecutionIdentifier
 ]
+
+
+{ #category : 'process query' }
+CPBpmService >> processExecutionSnapshots [
+	^ (systemRoot processExecutions collect: [ :each |
+		CPProcessExecutionSnapshot from: each ]) asArray
+]
+
+{ #category : 'process query' }
+CPBpmService >> queryProcessExecutionsWorkUnit: aCPQueryProcessExecutionsWorkUnit [
+	^ self processExecutionSnapshots
+]
