@@ -9238,3 +9238,50 @@ CPExecutionKernelExamples >> interruptingSignalEventSubProcessTerminatesOrdinary
 	self assert: handler subScope eventExecutions first occurrence == occurrence.
 	^ execution
 ]
+
+
+{ #category : 'examples - process execution identity' }
+CPExecutionKernelExamples >> processExecutionHasStableIdentity [
+    <gtExample>
+    | process execution identifier |
+    process := CPProcess new identifier: 'identityProcess'; yourself.
+    execution := CPProcessExecution
+        for: process
+        environment: CPExampleExecutionEnvironment new.
+    identifier := execution executionIdentifier.
+    self assert: identifier notNil.
+    self assert: identifier isEmpty not.
+    self assert: execution executionIdentifier = identifier.
+    ^ execution
+]
+
+{ #category : 'examples - process execution identity' }
+CPExecutionKernelExamples >> systemRootOwnsAndResolvesProcessExecutionByIdentity [
+    <gtExample>
+    | root execution |
+    root := CPSystemRoot new.
+    execution := self processExecutionHasStableIdentity.
+    root addProcessExecution: execution.
+    self assert: root processExecutions size = 1.
+    self assert: (root processExecutionForIdentifier: execution executionIdentifier) == execution.
+    self assert: (root processExecutionForIdentifier: 'missing-execution') isNil.
+    self assert: root processInstances isEmpty.
+    ^ root
+]
+
+{ #category : 'examples - process execution identity' }
+CPExecutionKernelExamples >> duplicateProcessExecutionIdentityIsRejected [
+    <gtExample>
+    | root execution rejected |
+    root := CPSystemRoot new.
+    execution := self processExecutionHasStableIdentity.
+    root addProcessExecution: execution.
+    rejected := false.
+    [ root addProcessExecution: execution ]
+        on: Error
+        do: [ :error | rejected := true ].
+    self assert: rejected.
+    self assert: root processExecutions size = 1.
+    self assert: root processExecutions first == execution.
+    ^ root
+]

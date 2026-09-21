@@ -8,7 +8,8 @@ Class {
 		'environment',
 		'started',
 		'completed',
-		'nextCompensationCompletionSequence'
+		'nextCompensationCompletionSequence',
+		'executionIdentifier'
 	],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
@@ -21,6 +22,9 @@ CPProcessExecution class >> for: aProcess environment: anExecutionEnvironment [
 		environment: anExecutionEnvironment;
 		yourself
 ]
+
+{ #category : 'accessing' }
+CPProcessExecution >> executionIdentifier [ ^ executionIdentifier ]
 
 { #category : 'accessing' }
 CPProcessExecution >> deployment [ ^ deployment ]
@@ -44,6 +48,7 @@ CPProcessExecution >> environment: anExecutionEnvironment [ environment := anExe
 { #category : 'initialization' }
 CPProcessExecution >> initialize [
 	super initialize.
+	executionIdentifier := UUID new asString.
 	started := false.
 	completed := false.
 	nextCompensationCompletionSequence := 1

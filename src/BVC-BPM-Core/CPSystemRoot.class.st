@@ -9,6 +9,7 @@ Class {
 		'processDesignLicences',
 		'processDeployments',
 		'processInstances',
+		'processExecutions',
 		'workItems',
 		'scheduledJobs',
 		'auditEvents'
@@ -88,6 +89,16 @@ CPSystemRoot >> processInstances: anObject [
 ]
 
 { #category : 'accessing' }
+CPSystemRoot >> processExecutions [
+	^ processExecutions
+]
+
+{ #category : 'accessing' }
+CPSystemRoot >> processExecutions: anObject [
+	processExecutions := anObject
+]
+
+{ #category : 'accessing' }
 CPSystemRoot >> workItems [
 	^ workItems
 ]
@@ -127,6 +138,7 @@ CPSystemRoot >> initialize [
 	processDesignLicences := OrderedCollection new.
 	processDeployments := OrderedCollection new.
 	processInstances := OrderedCollection new.
+	processExecutions := OrderedCollection new.
 	workItems := OrderedCollection new.
 	scheduledJobs := OrderedCollection new.
 	auditEvents := OrderedCollection new
@@ -172,6 +184,28 @@ CPSystemRoot >> addProcessDeployment: aProcessDeployment [
 CPSystemRoot >> addProcessInstance: aProcessInstance [
 	processInstances add: aProcessInstance.
 	^ aProcessInstance
+]
+
+{ #category : 'adding' }
+CPSystemRoot >> addProcessExecution: aProcessExecution [
+	| identifier |
+	aProcessExecution ifNil: [ self error: 'A Process execution is required.' ].
+	identifier := aProcessExecution executionIdentifier.
+	identifier ifNil: [ self error: 'A Process execution requires an execution identifier.' ].
+	(processExecutions anySatisfy: [ :each | each executionIdentifier = identifier ]) ifTrue: [
+		self error: 'A Process execution with this identifier is already registered.' ].
+	processExecutions add: aProcessExecution.
+	^ aProcessExecution
+]
+
+{ #category : 'accessing' }
+CPSystemRoot >> processExecutionForIdentifier: anIdentifier [
+	| matches |
+	anIdentifier ifNil: [ self error: 'A Process execution identifier is required.' ].
+	matches := processExecutions select: [ :each | each executionIdentifier = anIdentifier ].
+	matches size > 1 ifTrue: [
+		self error: 'More than one Process execution has the same identifier.' ].
+	^ matches ifEmpty: [ nil ] ifNotEmpty: [ matches first ]
 ]
 
 { #category : 'adding' }
