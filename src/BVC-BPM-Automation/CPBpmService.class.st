@@ -396,6 +396,24 @@ CPBpmService >> instantiateEventBasedGatewayWorkUnit: aWorkUnit [
 
 
 { #category : 'process initiation' }
+CPBpmService >> instantiateReceiveTask: aReceiveTask fromDeployment: aDeployment occurrence: anOccurrence [
+	| process environment execution |
+	aDeployment ifNil: [ self error: 'A Process deployment is required.' ].
+	aDeployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
+	process := aDeployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	(process flowElements includes: aReceiveTask) ifFalse: [ self error: 'The Receive Task does not belong to the deployed Process definition.' ].
+	environment := configuration executionEnvironment.
+	environment ifNil: [ self error: 'BPM service configuration requires an execution environment to start a Process.' ].
+	execution := CPProcessExecution for: process environment: environment.
+	execution deployment: aDeployment; tenant: aDeployment tenant.
+	execution startAtInstantiatingReceiveTask: aReceiveTask occurrence: anOccurrence.
+	systemRoot addProcessExecution: execution.
+	^ execution
+]
+
+
+{ #category : 'process initiation' }
 CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 	| process subscriptions |
 	process := aDeployment processDefinition.
@@ -415,6 +433,14 @@ CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 					subscription := CPStartEventInitiationSubscription new
 						processDeployment: aDeployment; startEvent: element; eventDefinition: definition; parallelMultipleInitiation: parallelInitiation; yourself.
 					subscriptions add: subscription ] ] ].
+		(element isReceiveTask and: [ element instantiate ]) ifTrue: [
+			| definition subscription |
+			element incoming isEmpty ifFalse: [ self error: 'An instantiating Receive Task must not have incoming Sequence Flows.' ].
+			element messageRef ifNil: [ self error: 'An instantiating Receive Task requires a Message.' ].
+			definition := CPMessageEventDefinition new messageRef: element messageRef; yourself.
+			subscription := CPReceiveTaskInitiationSubscription new
+				processDeployment: aDeployment; receiveTask: element; eventDefinition: definition; yourself.
+			subscriptions add: subscription ].
 		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
 			element outgoing do: [ :flow |
 				| target definition subscription |

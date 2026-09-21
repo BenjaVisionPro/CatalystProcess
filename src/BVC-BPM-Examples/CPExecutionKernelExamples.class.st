@@ -11314,3 +11314,41 @@ CPExecutionKernelExamples >> processLevelEscalationEndEventThrowsResultAndComple
 	self assert: execution isCompleted.
 	^ eventExecution
 ]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> instantiatingReceiveTaskStartsProcessFromMessage [
+	<gtExample>
+	| process receiveTask task flow message deployment environment root configuration service subscription occurrence execution receiveExecution |
+	process := CPProcess new identifier: 'receive-task-start-process'; yourself.
+	message := CPMessage new identifier: 'receive-task-start-message'; yourself.
+	receiveTask := CPReceiveTask new
+		identifier: 'instantiating-receive';
+		messageRef: message;
+		instantiate: true;
+		yourself.
+	task := CPTask new identifier: 'after-receive'; yourself.
+	flow := CPSequenceFlow new identifier: 'receive-start-flow'; sourceRef: receiveTask; targetRef: task; yourself.
+	process addFlowElement: receiveTask; addFlowElement: task; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'receive-task-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	self assert: deployment initiationSubscriptions size equals: 1.
+	subscription := deployment initiationSubscriptions first.
+	self assert: subscription class == CPReceiveTaskInitiationSubscription.
+	self assert: subscription receiveTask == receiveTask.
+	self assert: (service initiationSubscriptionsForMessage: message) size equals: 1.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: 'receive-task-start-1'; definition: message; payload: 'received'; yourself.
+	execution := service deliverProcessInitiationOccurrenceWorkUnit:
+		(CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: subscription occurrence: occurrence).
+	self assert: root processExecutions size equals: 1.
+	self assert: execution isStarted.
+	receiveExecution := execution activityExecutions first.
+	self assert: receiveExecution class == CPReceiveTaskExecution.
+	self assert: receiveExecution isCompleted.
+	self assert: receiveExecution receivedOccurrence == occurrence.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ execution
+]

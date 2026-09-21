@@ -286,6 +286,33 @@ CPProcessExecution >> terminate [
 ]
 
 { #category : 'lifecycle' }
+CPProcessExecution >> startAtInstantiatingReceiveTask: aReceiveTask occurrence: anOccurrence [
+	| execution |
+	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
+	aReceiveTask instantiate ifFalse: [ self error: 'Process instantiation requires an instantiating Receive Task.' ].
+	aReceiveTask incoming isEmpty ifFalse: [ self error: 'An instantiating Receive Task must not have incoming Sequence Flows.' ].
+	aReceiveTask messageRef ifNil: [ self error: 'An instantiating Receive Task requires a Message.' ].
+	anOccurrence ifNil: [ self error: 'Receive Task instantiation requires an occurrence.' ].
+	anOccurrence definition == aReceiveTask messageRef ifFalse: [ self error: 'The occurrence does not carry the Message awaited by this Receive Task.' ].
+	started := true.
+	self acceptOccurrence: anOccurrence.
+	execution := self createReceiveTaskExecutionFor: aReceiveTask.
+	(execution prepareForActivation) ifFalse: [ self error: 'The instantiating Receive Task does not have its required inputs available.' ].
+	execution activate.
+	execution acceptReceivedOccurrence: anOccurrence.
+	execution populateSingleDataOutputFromOccurrence: anOccurrence.
+	execution beginCompletion.
+	execution complete.
+	self produceOutgoingControlFor: execution.
+	self armMessageEventSubProcesses.
+	self armSignalEventSubProcesses.
+	self armTimerEventSubProcesses.
+	self armConditionalEventSubProcesses.
+	^ execution
+]
+
+
+{ #category : 'lifecycle' }
 CPProcessExecution >> startAtInstantiatingEventBasedGateway: aGateway via: aSequenceFlow occurrence: anOccurrence [
 	| target continuation |
 	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
