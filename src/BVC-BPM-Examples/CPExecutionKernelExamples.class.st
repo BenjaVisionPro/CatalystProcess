@@ -11266,3 +11266,51 @@ CPExecutionKernelExamples >> multiInstanceOutputAssociationWaitsForEveryDeclared
 	self assert: (execution itemValueFor: target) equals: 'combined'.
 	^ instance
 ]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> processLevelErrorEndEventThrowsResultAndCompletes [
+	<gtExample>
+	| process start errorEnd flow error errorDefinition execution activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	error := CPError new identifier: 'processError'; yourself.
+	errorDefinition := CPErrorEventDefinition new identifier: 'errorDefinition'; error: error; yourself.
+	errorEnd := CPErrorEndEvent new identifier: 'errorEnd'; yourself.
+	errorEnd eventDefinitions add: errorDefinition.
+	flow := CPSequenceFlow new identifier: 'toError'; sourceRef: start; targetRef: errorEnd; yourself.
+	process addFlowElement: start; addFlowElement: errorEnd; addFlowElement: flow.
+	execution := self executionFor: process.
+	execution start.
+	activation := (execution availableFlowActivationsOn: flow) first.
+	eventExecution := execution executeErrorEndEvent: errorEnd consuming: activation.
+	self assert: eventExecution thrownOccurrences size equals: 1.
+	self assert: eventExecution thrownOccurrences first definition == error.
+	self assert: execution canComplete.
+	execution complete.
+	self assert: execution isCompleted.
+	^ eventExecution
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> processLevelEscalationEndEventThrowsResultAndCompletes [
+	<gtExample>
+	| process start escalationEnd flow escalation escalationDefinition execution activation eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	escalation := CPEscalation new identifier: 'processEscalation'; yourself.
+	escalationDefinition := CPEscalationEventDefinition new identifier: 'escalationDefinition'; escalationRef: escalation; yourself.
+	escalationEnd := CPEscalationEndEvent new identifier: 'escalationEnd'; yourself.
+	escalationEnd eventDefinitions add: escalationDefinition.
+	flow := CPSequenceFlow new identifier: 'toEscalation'; sourceRef: start; targetRef: escalationEnd; yourself.
+	process addFlowElement: start; addFlowElement: escalationEnd; addFlowElement: flow.
+	execution := self executionFor: process.
+	execution start.
+	activation := (execution availableFlowActivationsOn: flow) first.
+	eventExecution := execution executeEscalationEndEvent: escalationEnd consuming: activation.
+	self assert: eventExecution thrownOccurrences size equals: 1.
+	self assert: eventExecution thrownOccurrences first definition == escalation.
+	self assert: execution canComplete.
+	execution complete.
+	self assert: execution isCompleted.
+	^ eventExecution
+]

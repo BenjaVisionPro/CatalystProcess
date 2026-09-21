@@ -2270,8 +2270,9 @@ CPExecutionScope >> executeErrorEndEvent: anErrorEndEvent consuming: anActivatio
 	thrownError := errorDefinition error.
 	thrownError ifNil: [ self error: 'An Error End Event requires an Error reference.' ].
 	handler := self matchingErrorEventSubProcessFor: thrownError.
+	(handler isNil and: [ parentScope isNil ]) ifTrue: [
+		^ self executeEndEvent: anErrorEndEvent consuming: anActivation ].
 	handler ifNil: [
-		parentScope ifNil: [ self error: 'Uncaught Process-level Error End Event execution is not implemented yet.' ].
 		boundaryExecution := parentScope
 			errorBoundaryExecutionFor: thrownError
 			propagatingFrom: self.
@@ -2468,11 +2469,11 @@ CPExecutionScope >> executeEscalationEndEvent: anEscalationEndEvent consuming: a
 	thrownEscalation := escalationDefinition escalationRef.
 	thrownEscalation ifNil: [ self error: 'An Escalation End Event requires an Escalation reference.' ].
 	handler := self matchingEscalationEventSubProcessFor: thrownEscalation.
+	(handler isNil and: [ parentScope isNil ]) ifTrue: [
+		^ self executeEndEvent: anEscalationEndEvent consuming: anActivation ].
 	handler
 		ifNotNil: [ self escalationStartEventFor: handler ]
-		ifNil: [
-			parentScope ifNil: [ self error: 'Uncaught Process-level Escalation End Event execution is not implemented yet.' ].
-			parentScope validateEscalationPropagationFor: thrownEscalation fromNestedScope: self ].
+		ifNil: [ parentScope validateEscalationPropagationFor: thrownEscalation fromNestedScope: self ].
 	(anActivation isAvailable and: [ anEscalationEndEvent incoming identityIncludes: anActivation definition ]) ifFalse: [
 		self error: 'An Escalation End Event requires an available activation from one of its incoming Sequence Flows.' ].
 	execution := self executeEndEvent: anEscalationEndEvent consuming: anActivation.
