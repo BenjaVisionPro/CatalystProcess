@@ -295,7 +295,9 @@ CPDefinitionsSourceMaterializer >> processSourceFor: aProcess selector: aSelecto
 			each label ifNotNil: [
 				out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'label: '; nextPutAll: each label storeString; nextPutAll: ';'; cr ].
 			(each isEvent and: [ each isCatchEvent or: [ each isThrowEvent ] ]) ifTrue: [
-			each eventDefinitions do: [ :aDefinition | self validateEventDefinitionForSourceSave: aDefinition in: aProcess ] ].
+			each eventDefinitions do: [ :aDefinition | self validateEventDefinitionForSourceSave: aDefinition in: aProcess ].
+			(each isCatchEvent and: [ each parallelMultiple ]) ifTrue: [
+				out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'parallelMultiple: true;'; cr ] ].
 		each isActivity ifTrue: [
 				each isForCompensation ifTrue: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'isForCompensation: true;'; cr ].
 				each startQuantity = 1 ifFalse: [ out nextPutAll: String tab; nextPutAll: String tab; nextPutAll: 'startQuantity: '; nextPutAll: each startQuantity storeString; nextPutAll: ';'; cr ].

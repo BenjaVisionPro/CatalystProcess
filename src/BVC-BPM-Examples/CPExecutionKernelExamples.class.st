@@ -11095,3 +11095,74 @@ CPExecutionKernelExamples >> conditionalStartEventRequiresResetBeforeRetrigger [
 	self assert: root processExecutions size equals: 2.
 	^ deployment
 ]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> multipleStartEventAlternativesEachCreateProcessExecution [
+	<gtExample>
+	| process start task flow message signal messageDefinition signalDefinition deployment environment root configuration service messageSubscription signalSubscription messageOccurrence signalOccurrence firstExecution secondExecution |
+	process := CPProcess new identifier: 'multiple-start-process'; yourself.
+	message := CPMessage new identifier: 'multiple-start-message'; yourself.
+	signal := CPSignal new identifier: 'multiple-start-signal'; yourself.
+	messageDefinition := CPMessageEventDefinition new identifier: 'multiple-message-definition'; messageRef: message; yourself.
+	signalDefinition := CPSignalEventDefinition new identifier: 'multiple-signal-definition'; signalRef: signal; yourself.
+	start := CPStartEvent new identifier: 'multiple-start'; eventDefinitions: { messageDefinition. signalDefinition }; yourself.
+	task := CPTask new identifier: 'after-multiple-start'; yourself.
+	flow := CPSequenceFlow new identifier: 'multiple-start-flow'; sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'multiple-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	self assert: deployment initiationSubscriptions size equals: 2.
+	messageSubscription := (service initiationSubscriptionsForMessage: message) first.
+	signalSubscription := (service initiationSubscriptionsForSignal: signal) first.
+	self assert: messageSubscription startEvent == start.
+	self assert: signalSubscription startEvent == start.
+	messageOccurrence := CPExecutionOccurrence new occurrenceIdentifier: 'multiple-message-1'; definition: message; yourself.
+	firstExecution := service deliverProcessInitiationOccurrenceWorkUnit:
+		(CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: messageSubscription occurrence: messageOccurrence).
+	self assert: firstExecution isStarted.
+	self assert: (firstExecution availableFlowActivationsOn: flow) size equals: 1.
+	signalOccurrence := CPExecutionOccurrence new occurrenceIdentifier: 'multiple-signal-1'; definition: signal; yourself.
+	secondExecution := service deliverProcessInitiationOccurrenceWorkUnit:
+		(CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: signalSubscription occurrence: signalOccurrence).
+	self assert: secondExecution isStarted.
+	self assert: root processExecutions size equals: 2.
+	self assert: (secondExecution availableFlowActivationsOn: flow) size equals: 1.
+	^ deployment
+]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> multipleStartEventPayloadUsesCorrespondingDataOutput [
+	<gtExample>
+	| process start message signal messageDefinition signalDefinition messageOutput signalOutput deployment environment root configuration service subscription occurrence execution eventExecution |
+	process := CPProcess new identifier: 'multiple-start-data-process'; yourself.
+	message := CPMessage new identifier: 'multiple-data-message'; yourself.
+	signal := CPSignal new identifier: 'multiple-data-signal'; yourself.
+	messageDefinition := CPMessageEventDefinition new identifier: 'multiple-data-message-definition'; messageRef: message; yourself.
+	signalDefinition := CPSignalEventDefinition new identifier: 'multiple-data-signal-definition'; signalRef: signal; yourself.
+	messageOutput := CPDataOutput new identifier: 'message-output'; yourself.
+	signalOutput := CPDataOutput new identifier: 'signal-output'; yourself.
+	start := CPStartEvent new
+		identifier: 'multiple-data-start';
+		eventDefinitions: { messageDefinition. signalDefinition };
+		dataOutputs: { messageOutput. signalOutput };
+		yourself.
+	process addFlowElement: start.
+	deployment := CPProcessDeployment new identifier: 'multiple-start-data-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	subscription := (service initiationSubscriptionsForSignal: signal) first.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: 'multiple-data-signal-1'; definition: signal; payload: 'signal payload'; yourself.
+	execution := service deliverProcessInitiationOccurrenceWorkUnit:
+		(CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: subscription occurrence: occurrence).
+	eventExecution := execution eventExecutions first.
+	self assert: (eventExecution hasItemValueFor: messageOutput) not.
+	self assert: (eventExecution itemValueFor: signalOutput) equals: 'signal payload'.
+	^ eventExecution
+]

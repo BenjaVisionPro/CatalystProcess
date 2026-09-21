@@ -66,8 +66,29 @@ CPStartEvent >> isStartEvent [
 ]
 
 { #category : 'execution' }
+CPStartEvent >> eventDefinitionMatchingInstantiationOccurrence: anOccurrence [
+	anOccurrence ifNil: [ ^ nil ].
+	self eventDefinitions do: [ :each |
+		each isMessageEventDefinition ifTrue: [ each messageRef == anOccurrence definition ifTrue: [ ^ each ] ].
+		each isSignalEventDefinition ifTrue: [ each signalRef == anOccurrence definition ifTrue: [ ^ each ] ].
+		each isTimerEventDefinition ifTrue: [ each == anOccurrence definition ifTrue: [ ^ each ] ].
+		each isConditionalEventDefinition ifTrue: [ each == anOccurrence definition ifTrue: [ ^ each ] ] ].
+	^ nil
+]
+
+{ #category : 'execution' }
 CPStartEvent >> matchesInstantiationOccurrence: anOccurrence [
-	^ false
+	^ (self eventDefinitionMatchingInstantiationOccurrence: anOccurrence) notNil
+]
+
+{ #category : 'testing' }
+CPStartEvent >> isMultipleStartEvent [
+	^ self eventDefinitions size > 1 and: [ self parallelMultiple not ]
+]
+
+{ #category : 'testing' }
+CPStartEvent >> isParallelMultipleStartEvent [
+	^ self eventDefinitions size > 1 and: [ self parallelMultiple ]
 ]
 
 { #category : 'execution' }

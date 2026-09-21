@@ -13,7 +13,7 @@ CPTimerStartEvent class >> eventTypeIcon [ ^ #timer ]
 CPTimerStartEvent >> matchesInstantiationOccurrence: anOccurrence [
 	| definitions |
 	definitions := self eventDefinitions.
-	definitions size = 1 ifFalse: [ ^ false ].
+	definitions size = 1 ifFalse: [ ^ super matchesInstantiationOccurrence: anOccurrence ].
 	^ definitions first == anOccurrence definition
 ]
 

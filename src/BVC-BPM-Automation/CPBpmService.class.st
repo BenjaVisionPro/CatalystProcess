@@ -384,13 +384,15 @@ CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 		aDeployment replaceInitiationSubscriptionsWith: subscriptions.
 		^ subscriptions ].
 	process flowElements do: [ :element |
-		(element isStartEvent and: [ element isMessageStartEvent or: [ element isSignalStartEvent or: [ element isTimerStartEvent or: [ element isConditionalStartEvent ] ] ] ]) ifTrue: [
-			| definition subscription |
-			element eventDefinitions size = 1 ifFalse: [ self error: 'A triggered top-level Start Event requires exactly one Event Definition.' ].
-			definition := element eventDefinitions first.
-			subscription := CPStartEventInitiationSubscription new
-				processDeployment: aDeployment; startEvent: element; eventDefinition: definition; yourself.
-			subscriptions add: subscription ].
+		element isStartEvent ifTrue: [
+			element isParallelMultipleStartEvent ifTrue: [
+				self error: 'Parallel Multiple top-level Start Event initiation requires coordinated trigger accumulation.' ].
+			element eventDefinitions do: [ :definition |
+				(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition or: [ definition isConditionalEventDefinition ] ] ]) ifTrue: [
+					| subscription |
+					subscription := CPStartEventInitiationSubscription new
+						processDeployment: aDeployment; startEvent: element; eventDefinition: definition; yourself.
+					subscriptions add: subscription ] ] ].
 		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
 			element outgoing do: [ :flow |
 				| target definition subscription |

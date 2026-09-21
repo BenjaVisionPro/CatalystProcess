@@ -116,9 +116,18 @@ CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
 	definition isCatchEvent ifFalse: [ self error: 'Only a Catch Event can receive occurrence data.' ].
 	outputs := definition dataOutputs.
 	outputs isEmpty ifTrue: [ ^ self ].
-	outputs size = 1 ifFalse: [
-		self error: 'A single Event occurrence requires exactly one corresponding Data Output.' ].
-	self itemValueFor: outputs first put: anOccurrence payload.
+	outputs size = 1
+		ifTrue: [ self itemValueFor: outputs first put: anOccurrence payload ]
+		ifFalse: [
+			| matchingDefinition definitionIndex |
+			definition isStartEvent ifFalse: [
+				self error: 'A multiple Catch Event requires occurrence-to-EventDefinition data mapping.' ].
+			outputs size = definition eventDefinitions size ifFalse: [
+				self error: 'A Multiple Start Event requires one Data Output for each Event Definition.' ].
+			matchingDefinition := definition eventDefinitionMatchingInstantiationOccurrence: anOccurrence.
+			matchingDefinition ifNil: [ self error: 'The occurrence does not match a Start Event definition.' ].
+			definitionIndex := definition eventDefinitions indexOf: matchingDefinition.
+			self itemValueFor: (outputs at: definitionIndex) put: anOccurrence payload ].
 	definition dataOutputAssociations do: [ :association |
 		| value transformation |
 		association assignments do: [ :assignment |
