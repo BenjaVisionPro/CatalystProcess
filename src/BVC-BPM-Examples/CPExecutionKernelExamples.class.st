@@ -10388,19 +10388,24 @@ CPExecutionKernelExamples >> bpmReevaluateConditionalWorkUnitLeavesUnsatisfiedSu
 { #category : 'examples - conditional events' }
 CPExecutionKernelExamples >> interruptingConditionalBoundaryEventTriggersWhenConditionBecomesTrue [
 	<gtExample>
-	| process task boundary condition definition after boundaryFlow environment execution taskExecution boundaryExecution subscription |
+	| process before task incoming boundary condition definition after boundaryFlow environment execution beforeExecution taskExecution boundaryExecution subscription |
 	process := CPProcess new identifier: 'conditionalBoundaryProcess'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
 	task := CPUserTask new identifier: 'work'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: task; yourself.
 	condition := CPExpression new identifier: 'boundaryCondition'; yourself.
 	definition := CPConditionalEventDefinition new identifier: 'boundaryConditionalDefinition'; condition: condition; yourself.
 	boundary := CPBoundaryEvent new identifier: 'conditionalBoundary'; attachedToRef: task; cancelActivity: true; yourself.
 	boundary eventDefinitions add: definition.
 	after := CPTask new identifier: 'afterBoundary'; yourself.
 	boundaryFlow := CPSequenceFlow new identifier: 'conditionalBoundaryFlow'; sourceRef: boundary; targetRef: after; yourself.
-	process addFlowElement: task; addFlowElement: boundary; addFlowElement: after; addFlowElement: boundaryFlow.
+	process addFlowElement: before; addFlowElement: task; addFlowElement: incoming; addFlowElement: boundary; addFlowElement: after; addFlowElement: boundaryFlow.
 	environment := CPExampleExecutionEnvironment new.
 	environment expression: condition evaluatesTo: false.
 	execution := CPProcessExecution for: process environment: environment.
+	beforeExecution := execution createActivityExecutionFor: before.
+	beforeExecution activate; beginCompletion; complete.
+	execution activateSequenceFlow: incoming producedBy: beforeExecution.
 	taskExecution := execution createUserTaskExecutionFor: task.
 	execution readyActivityExecution: taskExecution.
 	execution activateUserTaskExecution: taskExecution.

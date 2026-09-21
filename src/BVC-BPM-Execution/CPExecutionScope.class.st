@@ -3654,7 +3654,9 @@ CPExecutionScope >> armConditionalEventSubProcesses [
 	definition flowElements do: [ :each |
 		(each isSubProcess and: [ each isEventSubProcess and: [
 			each flowElements anySatisfy: [ :candidate | candidate isStartEvent and: [ candidate isConditionalStartEvent ] ] ] ]) ifTrue: [
-			self armConditionalEventSubProcess: each ] ].
+			| subscription |
+			subscription := self armConditionalEventSubProcess: each.
+			self evaluateConditionalEventSubProcessSubscription: subscription ] ].
 	^ self
 ]
 
@@ -3671,7 +3673,6 @@ CPExecutionScope >> armConditionalEventSubProcess: anEventSubProcess [
 		condition: startEvent eventDefinitions first condition;
 		yourself.
 	eventSubProcessConditionalSubscriptions add: subscription.
-	self evaluateConditionalEventSubProcessSubscription: subscription.
 	^ subscription
 ]
 
