@@ -58,3 +58,28 @@ CPServiceTaskExecution >> standardLoopIterationDidBegin: anIteration [
 	super standardLoopIterationDidBegin: anIteration.
 	^ anIteration
 ]
+
+{ #category : 'external work' }
+CPServiceTaskExecution >> pendingExternalInvocations [
+	| invocations |
+	invocations := OrderedCollection new.
+	(externalInvocation notNil and: [ externalInvocation isPending ]) ifTrue: [
+		invocations add: externalInvocation ].
+	standardLoopIterations do: [ :each |
+		(each externalInvocation notNil and: [ each externalInvocation isPending ]) ifTrue: [
+			invocations add: each externalInvocation ] ].
+	multiInstanceActivityExecutions do: [ :each |
+		(each externalInvocation notNil and: [ each externalInvocation isPending ]) ifTrue: [
+			invocations add: each externalInvocation ] ].
+	^ invocations
+]
+
+{ #category : 'external work' }
+CPServiceTaskExecution >> completeServiceInvocationWithOccurrence: anOccurrence inScope: anExecutionScope [
+	^ anExecutionScope completeServiceTaskExecution: self withResultOccurrence: anOccurrence
+]
+
+{ #category : 'external work' }
+CPServiceTaskExecution >> faultServiceInvocationWithOccurrence: anOccurrence inScope: anExecutionScope [
+	^ anExecutionScope faultServiceTaskExecution: self withErrorOccurrence: anOccurrence
+]

@@ -95,3 +95,21 @@ CPExternalInvocation >> acceptFaultOccurrence: anOccurrence [
 	faultOccurrence := anOccurrence.
 	^ anOccurrence
 ]
+
+{ #category : 'results' }
+CPExternalInvocation >> completeThroughExecutionWithOccurrence: anOccurrence [
+	self isPending ifFalse: [ self error: 'Only a pending external invocation can complete.' ].
+	activityExecution ifNil: [ self error: 'An external invocation requires its Activity execution to complete.' ].
+	^ activityExecution
+		completeServiceInvocationWithOccurrence: anOccurrence
+		inScope: activityExecution scope
+]
+
+{ #category : 'results' }
+CPExternalInvocation >> faultThroughExecutionWithOccurrence: anOccurrence [
+	self isPending ifFalse: [ self error: 'Only a pending external invocation can fault.' ].
+	activityExecution ifNil: [ self error: 'An external invocation requires its Activity execution to fault.' ].
+	^ activityExecution
+		faultServiceInvocationWithOccurrence: anOccurrence
+		inScope: activityExecution scope
+]

@@ -855,3 +855,8 @@ CPActivityExecution >> throwMultiInstanceBehaviorEventDefinition: anEventDefinit
 CPActivityExecution >> userTaskWorkItems [
     ^ #()
 ]
+
+{ #category : 'external work' }
+CPActivityExecution >> pendingExternalInvocations [
+	^ #()
+]

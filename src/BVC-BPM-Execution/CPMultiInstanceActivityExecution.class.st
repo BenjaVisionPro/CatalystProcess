@@ -599,3 +599,13 @@ CPMultiInstanceActivityExecution >> manualTaskResourceAssignments: aCollection [
 CPMultiInstanceActivityExecution >> completeUserTaskWorkInScope: anExecutionScope [
     ^ anExecutionScope completeMultiInstanceUserTaskExecution: self
 ]
+
+{ #category : 'external work' }
+CPMultiInstanceActivityExecution >> completeServiceInvocationWithOccurrence: anOccurrence inScope: anExecutionScope [
+	^ anExecutionScope completeMultiInstanceServiceTaskExecution: self withResultOccurrence: anOccurrence
+]
+
+{ #category : 'external work' }
+CPMultiInstanceActivityExecution >> faultServiceInvocationWithOccurrence: anOccurrence inScope: anExecutionScope [
+	^ anExecutionScope faultMultiInstanceServiceTaskExecution: self withErrorOccurrence: anOccurrence
+]

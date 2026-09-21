@@ -209,3 +209,37 @@ CPBpmService >> completeUserTaskWorkUnit: aCPCompleteUserTaskWorkUnit [
     workItem := execution pendingUserTaskWorkItemIdentifiedBy: aCPCompleteUserTaskWorkUnit workItemIdentifier.
     ^ workItem completeThroughExecution
 ]
+
+{ #category : 'service invocation completion' }
+CPBpmService >> completeServiceInvocationWorkUnit: aCPCompleteServiceInvocationWorkUnit [
+	| execution invocation occurrence |
+	execution := self processExecutionForIdentifier: aCPCompleteServiceInvocationWorkUnit processExecutionIdentifier.
+	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	invocation := execution pendingExternalInvocationIdentifiedBy: aCPCompleteServiceInvocationWorkUnit invocationIdentifier.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: aCPCompleteServiceInvocationWorkUnit occurrenceIdentifier;
+		definition: invocation;
+		payload: aCPCompleteServiceInvocationWorkUnit payload;
+		yourself.
+	^ invocation completeThroughExecutionWithOccurrence: occurrence
+]
+
+{ #category : 'service invocation completion' }
+CPBpmService >> faultServiceInvocationWorkUnit: aCPFaultServiceInvocationWorkUnit [
+	| execution invocation operation errors error occurrence |
+	execution := self processExecutionForIdentifier: aCPFaultServiceInvocationWorkUnit processExecutionIdentifier.
+	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	invocation := execution pendingExternalInvocationIdentifiedBy: aCPFaultServiceInvocationWorkUnit invocationIdentifier.
+	operation := invocation activityExecution modeledActivityExecution definition operationRef.
+	errors := operation errorRefs select: [ :each |
+		each identifier = aCPFaultServiceInvocationWorkUnit errorIdentifier ].
+	errors isEmpty ifTrue: [ self error: 'The Service invocation Operation declares no Error with the requested identifier.' ].
+	errors size = 1 ifFalse: [ self error: 'The Service invocation Operation declares more than one Error with the requested identifier.' ].
+	error := errors first.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: aCPFaultServiceInvocationWorkUnit occurrenceIdentifier;
+		definition: error;
+		payload: aCPFaultServiceInvocationWorkUnit payload;
+		yourself.
+	^ invocation faultThroughExecutionWithOccurrence: occurrence
+]

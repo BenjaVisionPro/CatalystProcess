@@ -239,3 +239,17 @@ CPProcessExecution >> pendingUserTaskWorkItemIdentifiedBy: aWorkItemIdentifier [
     matches size = 1 ifFalse: [ self error: 'More than one pending User Task work item has the requested identifier.' ].
     ^ matches first
 ]
+
+{ #category : 'external work' }
+CPProcessExecution >> pendingExternalInvocationIdentifiedBy: anInvocationIdentifier [
+	| matches |
+	anInvocationIdentifier ifNil: [
+		self error: 'An external invocation identifier is required.' ].
+	matches := self allPendingExternalInvocations select: [ :each |
+		each invocationIdentifier = anInvocationIdentifier ].
+	matches isEmpty ifTrue: [
+		self error: 'No pending external invocation has the requested identifier.' ].
+	matches size = 1 ifFalse: [
+		self error: 'More than one pending external invocation has the requested identifier.' ].
+	^ matches first
+]

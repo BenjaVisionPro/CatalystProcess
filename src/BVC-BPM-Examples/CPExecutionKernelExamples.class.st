@@ -9924,3 +9924,110 @@ CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitRejectsCompletedWorkItem
     self assert: taskExecution isCompleted.
     ^ taskExecution
 ]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmCompleteServiceInvocationWorkUnitCompletesExactInvocation [
+	<gtExample>
+	| process task operation implementation environment execution taskExecution invocation root configuration service workUnit context result |
+	process := CPProcess new identifier: 'runtime-service-completion-process'; yourself.
+	operation := CPOperation new identifier: 'performWork'; yourself.
+	task := CPServiceTask new identifier: 'service'; operationRef: operation; yourself.
+	process addFlowElement: task.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	invocation := taskExecution prepareExternalInvocationIdentifiedBy: #runtimeServiceInvocation.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		processExecutionIdentifier: execution executionIdentifier
+		invocationIdentifier: invocation invocationIdentifier
+		occurrenceIdentifier: #runtimeServiceResult
+		payload: Dictionary new.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	result := workUnit executeInContext: context.
+	self assert: result == taskExecution.
+	self assert: invocation isCompleted.
+	self assert: invocation resultOccurrence occurrenceIdentifier equals: #runtimeServiceResult.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmFaultServiceInvocationWorkUnitRaisesDeclaredBpmnError [
+	<gtExample>
+	| process task operation implementation error boundaryDefinition boundary after boundaryFlow environment execution taskExecution boundaryExecution invocation root configuration service workUnit context result |
+	process := CPProcess new identifier: 'runtime-service-fault-process'; yourself.
+	error := CPError new identifier: 'runtimeServiceError'; yourself.
+	operation := CPOperation new identifier: 'performWork'; errorRefs: { error }; yourself.
+	task := CPServiceTask new identifier: 'service'; operationRef: operation; yourself.
+	boundaryDefinition := CPErrorEventDefinition new identifier: 'catchRuntimeServiceError'; error: error; yourself.
+	boundary := CPBoundaryEvent new identifier: 'runtimeServiceErrorBoundary'; attachedToRef: task; cancelActivity: true; yourself.
+	boundary eventDefinitions add: boundaryDefinition.
+	after := CPTask new identifier: 'afterFault'; yourself.
+	boundaryFlow := CPSequenceFlow new identifier: 'afterRuntimeFault'; sourceRef: boundary; targetRef: after; yourself.
+	process addFlowElement: task; addFlowElement: boundary; addFlowElement: after; addFlowElement: boundaryFlow.
+	implementation := Object new.
+	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createServiceTaskExecutionFor: task.
+	execution activateServiceTaskExecution: taskExecution.
+	boundaryExecution := execution beginBoundaryEvent: boundary attachedTo: taskExecution.
+	invocation := taskExecution prepareExternalInvocationIdentifiedBy: #runtimeFaultingInvocation.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPFaultServiceInvocationWorkUnit
+		processExecutionIdentifier: execution executionIdentifier
+		invocationIdentifier: invocation invocationIdentifier
+		errorIdentifier: error identifier
+		occurrenceIdentifier: #runtimeServiceFault
+		payload: Dictionary new.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	result := workUnit executeInContext: context.
+	self assert: result == taskExecution.
+	self assert: invocation isFaulted.
+	self assert: invocation faultOccurrence definition == error.
+	self assert: invocation faultOccurrence occurrenceIdentifier equals: #runtimeServiceFault.
+	self assert: boundaryExecution isTriggered.
+	self assert: (execution availableFlowActivationsOn: boundaryFlow) size equals: 1.
+	^ taskExecution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmCompleteServiceInvocationWorkUnitRejectsCompletedInvocationIdentity [
+	<gtExample>
+	| taskExecution execution invocation root configuration service workUnit context rejected |
+	taskExecution := self serviceTaskExternalResultCompletesExactlyOnce.
+	execution := taskExecution scope.
+	invocation := taskExecution externalInvocation.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		processExecutionIdentifier: execution executionIdentifier
+		invocationIdentifier: invocation invocationIdentifier
+		occurrenceIdentifier: #duplicateRuntimeServiceResult
+		payload: Dictionary new.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	rejected := false.
+	[ workUnit executeInContext: context ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: invocation isCompleted.
+	self assert: taskExecution isCompleted.
+	^ taskExecution
+]

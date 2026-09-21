@@ -256,3 +256,13 @@ CPStandardLoopIterationExecution >> manualTaskResourceAssignments: aCollection [
 CPStandardLoopIterationExecution >> completeUserTaskWorkInScope: anExecutionScope [
     ^ anExecutionScope completeStandardLoopUserTaskIteration: self
 ]
+
+{ #category : 'external work' }
+CPStandardLoopIterationExecution >> completeServiceInvocationWithOccurrence: anOccurrence inScope: anExecutionScope [
+	^ anExecutionScope completeStandardLoopServiceTaskIteration: self withResultOccurrence: anOccurrence
+]
+
+{ #category : 'external work' }
+CPStandardLoopIterationExecution >> faultServiceInvocationWithOccurrence: anOccurrence inScope: anExecutionScope [
+	^ anExecutionScope faultStandardLoopServiceTaskIteration: self withErrorOccurrence: anOccurrence
+]

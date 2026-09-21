@@ -3595,3 +3595,14 @@ CPExecutionScope >> allPendingUserTaskWorkItems [
         items addAll: each allPendingUserTaskWorkItems ].
     ^ items
 ]
+
+{ #category : 'external work' }
+CPExecutionScope >> allPendingExternalInvocations [
+	| invocations |
+	invocations := OrderedCollection new.
+	activityExecutions do: [ :each |
+		invocations addAll: each pendingExternalInvocations ].
+	childScopes do: [ :each |
+		invocations addAll: each allPendingExternalInvocations ].
+	^ invocations
+]
