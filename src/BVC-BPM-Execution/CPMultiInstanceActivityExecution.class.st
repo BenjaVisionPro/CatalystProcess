@@ -351,10 +351,14 @@ CPMultiInstanceActivityExecution >> prepareOutputs [
 	(self selectedInputSetAllowsOutputSet: outputSet) ifFalse: [
 		self error: 'The selected OutputSet is not compatible with the InputSet used to start the Multi-Instance Activity instance.' ].
 	selectedOutputSet := outputSet.
+	associations := OrderedCollection new.
 	outputSet dataOutputRefs do: [ :eachOutput |
 		(self hasItemValueFor: eachOutput) ifTrue: [
-			associations := self dataOutputAssociationsSourcedBy: eachOutput.
-			associations do: [ :each | self executeDataAssociation: each ] ] ].
+			(self dataOutputAssociationsSourcedBy: eachOutput) do: [ :each |
+				(associations identityIncludes: each) ifFalse: [ associations add: each ] ] ] ].
+	associations do: [ :each |
+		(self executeDataAssociation: each) ifFalse: [
+			self error: 'A Multi-Instance Activity Data Output Association cannot execute while one or more sources are unavailable.' ] ].
 	^ true
 ]
 

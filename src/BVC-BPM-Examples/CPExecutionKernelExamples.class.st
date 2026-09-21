@@ -11213,3 +11213,56 @@ CPExecutionKernelExamples >> parallelMultipleStartWaitsForEveryTrigger [
 	self assert: (eventExecution itemValueFor: signalOutput) equals: 'signal payload'.
 	^ execution
 ]
+
+
+{ #category : 'examples - multi-instance' }
+CPExecutionKernelExamples >> multiInstanceOutputAssociationWaitsForEveryDeclaredSource [
+	<gtExample>
+	| process externalSource target task loopDataInput activityOutput outputSet specification transformation association loop environment execution taskExecution instance error |
+	process := CPProcess new identifier: 'process'; yourself.
+	externalSource := CPDataObject new identifier: 'externalSource'; yourself.
+	target := CPDataObject new identifier: 'target'; yourself.
+	process addFlowElement: externalSource; addFlowElement: target.
+	loopDataInput := CPDataInput new identifier: 'items'; isCollection: true; yourself.
+	activityOutput := CPDataOutput new identifier: 'activityOutput'; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { activityOutput }; yourself.
+	specification := CPInputOutputSpecification new
+		dataInputs: { loopDataInput };
+		dataOutputs: { activityOutput };
+		outputSets: { outputSet };
+		yourself.
+	transformation := CPFormalExpression new body: 'combine instance and scope output sources'; yourself.
+	association := CPDataOutputAssociation new
+		sourceRefs: { activityOutput. externalSource };
+		targetRef: target;
+		transformation: transformation;
+		yourself.
+	loop := CPMultiInstanceLoopCharacteristics new loopDataInputRef: loopDataInput; yourself.
+	task := CPTask new
+		identifier: 'multiTask';
+		ioSpecification: specification;
+		dataOutputAssociations: { association };
+		loopCharacteristics: loop;
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: transformation evaluatesTo: 'combined';
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
+	taskExecution itemValueFor: loopDataInput put: (OrderedCollection with: 'one').
+	taskExecution activate.
+	taskExecution initializeMultiInstanceCardinality.
+	instance := taskExecution beginMultiInstanceActivityExecutionAt: 1.
+	instance itemValueFor: activityOutput put: 'instance result'.
+	error := nil.
+	[ instance complete ] on: Error do: [ :caught | error := caught ].
+	self assert: error notNil.
+	self assert: instance isActive.
+	self assert: (execution hasItemValueFor: target) equals: false.
+	execution itemValueFor: externalSource put: 'scope result'.
+	instance complete.
+	self assert: instance isActive equals: false.
+	self assert: (execution itemValueFor: target) equals: 'combined'.
+	^ instance
+]
