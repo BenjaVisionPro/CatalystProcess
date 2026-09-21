@@ -11352,3 +11352,38 @@ CPExecutionKernelExamples >> instantiatingReceiveTaskStartsProcessFromMessage [
 	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
 	^ execution
 ]
+
+{ #category : 'examples - gateways' }
+CPExecutionKernelExamples >> eventBasedGatewayMultipleCatchAlternativeAcceptsEitherDefinition [
+	<gtExample>
+	| process before gateway multipleEvent timerEvent afterMultiple incoming multipleFlow timerFlow outgoing message signal messageDefinition signalDefinition timerDefinition execution producer activation gatewayExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	before := CPTask new identifier: 'before'; yourself.
+	gateway := CPEventBasedGateway new identifier: 'wait'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	signal := CPSignal new identifier: 'signal'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	signalDefinition := CPSignalEventDefinition new signalRef: signal; yourself.
+	multipleEvent := CPIntermediateCatchEvent new identifier: 'multipleEvent'; eventDefinitions: { messageDefinition. signalDefinition }; yourself.
+	timerDefinition := CPTimerEventDefinition new.
+	timerEvent := CPTimerIntermediateEvent new identifier: 'timerEvent'; eventDefinitions: { timerDefinition }; yourself.
+	afterMultiple := CPTask new identifier: 'afterMultiple'; yourself.
+	incoming := CPSequenceFlow new identifier: 'incoming'; sourceRef: before; targetRef: gateway; yourself.
+	multipleFlow := CPSequenceFlow new identifier: 'multipleFlow'; sourceRef: gateway; targetRef: multipleEvent; yourself.
+	timerFlow := CPSequenceFlow new identifier: 'timerFlow'; sourceRef: gateway; targetRef: timerEvent; yourself.
+	outgoing := CPSequenceFlow new identifier: 'outgoing'; sourceRef: multipleEvent; targetRef: afterMultiple; yourself.
+	execution := self executionFor: process.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	gatewayExecution := execution beginExclusiveEventBasedGateway: gateway consuming: activation.
+	self assert: (execution allWaitingMessageSubscriptionsFor: message) size equals: 1.
+	self assert: (execution allWaitingSignalSubscriptionsFor: signal) size equals: 1.
+	self assert: gatewayExecution subscriptions size equals: 3.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #signal1; definition: signal; yourself.
+	execution deliverSignalOccurrence: occurrence.
+	self assert: gatewayExecution isResolved.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	self assert: execution allWaitingDeliverableTimerSubscriptions isEmpty.
+	self assert: (gatewayExecution subscriptions select: [ :each | each isWithdrawn ]) size equals: 2.
+	^ gatewayExecution
+]

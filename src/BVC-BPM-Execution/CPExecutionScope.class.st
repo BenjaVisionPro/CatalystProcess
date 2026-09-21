@@ -940,7 +940,8 @@ CPExecutionScope >> beginExclusiveEventBasedGateway: aGateway consuming: anActiv
 	gatewayExecutions add: execution.
 	execution consumeFlowActivation: anActivation.
 	aGateway outgoing do: [ :eachFlow |
-		self registerEventBasedGatewaySubscription: (execution subscribeToOutgoingFlow: eachFlow) ].
+		(execution subscriptionsToOutgoingFlow: eachFlow) do: [ :eachSubscription |
+			self registerEventBasedGatewaySubscription: eachSubscription ] ].
 	execution subscriptions do: [ :eachSubscription |
 		(eachSubscription isConditionalSubscription and: [ eachSubscription isWaiting and: [ execution isResolved not ] ]) ifTrue: [
 			self evaluateConditionalSubscription: eachSubscription ] ].

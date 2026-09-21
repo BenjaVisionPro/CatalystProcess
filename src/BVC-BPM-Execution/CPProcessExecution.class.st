@@ -336,12 +336,14 @@ CPProcessExecution >> startAtInstantiatingEventBasedGateway: aGateway via: aSequ
 { #category : 'lifecycle' }
 CPProcessExecution >> continueInstantiatingEventBasedGatewayCatchEvent: anEvent withAcceptedOccurrence: anOccurrence [
 	| definition eventExecution |
-	anEvent eventDefinitions size = 1 ifFalse: [ self error: 'An Event-Based Gateway Intermediate Catch Event requires exactly one Event Definition.' ].
-	definition := anEvent eventDefinitions first.
-	definition isMessageEventDefinition ifTrue: [ anOccurrence definition == definition messageRef ifFalse: [ self error: 'The occurrence does not match the Message gateway alternative.' ] ].
-	definition isSignalEventDefinition ifTrue: [ anOccurrence definition == definition signalRef ifFalse: [ self error: 'The occurrence does not match the Signal gateway alternative.' ] ].
-	definition isTimerEventDefinition ifTrue: [ anOccurrence definition == definition ifFalse: [ self error: 'The occurrence does not match the Timer gateway alternative.' ] ].
-	(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition ] ]) ifFalse: [ self error: 'This Event Definition cannot instantiate through an occurrence.' ].
+	anEvent eventDefinitions ifEmpty: [ self error: 'An Event-Based Gateway Intermediate Catch Event requires at least one Event Definition.' ].
+	definition := anEvent eventDefinitions
+		detect: [ :each |
+			each isMessageEventDefinition ifTrue: [ anOccurrence definition == each messageRef ] ifFalse: [
+			each isSignalEventDefinition ifTrue: [ anOccurrence definition == each signalRef ] ifFalse: [
+			each isTimerEventDefinition ifTrue: [ anOccurrence definition == each ] ifFalse: [
+			each isConditionalEventDefinition ifTrue: [ anOccurrence definition == each ] ifFalse: [ false ] ] ] ] ]
+		ifNone: [ self error: 'The occurrence does not match any Event Definition of this gateway alternative.' ].
 	eventExecution := CPIntermediateCatchEventExecution new definition: anEvent; scope: self; yourself.
 	self eventExecutions add: eventExecution.
 	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
