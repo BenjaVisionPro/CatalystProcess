@@ -1,13 +1,7 @@
 Class {
 	#name : 'CPFaultServiceInvocationWorkUnit',
 	#superclass : 'CRWorkUnit',
-	#instVars : [
-		'processExecutionIdentifier',
-		'invocationIdentifier',
-		'errorIdentifier',
-		'occurrenceIdentifier',
-		'payload'
-	],
+	#instVars : [ 'invocation', 'error', 'occurrenceIdentifier', 'payload' ],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
@@ -16,28 +10,18 @@ Class {
 CPFaultServiceInvocationWorkUnit class >> serviceClass [ ^ CPBpmService ]
 
 { #category : 'instance creation' }
-CPFaultServiceInvocationWorkUnit class >> processExecutionIdentifier: aProcessExecutionIdentifier invocationIdentifier: anInvocationIdentifier errorIdentifier: anErrorIdentifier occurrenceIdentifier: anOccurrenceIdentifier payload: aDictionary [
-	^ self new
-		processExecutionIdentifier: aProcessExecutionIdentifier;
-		invocationIdentifier: anInvocationIdentifier;
-		errorIdentifier: anErrorIdentifier;
-		occurrenceIdentifier: anOccurrenceIdentifier;
-		payload: aDictionary;
-		yourself
+CPFaultServiceInvocationWorkUnit class >> invocation: aCPExternalInvocation error: aCPError occurrenceIdentifier: anOccurrenceIdentifier payload: aDictionary [
+	^ self new invocation: aCPExternalInvocation; error: aCPError; occurrenceIdentifier: anOccurrenceIdentifier; payload: aDictionary; yourself
 ]
 
 { #category : 'accessing' }
-CPFaultServiceInvocationWorkUnit >> processExecutionIdentifier [ ^ processExecutionIdentifier ]
+CPFaultServiceInvocationWorkUnit >> invocation [ ^ invocation ]
 { #category : 'accessing' }
-CPFaultServiceInvocationWorkUnit >> processExecutionIdentifier: anIdentifier [ processExecutionIdentifier := anIdentifier ]
+CPFaultServiceInvocationWorkUnit >> invocation: aCPExternalInvocation [ invocation := aCPExternalInvocation ]
 { #category : 'accessing' }
-CPFaultServiceInvocationWorkUnit >> invocationIdentifier [ ^ invocationIdentifier ]
+CPFaultServiceInvocationWorkUnit >> error [ ^ error ]
 { #category : 'accessing' }
-CPFaultServiceInvocationWorkUnit >> invocationIdentifier: anIdentifier [ invocationIdentifier := anIdentifier ]
-{ #category : 'accessing' }
-CPFaultServiceInvocationWorkUnit >> errorIdentifier [ ^ errorIdentifier ]
-{ #category : 'accessing' }
-CPFaultServiceInvocationWorkUnit >> errorIdentifier: anIdentifier [ errorIdentifier := anIdentifier ]
+CPFaultServiceInvocationWorkUnit >> error: aCPError [ error := aCPError ]
 { #category : 'accessing' }
 CPFaultServiceInvocationWorkUnit >> occurrenceIdentifier [ ^ occurrenceIdentifier ]
 { #category : 'accessing' }

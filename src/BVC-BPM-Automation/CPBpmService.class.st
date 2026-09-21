@@ -114,12 +114,10 @@ CPBpmService >> waitingSignalIn: aProcessExecution identifiedBy: aSignalIdentifi
 
 { #category : 'timer delivery' }
 CPBpmService >> triggerTimerWorkUnit: aCPTriggerTimerWorkUnit [
-	| execution subscription occurrence |
-	execution := self processExecutionForIdentifier: aCPTriggerTimerWorkUnit processExecutionIdentifier.
-	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	subscription := execution deliverableTimerSubscriptionIdentifiedByOrNil:
-		aCPTriggerTimerWorkUnit timerSubscriptionIdentifier.
-	subscription ifNil: [ ^ nil ].
+	| subscription occurrence |
+	subscription := aCPTriggerTimerWorkUnit timerSubscription.
+	subscription ifNil: [ self error: 'A Timer subscription is required.' ].
+	(subscription isWaiting or: [ subscription isDispatchPending ]) ifFalse: [ ^ nil ].
 	subscription isDispatchPending ifTrue: [
 		subscription dispatchOccurrenceIdentifier = aCPTriggerTimerWorkUnit occurrenceIdentifier ifFalse: [
 			self error: 'Timer trigger occurrence identifier does not match the pending dispatch.' ] ].
@@ -127,11 +125,8 @@ CPBpmService >> triggerTimerWorkUnit: aCPTriggerTimerWorkUnit [
 		occurrenceIdentifier: aCPTriggerTimerWorkUnit occurrenceIdentifier;
 		definition: subscription timerDefinition;
 		yourself.
-	^ execution
-		deliverTimerOccurrence: occurrence
-		toSubscriptionIdentifiedBy: subscription identifier
+	^ subscription deliverOccurrence: occurrence
 ]
-
 
 { #category : 'lifecycle' }
 CPBpmService >> start [
@@ -169,8 +164,7 @@ CPBpmService >> enqueueDueTimerWorkUnitsUsing: anEnqueueCapability [
 				markTimerSubscriptionDispatchPending: subscription
 				occurrenceIdentifier: occurrenceIdentifier.
 			workUnit := CPTriggerTimerWorkUnit
-				processExecutionIdentifier: execution executionIdentifier
-				timerSubscriptionIdentifier: subscription identifier
+				timerSubscription: subscription
 				occurrenceIdentifier: occurrenceIdentifier.
 			anEnqueueCapability enqueue: workUnit ] ].
 	^ self
@@ -185,8 +179,8 @@ CPBpmService >> processDeploymentForIdentifier: aDeploymentIdentifier [
 { #category : 'process start' }
 CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
 	| deployment process environment execution |
-	deployment := self processDeploymentForIdentifier: aCPStartProcessWorkUnit processDeploymentIdentifier.
-	deployment ifNil: [ self error: 'No Process deployment has the requested identifier.' ].
+	deployment := aCPStartProcessWorkUnit processDeployment.
+	deployment ifNil: [ self error: 'A Process deployment is required.' ].
 	deployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
 	process := deployment processDefinition.
 	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
@@ -203,19 +197,17 @@ CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
 
 { #category : 'user task completion' }
 CPBpmService >> completeUserTaskWorkUnit: aCPCompleteUserTaskWorkUnit [
-    | execution workItem |
-    execution := self processExecutionForIdentifier: aCPCompleteUserTaskWorkUnit processExecutionIdentifier.
-    execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-    workItem := execution pendingUserTaskWorkItemIdentifiedBy: aCPCompleteUserTaskWorkUnit workItemIdentifier.
+    | workItem |
+    workItem := aCPCompleteUserTaskWorkUnit workItem.
+    workItem ifNil: [ self error: 'A User Task work item is required.' ].
     ^ workItem completeThroughExecution
 ]
 
 { #category : 'service invocation completion' }
 CPBpmService >> completeServiceInvocationWorkUnit: aCPCompleteServiceInvocationWorkUnit [
-	| execution invocation occurrence |
-	execution := self processExecutionForIdentifier: aCPCompleteServiceInvocationWorkUnit processExecutionIdentifier.
-	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	invocation := execution pendingExternalInvocationIdentifiedBy: aCPCompleteServiceInvocationWorkUnit invocationIdentifier.
+	| invocation occurrence |
+	invocation := aCPCompleteServiceInvocationWorkUnit invocation.
+	invocation ifNil: [ self error: 'A Service invocation is required.' ].
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: aCPCompleteServiceInvocationWorkUnit occurrenceIdentifier;
 		definition: invocation;
@@ -226,16 +218,14 @@ CPBpmService >> completeServiceInvocationWorkUnit: aCPCompleteServiceInvocationW
 
 { #category : 'service invocation completion' }
 CPBpmService >> faultServiceInvocationWorkUnit: aCPFaultServiceInvocationWorkUnit [
-	| execution invocation operation errors error occurrence |
-	execution := self processExecutionForIdentifier: aCPFaultServiceInvocationWorkUnit processExecutionIdentifier.
-	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	invocation := execution pendingExternalInvocationIdentifiedBy: aCPFaultServiceInvocationWorkUnit invocationIdentifier.
+	| invocation operation error occurrence |
+	invocation := aCPFaultServiceInvocationWorkUnit invocation.
+	invocation ifNil: [ self error: 'A Service invocation is required.' ].
+	error := aCPFaultServiceInvocationWorkUnit error.
+	error ifNil: [ self error: 'A BPMN Error is required.' ].
 	operation := invocation activityExecution modeledActivityExecution definition operationRef.
-	errors := operation errorRefs select: [ :each |
-		each identifier = aCPFaultServiceInvocationWorkUnit errorIdentifier ].
-	errors isEmpty ifTrue: [ self error: 'The Service invocation Operation declares no Error with the requested identifier.' ].
-	errors size = 1 ifFalse: [ self error: 'The Service invocation Operation declares more than one Error with the requested identifier.' ].
-	error := errors first.
+	(operation errorRefs includes: error) ifFalse: [
+		self error: 'The Service invocation Operation does not declare the supplied Error.' ].
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: aCPFaultServiceInvocationWorkUnit occurrenceIdentifier;
 		definition: error;
@@ -247,8 +237,8 @@ CPBpmService >> faultServiceInvocationWorkUnit: aCPFaultServiceInvocationWorkUni
 { #category : 'process termination' }
 CPBpmService >> terminateProcessWorkUnit: aCPTerminateProcessWorkUnit [
 	| execution |
-	execution := self processExecutionForIdentifier: aCPTerminateProcessWorkUnit processExecutionIdentifier.
-	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	execution := aCPTerminateProcessWorkUnit processExecution.
+	execution ifNil: [ self error: 'A Process execution is required.' ].
 	^ execution terminate
 ]
 
@@ -287,4 +277,20 @@ CPBpmService >> processDeploymentSnapshots [
 { #category : 'deployment query' }
 CPBpmService >> queryProcessDeploymentsWorkUnit: aCPQueryProcessDeploymentsWorkUnit [
 	^ self processDeploymentSnapshots
+]
+
+{ #category : 'deployment lifecycle' }
+CPBpmService >> activateProcessDeploymentWorkUnit: aCPActivateProcessDeploymentWorkUnit [
+	| deployment |
+	deployment := aCPActivateProcessDeploymentWorkUnit processDeployment.
+	deployment ifNil: [ self error: 'A Process deployment is required.' ].
+	^ deployment activate
+]
+
+{ #category : 'deployment lifecycle' }
+CPBpmService >> retireProcessDeploymentWorkUnit: aCPRetireProcessDeploymentWorkUnit [
+	| deployment |
+	deployment := aCPRetireProcessDeploymentWorkUnit processDeployment.
+	deployment ifNil: [ self error: 'A Process deployment is required.' ].
+	^ deployment retire
 ]

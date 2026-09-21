@@ -2,33 +2,25 @@ Class {
 	#name : 'CPStartProcessWorkUnit',
 	#superclass : 'CRWorkUnit',
 	#instVars : [
-		'processDeploymentIdentifier'
+		'processDeployment'
 	],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
 
 { #category : 'service context' }
-CPStartProcessWorkUnit class >> serviceClass [
-	^ CPBpmService
-]
+CPStartProcessWorkUnit class >> serviceClass [ ^ CPBpmService ]
 
 { #category : 'instance creation' }
-CPStartProcessWorkUnit class >> processDeploymentIdentifier: aProcessDeploymentIdentifier [
-	^ self new
-		processDeploymentIdentifier: aProcessDeploymentIdentifier;
-		yourself
+CPStartProcessWorkUnit class >> processDeployment: aCPProcessDeployment [
+	^ self new processDeployment: aCPProcessDeployment; yourself
 ]
 
 { #category : 'accessing' }
-CPStartProcessWorkUnit >> processDeploymentIdentifier [
-	^ processDeploymentIdentifier
-]
+CPStartProcessWorkUnit >> processDeployment [ ^ processDeployment ]
 
 { #category : 'accessing' }
-CPStartProcessWorkUnit >> processDeploymentIdentifier: anIdentifier [
-	processDeploymentIdentifier := anIdentifier
-]
+CPStartProcessWorkUnit >> processDeployment: aCPProcessDeployment [ processDeployment := aCPProcessDeployment ]
 
 { #category : 'running' }
 CPStartProcessWorkUnit >> executeInContext: aCRWorkUnitExecutionContext [

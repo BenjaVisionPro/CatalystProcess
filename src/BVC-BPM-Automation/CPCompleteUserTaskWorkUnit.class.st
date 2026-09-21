@@ -1,46 +1,24 @@
 Class {
     #name : 'CPCompleteUserTaskWorkUnit',
     #superclass : 'CRWorkUnit',
-    #instVars : [
-        'processExecutionIdentifier',
-        'workItemIdentifier'
-    ],
+    #instVars : [ 'workItem' ],
     #category : 'BVC-BPM-Automation',
     #package : 'BVC-BPM-Automation'
 }
 
 { #category : 'service context' }
-CPCompleteUserTaskWorkUnit class >> serviceClass [
-    ^ CPBpmService
-]
+CPCompleteUserTaskWorkUnit class >> serviceClass [ ^ CPBpmService ]
 
 { #category : 'instance creation' }
-CPCompleteUserTaskWorkUnit class >> processExecutionIdentifier: aProcessExecutionIdentifier workItemIdentifier: aWorkItemIdentifier [
-    ^ self new
-        processExecutionIdentifier: aProcessExecutionIdentifier;
-        workItemIdentifier: aWorkItemIdentifier;
-        yourself
+CPCompleteUserTaskWorkUnit class >> workItem: aCPUserTaskWorkItem [
+    ^ self new workItem: aCPUserTaskWorkItem; yourself
 ]
 
 { #category : 'accessing' }
-CPCompleteUserTaskWorkUnit >> processExecutionIdentifier [
-    ^ processExecutionIdentifier
-]
+CPCompleteUserTaskWorkUnit >> workItem [ ^ workItem ]
 
 { #category : 'accessing' }
-CPCompleteUserTaskWorkUnit >> processExecutionIdentifier: anIdentifier [
-    processExecutionIdentifier := anIdentifier
-]
-
-{ #category : 'accessing' }
-CPCompleteUserTaskWorkUnit >> workItemIdentifier [
-    ^ workItemIdentifier
-]
-
-{ #category : 'accessing' }
-CPCompleteUserTaskWorkUnit >> workItemIdentifier: anIdentifier [
-    workItemIdentifier := anIdentifier
-]
+CPCompleteUserTaskWorkUnit >> workItem: aCPUserTaskWorkItem [ workItem := aCPUserTaskWorkItem ]
 
 { #category : 'running' }
 CPCompleteUserTaskWorkUnit >> executeInContext: aCRWorkUnitExecutionContext [

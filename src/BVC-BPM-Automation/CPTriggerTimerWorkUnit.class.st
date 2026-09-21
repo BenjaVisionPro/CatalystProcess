@@ -1,58 +1,30 @@
 Class {
 	#name : 'CPTriggerTimerWorkUnit',
 	#superclass : 'CRWorkUnit',
-	#instVars : [
-		'processExecutionIdentifier',
-		'timerSubscriptionIdentifier',
-		'occurrenceIdentifier'
-	],
+	#instVars : [ 'timerSubscription', 'occurrenceIdentifier' ],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
 
 { #category : 'service context' }
-CPTriggerTimerWorkUnit class >> serviceClass [
-	^ CPBpmService
-]
+CPTriggerTimerWorkUnit class >> serviceClass [ ^ CPBpmService ]
 
 { #category : 'instance creation' }
-CPTriggerTimerWorkUnit class >> processExecutionIdentifier: aProcessExecutionIdentifier timerSubscriptionIdentifier: aTimerSubscriptionIdentifier occurrenceIdentifier: anOccurrenceIdentifier [
-	^ self new
-		processExecutionIdentifier: aProcessExecutionIdentifier;
-		timerSubscriptionIdentifier: aTimerSubscriptionIdentifier;
-		occurrenceIdentifier: anOccurrenceIdentifier;
-		yourself
+CPTriggerTimerWorkUnit class >> timerSubscription: aCPTimerSubscription occurrenceIdentifier: anOccurrenceIdentifier [
+	^ self new timerSubscription: aCPTimerSubscription; occurrenceIdentifier: anOccurrenceIdentifier; yourself
 ]
 
 { #category : 'accessing' }
-CPTriggerTimerWorkUnit >> processExecutionIdentifier [
-	^ processExecutionIdentifier
-]
+CPTriggerTimerWorkUnit >> timerSubscription [ ^ timerSubscription ]
 
 { #category : 'accessing' }
-CPTriggerTimerWorkUnit >> processExecutionIdentifier: anObject [
-	processExecutionIdentifier := anObject
-]
+CPTriggerTimerWorkUnit >> timerSubscription: aCPTimerSubscription [ timerSubscription := aCPTimerSubscription ]
 
 { #category : 'accessing' }
-CPTriggerTimerWorkUnit >> timerSubscriptionIdentifier [
-	^ timerSubscriptionIdentifier
-]
+CPTriggerTimerWorkUnit >> occurrenceIdentifier [ ^ occurrenceIdentifier ]
 
 { #category : 'accessing' }
-CPTriggerTimerWorkUnit >> timerSubscriptionIdentifier: anObject [
-	timerSubscriptionIdentifier := anObject
-]
-
-{ #category : 'accessing' }
-CPTriggerTimerWorkUnit >> occurrenceIdentifier [
-	^ occurrenceIdentifier
-]
-
-{ #category : 'accessing' }
-CPTriggerTimerWorkUnit >> occurrenceIdentifier: anObject [
-	occurrenceIdentifier := anObject
-]
+CPTriggerTimerWorkUnit >> occurrenceIdentifier: anObject [ occurrenceIdentifier := anObject ]
 
 { #category : 'running' }
 CPTriggerTimerWorkUnit >> executeInContext: aCRWorkUnitExecutionContext [

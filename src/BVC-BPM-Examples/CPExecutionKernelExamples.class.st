@@ -9561,8 +9561,7 @@ CPExecutionKernelExamples >> bpmTimerWorkUnitTriggersExactSubscriptionThroughRun
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPTriggerTimerWorkUnit
-		processExecutionIdentifier: execution executionIdentifier
-		timerSubscriptionIdentifier: subscription identifier
+		timerSubscription: subscription
 		occurrenceIdentifier: 'runtime-timer-1'.
 	self assert: workUnit class serviceClass == CPBpmService.
 	self assert: workUnit class requiredCapabilities isEmpty.
@@ -9664,8 +9663,7 @@ CPExecutionKernelExamples >> bpmServiceAutonomousPassClaimsAndEnqueuesDueTimerOn
 	self assert: enqueue workUnits size equals: 1.
 	workUnit := enqueue workUnits first.
 	self assert: workUnit class == CPTriggerTimerWorkUnit.
-	self assert: workUnit processExecutionIdentifier equals: execution executionIdentifier.
-	self assert: workUnit timerSubscriptionIdentifier equals: subscription identifier.
+	self assert: workUnit timerSubscription == subscription.
 	self assert: subscription isDispatchPending.
 	self assert: subscription dispatchOccurrenceIdentifier equals: workUnit occurrenceIdentifier.
 	self assert: subscription isWaiting not.
@@ -9720,8 +9718,7 @@ CPExecutionKernelExamples >> mismatchedPendingAutonomousTimerTriggerIsRejected [
 	service enqueueDueTimerWorkUnitsUsing: enqueue.
 	workUnit := enqueue workUnits first.
 	mismatched := CPTriggerTimerWorkUnit new
-		processExecutionIdentifier: workUnit processExecutionIdentifier;
-		timerSubscriptionIdentifier: workUnit timerSubscriptionIdentifier;
+		timerSubscription: workUnit timerSubscription;
 		occurrenceIdentifier: #wrongPendingTimerOccurrence;
 		yourself.
 	context := CRWorkUnitExecutionContext new service: service; yourself.
@@ -9781,7 +9778,7 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitStartsRegisteredExecutionFro
 		executionEnvironment: environment;
 		yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPStartProcessWorkUnit processDeploymentIdentifier: deployment identifier.
+	workUnit := CPStartProcessWorkUnit processDeployment: deployment.
 	self assert: workUnit class serviceClass == CPBpmService.
 	self assert: workUnit class requiredCapabilities isEmpty.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
@@ -9815,7 +9812,7 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitRejectsInactiveDeploymentWit
 		executionEnvironment: CPExampleExecutionEnvironment new;
 		yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPStartProcessWorkUnit processDeploymentIdentifier: deployment identifier.
+	workUnit := CPStartProcessWorkUnit processDeployment: deployment.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
@@ -9842,9 +9839,7 @@ CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitCompletesExactPendingWor
     root addProcessExecution: execution.
     configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
     service := CPBpmService new installWithConfiguration: configuration.
-    workUnit := CPCompleteUserTaskWorkUnit
-        processExecutionIdentifier: execution executionIdentifier
-        workItemIdentifier: workItem identifier.
+    workUnit := CPCompleteUserTaskWorkUnit workItem: workItem.
     self assert: workUnit class serviceClass == CPBpmService.
     self assert: workUnit class requiredCapabilities isEmpty.
     context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
@@ -9885,9 +9880,7 @@ CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitTargetsMultiInstanceWork
     root addProcessExecution: execution.
     configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
     service := CPBpmService new installWithConfiguration: configuration.
-    workUnit := CPCompleteUserTaskWorkUnit
-        processExecutionIdentifier: execution executionIdentifier
-        workItemIdentifier: firstWorkItem identifier.
+    workUnit := CPCompleteUserTaskWorkUnit workItem: firstWorkItem.
     context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
     context service: service.
     context bindCapabilities: Dictionary new.
@@ -9911,9 +9904,7 @@ CPExecutionKernelExamples >> bpmCompleteUserTaskWorkUnitRejectsCompletedWorkItem
     root addProcessExecution: execution.
     configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
     service := CPBpmService new installWithConfiguration: configuration.
-    workUnit := CPCompleteUserTaskWorkUnit
-        processExecutionIdentifier: execution executionIdentifier
-        workItemIdentifier: workItem identifier.
+    workUnit := CPCompleteUserTaskWorkUnit workItem: workItem.
     context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
     context service: service.
     context bindCapabilities: Dictionary new.
@@ -9944,8 +9935,7 @@ CPExecutionKernelExamples >> bpmCompleteServiceInvocationWorkUnitCompletesExactI
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPCompleteServiceInvocationWorkUnit
-		processExecutionIdentifier: execution executionIdentifier
-		invocationIdentifier: invocation invocationIdentifier
+		invocation: invocation
 		occurrenceIdentifier: #runtimeServiceResult
 		payload: Dictionary new.
 	self assert: workUnit class serviceClass == CPBpmService.
@@ -9987,9 +9977,8 @@ CPExecutionKernelExamples >> bpmFaultServiceInvocationWorkUnitRaisesDeclaredBpmn
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPFaultServiceInvocationWorkUnit
-		processExecutionIdentifier: execution executionIdentifier
-		invocationIdentifier: invocation invocationIdentifier
-		errorIdentifier: error identifier
+		invocation: invocation
+		error: error
 		occurrenceIdentifier: #runtimeServiceFault
 		payload: Dictionary new.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
@@ -10017,8 +10006,7 @@ CPExecutionKernelExamples >> bpmCompleteServiceInvocationWorkUnitRejectsComplete
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPCompleteServiceInvocationWorkUnit
-		processExecutionIdentifier: execution executionIdentifier
-		invocationIdentifier: invocation invocationIdentifier
+		invocation: invocation
 		occurrenceIdentifier: #duplicateRuntimeServiceResult
 		payload: Dictionary new.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
@@ -10054,7 +10042,7 @@ CPExecutionKernelExamples >> bpmTerminateProcessWorkUnitTerminatesOutstandingPro
 	root addProcessExecution: execution.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPTerminateProcessWorkUnit processExecutionIdentifier: execution executionIdentifier.
+	workUnit := CPTerminateProcessWorkUnit processExecution: execution.
 	self assert: workUnit class serviceClass == CPBpmService.
 	self assert: workUnit class requiredCapabilities isEmpty.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
@@ -10082,7 +10070,7 @@ CPExecutionKernelExamples >> bpmTerminateProcessWorkUnitRejectsCompletedExecutio
 	root addProcessExecution: execution.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPTerminateProcessWorkUnit processExecutionIdentifier: execution executionIdentifier.
+	workUnit := CPTerminateProcessWorkUnit processExecution: execution.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
@@ -10352,4 +10340,58 @@ CPExecutionKernelExamples >> bpmDeploymentSnapshotDescribesLifecycleWithoutStatu
 	self assert: retiredSnapshot isRetired.
 	self assert: retiredSnapshot acceptsNewProcessExecutions not.
 	^ retiredSnapshot
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmDeploymentLifecycleWorkUnitsCarryGemStoneDomainObjects [
+	<gtExample>
+	| deployment root configuration service activateWorkUnit retireWorkUnit context |
+	deployment := CPProcessDeployment new identifier: 'runtime-lifecycle-deployment'; yourself.
+	root := CPSystemRoot new.
+	root addProcessDeployment: deployment.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	activateWorkUnit := CPActivateProcessDeploymentWorkUnit processDeployment: deployment.
+	self assert: activateWorkUnit processDeployment == deployment.
+	context := CRWorkUnitExecutionContext envelope: activateWorkUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	activateWorkUnit executeInContext: context.
+	self assert: deployment isActive.
+	retireWorkUnit := CPRetireProcessDeploymentWorkUnit processDeployment: deployment.
+	self assert: retireWorkUnit processDeployment == deployment.
+	context := CRWorkUnitExecutionContext envelope: retireWorkUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	retireWorkUnit executeInContext: context.
+	self assert: deployment isRetired.
+	^ deployment
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> retiredDeploymentDoesNotTerminateExistingProcessExecution [
+	<gtExample>
+	| process task deployment environment execution root configuration service retireWorkUnit context |
+	process := CPProcess new identifier: 'retirement-existing-execution-process'; yourself.
+	task := CPUserTask new identifier: 'existing-work'; yourself.
+	process addFlowElement: task.
+	deployment := CPProcessDeployment new identifier: 'retirement-existing-execution-deployment'; processDefinition: process; yourself.
+	deployment activate.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	execution deployment: deployment.
+	execution createUserTaskExecutionFor: task.
+	root := CPSystemRoot new.
+	root addProcessDeployment: deployment; addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	retireWorkUnit := CPRetireProcessDeploymentWorkUnit processDeployment: deployment.
+	context := CRWorkUnitExecutionContext envelope: retireWorkUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	retireWorkUnit executeInContext: context.
+	self assert: deployment isRetired.
+	self assert: execution isCompleted not.
+	self assert: execution deployment == deployment.
+	^ execution
 ]
