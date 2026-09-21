@@ -477,6 +477,16 @@ CPExecutionScope >> allWaitingDeliverableTimerSubscriptionsFor: aTimerDefinition
 	^ self allWaitingDeliverableTimerSubscriptions select: [ :each | each timerDefinition == aTimerDefinition ]
 ]
 
+{ #category : 'events - timer' }
+CPExecutionScope >> allDispatchPendingTimerSubscriptions [
+	| subscriptions |
+	subscriptions := (timerSubscriptions select: #isDispatchPending) asOrderedCollection.
+	subscriptions addAll: (eventSubProcessTimerSubscriptions select: #isDispatchPending).
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allDispatchPendingTimerSubscriptions ].
+	^ subscriptions
+]
+
 { #category : 'accessing' }
 CPExecutionScope >> messageSubscriptions [ ^ messageSubscriptions ]
 

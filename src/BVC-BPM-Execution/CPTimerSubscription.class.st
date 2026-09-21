@@ -1,7 +1,7 @@
 Class {
 	#name : 'CPTimerSubscription',
 	#superclass : 'CFIdentifiableObject',
-	#instVars : [ 'eventExecution', 'timerDefinition', 'occurrence', 'cancelled', 'armedAt', 'dueTime' ],
+	#instVars : [ 'eventExecution', 'timerDefinition', 'occurrence', 'cancelled', 'armedAt', 'dueTime', 'dispatchPending', 'dispatchOccurrenceIdentifier' ],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
@@ -9,7 +9,8 @@ Class {
 { #category : 'initialization' }
 CPTimerSubscription >> initialize [
 	super initialize.
-	cancelled := false
+	cancelled := false.
+	dispatchPending := false
 ]
 
 { #category : 'accessing' }
@@ -29,7 +30,18 @@ CPTimerSubscription >> executionScope [ ^ eventExecution scope ]
 { #category : 'accessing' }
 CPTimerSubscription >> occurrence [ ^ occurrence ]
 { #category : 'testing' }
-CPTimerSubscription >> isWaiting [ ^ occurrence isNil and: [ cancelled not ] ]
+CPTimerSubscription >> isWaiting [ ^ occurrence isNil and: [ cancelled not and: [ dispatchPending not ] ] ]
+
+{ #category : 'testing' }
+CPTimerSubscription >> isDispatchPending [ ^ dispatchPending ]
+
+{ #category : 'accessing' }
+CPTimerSubscription >> dispatchOccurrenceIdentifier [ ^ dispatchOccurrenceIdentifier ]
+
+{ #category : 'testing' }
+CPTimerSubscription >> canReceiveOccurrence [
+	^ occurrence isNil and: [ cancelled not and: [ self isWaiting or: [ self isDispatchPending ] ] ]
+]
 
 { #category : 'testing' }
 CPTimerSubscription >> isCancelled [ ^ cancelled ]
@@ -37,17 +49,19 @@ CPTimerSubscription >> isCancelled [ ^ cancelled ]
 CPTimerSubscription >> isTriggered [ ^ occurrence notNil ]
 { #category : 'occurrences' }
 CPTimerSubscription >> triggerWith: anOccurrence [
-	self isWaiting ifFalse: [ self error: 'Only a waiting Timer subscription can be triggered.' ].
+	self canReceiveOccurrence ifFalse: [ self error: 'Only a waiting or dispatch-pending Timer subscription can be triggered.' ].
 	anOccurrence definition == timerDefinition ifFalse: [
 		self error: 'The occurrence does not match this Timer subscription.' ].
 	occurrence := anOccurrence.
+	dispatchPending := false.
+	dispatchOccurrenceIdentifier := nil.
 	^ self
 ]
 
 
 { #category : 'occurrences' }
 CPTimerSubscription >> deliverOccurrence: anOccurrence [
-	self isWaiting ifFalse: [ self error: 'Only a waiting Timer subscription can receive an occurrence.' ].
+	self canReceiveOccurrence ifFalse: [ self error: 'Only a waiting or dispatch-pending Timer subscription can receive an occurrence.' ].
 	anOccurrence definition == timerDefinition ifFalse: [
 		self error: 'The occurrence does not match this Timer subscription.' ].
 	^ eventExecution acceptTimerSubscription: self occurrence: anOccurrence
@@ -55,8 +69,10 @@ CPTimerSubscription >> deliverOccurrence: anOccurrence [
 
 { #category : 'lifecycle' }
 CPTimerSubscription >> cancel [
-	self isWaiting ifFalse: [ self error: 'Only a waiting Timer subscription can be cancelled.' ].
+	self canReceiveOccurrence ifFalse: [ self error: 'Only a waiting or dispatch-pending Timer subscription can be cancelled.' ].
 	cancelled := true.
+	dispatchPending := false.
+	dispatchOccurrenceIdentifier := nil.
 	^ self
 ]
 
@@ -77,4 +93,13 @@ CPTimerSubscription >> dueAt [
 CPTimerSubscription >> isDueAt: aTime [
 	self isWaiting ifFalse: [ ^ false ].
 	^ self dueAt <= aTime
+]
+
+{ #category : 'lifecycle' }
+CPTimerSubscription >> markDispatchPendingWithOccurrenceIdentifier: anOccurrenceIdentifier [
+	self isWaiting ifFalse: [ self error: 'Only a waiting Timer subscription can be marked dispatch pending.' ].
+	anOccurrenceIdentifier ifNil: [ self error: 'A Timer dispatch requires an occurrence identifier.' ].
+	dispatchPending := true.
+	dispatchOccurrenceIdentifier := anOccurrenceIdentifier.
+	^ self
 ]

@@ -12,7 +12,7 @@ Class {
 
 { #category : 'capabilities' }
 CPBpmService class >> requiredCapabilities [
-	^ { CRSchedulingCapability }
+	^ { CRSchedulingCapability. CRLocalEnqueueCapability }
 ]
 
 { #category : 'configuration' }
@@ -117,8 +117,11 @@ CPBpmService >> triggerTimerWorkUnit: aCPTriggerTimerWorkUnit [
 	| execution subscription occurrence |
 	execution := self processExecutionForIdentifier: aCPTriggerTimerWorkUnit processExecutionIdentifier.
 	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	subscription := execution waitingDeliverableTimerSubscriptionIdentifiedBy:
+	subscription := execution deliverableTimerSubscriptionIdentifiedBy:
 		aCPTriggerTimerWorkUnit timerSubscriptionIdentifier.
+	subscription isDispatchPending ifTrue: [
+		subscription dispatchOccurrenceIdentifier = aCPTriggerTimerWorkUnit occurrenceIdentifier ifFalse: [
+			self error: 'Timer trigger occurrence identifier does not match the pending dispatch.' ] ].
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: aCPTriggerTimerWorkUnit occurrenceIdentifier;
 		definition: subscription timerDefinition;
@@ -145,8 +148,29 @@ CPBpmService >> start [
 
 { #category : 'background processing' }
 CPBpmService >> processBackgroundWorkUnit: aCPProcessBackgroundWorkUnit [
-	"This is the Runtime-owned autonomous BPM processing boundary. Timer due-time
-	interpretation and other autonomous Process responsibilities are added here in
-	later semantic slices; the semantic kernel remains Runtime-unaware."
+	| localEnqueue |
+	localEnqueue := self capability: CRLocalEnqueueCapability.
+	self enqueueDueTimerWorkUnitsUsing: localEnqueue.
+	^ self
+]
+
+{ #category : 'background processing' }
+CPBpmService >> enqueueDueTimerWorkUnitsUsing: anEnqueueCapability [
+	systemRoot processExecutions do: [ :execution |
+		| currentTime dueSubscriptions |
+		currentTime := execution environment currentTimerTime.
+		dueSubscriptions := execution allWaitingDeliverableTimerSubscriptions
+			select: [ :each | each isDueAt: currentTime ].
+		dueSubscriptions do: [ :subscription |
+			| occurrenceIdentifier workUnit |
+			occurrenceIdentifier := UUID new asString.
+			execution
+				markTimerSubscriptionDispatchPending: subscription
+				occurrenceIdentifier: occurrenceIdentifier.
+			workUnit := CPTriggerTimerWorkUnit
+				processExecutionIdentifier: execution executionIdentifier
+				timerSubscriptionIdentifier: subscription identifier
+				occurrenceIdentifier: occurrenceIdentifier.
+			anEnqueueCapability enqueue: workUnit ] ].
 	^ self
 ]

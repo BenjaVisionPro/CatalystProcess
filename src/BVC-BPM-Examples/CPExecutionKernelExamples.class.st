@@ -9642,3 +9642,60 @@ CPExecutionKernelExamples >> triggeredTimerSubscriptionIsNeverDueAgain [
 	self assert: (subscription isDueAt: 1000) not.
 	^ subscription
 ]
+
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmServiceAutonomousPassClaimsAndEnqueuesDueTimerOnce [
+	<gtExample>
+	| execution subscription environment root configuration service enqueue workUnit |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	environment := execution environment.
+	subscription armedAt: 100.
+	environment
+		currentTimerTime: 200;
+		timerDefinition: subscription timerDefinition dueAt: 200.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	workUnit := enqueue workUnits first.
+	self assert: workUnit class == CPTriggerTimerWorkUnit.
+	self assert: workUnit processExecutionIdentifier equals: execution executionIdentifier.
+	self assert: workUnit timerSubscriptionIdentifier equals: subscription identifier.
+	self assert: subscription isDispatchPending.
+	self assert: subscription dispatchOccurrenceIdentifier equals: workUnit occurrenceIdentifier.
+	self assert: subscription isWaiting not.
+	service enqueueDueTimerWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	^ workUnit
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> pendingAutonomousTimerTriggerCompletesExactSubscription [
+	<gtExample>
+	| execution subscription environment root configuration service enqueue workUnit context |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	environment := execution environment.
+	subscription armedAt: 100.
+	environment
+		currentTimerTime: 200;
+		timerDefinition: subscription timerDefinition dueAt: 200.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueDueTimerWorkUnitsUsing: enqueue.
+	workUnit := enqueue workUnits first.
+	context := CRWorkUnitExecutionContext new service: service; yourself.
+	workUnit executeInContext: context.
+	self assert: subscription isTriggered.
+	self assert: subscription isDispatchPending not.
+	self assert: subscription dispatchOccurrenceIdentifier isNil.
+	^ subscription
+]

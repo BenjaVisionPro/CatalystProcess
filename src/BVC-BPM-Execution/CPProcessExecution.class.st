@@ -183,11 +183,33 @@ CPProcessExecution >> waitingDeliverableTimerSubscriptionIdentifiedBy: aSubscrip
 	^ matches first
 ]
 
+
+{ #category : 'events - timer' }
+CPProcessExecution >> deliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier [
+	| matches |
+	aSubscriptionIdentifier ifNil: [
+		self error: 'A Timer subscription identifier is required.' ].
+	matches := (self allWaitingDeliverableTimerSubscriptions , self allDispatchPendingTimerSubscriptions)
+		select: [ :each | each identifier = aSubscriptionIdentifier ].
+	matches isEmpty ifTrue: [
+		self error: 'No deliverable Timer subscription has the requested identifier.' ].
+	matches size = 1 ifFalse: [
+		self error: 'More than one deliverable Timer subscription has the requested identifier.' ].
+	^ matches first
+]
+
+{ #category : 'events - timer' }
+CPProcessExecution >> markTimerSubscriptionDispatchPending: aTimerSubscription occurrenceIdentifier: anOccurrenceIdentifier [
+	(self allWaitingDeliverableTimerSubscriptions identityIncludes: aTimerSubscription) ifFalse: [
+		self error: 'Only a live waiting Timer subscription can be marked dispatch pending.' ].
+	^ aTimerSubscription markDispatchPendingWithOccurrenceIdentifier: anOccurrenceIdentifier
+]
+
 { #category : 'events - timer' }
 CPProcessExecution >> deliverTimerOccurrence: anOccurrence toSubscriptionIdentifiedBy: aSubscriptionIdentifier [
 	| subscription |
 	anOccurrence ifNil: [ self error: 'Timer delivery requires an occurrence.' ].
-	subscription := self waitingDeliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier.
+	subscription := self deliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier.
 	anOccurrence definition == subscription timerDefinition ifFalse: [
 		self error: 'The occurrence does not match the requested Timer subscription.' ].
 	^ subscription deliverOccurrence: anOccurrence
