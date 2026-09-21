@@ -240,6 +240,26 @@ CPBpmService >> instantiateStartEvent: aStartEvent fromDeployment: aDeployment o
 	^ execution
 ]
 
+
+
+{ #category : 'process start' }
+CPBpmService >> instantiateParallelMultipleStartEvent: aStartEvent fromDeployment: aDeployment occurrences: occurrences [
+	| process environment execution |
+	aDeployment ifNil: [ self error: 'A Process deployment is required.' ].
+	aDeployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
+	process := aDeployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	(process flowElements includes: aStartEvent) ifFalse: [ self error: 'The Start Event does not belong to the deployed Process definition.' ].
+	aStartEvent isParallelMultipleStartEvent ifFalse: [ self error: 'Parallel Multiple Start initiation requires a Parallel Multiple Start Event.' ].
+	environment := configuration executionEnvironment.
+	environment ifNil: [ self error: 'BPM service configuration requires an execution environment to start a Process.' ].
+	execution := CPProcessExecution for: process environment: environment.
+	execution deployment: aDeployment; tenant: aDeployment tenant.
+	execution startAtParallelMultipleStartEvent: aStartEvent occurrences: occurrences.
+	systemRoot addProcessExecution: execution.
+	^ execution
+]
+
 { #category : 'user task completion' }
 CPBpmService >> completeUserTaskWorkUnit: aCPCompleteUserTaskWorkUnit [
     | workItem |
@@ -385,13 +405,15 @@ CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 		^ subscriptions ].
 	process flowElements do: [ :element |
 		element isStartEvent ifTrue: [
-			element isParallelMultipleStartEvent ifTrue: [
-				self error: 'Parallel Multiple top-level Start Event initiation requires coordinated trigger accumulation.' ].
+			| parallelInitiation |
+			parallelInitiation := element isParallelMultipleStartEvent
+				ifTrue: [ CPParallelMultipleStartInitiation new processDeployment: aDeployment; startEvent: element; yourself ]
+				ifFalse: [ nil ].
 			element eventDefinitions do: [ :definition |
 				(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition or: [ definition isConditionalEventDefinition ] ] ]) ifTrue: [
 					| subscription |
 					subscription := CPStartEventInitiationSubscription new
-						processDeployment: aDeployment; startEvent: element; eventDefinition: definition; yourself.
+						processDeployment: aDeployment; startEvent: element; eventDefinition: definition; parallelMultipleInitiation: parallelInitiation; yourself.
 					subscriptions add: subscription ] ] ].
 		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
 			element outgoing do: [ :flow |

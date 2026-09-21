@@ -11166,3 +11166,50 @@ CPExecutionKernelExamples >> multipleStartEventPayloadUsesCorrespondingDataOutpu
 	self assert: (eventExecution itemValueFor: signalOutput) equals: 'signal payload'.
 	^ eventExecution
 ]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> parallelMultipleStartWaitsForEveryTrigger [
+	<gtExample>
+	| process start task flow message signal messageDefinition signalDefinition messageOutput signalOutput deployment environment root configuration service messageSubscription signalSubscription messageOccurrence signalOccurrence partial execution eventExecution |
+	process := CPProcess new identifier: 'parallel-multiple-start-process'; yourself.
+	message := CPMessage new identifier: 'parallel-multiple-message'; yourself.
+	signal := CPSignal new identifier: 'parallel-multiple-signal'; yourself.
+	messageDefinition := CPMessageEventDefinition new identifier: 'parallel-message-definition'; messageRef: message; yourself.
+	signalDefinition := CPSignalEventDefinition new identifier: 'parallel-signal-definition'; signalRef: signal; yourself.
+	messageOutput := CPDataOutput new identifier: 'parallel-message-output'; yourself.
+	signalOutput := CPDataOutput new identifier: 'parallel-signal-output'; yourself.
+	start := CPStartEvent new
+		identifier: 'parallel-multiple-start';
+		eventDefinitions: { messageDefinition. signalDefinition };
+		dataOutputs: { messageOutput. signalOutput };
+		parallelMultiple: true;
+		yourself.
+	task := CPTask new identifier: 'after-parallel-multiple-start'; yourself.
+	flow := CPSequenceFlow new identifier: 'parallel-multiple-start-flow'; sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'parallel-multiple-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	self assert: deployment initiationSubscriptions size equals: 2.
+	messageSubscription := (service initiationSubscriptionsForMessage: message) first.
+	signalSubscription := (service initiationSubscriptionsForSignal: signal) first.
+	self assert: messageSubscription parallelMultipleInitiation == signalSubscription parallelMultipleInitiation.
+	messageOccurrence := CPExecutionOccurrence new occurrenceIdentifier: 'parallel-message-1'; definition: message; payload: 'message payload'; yourself.
+	partial := service deliverProcessInitiationOccurrenceWorkUnit:
+		(CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: messageSubscription occurrence: messageOccurrence).
+	self assert: partial isNil.
+	self assert: root processExecutions isEmpty.
+	signalOccurrence := CPExecutionOccurrence new occurrenceIdentifier: 'parallel-signal-1'; definition: signal; payload: 'signal payload'; yourself.
+	execution := service deliverProcessInitiationOccurrenceWorkUnit:
+		(CPDeliverProcessInitiationOccurrenceWorkUnit initiationSubscription: signalSubscription occurrence: signalOccurrence).
+	self assert: execution isStarted.
+	self assert: root processExecutions size equals: 1.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	eventExecution := execution eventExecutions first.
+	self assert: (eventExecution itemValueFor: messageOutput) equals: 'message payload'.
+	self assert: (eventExecution itemValueFor: signalOutput) equals: 'signal payload'.
+	^ execution
+]

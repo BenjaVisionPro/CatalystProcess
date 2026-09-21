@@ -141,6 +141,24 @@ CPProcessExecution >> startWithOccurrence: anOccurrence [
 ]
 
 { #category : 'lifecycle' }
+CPProcessExecution >> startAtParallelMultipleStartEvent: aStartEvent occurrences: occurrences [
+	| execution |
+	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
+	aStartEvent isParallelMultipleStartEvent ifFalse: [ self error: 'Parallel Multiple Process start requires a Parallel Multiple Start Event.' ].
+	occurrences size = aStartEvent eventDefinitions size ifFalse: [ self error: 'Parallel Multiple Process start requires one occurrence for each Event Definition.' ].
+	aStartEvent eventDefinitions withIndexDo: [ :definition :index |
+		(aStartEvent eventDefinitionMatchingInstantiationOccurrence: (occurrences at: index)) == definition ifFalse: [
+			self error: 'Parallel Multiple Process start occurrences must correspond to the Start Event Definitions in order.' ] ].
+	started := true.
+	execution := self executeParallelMultipleStartEvent: aStartEvent occurrences: occurrences.
+	self armMessageEventSubProcesses.
+	self armSignalEventSubProcesses.
+	self armTimerEventSubProcesses.
+	self armConditionalEventSubProcesses.
+	^ execution
+]
+
+{ #category : 'lifecycle' }
 CPProcessExecution >> startWhenConditionSatisfied [
 	| matchingStartEvents execution |
 	started ifTrue: [ self error: 'A Process execution can only be started once.' ].

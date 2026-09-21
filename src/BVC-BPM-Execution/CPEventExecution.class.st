@@ -7,6 +7,7 @@ Class {
 		'consumedFlowActivation',
 		'producedFlowActivations',
 		'occurrence',
+		'occurrences',
 		'thrownOccurrences',
 		'itemValues'
 	],
@@ -110,24 +111,31 @@ CPEventExecution >> itemValueFor: anItemAwareElement put: aValue [
 	^ aValue
 ]
 
+{ #category : 'accessing' }
+CPEventExecution >> occurrences [ ^ occurrences ]
+
+{ #category : 'accessing' }
+CPEventExecution >> occurrences: aCollection [ occurrences := aCollection ]
+
 { #category : 'data' }
-CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
+CPEventExecution >> populateParallelMultipleCatchEventDataFrom: aCollection [
 	| outputs |
-	definition isCatchEvent ifFalse: [ self error: 'Only a Catch Event can receive occurrence data.' ].
+	definition isParallelMultipleStartEvent ifFalse: [ self error: 'Parallel Multiple catch data requires a Parallel Multiple Start Event.' ].
 	outputs := definition dataOutputs.
-	outputs isEmpty ifTrue: [ ^ self ].
-	outputs size = 1
-		ifTrue: [ self itemValueFor: outputs first put: anOccurrence payload ]
-		ifFalse: [
+	outputs ifNotEmpty: [
+		outputs size = definition eventDefinitions size ifFalse: [ self error: 'A Parallel Multiple Start Event requires one Data Output for each Event Definition.' ].
+		aCollection do: [ :eachOccurrence |
 			| matchingDefinition definitionIndex |
-			definition isStartEvent ifFalse: [
-				self error: 'A multiple Catch Event requires occurrence-to-EventDefinition data mapping.' ].
-			outputs size = definition eventDefinitions size ifFalse: [
-				self error: 'A Multiple Start Event requires one Data Output for each Event Definition.' ].
-			matchingDefinition := definition eventDefinitionMatchingInstantiationOccurrence: anOccurrence.
-			matchingDefinition ifNil: [ self error: 'The occurrence does not match a Start Event definition.' ].
+			matchingDefinition := definition eventDefinitionMatchingInstantiationOccurrence: eachOccurrence.
+			matchingDefinition ifNil: [ self error: 'An occurrence does not match a Parallel Multiple Start Event definition.' ].
 			definitionIndex := definition eventDefinitions indexOf: matchingDefinition.
-			self itemValueFor: (outputs at: definitionIndex) put: anOccurrence payload ].
+			self itemValueFor: (outputs at: definitionIndex) put: eachOccurrence payload ] ].
+	self executeCatchDataOutputAssociations.
+	^ self
+]
+
+{ #category : 'data' }
+CPEventExecution >> executeCatchDataOutputAssociations [
 	definition dataOutputAssociations do: [ :association |
 		| value transformation |
 		association assignments do: [ :assignment |
@@ -154,6 +162,28 @@ CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
 				executeAssignment: assignment
 				in: self scope
 				forEventExecution: self ] ].
+	^ self
+]
+
+{ #category : 'data' }
+CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
+	| outputs |
+	definition isCatchEvent ifFalse: [ self error: 'Only a Catch Event can receive occurrence data.' ].
+	outputs := definition dataOutputs.
+	outputs isEmpty ifTrue: [ ^ self ].
+	outputs size = 1
+		ifTrue: [ self itemValueFor: outputs first put: anOccurrence payload ]
+		ifFalse: [
+			| matchingDefinition definitionIndex |
+			definition isStartEvent ifFalse: [
+				self error: 'A multiple Catch Event requires occurrence-to-EventDefinition data mapping.' ].
+			outputs size = definition eventDefinitions size ifFalse: [
+				self error: 'A Multiple Start Event requires one Data Output for each Event Definition.' ].
+			matchingDefinition := definition eventDefinitionMatchingInstantiationOccurrence: anOccurrence.
+			matchingDefinition ifNil: [ self error: 'The occurrence does not match a Start Event definition.' ].
+			definitionIndex := definition eventDefinitions indexOf: matchingDefinition.
+			self itemValueFor: (outputs at: definitionIndex) put: anOccurrence payload ].
+	self executeCatchDataOutputAssociations.
 	^ self
 ]
 

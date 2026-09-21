@@ -989,6 +989,21 @@ CPExecutionScope >> executeStartEvent: aStartEvent occurrence: anOccurrence [
 ]
 
 { #category : 'events - start' }
+CPExecutionScope >> executeParallelMultipleStartEvent: aStartEvent occurrences: occurrences [
+	| execution |
+	aStartEvent incoming isEmpty ifFalse: [ self error: 'A Start Event cannot consume incoming Sequence Flow.' ].
+	occurrences do: [ :each |
+		(self acceptedOccurrences identityIncludes: each) ifFalse: [ self acceptOccurrence: each ] ].
+	execution := self createEventExecutionFor: aStartEvent.
+	execution occurrences: occurrences.
+	execution populateParallelMultipleCatchEventDataFrom: occurrences.
+	aStartEvent outgoing do: [ :eachFlow |
+		execution recordProducedFlowActivation:
+			(self activateSequenceFlow: eachFlow producedBy: execution) ].
+	^ execution
+]
+
+{ #category : 'events - start' }
 CPExecutionScope >> executeStartEvent: aStartEvent withAcceptedOccurrence: anOccurrence [
 	| execution |
 	aStartEvent incoming isEmpty ifFalse: [ self error: 'A Start Event cannot consume incoming Sequence Flow.' ].
