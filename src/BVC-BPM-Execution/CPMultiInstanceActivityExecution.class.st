@@ -217,32 +217,38 @@ CPMultiInstanceActivityExecution >> accessibleItemValueFor: anItemAwareElement p
 
 { #category : 'data associations' }
 CPMultiInstanceActivityExecution >> canExecuteDataAssociation: aDataAssociation [
-	| definition source |
+	| definition |
 	definition := activityExecution definition.
 	((definition dataInputAssociations identityIncludes: aDataAssociation)
 		or: [ definition dataOutputAssociations identityIncludes: aDataAssociation ]) ifFalse: [
 		self error: 'The Data Association does not belong to this Activity.' ].
-	aDataAssociation transformation ifNotNil: [
-		self error: 'Data Association transformations are not yet executable.' ].
 	aDataAssociation assignments ifNotEmpty: [
 		self error: 'Data Association assignments are not yet executable.' ].
-	aDataAssociation sourceRefs size = 1 ifFalse: [
-		self error: 'A Data Association without transformation or assignments requires exactly one source.' ].
+	aDataAssociation transformation ifNil: [
+		aDataAssociation sourceRefs size = 1 ifFalse: [
+			self error: 'A Data Association without transformation or assignments requires exactly one source.' ] ].
 	aDataAssociation targetRef ifNil: [
 		self error: 'A Data Association requires a target.' ].
-	source := aDataAssociation sourceRefs first.
-	^ self accessibleItemValueAvailableFor: source
+	^ aDataAssociation sourceRefs allSatisfy: [ :each |
+		self accessibleItemValueAvailableFor: each ]
 ]
 
 { #category : 'data associations' }
 CPMultiInstanceActivityExecution >> executeDataAssociation: aDataAssociation [
-	| definition source producer value |
+	| definition value |
 	definition := activityExecution definition.
 	(self canExecuteDataAssociation: aDataAssociation) ifFalse: [ ^ false ].
-	source := aDataAssociation sourceRefs first.
-	producer := self accessibleItemValueProducerFor: source.
-	producer ifNotNil: [ activityExecution recordDataDependencyOn: producer ].
-	value := self accessibleItemValueFor: source.
+	aDataAssociation sourceRefs do: [ :each |
+		| producer |
+		producer := self accessibleItemValueProducerFor: each.
+		producer ifNotNil: [ activityExecution recordDataDependencyOn: producer ] ].
+	value := aDataAssociation transformation
+		ifNil: [ self accessibleItemValueFor: aDataAssociation sourceRefs first ]
+		ifNotNil: [ :transformation |
+			self scope environment
+				evaluateExpression: transformation
+				in: self scope
+				forActivityExecution: self ].
 	(definition dataOutputAssociations identityIncludes: aDataAssociation)
 		ifTrue: [ self accessibleItemValueFor: aDataAssociation targetRef put: value producedBy: activityExecution ]
 		ifFalse: [ self accessibleItemValueFor: aDataAssociation targetRef put: value ].

@@ -15,6 +15,11 @@ CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope 
 	^ self evaluateExpression: anExpression in: anExecutionScope
 ]
 
+{ #category : 'evaluation' }
+CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope forEventExecution: anEventExecution [
+	^ self evaluateExpression: anExpression in: anExecutionScope
+]
+
 { #category : 'resolution' }
 CPExecutionEnvironment >> resolveCallableElement: aCallableElement in: anExecutionScope [
 	self subclassResponsibility

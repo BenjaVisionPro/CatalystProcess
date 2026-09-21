@@ -10656,3 +10656,154 @@ CPExecutionKernelExamples >> dueDeploymentTimerInitiationCreatesExactlyOneProces
 	self assert: enqueue workUnits isEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityDataInputAssociationEvaluatesTransformationAfterSourcesBecomeAvailable [
+	<gtExample>
+	| process firstSource secondSource task specification input inputSet transformation association environment execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	firstSource := CPDataObject new identifier: 'firstSource'; yourself.
+	secondSource := CPDataObject new identifier: 'secondSource'; yourself.
+	process addFlowElement: firstSource; addFlowElement: secondSource.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'input'; yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification dataInputs: { input }; inputSets: { inputSet }.
+	task ioSpecification: specification.
+	transformation := CPFormalExpression new body: 'combine sources'; yourself.
+	association := CPDataInputAssociation new
+		sourceRefs: { firstSource. secondSource };
+		targetRef: input;
+		transformation: transformation;
+		yourself.
+	task dataInputAssociations: { association }.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: transformation evaluatesTo: 'combined';
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createActivityExecutionFor: task.
+	execution itemValueFor: firstSource put: 'first'.
+	self assert: taskExecution prepareInputs = false.
+	execution itemValueFor: secondSource put: 'second'.
+	self assert: taskExecution prepareInputs.
+	self assert: (taskExecution itemValueFor: input) equals: 'combined'.
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> messageCatchEventEvaluatesDataOutputTransformationInEventContext [
+	<gtExample>
+	| process start catch message messageDefinition dataOutput dataObject transformation association flow environment execution eventExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	dataOutput := CPDataOutput new identifier: 'receivedData'; yourself.
+	dataObject := CPDataObject new identifier: 'processData'; yourself.
+	transformation := CPFormalExpression new body: 'extract order'; yourself.
+	association := CPDataOutputAssociation new
+		sourceRefs: { dataOutput };
+		targetRef: dataObject;
+		transformation: transformation;
+		yourself.
+	catch := CPMessageCatchIntermediateEvent new
+		identifier: 'receiveMessage';
+		eventDefinitions: { messageDefinition };
+		dataOutputs: { dataOutput };
+		dataOutputAssociations: { association };
+		yourself.
+	flow := CPSequenceFlow new identifier: 'toCatch'; sourceRef: start; targetRef: catch; yourself.
+	process addFlowElement: start; addFlowElement: catch; addFlowElement: dataObject; addFlowElement: flow.
+	environment := CPExampleExecutionEnvironment new
+		expression: transformation evaluatesTo: 42;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	eventExecution := execution beginMessageIntermediateCatchEvent: catch consuming: (execution availableFlowActivationsOn: flow) first.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: 'message-1';
+		definition: message;
+		payload: (Dictionary new at: 'order' put: 42; yourself);
+		yourself.
+	execution triggerMessageIntermediateCatchEventExecution: eventExecution with: occurrence.
+	self assert: (execution accessibleItemValueFor: dataObject) equals: 42.
+	^ eventExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> messageThrowEventEvaluatesDataInputTransformation [
+	<gtExample>
+	| process start throw message messageDefinition firstSource secondSource dataInput transformation association incoming environment execution eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	firstSource := CPDataObject new identifier: 'firstSource'; yourself.
+	secondSource := CPDataObject new identifier: 'secondSource'; yourself.
+	dataInput := CPDataInput new identifier: 'messageData'; yourself.
+	transformation := CPFormalExpression new body: 'combine message data'; yourself.
+	association := CPDataInputAssociation new
+		sourceRefs: { firstSource. secondSource };
+		targetRef: dataInput;
+		transformation: transformation;
+		yourself.
+	throw := CPMessageThrowIntermediateEvent new
+		identifier: 'sendMessage';
+		eventDefinitions: { messageDefinition };
+		dataInputs: { dataInput };
+		dataInputAssociations: { association };
+		yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: start; targetRef: throw; yourself.
+	process addFlowElement: start; addFlowElement: throw; addFlowElement: firstSource; addFlowElement: secondSource; addFlowElement: incoming.
+	environment := CPExampleExecutionEnvironment new
+		expression: transformation evaluatesTo: 'combined message';
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution accessibleItemValueFor: firstSource put: 'first'.
+	execution accessibleItemValueFor: secondSource put: 'second'.
+	execution start.
+	eventExecution := execution beginIntermediateThrowEvent: throw consuming: (execution availableFlowActivationsOn: incoming) first.
+	self assert: (eventExecution itemValueFor: dataInput) equals: 'combined message'.
+	self assert: eventExecution thrownOccurrences first payload equals: 'combined message'.
+	^ eventExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityDataOutputTransformationWithMultipleSourcesExecutesOnce [
+	<gtExample>
+	| process target task specification firstOutput secondOutput outputSet transformation association environment execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	target := CPDataObject new identifier: 'target'; yourself.
+	process addFlowElement: target.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	firstOutput := CPDataOutput new identifier: 'firstOutput'; yourself.
+	secondOutput := CPDataOutput new identifier: 'secondOutput'; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { firstOutput. secondOutput }; yourself.
+	specification dataOutputs: { firstOutput. secondOutput }; outputSets: { outputSet }.
+	task ioSpecification: specification.
+	transformation := CPFormalExpression new body: 'combine outputs'; yourself.
+	association := CPDataOutputAssociation new
+		sourceRefs: { firstOutput. secondOutput };
+		targetRef: target;
+		transformation: transformation;
+		yourself.
+	task dataOutputAssociations: { association }.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: transformation evaluatesTo: 'combined output';
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createActivityExecutionFor: task.
+	taskExecution activate.
+	taskExecution itemValueFor: firstOutput put: 'first'.
+	taskExecution itemValueFor: secondOutput put: 'second'.
+	taskExecution beginCompletion.
+	taskExecution complete.
+	self assert: (execution itemValueFor: target) equals: 'combined output'.
+	self assert: taskExecution selectedOutputSet == outputSet.
+	^ taskExecution
+]
