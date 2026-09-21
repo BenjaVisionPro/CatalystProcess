@@ -9547,3 +9547,38 @@ CPExecutionKernelExamples >> timerDeliveryRejectsNonWaitingSubscriptionIdentity 
 	self assert: rejected.
 	^ execution
 ]
+
+{ #category : 'examples - BPM runtime service' }
+CPExecutionKernelExamples >> bpmTimerWorkUnitTriggersExactSubscriptionThroughRuntimeService [
+	<gtExample>
+	| execution eventSubProcess subscription root configuration service workUnit context handler occurrence successor |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	eventSubProcess := execution definition flowElements detect: [ :each |
+		each isSubProcess and: [ each isEventSubProcess ] ].
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPTriggerTimerWorkUnit
+		processExecutionIdentifier: execution executionIdentifier
+		timerSubscriptionIdentifier: subscription identifier
+		occurrenceIdentifier: 'runtime-timer-1'.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	handler := workUnit executeInContext: context.
+	self assert: subscription isTriggered.
+	self assert: handler definition == eventSubProcess.
+	self assert: handler isActive.
+	occurrence := handler subScope eventExecutions first occurrence.
+	self assert: occurrence occurrenceIdentifier = 'runtime-timer-1'.
+	self assert: occurrence definition == subscription timerDefinition.
+	successor := execution eventSubProcessTimerSubscriptions last.
+	self assert: successor ~~ subscription.
+	self assert: successor isWaiting.
+	self assert: successor identifier ~= subscription identifier.
+	^ handler
+]

@@ -104,3 +104,19 @@ CPBpmService >> waitingSignalIn: aProcessExecution identifiedBy: aSignalIdentifi
 	signals size = 1 ifFalse: [ self error: 'More than one waiting Signal has the requested identifier.' ].
 	^ signals first
 ]
+
+{ #category : 'timer delivery' }
+CPBpmService >> triggerTimerWorkUnit: aCPTriggerTimerWorkUnit [
+	| execution subscription occurrence |
+	execution := self processExecutionForIdentifier: aCPTriggerTimerWorkUnit processExecutionIdentifier.
+	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	subscription := execution waitingDeliverableTimerSubscriptionIdentifiedBy:
+		aCPTriggerTimerWorkUnit timerSubscriptionIdentifier.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: aCPTriggerTimerWorkUnit occurrenceIdentifier;
+		definition: subscription timerDefinition;
+		yourself.
+	^ execution
+		deliverTimerOccurrence: occurrence
+		toSubscriptionIdentifiedBy: subscription identifier
+]
