@@ -370,7 +370,6 @@ CPExecutionScope >> acceptMessageEventSubProcessSubscription: aSubscription occu
 	anOccurrence definition == aSubscription message ifFalse: [
 		self error: 'The occurrence does not match this Message Event SubProcess subscription.' ].
 	startEvent := aSubscription startEvent.
-	self acceptOccurrence: anOccurrence.
 	aSubscription triggerWith: anOccurrence.
 	startEvent isInterrupting ifTrue: [
 		owningActivity ifNotNil: [ owningActivity beginTermination ].
