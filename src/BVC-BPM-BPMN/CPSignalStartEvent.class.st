@@ -16,3 +16,8 @@ CPSignalStartEvent >> matchesInstantiationOccurrence: anOccurrence [
 	definitions size = 1 ifFalse: [ ^ false ].
 	^ definitions first signalRef == anOccurrence definition
 ]
+
+{ #category : 'testing' }
+CPSignalStartEvent >> isSignalStartEvent [
+	^ true
+]

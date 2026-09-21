@@ -64,6 +64,7 @@ CPProcessExecution >> start [
 	started := true.
 	executions := startEvents collect: [ :each | self executeStartEvent: each occurrence: nil ].
 	self armMessageEventSubProcesses.
+	self armSignalEventSubProcesses.
 	^ executions
 ]
 
@@ -93,6 +94,7 @@ CPProcessExecution >> complete [
 	self canComplete ifFalse: [
 		self error: 'A Process execution cannot complete while executable or waiting work remains.' ].
 	self cancelMessageEventSubProcessSubscriptions.
+	self cancelSignalEventSubProcessSubscriptions.
 	completed := true.
 	^ self
 ]
@@ -123,6 +125,7 @@ CPProcessExecution >> startWithOccurrence: anOccurrence [
 	started := true.
 	execution := self executeStartEvent: matchingStartEvents first occurrence: anOccurrence.
 	self armMessageEventSubProcesses.
+	self armSignalEventSubProcesses.
 	^ execution
 ]
 
@@ -139,6 +142,7 @@ CPProcessExecution >> startWhenConditionSatisfied [
 	started := true.
 	execution := self executeStartEvent: matchingStartEvents first occurrence: nil.
 	self armMessageEventSubProcesses.
+	self armSignalEventSubProcesses.
 	^ execution
 ]
 
@@ -147,7 +151,7 @@ CPProcessExecution >> startWhenConditionSatisfied [
 CPProcessExecution >> deliverSignalOccurrence: anOccurrence [
 	| matches |
 	anOccurrence ifNil: [ self error: 'Signal delivery requires an occurrence.' ].
-	matches := self allWaitingSignalSubscriptionsFor: anOccurrence definition.
+	matches := self allWaitingDeliverableSignalSubscriptionsFor: anOccurrence definition.
 	matches isEmpty ifTrue: [
 		self error: 'No waiting Signal subscription matches this occurrence.' ].
 	self acceptOccurrence: anOccurrence.

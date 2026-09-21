@@ -89,3 +89,9 @@ CPStartEvent >> isEscalationStartEvent [
 CPStartEvent >> isMessageStartEvent [
 	^ false
 ]
+
+
+{ #category : 'testing' }
+CPStartEvent >> isSignalStartEvent [
+	^ false
+]

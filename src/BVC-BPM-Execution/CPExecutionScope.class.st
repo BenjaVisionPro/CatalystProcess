@@ -14,6 +14,7 @@ Class {
 		'timerSubscriptions',
 		'messageSubscriptions',
 		'eventSubProcessMessageSubscriptions',
+		'eventSubProcessSignalSubscriptions',
 		'signalSubscriptions',
 		'conditionalSubscriptions',
 		'compensationRecords',
@@ -43,6 +44,7 @@ CPExecutionScope >> initialize [
 	timerSubscriptions := OrderedCollection new.
 	messageSubscriptions := OrderedCollection new.
 	eventSubProcessMessageSubscriptions := OrderedCollection new.
+	eventSubProcessSignalSubscriptions := OrderedCollection new.
 	signalSubscriptions := OrderedCollection new.
 	conditionalSubscriptions := OrderedCollection new.
 	compensationRecords := OrderedCollection new.
@@ -70,6 +72,110 @@ CPExecutionScope >> owningActivity [ ^ owningActivity ]
 CPExecutionScope >> owningActivity: anActivityExecution [ owningActivity := anActivityExecution ]
 { #category : 'accessing' }
 CPExecutionScope >> childScopes [ ^ childScopes ]
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> signalStartEventFor: anEventSubProcess [
+	| startEvents startEvent signalDefinition |
+	anEventSubProcess validateEventSubProcessStructure.
+	startEvents := anEventSubProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'A Signal Event SubProcess requires exactly one Start Event.' ].
+	startEvent := startEvents first.
+	startEvent isSignalStartEvent ifFalse: [
+		self error: 'A Signal Event SubProcess requires a Signal Start Event.' ].
+	startEvent incoming isEmpty ifFalse: [
+		self error: 'A Signal Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	startEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Signal Start Event requires exactly one Signal Event Definition.' ].
+	signalDefinition := startEvent eventDefinitions first.
+	signalDefinition signalRef ifNil: [
+		self error: 'A Signal Start Event requires a Signal.' ].
+	^ startEvent
+]
+
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> armSignalEventSubProcesses [
+	definition flowElements do: [ :each |
+		(each isSubProcess and: [
+			each isEventSubProcess and: [
+				each flowElements anySatisfy: [ :candidate |
+					candidate isStartEvent and: [ candidate isSignalStartEvent ] ] ] ]) ifTrue: [
+			self armSignalEventSubProcess: each ] ].
+	^ self
+]
+
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> armSignalEventSubProcess: anEventSubProcess [
+	| startEvent signalDefinition subscription |
+	(eventSubProcessSignalSubscriptions anySatisfy: [ :each |
+		each isWaiting and: [ each eventSubProcess == anEventSubProcess ] ]) ifTrue: [
+		self error: 'A Signal Event SubProcess already has a waiting subscription in this execution scope.' ].
+	startEvent := self signalStartEventFor: anEventSubProcess.
+	signalDefinition := startEvent eventDefinitions first.
+	subscription := CPSignalEventSubProcessSubscription new
+		scope: self;
+		eventSubProcess: anEventSubProcess;
+		startEvent: startEvent;
+		signal: signalDefinition signalRef;
+		yourself.
+	eventSubProcessSignalSubscriptions add: subscription.
+	^ subscription
+]
+
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> cancelSignalEventSubProcessSubscriptions [
+	eventSubProcessSignalSubscriptions do: [ :each |
+		each isWaiting ifTrue: [ each cancel ] ].
+	^ self
+]
+
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> canInitiateSignalEventSubProcess [
+	owningActivity ifNotNil: [ ^ owningActivity isActive ].
+	^ self processExecution isStarted and: [ self processExecution isCompleted not ]
+]
+
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> acceptSignalEventSubProcessSubscription: aSubscription acceptedOccurrence: anOccurrence [
+	| startEvent handlerExecution handlerScope |
+	(eventSubProcessSignalSubscriptions identityIncludes: aSubscription) ifFalse: [
+		self error: 'The Signal Event SubProcess subscription does not belong to this execution scope.' ].
+	aSubscription isWaiting ifFalse: [
+		self error: 'Only a waiting Signal Event SubProcess subscription can accept an occurrence.' ].
+	self canInitiateSignalEventSubProcess ifFalse: [
+		self error: 'A Signal Event SubProcess can be initiated only while its containing scope is active.' ].
+	anOccurrence definition == aSubscription signal ifFalse: [
+		self error: 'The occurrence does not match this Signal Event SubProcess subscription.' ].
+	(self processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
+		self error: 'A broadcast Signal occurrence must be accepted by the Process execution before delivery.' ].
+	startEvent := aSubscription startEvent.
+	aSubscription triggerWith: anOccurrence.
+	startEvent isInterrupting ifTrue: [
+		owningActivity ifNotNil: [ owningActivity beginTermination ].
+		self terminateRemainingWork ].
+	handlerExecution := self createActivityExecutionFor: aSubscription eventSubProcess.
+	handlerExecution activate.
+	handlerScope := handlerExecution createSubScopeFor: aSubscription eventSubProcess.
+	handlerScope executeStartEvent: startEvent withAcceptedOccurrence: anOccurrence.
+	handlerScope armMessageEventSubProcesses.
+	handlerScope armSignalEventSubProcesses.
+	startEvent isInterrupting ifFalse: [ self armSignalEventSubProcess: aSubscription eventSubProcess ].
+	^ handlerExecution
+]
+
+{ #category : 'events - signal event sub-process' }
+CPExecutionScope >> completeSignalEventSubProcessActivity: anActivityExecution [
+	| startEvent |
+	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
+		self error: 'The Signal Event SubProcess cannot complete while nested control flow or Activities remain active.' ].
+	anActivityExecution definition isEventSubProcess ifFalse: [
+		self error: 'Only an Event SubProcess can complete through Signal-handler completion.' ].
+	startEvent := self signalStartEventFor: anActivityExecution definition.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	(startEvent isInterrupting and: [ owningActivity notNil ]) ifTrue: [ owningActivity finishTermination ].
+	^ anActivityExecution
+]
+
 { #category : 'accessing' }
 CPExecutionScope >> activityExecutions [ ^ activityExecutions ]
 
@@ -254,6 +360,9 @@ CPExecutionScope >> messageSubscriptions [ ^ messageSubscriptions ]
 { #category : 'accessing' }
 CPExecutionScope >> eventSubProcessMessageSubscriptions [ ^ eventSubProcessMessageSubscriptions ]
 
+{ #category : 'accessing' }
+CPExecutionScope >> eventSubProcessSignalSubscriptions [ ^ eventSubProcessSignalSubscriptions ]
+
 { #category : 'messages' }
 CPExecutionScope >> waitingMessageSubscriptions [
 	^ messageSubscriptions select: #isWaiting
@@ -379,6 +488,7 @@ CPExecutionScope >> acceptMessageEventSubProcessSubscription: aSubscription occu
 	handlerScope := handlerExecution createSubScopeFor: aSubscription eventSubProcess.
 	handlerScope executeStartEvent: startEvent occurrence: anOccurrence.
 	handlerScope armMessageEventSubProcesses.
+	handlerScope armSignalEventSubProcesses.
 	startEvent isInterrupting ifFalse: [ self armMessageEventSubProcess: aSubscription eventSubProcess ].
 	^ handlerExecution
 ]
@@ -447,6 +557,21 @@ CPExecutionScope >> allWaitingSignalSubscriptions [
 { #category : 'signals' }
 CPExecutionScope >> allWaitingSignalSubscriptionsFor: aSignal [
 	^ self allWaitingSignalSubscriptions select: [ :each | each signal == aSignal ]
+]
+
+{ #category : 'signals' }
+CPExecutionScope >> allWaitingDeliverableSignalSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingSignalSubscriptions asOrderedCollection.
+	subscriptions addAll: (eventSubProcessSignalSubscriptions select: #isWaiting).
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingDeliverableSignalSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'signals' }
+CPExecutionScope >> allWaitingDeliverableSignalSubscriptionsFor: aSignal [
+	^ self allWaitingDeliverableSignalSubscriptions select: [ :each | each signal == aSignal ]
 ]
 
 { #category : 'signals' }
@@ -694,6 +819,22 @@ CPExecutionScope >> executeStartEvent: aStartEvent occurrence: anOccurrence [
 	execution := self createEventExecutionFor: aStartEvent.
 	execution occurrence: anOccurrence.
 	anOccurrence ifNotNil: [ execution populateCatchEventDataFrom: anOccurrence ].
+	aStartEvent outgoing do: [ :eachFlow |
+		execution recordProducedFlowActivation:
+			(self activateSequenceFlow: eachFlow producedBy: execution) ].
+	^ execution
+]
+
+{ #category : 'events - start' }
+CPExecutionScope >> executeStartEvent: aStartEvent withAcceptedOccurrence: anOccurrence [
+	| execution |
+	aStartEvent incoming isEmpty ifFalse: [ self error: 'A Start Event cannot consume incoming Sequence Flow.' ].
+	anOccurrence ifNil: [ self error: 'Accepted-occurrence Start Event execution requires an occurrence.' ].
+	(self processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
+		self error: 'The occurrence must be accepted by the Process execution before broadcast delivery.' ].
+	execution := self createEventExecutionFor: aStartEvent.
+	execution occurrence: anOccurrence.
+	execution populateCatchEventDataFrom: anOccurrence.
 	aStartEvent outgoing do: [ :eachFlow |
 		execution recordProducedFlowActivation:
 			(self activateSequenceFlow: eachFlow producedBy: execution) ].
@@ -1020,6 +1161,7 @@ CPExecutionScope >> activateSubProcessScope: aSubScope [
 		ifNotEmpty: [ aSubScope executeStartEvent: startEvents first occurrence: nil ]
 		ifEmpty: [ aSubScope activateImplicitSubProcessStart ].
 	aSubScope armMessageEventSubProcesses.
+	aSubScope armSignalEventSubProcesses.
 	^ aSubScope
 ]
 
@@ -1056,6 +1198,7 @@ CPExecutionScope >> completeExecution [
 	self canCompleteExecution ifFalse: [
 		self error: 'The execution scope cannot complete while nested control flow or Activities remain active.' ].
 	self cancelMessageEventSubProcessSubscriptions.
+	self cancelSignalEventSubProcessSubscriptions.
 	^ owningActivity subProcessScopeDidComplete: self
 ]
 
@@ -1701,6 +1844,8 @@ CPExecutionScope >> terminateRemainingWork [
 	messageSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	eventSubProcessMessageSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	eventSubProcessSignalSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].

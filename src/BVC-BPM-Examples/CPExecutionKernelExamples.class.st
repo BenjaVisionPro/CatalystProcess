@@ -9122,3 +9122,119 @@ CPExecutionKernelExamples >> interruptingMessageEventSubProcessTerminatesOrdinar
 	self assert: handler subScope eventExecutions first occurrence == occurrence.
 	^ execution
 ]
+
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> signalEventSubProcessIsArmedWithoutCreatingHandlerExecution [
+	<gtExample>
+	| process start signal signalDefinition eventSubProcess signalStart execution subscription |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	signal := CPSignal new identifier: 'signal'; yourself.
+	signalDefinition := CPSignalEventDefinition new signalRef: signal; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'signalHandler'; triggeredByEvent: true; yourself.
+	signalStart := CPSignalStartEvent new identifier: 'signalStart'; isInterrupting: false; yourself.
+	signalStart eventDefinitions add: signalDefinition.
+	eventSubProcess addFlowElement: signalStart.
+	process addFlowElement: start; addFlowElement: eventSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	self assert: (execution activityExecutions noneSatisfy: [ :each | each definition == eventSubProcess ]).
+	self assert: execution eventSubProcessSignalSubscriptions size = 1.
+	subscription := execution eventSubProcessSignalSubscriptions first.
+	self assert: subscription isWaiting.
+	self assert: subscription eventSubProcess == eventSubProcess.
+	self assert: subscription startEvent == signalStart.
+	self assert: subscription signal == signal.
+	self assert: execution canComplete.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> nonInterruptingSignalEventSubProcessCanBeTriggeredRepeatedly [
+	<gtExample>
+	| execution process eventSubProcess signal firstOccurrence secondOccurrence firstMatches secondMatches handlers |
+	execution := self signalEventSubProcessIsArmedWithoutCreatingHandlerExecution.
+	process := execution definition.
+	eventSubProcess := process flowElements detect: [ :each | each isSubProcess and: [ each isEventSubProcess ] ].
+	signal := execution eventSubProcessSignalSubscriptions first signal.
+	firstOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #signalEventSubProcess1; definition: signal; yourself.
+	firstMatches := execution deliverSignalOccurrence: firstOccurrence.
+	self assert: firstMatches size = 1.
+	handlers := execution activityExecutions select: [ :each | each definition == eventSubProcess ].
+	self assert: handlers size = 1.
+	self assert: handlers first isActive.
+	self assert: execution eventSubProcessSignalSubscriptions last isWaiting.
+	secondOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #signalEventSubProcess2; definition: signal; yourself.
+	secondMatches := execution deliverSignalOccurrence: secondOccurrence.
+	self assert: secondMatches size = 1.
+	handlers := execution activityExecutions select: [ :each | each definition == eventSubProcess ].
+	self assert: handlers size = 2.
+	self assert: handlers first ~~ handlers last.
+	self assert: handlers first isActive.
+	self assert: handlers last isActive.
+	self assert: execution eventSubProcessSignalSubscriptions last isWaiting.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> signalBroadcastActivatesEveryMatchingEventSubProcess [
+	<gtExample>
+	| process start signal firstSubProcess secondSubProcess firstStart secondStart occurrence execution matches handlers |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	signal := CPSignal new identifier: 'broadcastSignal'; yourself.
+	firstSubProcess := CPNoneSubProcess new identifier: 'firstHandler'; triggeredByEvent: true; yourself.
+	firstStart := CPSignalStartEvent new identifier: 'firstSignalStart'; isInterrupting: false; yourself.
+	firstStart eventDefinitions add: (CPSignalEventDefinition new signalRef: signal; yourself).
+	firstSubProcess addFlowElement: firstStart.
+	secondSubProcess := CPNoneSubProcess new identifier: 'secondHandler'; triggeredByEvent: true; yourself.
+	secondStart := CPSignalStartEvent new identifier: 'secondSignalStart'; isInterrupting: false; yourself.
+	secondStart eventDefinitions add: (CPSignalEventDefinition new signalRef: signal; yourself).
+	secondSubProcess addFlowElement: secondStart.
+	process addFlowElement: start; addFlowElement: firstSubProcess; addFlowElement: secondSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #broadcastSignal1; definition: signal; yourself.
+	matches := execution deliverSignalOccurrence: occurrence.
+	self assert: matches size = 2.
+	handlers := execution activityExecutions select: [ :each |
+		each definition == firstSubProcess or: [ each definition == secondSubProcess ] ].
+	self assert: handlers size = 2.
+	self assert: (handlers allSatisfy: [ :each | each isActive ]).
+	self assert: (handlers allSatisfy: [ :each | each subScope eventExecutions first occurrence == occurrence ]).
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> interruptingSignalEventSubProcessTerminatesOrdinaryWorkAndDoesNotRearm [
+	<gtExample>
+	| process start task flow signal signalDefinition eventSubProcess signalStart environment execution taskExecution occurrence matches handler |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	task := CPUserTask new identifier: 'ordinaryWork'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: start; targetRef: task; yourself.
+	signal := CPSignal new identifier: 'interruptSignal'; yourself.
+	signalDefinition := CPSignalEventDefinition new signalRef: signal; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'interruptHandler'; triggeredByEvent: true; yourself.
+	signalStart := CPSignalStartEvent new identifier: 'signalStart'; isInterrupting: true; yourself.
+	signalStart eventDefinitions add: signalDefinition.
+	eventSubProcess addFlowElement: signalStart.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow; addFlowElement: eventSubProcess.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution readyActivityExecution: taskExecution.
+	execution activateUserTaskExecution: taskExecution.
+	self assert: taskExecution isActive.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #interruptSignal1; definition: signal; yourself.
+	matches := execution deliverSignalOccurrence: occurrence.
+	self assert: matches size = 1.
+	handler := execution activityExecutions detect: [ :each | each definition == eventSubProcess ].
+	self assert: taskExecution state class = CPActivityTerminatedState.
+	self assert: handler isActive.
+	self assert: (execution eventSubProcessSignalSubscriptions noneSatisfy: [ :each | each isWaiting ]).
+	self assert: handler subScope eventExecutions first occurrence == occurrence.
+	^ execution
+]
