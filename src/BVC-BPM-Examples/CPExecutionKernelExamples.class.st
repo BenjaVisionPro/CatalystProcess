@@ -10308,3 +10308,79 @@ CPExecutionKernelExamples >> retiredDeploymentDoesNotTerminateExistingProcessExe
 	self assert: execution deployment == deployment.
 	^ execution
 ]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmReevaluateConditionalWorkUnitTriggersSatisfiedSubscription [
+	<gtExample>
+	| process before conditional after condition definition incoming outgoing environment execution producer activation eventExecution root configuration service workUnit context result |
+	process := CPProcess new identifier: 'runtime-conditional-process'; yourself.
+	before := CPTask new identifier: 'beforeConditional'; yourself.
+	condition := CPExpression new identifier: 'runtimeCondition'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'runtimeConditionalDefinition'; condition: condition; yourself.
+	conditional := CPIntermediateCatchEvent new
+		identifier: 'runtimeConditional';
+		eventDefinitions: { definition } asOrderedCollection;
+		yourself.
+	after := CPTask new identifier: 'afterConditional'; yourself.
+	incoming := CPSequenceFlow new identifier: 'intoConditional'; sourceRef: before; targetRef: conditional; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterConditionalFlow'; sourceRef: conditional; targetRef: after; yourself.
+	process addFlowElement: before; addFlowElement: conditional; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	environment := CPExampleExecutionEnvironment new.
+	environment expression: condition evaluatesTo: false.
+	execution := CPProcessExecution for: process environment: environment.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginConditionalIntermediateCatchEvent: conditional consuming: activation.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPReevaluateConditionalWorkUnit conditionalSubscription: eventExecution subscription.
+	self assert: workUnit conditionalSubscription == eventExecution subscription.
+	environment expression: condition evaluatesTo: true.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	result := workUnit executeInContext: context.
+	self assert: result.
+	self assert: eventExecution isTriggered.
+	self assert: eventExecution subscription isTriggered.
+	self assert: (execution availableFlowActivationsOn: outgoing) size equals: 1.
+	^ eventExecution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmReevaluateConditionalWorkUnitLeavesUnsatisfiedSubscriptionWaiting [
+	<gtExample>
+	| process before conditional after condition definition incoming outgoing environment execution producer activation eventExecution subscription root configuration service workUnit context result |
+	process := CPProcess new identifier: 'runtime-unsatisfied-conditional-process'; yourself.
+	before := CPTask new identifier: 'beforeConditional'; yourself.
+	condition := CPExpression new identifier: 'runtimeUnsatisfiedCondition'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'runtimeUnsatisfiedConditionalDefinition'; condition: condition; yourself.
+	conditional := CPIntermediateCatchEvent new identifier: 'runtimeUnsatisfiedConditional'; eventDefinitions: { definition } asOrderedCollection; yourself.
+	after := CPTask new identifier: 'afterConditional'; yourself.
+	incoming := CPSequenceFlow new identifier: 'intoUnsatisfiedConditional'; sourceRef: before; targetRef: conditional; yourself.
+	outgoing := CPSequenceFlow new identifier: 'afterUnsatisfiedConditionalFlow'; sourceRef: conditional; targetRef: after; yourself.
+	process addFlowElement: before; addFlowElement: conditional; addFlowElement: after; addFlowElement: incoming; addFlowElement: outgoing.
+	environment := CPExampleExecutionEnvironment new.
+	environment expression: condition evaluatesTo: false.
+	execution := CPProcessExecution for: process environment: environment.
+	producer := execution createActivityExecutionFor: before.
+	activation := execution activateSequenceFlow: incoming producedBy: producer.
+	eventExecution := execution beginConditionalIntermediateCatchEvent: conditional consuming: activation.
+	subscription := eventExecution subscription.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPReevaluateConditionalWorkUnit conditionalSubscription: subscription.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	result := workUnit executeInContext: context.
+	self assert: result not.
+	self assert: subscription isWaiting.
+	self assert: eventExecution isWaiting.
+	self assert: (execution availableFlowActivationsOn: outgoing) isEmpty.
+	^ eventExecution
+]
