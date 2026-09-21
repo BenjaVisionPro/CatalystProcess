@@ -754,6 +754,19 @@ CPExecutionScope >> canReadyActivity: anActivity [
 ]
 
 { #category : 'control flow' }
+CPExecutionScope >> validateNormalFlowReadinessFor: anActivity [
+	| available |
+	anActivity isForCompensation ifTrue: [
+		self error: 'A Compensation Activity cannot become Ready from normal Sequence Flow.' ].
+	(anActivity isSubProcess and: [ anActivity isEventSubProcess ]) ifTrue: [
+		self error: 'An Event SubProcess cannot become Ready from normal Sequence Flow.' ].
+	available := self availableIncomingFlowActivationsFor: anActivity.
+	available size < anActivity startQuantity ifTrue: [
+		self error: 'The Activity does not have enough incoming control-flow activations to become Ready.' ].
+	^ available
+]
+
+{ #category : 'control flow' }
 CPExecutionScope >> readyActivityExecution: anActivityExecution [
 	| activity available |
 	(activityExecutions identityIncludes: anActivityExecution) ifFalse: [
@@ -761,13 +774,7 @@ CPExecutionScope >> readyActivityExecution: anActivityExecution [
 	anActivityExecution isReady ifFalse: [
 		self error: 'Only a Ready Activity execution can consume normal incoming control flow.' ].
 	activity := anActivityExecution definition.
-	activity isForCompensation ifTrue: [
-		self error: 'A Compensation Activity cannot become Ready from normal Sequence Flow.' ].
-	(activity isSubProcess and: [ activity isEventSubProcess ]) ifTrue: [
-		self error: 'An Event SubProcess cannot become Ready from normal Sequence Flow.' ].
-	available := self availableIncomingFlowActivationsFor: activity.
-	available size < activity startQuantity ifTrue: [
-		self error: 'The Activity does not have enough incoming control-flow activations to become Ready.' ].
+	available := self validateNormalFlowReadinessFor: activity.
 	1 to: activity startQuantity do: [ :index |
 		anActivityExecution consumeFlowActivation: (available at: index) ].
 	^ anActivityExecution
@@ -775,6 +782,7 @@ CPExecutionScope >> readyActivityExecution: anActivityExecution [
 
 { #category : 'control flow' }
 CPExecutionScope >> readyActivityExecutionFor: anActivity [
+	self validateNormalFlowReadinessFor: anActivity.
 	^ self readyActivityExecution: (self createActivityExecutionFor: anActivity)
 ]
 
