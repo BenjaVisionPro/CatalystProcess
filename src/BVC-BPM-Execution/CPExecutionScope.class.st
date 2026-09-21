@@ -228,7 +228,7 @@ CPExecutionScope >> armTimerEventSubProcess: anEventSubProcess [
 { #category : 'events - timer event sub-process' }
 CPExecutionScope >> cancelTimerEventSubProcessSubscriptions [
 	eventSubProcessTimerSubscriptions do: [ :each |
-		each isWaiting ifTrue: [ each cancel ] ].
+		each canReceiveOccurrence ifTrue: [ each cancel ] ].
 	^ self
 ]
 
@@ -243,8 +243,8 @@ CPExecutionScope >> acceptTimerEventSubProcessSubscription: aSubscription occurr
 	| startEvent handlerExecution handlerScope |
 	(eventSubProcessTimerSubscriptions identityIncludes: aSubscription) ifFalse: [
 		self error: 'The Timer Event SubProcess subscription does not belong to this execution scope.' ].
-	aSubscription isWaiting ifFalse: [
-		self error: 'Only a waiting Timer Event SubProcess subscription can accept an occurrence.' ].
+	aSubscription canReceiveOccurrence ifFalse: [
+		self error: 'Only a waiting or dispatch-pending Timer Event SubProcess subscription can accept an occurrence.' ].
 	self canInitiateTimerEventSubProcess ifFalse: [
 		self error: 'A Timer Event SubProcess can be initiated only while its containing scope is active.' ].
 	anOccurrence definition == aSubscription timerDefinition ifFalse: [
@@ -1993,9 +1993,9 @@ CPExecutionScope >> terminateRemainingWork [
 	eventSubProcessSignalSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	eventSubProcessTimerSubscriptions do: [ :eachSubscription |
-		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+		eachSubscription canReceiveOccurrence ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
-		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+		eachSubscription canReceiveOccurrence ifTrue: [ eachSubscription cancel ] ].
 	signalSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	conditionalSubscriptions do: [ :eachSubscription |

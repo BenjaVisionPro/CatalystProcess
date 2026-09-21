@@ -30,9 +30,7 @@ CPTimerEventSubProcessSubscription >> startEvent: aStartEvent [ startEvent := aS
 
 { #category : 'occurrences' }
 CPTimerEventSubProcessSubscription >> deliverOccurrence: anOccurrence [
-	self isWaiting ifFalse: [ self error: 'A Timer Event SubProcess subscription can be delivered only once.' ].
-	anOccurrence definition == self timerDefinition ifFalse: [
-		self error: 'The occurrence does not match this Timer Event SubProcess subscription.' ].
+	self validateOccurrenceForDelivery: anOccurrence.
 	^ scope acceptTimerEventSubProcessSubscription: self occurrence: anOccurrence
 ]
 

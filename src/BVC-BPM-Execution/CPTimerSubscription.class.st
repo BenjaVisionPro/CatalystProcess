@@ -47,11 +47,21 @@ CPTimerSubscription >> canReceiveOccurrence [
 CPTimerSubscription >> isCancelled [ ^ cancelled ]
 { #category : 'testing' }
 CPTimerSubscription >> isTriggered [ ^ occurrence notNil ]
-{ #category : 'occurrences' }
-CPTimerSubscription >> triggerWith: anOccurrence [
-	self canReceiveOccurrence ifFalse: [ self error: 'Only a waiting or dispatch-pending Timer subscription can be triggered.' ].
+
+{ #category : 'validation' }
+CPTimerSubscription >> validateOccurrenceForDelivery: anOccurrence [
+	self canReceiveOccurrence ifFalse: [ self error: 'Only a waiting or dispatch-pending Timer subscription can receive an occurrence.' ].
+	self isDispatchPending ifTrue: [
+		anOccurrence occurrenceIdentifier = dispatchOccurrenceIdentifier ifFalse: [
+			self error: 'The occurrence identifier does not match the pending Timer dispatch.' ] ].
 	anOccurrence definition == timerDefinition ifFalse: [
 		self error: 'The occurrence does not match this Timer subscription.' ].
+	^ self
+]
+
+{ #category : 'occurrences' }
+CPTimerSubscription >> triggerWith: anOccurrence [
+	self validateOccurrenceForDelivery: anOccurrence.
 	occurrence := anOccurrence.
 	dispatchPending := false.
 	dispatchOccurrenceIdentifier := nil.
@@ -61,9 +71,7 @@ CPTimerSubscription >> triggerWith: anOccurrence [
 
 { #category : 'occurrences' }
 CPTimerSubscription >> deliverOccurrence: anOccurrence [
-	self canReceiveOccurrence ifFalse: [ self error: 'Only a waiting or dispatch-pending Timer subscription can receive an occurrence.' ].
-	anOccurrence definition == timerDefinition ifFalse: [
-		self error: 'The occurrence does not match this Timer subscription.' ].
+	self validateOccurrenceForDelivery: anOccurrence.
 	^ eventExecution acceptTimerSubscription: self occurrence: anOccurrence
 ]
 
