@@ -9310,3 +9310,42 @@ CPExecutionKernelExamples >> bpmServiceUsesConfiguredSystemRoot [
 	self assert: (service processExecutionForIdentifier: execution executionIdentifier) == execution.
 	^ service
 ]
+
+{ #category : 'examples - BPM runtime service' }
+CPExecutionKernelExamples >> bpmMessageWorkUnitDeliversThroughRuntimeService [
+	<gtExample>
+	| process start message messageDefinition eventSubProcess messageStart execution root configuration service workUnit context handler occurrence |
+	process := CPProcess new identifier: 'runtimeMessageProcess'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'runtimeMessage'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'messageHandler'; triggeredByEvent: true; yourself.
+	messageStart := CPMessageStartEvent new identifier: 'messageStart'; isInterrupting: false; yourself.
+	messageStart eventDefinitions add: messageDefinition.
+	eventSubProcess addFlowElement: messageStart.
+	process addFlowElement: start; addFlowElement: eventSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPDeliverMessageWorkUnit
+		processExecutionIdentifier: execution executionIdentifier
+		messageIdentifier: message identifier
+		occurrenceIdentifier: 'runtime-message-1'
+		payload: (Dictionary new at: 'value' put: 42; yourself).
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	handler := workUnit executeInContext: context.
+	self assert: handler definition == eventSubProcess.
+	self assert: handler isActive.
+	occurrence := handler subScope eventExecutions first occurrence.
+	self assert: occurrence occurrenceIdentifier = 'runtime-message-1'.
+	self assert: occurrence definition == message.
+	self assert: (occurrence payload at: 'value') = 42.
+	^ handler
+]

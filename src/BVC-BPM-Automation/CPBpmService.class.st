@@ -48,3 +48,31 @@ CPBpmService >> installWithConfiguration: aCPBpmServiceConfiguration [
 CPBpmService >> processExecutionForIdentifier: anExecutionIdentifier [
 	^ systemRoot processExecutionForIdentifier: anExecutionIdentifier
 ]
+
+{ #category : 'message delivery' }
+CPBpmService >> deliverMessageWorkUnit: aCPDeliverMessageWorkUnit [
+	| execution message occurrence |
+	execution := self processExecutionForIdentifier: aCPDeliverMessageWorkUnit processExecutionIdentifier.
+	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	message := self
+		waitingMessageIn: execution
+		identifiedBy: aCPDeliverMessageWorkUnit messageIdentifier.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: aCPDeliverMessageWorkUnit occurrenceIdentifier;
+		definition: message;
+		payload: aCPDeliverMessageWorkUnit payload;
+		yourself.
+	^ execution deliverMessageOccurrence: occurrence
+]
+
+{ #category : 'message delivery' }
+CPBpmService >> waitingMessageIn: aProcessExecution identifiedBy: aMessageIdentifier [
+	| messages |
+	aMessageIdentifier ifNil: [ self error: 'A Message identifier is required.' ].
+	messages := (aProcessExecution allWaitingMessageSubscriptions collect: #message)
+		select: [ :each | each identifier = aMessageIdentifier ].
+	messages := messages asSet asOrderedCollection.
+	messages isEmpty ifTrue: [ self error: 'No waiting Message has the requested identifier.' ].
+	messages size = 1 ifFalse: [ self error: 'More than one waiting Message has the requested identifier.' ].
+	^ messages first
+]
