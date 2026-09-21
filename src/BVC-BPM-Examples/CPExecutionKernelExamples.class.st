@@ -9630,7 +9630,10 @@ CPExecutionKernelExamples >> triggeredTimerSubscriptionIsNeverDueAgain [
 	environment := execution environment.
 	subscription armedAt: 100.
 	environment timerDefinition: subscription timerDefinition dueAt: 200.
-	occurrence := CPExecutionOccurrence new definition: subscription timerDefinition; yourself.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #triggeredTimerDueSemantics;
+		definition: subscription timerDefinition;
+		yourself.
 	execution
 		deliverTimerOccurrence: occurrence
 		toSubscriptionIdentifiedBy: subscription identifier.
