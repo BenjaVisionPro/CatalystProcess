@@ -10031,3 +10031,65 @@ CPExecutionKernelExamples >> bpmCompleteServiceInvocationWorkUnitRejectsComplete
 	self assert: taskExecution isCompleted.
 	^ taskExecution
 ]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmTerminateProcessWorkUnitTerminatesOutstandingProcessWork [
+	<gtExample>
+	| process startEvent task flow environment execution root configuration service workUnit context |
+	process := CPProcess new identifier: 'runtime-terminate-process'; yourself.
+	startEvent := CPStartEvent new identifier: 'start'; yourself.
+	task := CPUserTask new identifier: 'waitingUserTask'; yourself.
+	flow := CPSequenceFlow new identifier: 'toWaitingUserTask'; sourceRef: startEvent; targetRef: task; yourself.
+	process
+		addFlowElement: startEvent;
+		addFlowElement: task;
+		addFlowElement: flow.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	self assert: execution isStarted.
+	self assert: execution isCompleted not.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPTerminateProcessWorkUnit processExecutionIdentifier: execution executionIdentifier.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit class requiredCapabilities isEmpty.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	self assert: (workUnit executeInContext: context) == execution.
+	self assert: execution isCompleted.
+	self assert: (execution availableFlowActivationsOn: flow) isEmpty.
+	self assert: (root processExecutionForIdentifier: execution executionIdentifier) == execution.
+	^ execution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmTerminateProcessWorkUnitRejectsCompletedExecution [
+	<gtExample>
+	| process startEvent environment execution root configuration service workUnit context rejected |
+	process := CPProcess new identifier: 'runtime-terminate-completed-process'; yourself.
+	startEvent := CPStartEvent new identifier: 'start'; yourself.
+	process addFlowElement: startEvent.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	execution complete.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPTerminateProcessWorkUnit processExecutionIdentifier: execution executionIdentifier.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	rejected := false.
+	[ workUnit executeInContext: context ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: execution isCompleted.
+	self assert: (root processExecutionForIdentifier: execution executionIdentifier) == execution.
+	^ execution
+]

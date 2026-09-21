@@ -243,3 +243,11 @@ CPBpmService >> faultServiceInvocationWorkUnit: aCPFaultServiceInvocationWorkUni
 		yourself.
 	^ invocation faultThroughExecutionWithOccurrence: occurrence
 ]
+
+{ #category : 'process termination' }
+CPBpmService >> terminateProcessWorkUnit: aCPTerminateProcessWorkUnit [
+	| execution |
+	execution := self processExecutionForIdentifier: aCPTerminateProcessWorkUnit processExecutionIdentifier.
+	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
+	^ execution terminate
+]

@@ -253,3 +253,12 @@ CPProcessExecution >> pendingExternalInvocationIdentifiedBy: anInvocationIdentif
 		self error: 'More than one pending external invocation has the requested identifier.' ].
 	^ matches first
 ]
+
+{ #category : 'lifecycle' }
+CPProcessExecution >> terminate [
+	started ifFalse: [ self error: 'Only a started Process execution can be terminated.' ].
+	completed ifTrue: [ self error: 'A completed Process execution cannot be terminated.' ].
+	self terminateRemainingWork.
+	self finishTermination.
+	^ self
+]
