@@ -63,6 +63,7 @@ CPProcessExecution >> start [
 	startEvents ifEmpty: [ self error: 'Process instantiation requires at least one None Start Event.' ].
 	started := true.
 	executions := startEvents collect: [ :each | self executeStartEvent: each occurrence: nil ].
+	self armMessageEventSubProcesses.
 	^ executions
 ]
 
@@ -78,7 +79,7 @@ CPProcessExecution >> canComplete [
 	completed ifTrue: [ ^ false ].
 	(self flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
 	(self activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
-	self allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingBlockingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingSignalSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingConditionalSubscriptions ifNotEmpty: [ ^ false ].
@@ -91,6 +92,7 @@ CPProcessExecution >> canComplete [
 CPProcessExecution >> complete [
 	self canComplete ifFalse: [
 		self error: 'A Process execution cannot complete while executable or waiting work remains.' ].
+	self cancelMessageEventSubProcessSubscriptions.
 	completed := true.
 	^ self
 ]
@@ -109,7 +111,7 @@ CPProcessExecution >> processExecution [
 
 { #category : 'lifecycle' }
 CPProcessExecution >> startWithOccurrence: anOccurrence [
-	| matchingStartEvents |
+	| matchingStartEvents execution |
 	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
 	anOccurrence ifNil: [ self error: 'Triggered Process instantiation requires an occurrence.' ].
 	matchingStartEvents := self definition flowElements select: [ :each |
@@ -119,12 +121,14 @@ CPProcessExecution >> startWithOccurrence: anOccurrence [
 	matchingStartEvents size > 1 ifTrue: [
 		self error: 'The instantiating occurrence matches more than one Start Event.' ].
 	started := true.
-	^ self executeStartEvent: matchingStartEvents first occurrence: anOccurrence
+	execution := self executeStartEvent: matchingStartEvents first occurrence: anOccurrence.
+	self armMessageEventSubProcesses.
+	^ execution
 ]
 
 { #category : 'lifecycle' }
 CPProcessExecution >> startWhenConditionSatisfied [
-	| matchingStartEvents |
+	| matchingStartEvents execution |
 	started ifTrue: [ self error: 'A Process execution can only be started once.' ].
 	matchingStartEvents := self definition flowElements select: [ :each |
 		each isStartEvent and: [ each conditionAllowsInstantiationIn: self ] ].
@@ -133,7 +137,9 @@ CPProcessExecution >> startWhenConditionSatisfied [
 	matchingStartEvents size > 1 ifTrue: [
 		self error: 'More than one Conditional Start Event condition is satisfied.' ].
 	started := true.
-	^ self executeStartEvent: matchingStartEvents first occurrence: nil
+	execution := self executeStartEvent: matchingStartEvents first occurrence: nil.
+	self armMessageEventSubProcesses.
+	^ execution
 ]
 
 

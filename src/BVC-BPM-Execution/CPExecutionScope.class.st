@@ -13,6 +13,7 @@ Class {
 		'acceptedOccurrences',
 		'timerSubscriptions',
 		'messageSubscriptions',
+		'eventSubProcessMessageSubscriptions',
 		'signalSubscriptions',
 		'conditionalSubscriptions',
 		'compensationRecords',
@@ -41,6 +42,7 @@ CPExecutionScope >> initialize [
 	acceptedOccurrences := OrderedCollection new.
 	timerSubscriptions := OrderedCollection new.
 	messageSubscriptions := OrderedCollection new.
+	eventSubProcessMessageSubscriptions := OrderedCollection new.
 	signalSubscriptions := OrderedCollection new.
 	conditionalSubscriptions := OrderedCollection new.
 	compensationRecords := OrderedCollection new.
@@ -249,6 +251,9 @@ CPExecutionScope >> allWaitingTimerSubscriptionsFor: aTimerDefinition [
 { #category : 'accessing' }
 CPExecutionScope >> messageSubscriptions [ ^ messageSubscriptions ]
 
+{ #category : 'accessing' }
+CPExecutionScope >> eventSubProcessMessageSubscriptions [ ^ eventSubProcessMessageSubscriptions ]
+
 { #category : 'messages' }
 CPExecutionScope >> waitingMessageSubscriptions [
 	^ messageSubscriptions select: #isWaiting
@@ -258,8 +263,18 @@ CPExecutionScope >> waitingMessageSubscriptions [
 CPExecutionScope >> allWaitingMessageSubscriptions [
 	| subscriptions |
 	subscriptions := self waitingMessageSubscriptions asOrderedCollection.
+	subscriptions addAll: (eventSubProcessMessageSubscriptions select: #isWaiting).
 	childScopes do: [ :eachScope |
 		subscriptions addAll: eachScope allWaitingMessageSubscriptions ].
+	^ subscriptions
+]
+
+{ #category : 'messages' }
+CPExecutionScope >> allWaitingBlockingMessageSubscriptions [
+	| subscriptions |
+	subscriptions := self waitingMessageSubscriptions asOrderedCollection.
+	childScopes do: [ :eachScope |
+		subscriptions addAll: eachScope allWaitingBlockingMessageSubscriptions ].
 	^ subscriptions
 ]
 
@@ -280,6 +295,108 @@ CPExecutionScope >> deliverMessageOccurrence: anOccurrence [
 	^ matches first deliverOccurrence: anOccurrence
 ]
 
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> messageStartEventFor: anEventSubProcess [
+	| startEvents startEvent messageDefinition |
+	anEventSubProcess validateEventSubProcessStructure.
+	startEvents := anEventSubProcess flowElements select: [ :each | each isStartEvent ].
+	startEvents size = 1 ifFalse: [
+		self error: 'A Message Event SubProcess requires exactly one Start Event.' ].
+	startEvent := startEvents first.
+	startEvent isMessageStartEvent ifFalse: [
+		self error: 'A Message Event SubProcess requires a Message Start Event.' ].
+	startEvent incoming isEmpty ifFalse: [
+		self error: 'A Message Event SubProcess Start Event cannot have incoming Sequence Flow.' ].
+	startEvent eventDefinitions size = 1 ifFalse: [
+		self error: 'A Message Start Event requires exactly one Message Event Definition.' ].
+	messageDefinition := startEvent eventDefinitions first.
+	messageDefinition messageRef ifNil: [
+		self error: 'A Message Start Event requires a Message.' ].
+	^ startEvent
+]
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> armMessageEventSubProcesses [
+	definition flowElements do: [ :each |
+		(each isSubProcess and: [
+			each isEventSubProcess and: [
+				each flowElements anySatisfy: [ :candidate |
+					candidate isStartEvent and: [ candidate isMessageStartEvent ] ] ] ]) ifTrue: [
+			self armMessageEventSubProcess: each ] ].
+	^ self
+]
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> armMessageEventSubProcess: anEventSubProcess [
+	| startEvent messageDefinition subscription |
+	(eventSubProcessMessageSubscriptions anySatisfy: [ :each |
+		each isWaiting and: [ each eventSubProcess == anEventSubProcess ] ]) ifTrue: [
+		self error: 'A Message Event SubProcess already has a waiting subscription in this execution scope.' ].
+	startEvent := self messageStartEventFor: anEventSubProcess.
+	messageDefinition := startEvent eventDefinitions first.
+	subscription := CPMessageEventSubProcessSubscription new
+		scope: self;
+		eventSubProcess: anEventSubProcess;
+		startEvent: startEvent;
+		message: messageDefinition messageRef;
+		yourself.
+	eventSubProcessMessageSubscriptions add: subscription.
+	^ subscription
+]
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> cancelMessageEventSubProcessSubscriptions [
+	eventSubProcessMessageSubscriptions do: [ :each |
+		each isWaiting ifTrue: [ each cancel ] ].
+	^ self
+]
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> canInitiateMessageEventSubProcess [
+	owningActivity ifNotNil: [ ^ owningActivity isActive ].
+	^ self processExecution isStarted and: [ self processExecution isCompleted not ]
+]
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> acceptMessageEventSubProcessSubscription: aSubscription occurrence: anOccurrence [
+	| startEvent handlerExecution handlerScope |
+	(eventSubProcessMessageSubscriptions identityIncludes: aSubscription) ifFalse: [
+		self error: 'The Message Event SubProcess subscription does not belong to this execution scope.' ].
+	aSubscription isWaiting ifFalse: [
+		self error: 'Only a waiting Message Event SubProcess subscription can accept an occurrence.' ].
+	self canInitiateMessageEventSubProcess ifFalse: [
+		self error: 'A Message Event SubProcess can be initiated only while its containing scope is active.' ].
+	anOccurrence definition == aSubscription message ifFalse: [
+		self error: 'The occurrence does not match this Message Event SubProcess subscription.' ].
+	startEvent := aSubscription startEvent.
+	self acceptOccurrence: anOccurrence.
+	aSubscription triggerWith: anOccurrence.
+	startEvent isInterrupting ifTrue: [
+		owningActivity ifNotNil: [ owningActivity beginTermination ].
+		self terminateRemainingWork ].
+	handlerExecution := self createActivityExecutionFor: aSubscription eventSubProcess.
+	handlerExecution activate.
+	handlerScope := handlerExecution createSubScopeFor: aSubscription eventSubProcess.
+	handlerScope executeStartEvent: startEvent occurrence: anOccurrence.
+	handlerScope armMessageEventSubProcesses.
+	startEvent isInterrupting ifFalse: [ self armMessageEventSubProcess: aSubscription eventSubProcess ].
+	^ handlerExecution
+]
+
+{ #category : 'events - message event sub-process' }
+CPExecutionScope >> completeMessageEventSubProcessActivity: anActivityExecution [
+	| startEvent |
+	(self canCompleteSubProcessActivity: anActivityExecution) ifFalse: [
+		self error: 'The Message Event SubProcess cannot complete while nested control flow or Activities remain active.' ].
+	anActivityExecution definition isEventSubProcess ifFalse: [
+		self error: 'Only an Event SubProcess can complete through Message-handler completion.' ].
+	startEvent := self messageStartEventFor: anActivityExecution definition.
+	anActivityExecution beginCompletion.
+	anActivityExecution complete.
+	(startEvent isInterrupting and: [ owningActivity notNil ]) ifTrue: [ owningActivity finishTermination ].
+	^ anActivityExecution
+]
 
 { #category : 'accessing' }
 CPExecutionScope >> signalSubscriptions [ ^ signalSubscriptions ]
@@ -894,6 +1011,7 @@ CPExecutionScope >> activateSubProcessScope: aSubScope [
 	startEvents
 		ifNotEmpty: [ aSubScope executeStartEvent: startEvents first occurrence: nil ]
 		ifEmpty: [ aSubScope activateImplicitSubProcessStart ].
+	aSubScope armMessageEventSubProcesses.
 	^ aSubScope
 ]
 
@@ -915,7 +1033,7 @@ CPExecutionScope >> activateImplicitSubProcessStart [
 CPExecutionScope >> canCompleteExecution [
 	(flowActivations anySatisfy: [ :each | each isAvailable ]) ifTrue: [ ^ false ].
 	(activityExecutions anySatisfy: [ :each | each isFinal not ]) ifTrue: [ ^ false ].
-	self allWaitingMessageSubscriptions ifNotEmpty: [ ^ false ].
+	self allWaitingBlockingMessageSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingTimerSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingSignalSubscriptions ifNotEmpty: [ ^ false ].
 	self allWaitingConditionalSubscriptions ifNotEmpty: [ ^ false ].
@@ -929,6 +1047,7 @@ CPExecutionScope >> completeExecution [
 	owningActivity ifNil: [ self error: 'Only a nested execution scope can complete through an owning Activity execution.' ].
 	self canCompleteExecution ifFalse: [
 		self error: 'The execution scope cannot complete while nested control flow or Activities remain active.' ].
+	self cancelMessageEventSubProcessSubscriptions.
 	^ owningActivity subProcessScopeDidComplete: self
 ]
 
@@ -1572,6 +1691,8 @@ CPExecutionScope >> terminateRemainingWork [
 	flowActivations do: [ :eachActivation |
 		eachActivation isAvailable ifTrue: [ eachActivation cancel ] ].
 	messageSubscriptions do: [ :eachSubscription |
+		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
+	eventSubProcessMessageSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	timerSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].

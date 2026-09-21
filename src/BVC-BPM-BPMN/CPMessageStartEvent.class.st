@@ -16,3 +16,8 @@ CPMessageStartEvent >> matchesInstantiationOccurrence: anOccurrence [
 	definitions size = 1 ifFalse: [ ^ false ].
 	^ definitions first messageRef == anOccurrence definition
 ]
+
+{ #category : 'testing' }
+CPMessageStartEvent >> isMessageStartEvent [
+	^ true
+]

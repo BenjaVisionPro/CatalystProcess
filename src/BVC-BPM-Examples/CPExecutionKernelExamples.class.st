@@ -9018,3 +9018,82 @@ CPExecutionKernelExamples >> distinctEscalationsWithoutCodesDoNotMatch [
 	self assert: (definition catchesEscalation: caughtEscalation).
 	^ definition
 ]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> messageEventSubProcessIsArmedWithoutCreatingHandlerExecution [
+	<gtExample>
+	| process start message messageDefinition eventSubProcess messageStart execution subscription |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'messageHandler'; triggeredByEvent: true; yourself.
+	messageStart := CPMessageStartEvent new identifier: 'messageStart'; isInterrupting: false; yourself.
+	messageStart eventDefinitions add: messageDefinition.
+	eventSubProcess addFlowElement: messageStart.
+	process addFlowElement: start; addFlowElement: eventSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	self assert: (execution activityExecutions noneSatisfy: [ :each | each definition == eventSubProcess ]).
+	self assert: execution eventSubProcessMessageSubscriptions size = 1.
+	subscription := execution eventSubProcessMessageSubscriptions first.
+	self assert: subscription isWaiting.
+	self assert: subscription eventSubProcess == eventSubProcess.
+	self assert: subscription startEvent == messageStart.
+	self assert: subscription message == message.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> nonInterruptingMessageEventSubProcessCanBeTriggeredRepeatedly [
+	<gtExample>
+	| execution process eventSubProcess message firstOccurrence secondOccurrence firstHandler secondHandler handlers |
+	execution := self messageEventSubProcessIsArmedWithoutCreatingHandlerExecution.
+	process := execution definition.
+	eventSubProcess := process flowElements detect: [ :each | each isSubProcess and: [ each isEventSubProcess ] ].
+	message := execution eventSubProcessMessageSubscriptions first message.
+	firstOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #messageEventSubProcess1; definition: message; yourself.
+	firstHandler := execution deliverMessageOccurrence: firstOccurrence.
+	self assert: firstHandler definition == eventSubProcess.
+	self assert: firstHandler isActive.
+	self assert: execution eventSubProcessMessageSubscriptions last isWaiting.
+	secondOccurrence := CPExecutionOccurrence new occurrenceIdentifier: #messageEventSubProcess2; definition: message; yourself.
+	secondHandler := execution deliverMessageOccurrence: secondOccurrence.
+	handlers := execution activityExecutions select: [ :each | each definition == eventSubProcess ].
+	self assert: handlers size = 2.
+	self assert: firstHandler ~~ secondHandler.
+	self assert: firstHandler isActive.
+	self assert: secondHandler isActive.
+	self assert: execution eventSubProcessMessageSubscriptions last isWaiting.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> interruptingMessageEventSubProcessTerminatesOrdinaryWorkAndDoesNotRearm [
+	<gtExample>
+	| process start task flow message messageDefinition eventSubProcess messageStart execution taskExecution occurrence handler |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	task := CPTask new identifier: 'ordinaryWork'; yourself.
+	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: start; targetRef: task; yourself.
+	message := CPMessage new identifier: 'interruptMessage'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	eventSubProcess := CPNoneSubProcess new identifier: 'interruptHandler'; triggeredByEvent: true; yourself.
+	messageStart := CPMessageStartEvent new identifier: 'messageStart'; isInterrupting: true; yourself.
+	messageStart eventDefinitions add: messageDefinition.
+	eventSubProcess addFlowElement: messageStart.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow; addFlowElement: eventSubProcess.
+	execution := CPProcessExecution for: process environment: nil.
+	execution start.
+	taskExecution := execution readyActivityExecutionFor: task.
+	execution activateTaskExecution: taskExecution.
+	self assert: taskExecution isActive.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #interruptMessage1; definition: message; yourself.
+	handler := execution deliverMessageOccurrence: occurrence.
+	self assert: taskExecution state class = CPActivityTerminatedState.
+	self assert: handler definition == eventSubProcess.
+	self assert: handler isActive.
+	self assert: (execution eventSubProcessMessageSubscriptions noneSatisfy: [ :each | each isWaiting ]).
+	self assert: handler subScope eventExecutions first occurrence == occurrence.
+	^ execution
+]
