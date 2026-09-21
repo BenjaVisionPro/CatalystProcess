@@ -120,21 +120,31 @@ CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
 		self error: 'A single Event occurrence requires exactly one corresponding Data Output.' ].
 	self itemValueFor: outputs first put: anOccurrence payload.
 	definition dataOutputAssociations do: [ :association |
-		| value |
-		association assignments ifNotEmpty: [ self error: 'Event Data Association assignments are not yet executable.' ].
-		association transformation ifNil: [
+		| value transformation |
+		association assignments do: [ :assignment |
+			assignment fromExpression ifNil: [ self error: 'An Event Data Association Assignment requires a from Expression.' ].
+			assignment toExpression ifNil: [ self error: 'An Event Data Association Assignment requires a to Expression.' ] ].
+		(association transformation isNil and: [ association assignments isEmpty ]) ifTrue: [
 			association sourceRefs size = 1 ifFalse: [ self error: 'An Event Data Association without transformation or assignments requires exactly one source.' ] ].
 		association targetRef ifNil: [ self error: 'An Event Data Association requires a target.' ].
 		association sourceRefs do: [ :each |
 			(self ownsItemValueFor: each) ifFalse: [ self error: 'The Event Data Association source does not belong to this Event execution.' ] ].
-		value := association transformation
-			ifNil: [ self itemValueFor: association sourceRefs first ]
-			ifNotNil: [ :transformation |
-				self scope environment
+		transformation := association transformation.
+		transformation ifNotNil: [ :transformation |
+				value := self scope environment
 					evaluateExpression: transformation
 					in: self scope
-					forEventExecution: self ].
-		self scope accessibleItemValueFor: association targetRef put: value ].
+					forEventExecution: self.
+				self scope accessibleItemValueFor: association targetRef put: value ].
+		transformation ifNil: [
+				association assignments ifEmpty: [
+					value := self itemValueFor: association sourceRefs first.
+					self scope accessibleItemValueFor: association targetRef put: value ] ].
+		association assignments do: [ :assignment |
+			self scope environment
+				executeAssignment: assignment
+				in: self scope
+				forEventExecution: self ] ].
 	^ self
 ]
 
@@ -142,22 +152,32 @@ CPEventExecution >> populateCatchEventDataFrom: anOccurrence [
 CPEventExecution >> prepareThrowData [
 	definition isThrowEvent ifFalse: [ self error: 'Only a Throw Event can prepare throw data.' ].
 	definition dataInputAssociations do: [ :association |
-		| value |
-		association assignments ifNotEmpty: [ self error: 'Event Data Association assignments are not yet executable.' ].
-		association transformation ifNil: [
+		| value transformation |
+		association assignments do: [ :assignment |
+			assignment fromExpression ifNil: [ self error: 'An Event Data Association Assignment requires a from Expression.' ].
+			assignment toExpression ifNil: [ self error: 'An Event Data Association Assignment requires a to Expression.' ] ].
+		(association transformation isNil and: [ association assignments isEmpty ]) ifTrue: [
 			association sourceRefs size = 1 ifFalse: [ self error: 'An Event Data Association without transformation or assignments requires exactly one source.' ] ].
 		association targetRef ifNil: [ self error: 'An Event Data Association requires a target.' ].
 		(self ownsItemValueFor: association targetRef) ifFalse: [ self error: 'A Throw Event Data Association target must belong to this Event execution.' ].
 		(association sourceRefs allSatisfy: [ :each | self scope accessibleItemValueAvailableFor: each ]) ifFalse: [
 			self error: 'A Throw Event Data Association source is unavailable.' ].
-		value := association transformation
-			ifNil: [ self scope accessibleItemValueFor: association sourceRefs first ]
-			ifNotNil: [ :transformation |
-				self scope environment
+		transformation := association transformation.
+		transformation ifNotNil: [ :transformation |
+				value := self scope environment
 					evaluateExpression: transformation
 					in: self scope
-					forEventExecution: self ].
-		self itemValueFor: association targetRef put: value ].
+					forEventExecution: self.
+				self itemValueFor: association targetRef put: value ].
+		transformation ifNil: [
+				association assignments ifEmpty: [
+					value := self scope accessibleItemValueFor: association sourceRefs first.
+					self itemValueFor: association targetRef put: value ] ].
+		association assignments do: [ :assignment |
+			self scope environment
+				executeAssignment: assignment
+				in: self scope
+				forEventExecution: self ] ].
 	^ self
 ]
 

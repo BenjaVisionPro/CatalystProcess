@@ -10807,3 +10807,134 @@ CPExecutionKernelExamples >> activityDataOutputTransformationWithMultipleSources
 	self assert: taskExecution selectedOutputSet == outputSet.
 	^ taskExecution
 ]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityDataAssociationExecutesAssignmentsAfterTransformation [
+	<gtExample>
+	| process source task specification input inputSet transformation fromExpression toExpression assignment association environment execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPDataObject new identifier: 'source'; yourself.
+	process addFlowElement: source.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'input'; yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification dataInputs: { input }; inputSets: { inputSet }.
+	task ioSpecification: specification.
+	transformation := CPFormalExpression new body: 'transform source'; yourself.
+	fromExpression := CPFormalExpression new body: 'assignment source'; yourself.
+	toExpression := CPFormalExpression new body: 'assignment target'; yourself.
+	assignment := CPAssignment new fromExpression: fromExpression; toExpression: toExpression; yourself.
+	association := CPDataInputAssociation new
+		sourceRefs: { source };
+		targetRef: input;
+		transformation: transformation;
+		assignments: { assignment };
+		yourself.
+	task dataInputAssociations: { association }.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: transformation evaluatesTo: 'transformed';
+		expression: fromExpression evaluatesTo: 'assigned';
+		expression: toExpression evaluatesTo: input;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution itemValueFor: source put: 'source value'.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareInputs.
+	self assert: (taskExecution itemValueFor: input) equals: 'assigned'.
+	self assert: environment lastActivityExecutionUsedForExpressionEvaluation == taskExecution.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> activityDataAssociationAssignmentsStillWaitForDeclaredSources [
+	<gtExample>
+	| process source task specification input inputSet fromExpression toExpression assignment association environment execution taskExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	source := CPDataObject new identifier: 'source'; yourself.
+	process addFlowElement: source.
+	task := CPTask new identifier: 'task'; yourself.
+	specification := CPInputOutputSpecification new.
+	input := CPDataInput new identifier: 'input'; yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	specification dataInputs: { input }; inputSets: { inputSet }.
+	task ioSpecification: specification.
+	fromExpression := CPFormalExpression new body: 'assignment source'; yourself.
+	toExpression := CPFormalExpression new body: 'assignment target'; yourself.
+	assignment := CPAssignment new fromExpression: fromExpression; toExpression: toExpression; yourself.
+	association := CPDataInputAssociation new sourceRefs: { source }; targetRef: input; assignments: { assignment }; yourself.
+	task dataInputAssociations: { association }.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: fromExpression evaluatesTo: 'assigned';
+		expression: toExpression evaluatesTo: input;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	taskExecution := execution createActivityExecutionFor: task.
+	self assert: taskExecution prepareInputs = false.
+	execution itemValueFor: source put: 'available'.
+	self assert: taskExecution prepareInputs.
+	self assert: (taskExecution itemValueFor: input) equals: 'assigned'.
+	^ taskExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> catchEventDataAssociationExecutesAssignmentInEventContext [
+	<gtExample>
+	| process start catch message messageDefinition dataOutput dataObject fromExpression toExpression assignment association flow environment execution eventExecution occurrence |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	dataOutput := CPDataOutput new identifier: 'receivedData'; yourself.
+	dataObject := CPDataObject new identifier: 'processData'; yourself.
+	fromExpression := CPFormalExpression new body: 'extract assigned value'; yourself.
+	toExpression := CPFormalExpression new body: 'process target'; yourself.
+	assignment := CPAssignment new fromExpression: fromExpression; toExpression: toExpression; yourself.
+	association := CPDataOutputAssociation new sourceRefs: { dataOutput }; targetRef: dataObject; assignments: { assignment }; yourself.
+	catch := CPMessageCatchIntermediateEvent new identifier: 'receiveMessage'; eventDefinitions: { messageDefinition }; dataOutputs: { dataOutput }; dataOutputAssociations: { association }; yourself.
+	flow := CPSequenceFlow new identifier: 'toCatch'; sourceRef: start; targetRef: catch; yourself.
+	process addFlowElement: start; addFlowElement: catch; addFlowElement: dataObject; addFlowElement: flow.
+	environment := CPExampleExecutionEnvironment new
+		expression: fromExpression evaluatesTo: 84;
+		expression: toExpression evaluatesTo: dataObject;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution start.
+	eventExecution := execution beginMessageIntermediateCatchEvent: catch consuming: (execution availableFlowActivationsOn: flow) first.
+	occurrence := CPExecutionOccurrence new occurrenceIdentifier: 'message-assignment'; definition: message; payload: 42; yourself.
+	execution triggerMessageIntermediateCatchEventExecution: eventExecution with: occurrence.
+	self assert: (execution accessibleItemValueFor: dataObject) equals: 84.
+	^ eventExecution
+]
+
+{ #category : 'examples - data execution' }
+CPExecutionKernelExamples >> throwEventDataAssociationExecutesAssignmentBeforeOccurrenceIsProduced [
+	<gtExample>
+	| process start throw message messageDefinition source dataInput fromExpression toExpression assignment association incoming environment execution eventExecution |
+	process := CPProcess new identifier: 'process'; yourself.
+	start := CPNoneStartEvent new identifier: 'start'; yourself.
+	message := CPMessage new identifier: 'message'; yourself.
+	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
+	source := CPDataObject new identifier: 'source'; yourself.
+	dataInput := CPDataInput new identifier: 'messageData'; yourself.
+	fromExpression := CPFormalExpression new body: 'message assignment source'; yourself.
+	toExpression := CPFormalExpression new body: 'message assignment target'; yourself.
+	assignment := CPAssignment new fromExpression: fromExpression; toExpression: toExpression; yourself.
+	association := CPDataInputAssociation new sourceRefs: { source }; targetRef: dataInput; assignments: { assignment }; yourself.
+	throw := CPMessageThrowIntermediateEvent new identifier: 'sendMessage'; eventDefinitions: { messageDefinition }; dataInputs: { dataInput }; dataInputAssociations: { association }; yourself.
+	incoming := CPSequenceFlow new identifier: 'toThrow'; sourceRef: start; targetRef: throw; yourself.
+	process addFlowElement: start; addFlowElement: throw; addFlowElement: source; addFlowElement: incoming.
+	environment := CPExampleExecutionEnvironment new
+		expression: fromExpression evaluatesTo: 'assigned message';
+		expression: toExpression evaluatesTo: dataInput;
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution accessibleItemValueFor: source put: 'available'.
+	execution start.
+	eventExecution := execution beginIntermediateThrowEvent: throw consuming: (execution availableFlowActivationsOn: incoming) first.
+	self assert: (eventExecution itemValueFor: dataInput) equals: 'assigned message'.
+	self assert: eventExecution thrownOccurrences first payload equals: 'assigned message'.
+	^ eventExecution
+]

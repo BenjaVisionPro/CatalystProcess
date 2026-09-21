@@ -187,3 +187,23 @@ CPExampleExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: a
 		at: aTimerEventDefinition
 		ifAbsent: [ self error: 'No example Timer due time has been configured.' ]
 ]
+
+{ #category : 'evaluation' }
+CPExampleExecutionEnvironment >> executeAssignment: anAssignment in: anExecutionScope forActivityExecution: anActivityExecution [
+	| sourceValue target |
+	sourceValue := self evaluateExpression: anAssignment fromExpression in: anExecutionScope forActivityExecution: anActivityExecution.
+	target := self evaluateExpression: anAssignment toExpression in: anExecutionScope forActivityExecution: anActivityExecution.
+	anActivityExecution accessibleItemValueFor: target put: sourceValue.
+	^ sourceValue
+]
+
+{ #category : 'evaluation' }
+CPExampleExecutionEnvironment >> executeAssignment: anAssignment in: anExecutionScope forEventExecution: anEventExecution [
+	| sourceValue target |
+	sourceValue := self evaluateExpression: anAssignment fromExpression in: anExecutionScope forEventExecution: anEventExecution.
+	target := self evaluateExpression: anAssignment toExpression in: anExecutionScope forEventExecution: anEventExecution.
+	(anEventExecution ownsItemValueFor: target)
+		ifTrue: [ anEventExecution itemValueFor: target put: sourceValue ]
+		ifFalse: [ anExecutionScope accessibleItemValueFor: target put: sourceValue ].
+	^ sourceValue
+]

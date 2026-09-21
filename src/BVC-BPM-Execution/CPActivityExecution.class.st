@@ -99,9 +99,10 @@ CPActivityExecution >> canExecuteDataAssociation: aDataAssociation [
 	((definition dataInputAssociations identityIncludes: aDataAssociation)
 		or: [ definition dataOutputAssociations identityIncludes: aDataAssociation ]) ifFalse: [
 		self error: 'The Data Association does not belong to this Activity.' ].
-	aDataAssociation assignments ifNotEmpty: [
-		self error: 'Data Association assignments are not yet executable.' ].
-	aDataAssociation transformation ifNil: [
+	aDataAssociation assignments do: [ :assignment |
+		assignment fromExpression ifNil: [ self error: 'A Data Association Assignment requires a from Expression.' ].
+		assignment toExpression ifNil: [ self error: 'A Data Association Assignment requires a to Expression.' ] ].
+	(aDataAssociation transformation isNil and: [ aDataAssociation assignments isEmpty ]) ifTrue: [
 		aDataAssociation sourceRefs size = 1 ifFalse: [
 			self error: 'A Data Association without transformation or assignments requires exactly one source.' ] ].
 	aDataAssociation targetRef ifNil: [
@@ -241,22 +242,32 @@ CPActivityExecution >> prepareOutputs [
 
 { #category : 'data associations' }
 CPActivityExecution >> executeDataAssociation: aDataAssociation [
-	| value |
+	| value transformation |
 	(self canExecuteDataAssociation: aDataAssociation) ifFalse: [ ^ false ].
 	aDataAssociation sourceRefs do: [ :each |
 		| producer |
 		producer := self accessibleItemValueProducerFor: each.
 		producer ifNotNil: [ self recordDataDependencyOn: producer ] ].
-	value := aDataAssociation transformation
-		ifNil: [ self accessibleItemValueFor: aDataAssociation sourceRefs first ]
-		ifNotNil: [ :transformation |
-			scope environment
+	transformation := aDataAssociation transformation.
+	transformation ifNotNil: [ :transformation |
+			value := scope environment
 				evaluateExpression: transformation
 				in: scope
-				forActivityExecution: self ].
-	(definition dataOutputAssociations identityIncludes: aDataAssociation)
-		ifTrue: [ self accessibleItemValueFor: aDataAssociation targetRef put: value producedBy: self ]
-		ifFalse: [ self accessibleItemValueFor: aDataAssociation targetRef put: value ].
+				forActivityExecution: self.
+			(definition dataOutputAssociations identityIncludes: aDataAssociation)
+				ifTrue: [ self accessibleItemValueFor: aDataAssociation targetRef put: value producedBy: self ]
+				ifFalse: [ self accessibleItemValueFor: aDataAssociation targetRef put: value ] ].
+	transformation ifNil: [
+			aDataAssociation assignments ifEmpty: [
+				value := self accessibleItemValueFor: aDataAssociation sourceRefs first.
+				(definition dataOutputAssociations identityIncludes: aDataAssociation)
+					ifTrue: [ self accessibleItemValueFor: aDataAssociation targetRef put: value producedBy: self ]
+					ifFalse: [ self accessibleItemValueFor: aDataAssociation targetRef put: value ] ] ].
+	aDataAssociation assignments do: [ :assignment |
+		scope environment
+			executeAssignment: assignment
+			in: scope
+			forActivityExecution: self ].
 	^ true
 ]
 

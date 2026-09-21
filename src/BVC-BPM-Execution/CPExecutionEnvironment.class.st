@@ -73,3 +73,18 @@ CPExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: anArming
 	initiation deliberately has no fake execution scope."
 	self subclassResponsibility
 ]
+
+{ #category : 'evaluation' }
+CPExecutionEnvironment >> executeAssignment: anAssignment in: anExecutionScope forActivityExecution: anActivityExecution [
+	"Assignment l-value semantics belong to the expression environment. The BPMN kernel
+	orders assignments and supplies the Activity execution context; the environment
+	interprets the from/to expression languages and performs the copy."
+	self subclassResponsibility
+]
+
+{ #category : 'evaluation' }
+CPExecutionEnvironment >> executeAssignment: anAssignment in: anExecutionScope forEventExecution: anEventExecution [
+	"Event assignments use the same expression-language boundary, with the Event
+	execution supplied so Event-owned inputs/outputs are part of the evaluation context."
+	self subclassResponsibility
+]
