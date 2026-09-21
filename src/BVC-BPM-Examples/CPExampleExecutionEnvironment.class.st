@@ -12,7 +12,9 @@ Class {
 		'userTaskWorkItems',
 		'resourceResolutions',
 		'lastResolvedResource',
-		'lastResourceParameterValues'
+		'lastResourceParameterValues',
+		'currentTimerTime',
+		'timerDueTimes'
 	],
 	#category : 'BVC-BPM-Examples',
 	#package : 'BVC-BPM-Examples'
@@ -28,7 +30,9 @@ CPExampleExecutionEnvironment >> initialize [
 	businessRuleTaskExecutions := OrderedCollection new.
 	userTaskWorkItems := OrderedCollection new.
 	resourceResolutions := IdentityDictionary new.
-	lastResourceParameterValues := OrderedCollection new
+	lastResourceParameterValues := OrderedCollection new.
+	currentTimerTime := DateAndTime now.
+	timerDueTimes := IdentityDictionary new
 ]
 
 { #category : 'configuration' }
@@ -149,4 +153,29 @@ CPExampleExecutionEnvironment >> lastResolvedResource [
 { #category : 'accessing' }
 CPExampleExecutionEnvironment >> lastResourceParameterValues [
 	^ lastResourceParameterValues
+]
+
+
+{ #category : 'configuration' }
+CPExampleExecutionEnvironment >> currentTimerTime: aTime [
+	currentTimerTime := aTime.
+	^ self
+]
+
+{ #category : 'timing' }
+CPExampleExecutionEnvironment >> currentTimerTime [
+	^ currentTimerTime
+]
+
+{ #category : 'configuration' }
+CPExampleExecutionEnvironment >> timerDefinition: aTimerDefinition dueAt: aTime [
+	timerDueTimes at: aTimerDefinition put: aTime.
+	^ self
+]
+
+{ #category : 'timing' }
+CPExampleExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: anArmingTime in: anExecutionScope [
+	^ timerDueTimes
+		at: aTimerEventDefinition
+		ifAbsent: [ self error: 'No example Timer due time has been configured.' ]
 ]

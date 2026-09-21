@@ -35,3 +35,7 @@ CPTimerEventSubProcessSubscription >> deliverOccurrence: anOccurrence [
 		self error: 'The occurrence does not match this Timer Event SubProcess subscription.' ].
 	^ scope acceptTimerEventSubProcessSubscription: self occurrence: anOccurrence
 ]
+
+
+{ #category : 'accessing' }
+CPTimerEventSubProcessSubscription >> executionScope [ ^ scope ]

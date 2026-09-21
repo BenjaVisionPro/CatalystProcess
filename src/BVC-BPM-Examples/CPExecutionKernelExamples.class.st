@@ -9603,3 +9603,39 @@ CPExecutionKernelExamples >> bpmBackgroundWorkUnitUsesBpmService [
 	self assert: workUnit class requiredCapabilities isEmpty.
 	^ workUnit
 ]
+
+{ #category : 'examples - timer semantics' }
+CPExecutionKernelExamples >> timerSubscriptionDueTimeIsResolvedByExecutionEnvironment [
+	<gtExample>
+	| execution subscription environment |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	environment := execution environment.
+	subscription armedAt: 100.
+	environment timerDefinition: subscription timerDefinition dueAt: 200.
+	self assert: subscription armedAt equals: 100.
+	self assert: subscription dueAt equals: 200.
+	self assert: (subscription isDueAt: 199) not.
+	self assert: (subscription isDueAt: 200).
+	self assert: (subscription isDueAt: 201).
+	^ subscription
+]
+
+{ #category : 'examples - timer semantics' }
+CPExecutionKernelExamples >> triggeredTimerSubscriptionIsNeverDueAgain [
+	<gtExample>
+	| execution subscription environment occurrence |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	environment := execution environment.
+	subscription armedAt: 100.
+	environment timerDefinition: subscription timerDefinition dueAt: 200.
+	occurrence := CPExecutionOccurrence new definition: subscription timerDefinition; yourself.
+	execution
+		deliverTimerOccurrence: occurrence
+		toSubscriptionIdentifiedBy: subscription identifier.
+	self assert: subscription isTriggered.
+	self assert: (subscription isDueAt: 200) not.
+	self assert: (subscription isDueAt: 1000) not.
+	^ subscription
+]

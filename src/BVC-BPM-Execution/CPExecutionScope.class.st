@@ -219,6 +219,7 @@ CPExecutionScope >> armTimerEventSubProcess: anEventSubProcess [
 		eventSubProcess: anEventSubProcess;
 		startEvent: startEvent;
 		timerDefinition: startEvent eventDefinitions first;
+		armedAt: self environment currentTimerTime;
 		yourself.
 	eventSubProcessTimerSubscriptions add: subscription.
 	^ subscription
@@ -1860,6 +1861,7 @@ CPExecutionScope >> beginTimerIntermediateCatchEvent: anEvent consuming: anActiv
 	subscription := CPTimerSubscription new
 		eventExecution: execution;
 		timerDefinition: timerDefinition;
+		armedAt: self environment currentTimerTime;
 		yourself.
 	execution subscription: subscription.
 	timerSubscriptions add: subscription.

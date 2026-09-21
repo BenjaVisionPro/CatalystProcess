@@ -46,3 +46,17 @@ CPExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionS
 CPExecutionEnvironment >> resolveResource: aResource parameterValues: parameterValues in: anExecutionScope forActivityExecution: anActivityExecution [
 	self subclassResponsibility
 ]
+
+
+{ #category : 'timing' }
+CPExecutionEnvironment >> currentTimerTime [
+	^ DateAndTime now
+]
+
+{ #category : 'timing' }
+CPExecutionEnvironment >> timerDueAtFor: aTimerEventDefinition armedAt: anArmingTime in: anExecutionScope [
+	"BPMN Timer expressions are expressions. Their language and value interpretation
+	belong to the execution environment, just as other executable BPMN expressions do.
+	The semantic kernel consumes only the resulting comparable due time."
+	self subclassResponsibility
+]

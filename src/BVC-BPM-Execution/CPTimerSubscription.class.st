@@ -1,7 +1,7 @@
 Class {
 	#name : 'CPTimerSubscription',
 	#superclass : 'CFIdentifiableObject',
-	#instVars : [ 'eventExecution', 'timerDefinition', 'occurrence', 'cancelled' ],
+	#instVars : [ 'eventExecution', 'timerDefinition', 'occurrence', 'cancelled', 'armedAt', 'dueTime' ],
 	#category : 'BVC-BPM-Execution',
 	#package : 'BVC-BPM-Execution'
 }
@@ -19,7 +19,13 @@ CPTimerSubscription >> eventExecution: anEventExecution [ eventExecution := anEv
 { #category : 'accessing' }
 CPTimerSubscription >> timerDefinition [ ^ timerDefinition ]
 { #category : 'accessing' }
-CPTimerSubscription >> timerDefinition: aTimerDefinition [ timerDefinition := aTimerDefinition ]
+CPTimerSubscription >> timerDefinition: aTimerDefinition [ timerDefinition := aTimerDefinition. dueTime := nil ]
+{ #category : 'accessing' }
+CPTimerSubscription >> armedAt [ ^ armedAt ]
+{ #category : 'accessing' }
+CPTimerSubscription >> armedAt: aTime [ armedAt := aTime. dueTime := nil ]
+{ #category : 'accessing' }
+CPTimerSubscription >> executionScope [ ^ eventExecution scope ]
 { #category : 'accessing' }
 CPTimerSubscription >> occurrence [ ^ occurrence ]
 { #category : 'testing' }
@@ -52,4 +58,23 @@ CPTimerSubscription >> cancel [
 	self isWaiting ifFalse: [ self error: 'Only a waiting Timer subscription can be cancelled.' ].
 	cancelled := true.
 	^ self
+]
+
+
+{ #category : 'timing' }
+CPTimerSubscription >> dueAt [
+	armedAt ifNil: [ self error: 'A Timer subscription must have an arming time before its due time can be evaluated.' ].
+	dueTime ifNil: [
+		dueTime := self executionScope environment
+			timerDueAtFor: timerDefinition
+			armedAt: armedAt
+			in: self executionScope.
+		dueTime ifNil: [ self error: 'Timer due-time evaluation must produce a due time.' ] ].
+	^ dueTime
+]
+
+{ #category : 'testing' }
+CPTimerSubscription >> isDueAt: aTime [
+	self isWaiting ifFalse: [ ^ false ].
+	^ self dueAt <= aTime
 ]
