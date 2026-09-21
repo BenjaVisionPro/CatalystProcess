@@ -9331,8 +9331,8 @@ CPExecutionKernelExamples >> bpmMessageWorkUnitDeliversThroughRuntimeService [
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPDeliverMessageWorkUnit
-		processExecutionIdentifier: execution executionIdentifier
-		messageIdentifier: message identifier
+		processExecution: execution
+		message: message
 		occurrenceIdentifier: 'runtime-message-1'
 		payload: (Dictionary new at: 'value' put: 42; yourself).
 	self assert: workUnit class serviceClass == CPBpmService.
@@ -9376,8 +9376,8 @@ CPExecutionKernelExamples >> bpmSignalWorkUnitBroadcastsThroughRuntimeService [
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPDeliverSignalWorkUnit
-		processExecutionIdentifier: execution executionIdentifier
-		signalIdentifier: signal identifier
+		processExecution: execution
+		signal: signal
 		occurrenceIdentifier: 'runtime-signal-1'
 		payload: (Dictionary new at: 'value' put: 84; yourself).
 	self assert: workUnit class serviceClass == CPBpmService.
@@ -10083,90 +10083,47 @@ CPExecutionKernelExamples >> bpmTerminateProcessWorkUnitRejectsCompletedExecutio
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitReturnsUserTaskSnapshot [
+CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitReturnsGemStoneExecutionObject [
 	<gtExample>
-	| process task environment execution taskExecution workItem root configuration service workUnit context snapshot itemSnapshots itemSnapshot returnedItems |
-	process := CPProcess new identifier: 'runtime-query-user-task-process'; yourself.
-	task := CPUserTask new identifier: 'review'; yourself.
-	process addFlowElement: task.
+	| process environment execution root configuration service workUnit context returnedExecution |
+	process := CPProcess new identifier: 'runtime-query-process'; yourself.
 	environment := CPExampleExecutionEnvironment new.
 	execution := CPProcessExecution for: process environment: environment.
-	taskExecution := execution createUserTaskExecutionFor: task.
-	execution activateUserTaskExecution: taskExecution.
-	workItem := taskExecution workItem.
 	root := CPSystemRoot new.
 	root addProcessExecution: execution.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessExecutionWorkUnit processExecutionIdentifier: execution executionIdentifier.
-	self assert: workUnit class serviceClass == CPBpmService.
-	self assert: workUnit class requiredCapabilities isEmpty.
+	workUnit := CPQueryProcessExecutionWorkUnit processExecution: execution.
+	self assert: workUnit processExecution == execution.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
-	snapshot := workUnit executeInContext: context.
-	self assert: snapshot class == CPProcessExecutionSnapshot.
+	returnedExecution := workUnit executeInContext: context.
+	self assert: returnedExecution == execution.
+	^ returnedExecution
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmExecutionSnapshotRemainsAnExternalBoundaryRepresentation [
+	<gtExample>
+	| process environment execution snapshot |
+	process := CPProcess new identifier: 'snapshot-boundary-process'; yourself.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	snapshot := CPProcessExecutionSnapshot from: execution.
 	self assert: snapshot executionIdentifier equals: execution executionIdentifier.
 	self assert: snapshot processIdentifier equals: process identifier.
-	self assert: snapshot isStarted not.
-	self assert: snapshot isCompleted not.
-	itemSnapshots := snapshot pendingUserTaskWorkItems.
-	self assert: itemSnapshots size equals: 1.
-	itemSnapshot := itemSnapshots first.
-	self assert: itemSnapshot class == CPUserTaskWorkItemSnapshot.
-	self assert: itemSnapshot workItemIdentifier equals: workItem identifier.
-	self assert: itemSnapshot userTaskIdentifier equals: task identifier.
-	self assert: snapshot pendingExternalInvocations isEmpty.
-	returnedItems := snapshot pendingUserTaskWorkItems.
-	returnedItems at: 1 put: nil.
-	self assert: snapshot pendingUserTaskWorkItems first == itemSnapshot.
 	^ snapshot
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitReturnsServiceInvocationSnapshot [
-	<gtExample>
-	| process task operation implementation environment execution taskExecution invocation root configuration service workUnit context snapshot invocationSnapshots invocationSnapshot |
-	process := CPProcess new identifier: 'runtime-query-service-process'; yourself.
-	operation := CPOperation new identifier: 'performWork'; yourself.
-	task := CPServiceTask new identifier: 'service'; operationRef: operation; yourself.
-	process addFlowElement: task.
-	implementation := Object new.
-	environment := CPExampleExecutionEnvironment new operation: operation resolvesTo: implementation; yourself.
-	execution := CPProcessExecution for: process environment: environment.
-	taskExecution := execution createServiceTaskExecutionFor: task.
-	execution activateServiceTaskExecution: taskExecution.
-	invocation := taskExecution prepareExternalInvocationIdentifiedBy: #runtimeQueryInvocation.
-	root := CPSystemRoot new.
-	root addProcessExecution: execution.
-	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
-	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessExecutionWorkUnit processExecutionIdentifier: execution executionIdentifier.
-	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
-	context service: service.
-	context bindCapabilities: Dictionary new.
-	snapshot := workUnit executeInContext: context.
-	invocationSnapshots := snapshot pendingExternalInvocations.
-	self assert: invocationSnapshots size equals: 1.
-	invocationSnapshot := invocationSnapshots first.
-	self assert: invocationSnapshot class == CPExternalInvocationSnapshot.
-	self assert: invocationSnapshot invocationIdentifier equals: invocation invocationIdentifier.
-	self assert: invocationSnapshot serviceTaskIdentifier equals: task identifier.
-	self assert: invocationSnapshot operationIdentifier equals: operation identifier.
-	self assert: invocationSnapshot implementation == implementation.
-	self assert: invocationSnapshot hasInputValue not.
-	self assert: snapshot pendingUserTaskWorkItems isEmpty.
-	^ snapshot
-]
-
-{ #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitRejectsUnknownExecution [
+CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitRejectsMissingExecution [
 	<gtExample>
 	| root configuration service workUnit context rejected |
 	root := CPSystemRoot new.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessExecutionWorkUnit processExecutionIdentifier: #missingExecution.
+	workUnit := CPQueryProcessExecutionWorkUnit processExecution: nil.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
@@ -10177,16 +10134,13 @@ CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitRejectsUnknownExecu
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionsWorkUnitDiscoversRegisteredExecutions [
+CPExecutionKernelExamples >> bpmQueryProcessExecutionsWorkUnitReturnsGemStoneExecutionObjects [
 	<gtExample>
-	| tenant deployment processOne processTwo environment executionOne executionTwo root configuration service workUnit context snapshots firstSnapshot secondSnapshot returnedSnapshots |
-	tenant := CPTenant new identifier: 'tenant-one'; yourself.
-	deployment := CPProcessDeployment new identifier: 'deployment-one'; tenant: tenant; yourself.
+	| processOne processTwo environment executionOne executionTwo root configuration service workUnit context executions returnedExecutions |
 	processOne := CPProcess new identifier: 'process-one'; yourself.
 	processTwo := CPProcess new identifier: 'process-two'; yourself.
 	environment := CPExampleExecutionEnvironment new.
 	executionOne := CPProcessExecution for: processOne environment: environment.
-	executionOne deployment: deployment; tenant: tenant.
 	executionTwo := CPProcessExecution for: processTwo environment: environment.
 	root := CPSystemRoot new.
 	root addProcessExecution: executionOne.
@@ -10194,27 +10148,17 @@ CPExecutionKernelExamples >> bpmQueryProcessExecutionsWorkUnitDiscoversRegistere
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPQueryProcessExecutionsWorkUnit new.
-	self assert: workUnit class serviceClass == CPBpmService.
-	self assert: workUnit class requiredCapabilities isEmpty.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
-	snapshots := workUnit executeInContext: context.
-	self assert: snapshots size equals: 2.
-	firstSnapshot := snapshots first.
-	secondSnapshot := snapshots second.
-	self assert: firstSnapshot class == CPProcessExecutionSnapshot.
-	self assert: firstSnapshot executionIdentifier equals: executionOne executionIdentifier.
-	self assert: firstSnapshot processIdentifier equals: processOne identifier.
-	self assert: firstSnapshot deploymentIdentifier equals: deployment identifier.
-	self assert: firstSnapshot tenantIdentifier equals: tenant identifier.
-	self assert: secondSnapshot executionIdentifier equals: executionTwo executionIdentifier.
-	self assert: secondSnapshot deploymentIdentifier isNil.
-	self assert: secondSnapshot tenantIdentifier isNil.
-	returnedSnapshots := snapshots copy.
-	returnedSnapshots at: 1 put: nil.
-	self assert: (service processExecutionSnapshots first executionIdentifier) equals: executionOne executionIdentifier.
-	^ snapshots
+	executions := workUnit executeInContext: context.
+	self assert: executions size equals: 2.
+	self assert: executions first == executionOne.
+	self assert: executions second == executionTwo.
+	returnedExecutions := executions copy.
+	returnedExecutions at: 1 put: nil.
+	self assert: service processExecutions first == executionOne.
+	^ executions
 ]
 
 { #category : 'examples - runtime service' }
@@ -10233,61 +10177,30 @@ CPExecutionKernelExamples >> bpmProcessExecutionSnapshotIncludesTenantIdentity [
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessDeploymentsWorkUnitDiscoversRegisteredDeployments [
+CPExecutionKernelExamples >> bpmQueryProcessDeploymentsWorkUnitReturnsGemStoneDeploymentObjects [
 	<gtExample>
-	| tenant process activeDeployment draftDeployment root configuration service workUnit context snapshots activeSnapshot draftSnapshot returnedSnapshots |
-	tenant := CPTenant new identifier: 'deployment-query-tenant'; yourself.
-	process := CPProcess new identifier: 'deployment-query-process'; yourself.
-	activeDeployment := CPProcessDeployment new
-		identifier: 'active-deployment';
-		label: 'Active deployment';
-		tenant: tenant;
-		processDefinition: process;
-		processKey: 'orders';
-		version: 3;
-		deployedAt: (DateAndTime year: 2026 month: 9 day: 21 hour: 12 minute: 0 second: 0 offset: 0 hours);
-		yourself.
+	| activeDeployment draftDeployment root configuration service workUnit context deployments returnedDeployments |
+	activeDeployment := CPProcessDeployment new identifier: 'active-deployment'; yourself.
 	activeDeployment activate.
-	draftDeployment := CPProcessDeployment new
-		identifier: 'draft-deployment';
-		label: 'Draft deployment';
-		processKey: 'draft-orders';
-		version: 4;
-		yourself.
+	draftDeployment := CPProcessDeployment new identifier: 'draft-deployment'; yourself.
 	root := CPSystemRoot new.
 	root addProcessDeployment: activeDeployment.
 	root addProcessDeployment: draftDeployment.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
 	workUnit := CPQueryProcessDeploymentsWorkUnit new.
-	self assert: workUnit class serviceClass == CPBpmService.
-	self assert: workUnit class requiredCapabilities isEmpty.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
-	snapshots := workUnit executeInContext: context.
-	self assert: snapshots size equals: 2.
-	activeSnapshot := snapshots first.
-	draftSnapshot := snapshots second.
-	self assert: activeSnapshot class == CPProcessDeploymentSnapshot.
-	self assert: activeSnapshot deploymentIdentifier equals: activeDeployment identifier.
-	self assert: activeSnapshot label equals: activeDeployment label.
-	self assert: activeSnapshot tenantIdentifier equals: tenant identifier.
-	self assert: activeSnapshot processIdentifier equals: process identifier.
-	self assert: activeSnapshot processKey equals: 'orders'.
-	self assert: activeSnapshot version equals: 3.
-	self assert: activeSnapshot deployedAt equals: activeDeployment deployedAt.
-	self assert: activeSnapshot isActive.
-	self assert: draftSnapshot deploymentIdentifier equals: draftDeployment identifier.
-	self assert: draftSnapshot tenantIdentifier isNil.
-	self assert: draftSnapshot processIdentifier isNil.
-	self assert: draftSnapshot isActive not.
-	returnedSnapshots := snapshots copy.
-	returnedSnapshots at: 1 put: nil.
-	self assert: service processDeploymentSnapshots first deploymentIdentifier equals: activeDeployment identifier.
-	^ snapshots
+	deployments := workUnit executeInContext: context.
+	self assert: deployments size equals: 2.
+	self assert: deployments first == activeDeployment.
+	self assert: deployments second == draftDeployment.
+	returnedDeployments := deployments copy.
+	returnedDeployments at: 1 put: nil.
+	self assert: service processDeployments first == activeDeployment.
+	^ deployments
 ]
-
 
 { #category : 'examples - runtime service' }
 CPExecutionKernelExamples >> processDeploymentLifecycleIsExplicitAndIrreversible [

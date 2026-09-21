@@ -59,11 +59,10 @@ CPBpmService >> processExecutionForIdentifier: anExecutionIdentifier [
 { #category : 'message delivery' }
 CPBpmService >> deliverMessageWorkUnit: aCPDeliverMessageWorkUnit [
 	| execution message occurrence |
-	execution := self processExecutionForIdentifier: aCPDeliverMessageWorkUnit processExecutionIdentifier.
-	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	message := self
-		waitingMessageIn: execution
-		identifiedBy: aCPDeliverMessageWorkUnit messageIdentifier.
+	execution := aCPDeliverMessageWorkUnit processExecution.
+	execution ifNil: [ self error: 'A Process execution is required.' ].
+	message := aCPDeliverMessageWorkUnit message.
+	message ifNil: [ self error: 'A Message is required.' ].
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: aCPDeliverMessageWorkUnit occurrenceIdentifier;
 		definition: message;
@@ -72,44 +71,19 @@ CPBpmService >> deliverMessageWorkUnit: aCPDeliverMessageWorkUnit [
 	^ execution deliverMessageOccurrence: occurrence
 ]
 
-{ #category : 'message delivery' }
-CPBpmService >> waitingMessageIn: aProcessExecution identifiedBy: aMessageIdentifier [
-	| messages |
-	aMessageIdentifier ifNil: [ self error: 'A Message identifier is required.' ].
-	messages := (aProcessExecution allWaitingMessageSubscriptions collect: #message)
-		select: [ :each | each identifier = aMessageIdentifier ].
-	messages := messages asSet asOrderedCollection.
-	messages isEmpty ifTrue: [ self error: 'No waiting Message has the requested identifier.' ].
-	messages size = 1 ifFalse: [ self error: 'More than one waiting Message has the requested identifier.' ].
-	^ messages first
-]
-
 { #category : 'signal delivery' }
 CPBpmService >> deliverSignalWorkUnit: aCPDeliverSignalWorkUnit [
 	| execution signal occurrence |
-	execution := self processExecutionForIdentifier: aCPDeliverSignalWorkUnit processExecutionIdentifier.
-	execution ifNil: [ self error: 'No Process execution has the requested identifier.' ].
-	signal := self
-		waitingSignalIn: execution
-		identifiedBy: aCPDeliverSignalWorkUnit signalIdentifier.
+	execution := aCPDeliverSignalWorkUnit processExecution.
+	execution ifNil: [ self error: 'A Process execution is required.' ].
+	signal := aCPDeliverSignalWorkUnit signal.
+	signal ifNil: [ self error: 'A Signal is required.' ].
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: aCPDeliverSignalWorkUnit occurrenceIdentifier;
 		definition: signal;
 		payload: aCPDeliverSignalWorkUnit payload;
 		yourself.
 	^ execution deliverSignalOccurrence: occurrence
-]
-
-{ #category : 'signal delivery' }
-CPBpmService >> waitingSignalIn: aProcessExecution identifiedBy: aSignalIdentifier [
-	| signals |
-	aSignalIdentifier ifNil: [ self error: 'A Signal identifier is required.' ].
-	signals := (aProcessExecution allWaitingDeliverableSignalSubscriptions collect: #signal)
-		select: [ :each | each identifier = aSignalIdentifier ].
-	signals := signals asSet asOrderedCollection.
-	signals isEmpty ifTrue: [ self error: 'No waiting Signal has the requested identifier.' ].
-	signals size = 1 ifFalse: [ self error: 'More than one waiting Signal has the requested identifier.' ].
-	^ signals first
 ]
 
 { #category : 'timer delivery' }
@@ -252,31 +226,30 @@ CPBpmService >> processExecutionSnapshotForIdentifier: anExecutionIdentifier [
 
 { #category : 'process query' }
 CPBpmService >> queryProcessExecutionWorkUnit: aCPQueryProcessExecutionWorkUnit [
-	^ self processExecutionSnapshotForIdentifier:
-		aCPQueryProcessExecutionWorkUnit processExecutionIdentifier
+	| execution |
+	execution := aCPQueryProcessExecutionWorkUnit processExecution.
+	execution ifNil: [ self error: 'A Process execution is required.' ].
+	^ execution
 ]
 
-
 { #category : 'process query' }
-CPBpmService >> processExecutionSnapshots [
-	^ (systemRoot processExecutions collect: [ :each |
-		CPProcessExecutionSnapshot from: each ]) asArray
+CPBpmService >> processExecutions [
+	^ systemRoot processExecutions asArray
 ]
 
 { #category : 'process query' }
 CPBpmService >> queryProcessExecutionsWorkUnit: aCPQueryProcessExecutionsWorkUnit [
-	^ self processExecutionSnapshots
+	^ self processExecutions
 ]
 
 { #category : 'deployment query' }
-CPBpmService >> processDeploymentSnapshots [
-	^ (systemRoot processDeployments collect: [ :each |
-		CPProcessDeploymentSnapshot from: each ]) asArray
+CPBpmService >> processDeployments [
+	^ systemRoot processDeployments asArray
 ]
 
 { #category : 'deployment query' }
 CPBpmService >> queryProcessDeploymentsWorkUnit: aCPQueryProcessDeploymentsWorkUnit [
-	^ self processDeploymentSnapshots
+	^ self processDeployments
 ]
 
 { #category : 'deployment lifecycle' }

@@ -1,34 +1,24 @@
 Class {
 	#name : 'CPQueryProcessExecutionWorkUnit',
 	#superclass : 'CRWorkUnit',
-	#instVars : [
-		'processExecutionIdentifier'
-	],
+	#instVars : [ 'processExecution' ],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
 
 { #category : 'service context' }
-CPQueryProcessExecutionWorkUnit class >> serviceClass [
-	^ CPBpmService
-]
+CPQueryProcessExecutionWorkUnit class >> serviceClass [ ^ CPBpmService ]
 
 { #category : 'instance creation' }
-CPQueryProcessExecutionWorkUnit class >> processExecutionIdentifier: anIdentifier [
-	^ self new
-		processExecutionIdentifier: anIdentifier;
-		yourself
+CPQueryProcessExecutionWorkUnit class >> processExecution: aCPProcessExecution [
+	^ self new processExecution: aCPProcessExecution; yourself
 ]
 
 { #category : 'accessing' }
-CPQueryProcessExecutionWorkUnit >> processExecutionIdentifier [
-	^ processExecutionIdentifier
-]
+CPQueryProcessExecutionWorkUnit >> processExecution [ ^ processExecution ]
 
 { #category : 'accessing' }
-CPQueryProcessExecutionWorkUnit >> processExecutionIdentifier: anIdentifier [
-	processExecutionIdentifier := anIdentifier
-]
+CPQueryProcessExecutionWorkUnit >> processExecution: anObject [ processExecution := anObject ]
 
 { #category : 'running' }
 CPQueryProcessExecutionWorkUnit >> executeInContext: aCRWorkUnitExecutionContext [
