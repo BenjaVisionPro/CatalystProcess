@@ -9071,10 +9071,10 @@ CPExecutionKernelExamples >> nonInterruptingMessageEventSubProcessCanBeTriggered
 { #category : 'examples - event sub-process' }
 CPExecutionKernelExamples >> interruptingMessageEventSubProcessTerminatesOrdinaryWorkAndDoesNotRearm [
 	<gtExample>
-	| process start task flow message messageDefinition eventSubProcess messageStart execution taskExecution occurrence handler |
+	| process start task flow message messageDefinition eventSubProcess messageStart environment execution taskExecution occurrence handler |
 	process := CPProcess new identifier: 'process'; yourself.
 	start := CPNoneStartEvent new identifier: 'start'; yourself.
-	task := CPTask new identifier: 'ordinaryWork'; yourself.
+	task := CPUserTask new identifier: 'ordinaryWork'; yourself.
 	flow := CPSequenceFlow new identifier: 'flow'; sourceRef: start; targetRef: task; yourself.
 	message := CPMessage new identifier: 'interruptMessage'; yourself.
 	messageDefinition := CPMessageEventDefinition new messageRef: message; yourself.
@@ -9083,10 +9083,11 @@ CPExecutionKernelExamples >> interruptingMessageEventSubProcessTerminatesOrdinar
 	messageStart eventDefinitions add: messageDefinition.
 	eventSubProcess addFlowElement: messageStart.
 	process addFlowElement: start; addFlowElement: task; addFlowElement: flow; addFlowElement: eventSubProcess.
-	execution := CPProcessExecution for: process environment: nil.
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
 	execution start.
 	taskExecution := execution readyActivityExecutionFor: task.
-	execution activateTaskExecution: taskExecution.
+	execution activateUserTaskExecution: taskExecution.
 	self assert: taskExecution isActive.
 	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #interruptMessage1; definition: message; yourself.
 	handler := execution deliverMessageOccurrence: occurrence.
