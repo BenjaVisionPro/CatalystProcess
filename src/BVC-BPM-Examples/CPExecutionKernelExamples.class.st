@@ -9532,17 +9532,18 @@ CPExecutionKernelExamples >> timerDeliveryTargetsExactLiveSubscriptionIdentity [
 { #category : 'examples - event sub-process' }
 CPExecutionKernelExamples >> timerDeliveryRejectsNonWaitingSubscriptionIdentity [
 	<gtExample>
-	| execution subscription occurrence |
+	| execution subscription occurrence rejected |
 	execution := self timerDeliveryTargetsExactLiveSubscriptionIdentity.
 	subscription := execution eventSubProcessTimerSubscriptions first.
 	occurrence := CPExecutionOccurrence new
 		occurrenceIdentifier: #duplicateTargetedTimer;
 		definition: subscription timerDefinition;
 		yourself.
-	self
-		should: [ execution
-			deliverTimerOccurrence: occurrence
-			toSubscriptionIdentifiedBy: subscription identifier ]
-		raise: Error.
+	rejected := false.
+	[ execution
+		deliverTimerOccurrence: occurrence
+		toSubscriptionIdentifiedBy: subscription identifier ]
+		on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
 	^ execution
 ]
