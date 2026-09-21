@@ -9086,7 +9086,8 @@ CPExecutionKernelExamples >> interruptingMessageEventSubProcessTerminatesOrdinar
 	environment := CPExampleExecutionEnvironment new.
 	execution := CPProcessExecution for: process environment: environment.
 	execution start.
-	taskExecution := execution readyActivityExecutionFor: task.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	taskExecution consumeFlowActivation: (execution availableIncomingFlowActivationsFor: task) first.
 	execution activateUserTaskExecution: taskExecution.
 	self assert: taskExecution isActive.
 	occurrence := CPExecutionOccurrence new occurrenceIdentifier: #interruptMessage1; definition: message; yourself.
