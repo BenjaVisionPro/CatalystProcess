@@ -62,3 +62,10 @@ CPEventDefinition >> resultDefinition [
 
 { #category : 'testing' }
 CPEventDefinition >> isConditionalEventDefinition [ ^ false ]
+
+{ #category : 'testing' }
+CPEventDefinition >> isMessageEventDefinition [ ^ false ]
+{ #category : 'testing' }
+CPEventDefinition >> isSignalEventDefinition [ ^ false ]
+{ #category : 'testing' }
+CPEventDefinition >> isTimerEventDefinition [ ^ false ]

@@ -27,3 +27,6 @@ CPMessageEventDefinition >> operationRefDescription [ <magritteDescription> ^ MA
 CPMessageEventDefinition >> resultDefinition [
 	^ messageRef
 ]
+
+{ #category : 'testing' }
+CPMessageEventDefinition >> isMessageEventDefinition [ ^ true ]

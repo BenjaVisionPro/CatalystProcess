@@ -427,7 +427,7 @@ CPExecutionScope >> waitingEventBasedGatewaySubscriptions [
 	| subscriptions |
 	subscriptions := OrderedCollection new.
 	gatewayExecutions do: [ :eachExecution |
-		subscriptions addAll: (eachExecution subscriptions select: #isWaiting) ].
+		subscriptions addAll: (eachExecution subscriptions select: #canReceiveOccurrence) ].
 	^ subscriptions
 ]
 
@@ -939,10 +939,28 @@ CPExecutionScope >> beginExclusiveEventBasedGateway: aGateway consuming: anActiv
 		yourself.
 	gatewayExecutions add: execution.
 	execution consumeFlowActivation: anActivation.
-	aGateway outgoing do: [ :eachFlow | execution subscribeToOutgoingFlow: eachFlow ].
+	aGateway outgoing do: [ :eachFlow |
+		self registerEventBasedGatewaySubscription: (execution subscribeToOutgoingFlow: eachFlow) ].
+	execution subscriptions do: [ :eachSubscription |
+		(eachSubscription isConditionalSubscription and: [ eachSubscription isWaiting and: [ execution isResolved not ] ]) ifTrue: [
+			self evaluateConditionalSubscription: eachSubscription ] ].
 	^ execution
 ]
 
+
+{ #category : 'gateways - event based' }
+CPExecutionScope >> registerEventBasedGatewaySubscription: aSubscription [
+	aSubscription isMessageSubscription ifTrue: [ messageSubscriptions add: aSubscription. ^ aSubscription ].
+	aSubscription isSignalSubscription ifTrue: [ signalSubscriptions add: aSubscription. ^ aSubscription ].
+	aSubscription isTimerSubscription ifTrue: [
+		aSubscription armedAt: self environment currentTimerTime.
+		timerSubscriptions add: aSubscription.
+		^ aSubscription ].
+	aSubscription isConditionalSubscription ifTrue: [
+		conditionalSubscriptions add: aSubscription.
+		^ aSubscription ].
+	self error: 'An Event-Based Gateway supports Message, Signal, Timer, or Conditional catch alternatives.'
+]
 
 { #category : 'building' }
 CPExecutionScope >> createEventExecutionFor: anEvent [
@@ -1124,6 +1142,39 @@ CPExecutionScope >> triggerEventBasedGatewayExecution: aGatewayExecution subscri
 		yourself.
 	eventExecutions add: eventExecution.
 	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ eventExecution
+]
+
+{ #category : 'events - event based' }
+CPExecutionScope >> triggerEventBasedGatewayExecutionWithAcceptedOccurrence: aGatewayExecution subscription: aSubscription with: anOccurrence [
+	| eventExecution |
+	(gatewayExecutions identityIncludes: aGatewayExecution) ifFalse: [
+		self error: 'The Event-Based Gateway execution does not belong to this execution scope.' ].
+	(self processExecution hasAcceptedOccurrenceAnywhere: anOccurrence) ifFalse: [
+		self error: 'The occurrence must already be accepted before broadcast gateway delivery.' ].
+	aGatewayExecution triggerAcceptedOccurrence: anOccurrence for: aSubscription.
+	eventExecution := CPIntermediateCatchEventExecution new
+		definition: aSubscription target;
+		scope: self;
+		yourself.
+	eventExecutions add: eventExecution.
+	eventExecution triggerWithAcceptedOccurrence: anOccurrence.
+	^ eventExecution
+]
+
+{ #category : 'events - event based' }
+CPExecutionScope >> triggerConditionalEventBasedGatewaySubscription: aSubscription [
+	| gatewayExecution eventExecution |
+	gatewayExecution := aSubscription gatewayExecution.
+	(gatewayExecutions identityIncludes: gatewayExecution) ifFalse: [
+		self error: 'The Event-Based Gateway execution does not belong to this execution scope.' ].
+	gatewayExecution triggerConditionalSubscription: aSubscription.
+	eventExecution := CPIntermediateCatchEventExecution new
+		definition: aSubscription target;
+		scope: self;
+		yourself.
+	eventExecutions add: eventExecution.
+	eventExecution triggerWithoutOccurrence.
 	^ eventExecution
 ]
 

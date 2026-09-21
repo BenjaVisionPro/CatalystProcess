@@ -23,3 +23,6 @@ CPTimerEventDefinition >> timeDateDescription [ <magritteDescription> ^ MAToOneR
 CPTimerEventDefinition >> timeCycleDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #timeCycle; classes: { CPExpression }; reference: CPExpression new identifierDescription; label: 'Time cycle'; priority: 110; group: 'Timer'; yourself ]
 { #category : 'descriptions' }
 CPTimerEventDefinition >> timeDurationDescription [ <magritteDescription> ^ MAToOneRelationDescription new accessor: #timeDuration; classes: { CPExpression }; reference: CPExpression new identifierDescription; label: 'Time duration'; priority: 120; group: 'Timer'; yourself ]
+
+{ #category : 'testing' }
+CPTimerEventDefinition >> isTimerEventDefinition [ ^ true ]

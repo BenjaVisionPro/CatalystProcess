@@ -270,13 +270,11 @@ CPBpmService >> retireProcessDeploymentWorkUnit: aCPRetireProcessDeploymentWorkU
 
 { #category : 'conditional events' }
 CPBpmService >> reevaluateConditionalWorkUnit: aCPReevaluateConditionalWorkUnit [
-	| subscription waitingExecution scope |
+	| subscription scope |
 	subscription := aCPReevaluateConditionalWorkUnit conditionalSubscription.
 	subscription ifNil: [ self error: 'A Conditional subscription is required.' ].
 	subscription isWaiting ifFalse: [ ^ false ].
-	waitingExecution := subscription waitingExecution.
-	waitingExecution ifNil: [ self error: 'The Conditional subscription has no waiting execution.' ].
-	scope := waitingExecution scope.
-	scope ifNil: [ self error: 'The Conditional subscription waiting execution has no execution scope.' ].
-	^ scope evaluateConditionalSubscription: subscription
+	scope := subscription executionScope.
+	scope ifNil: [ self error: 'The Conditional subscription has no execution scope.' ].
+	^ subscription reevaluateInScope: scope
 ]

@@ -14,16 +14,24 @@ CPEventBasedGatewayExecution >> initialize [
 { #category : 'accessing' }
 CPEventBasedGatewayExecution >> subscriptions [ ^ subscriptions ]
 { #category : 'testing' }
-CPEventBasedGatewayExecution >> isWaiting [ ^ subscriptions anySatisfy: [ :each | each isWaiting ] ]
+CPEventBasedGatewayExecution >> isWaiting [ ^ subscriptions anySatisfy: [ :each | each canReceiveOccurrence ] ]
 { #category : 'testing' }
 CPEventBasedGatewayExecution >> isResolved [ ^ subscriptions anySatisfy: [ :each | each isTriggered ] ]
 { #category : 'building' }
 CPEventBasedGatewayExecution >> subscribeToOutgoingFlow: aSequenceFlow [
-	| subscription |
+	| subscription target definitions |
 	(self definition outgoing identityIncludes: aSequenceFlow) ifFalse: [ self error: 'The Sequence Flow is not an outgoing alternative of this Event-Based Gateway.' ].
+	target := aSequenceFlow targetRef.
+	(target isEvent and: [ target isIntermediateEvent and: [ target isCatchEvent ] ]) ifFalse: [
+		self error: 'An Event-Based Gateway outgoing Sequence Flow must target an Intermediate Catch Event.' ].
+	definitions := target eventDefinitions.
+	definitions size = 1 ifFalse: [
+		self error: 'An Event-Based Gateway target requires exactly one Event Definition.' ].
 	subscription := CPEventBasedGatewaySubscription new
 		sequenceFlow: aSequenceFlow;
-		target: aSequenceFlow targetRef;
+		target: target;
+		gatewayExecution: self;
+		eventDefinition: definitions first;
 		yourself.
 	subscriptions add: subscription.
 	^ subscription
@@ -35,6 +43,27 @@ CPEventBasedGatewayExecution >> acceptOccurrence: anOccurrence for: aSubscriptio
 	self scope acceptOccurrence: anOccurrence.
 	aSubscription triggerWith: anOccurrence.
 	subscriptions do: [ :each |
-		(each ~~ aSubscription and: [ each isWaiting ]) ifTrue: [ each withdraw ] ].
+		(each ~~ aSubscription and: [ each canReceiveOccurrence ]) ifTrue: [ each withdraw ] ].
+	^ aSubscription
+]
+
+
+{ #category : 'occurrences' }
+CPEventBasedGatewayExecution >> triggerAcceptedOccurrence: anOccurrence for: aSubscription [
+	(subscriptions identityIncludes: aSubscription) ifFalse: [ self error: 'The subscription does not belong to this Event-Based Gateway execution.' ].
+	self isResolved ifTrue: [ self error: 'This Event-Based Gateway race has already been resolved.' ].
+	aSubscription triggerWith: anOccurrence.
+	subscriptions do: [ :each |
+		(each ~~ aSubscription and: [ each canReceiveOccurrence ]) ifTrue: [ each withdraw ] ].
+	^ aSubscription
+]
+
+{ #category : 'occurrences' }
+CPEventBasedGatewayExecution >> triggerConditionalSubscription: aSubscription [
+	(subscriptions identityIncludes: aSubscription) ifFalse: [ self error: 'The subscription does not belong to this Event-Based Gateway execution.' ].
+	self isResolved ifTrue: [ self error: 'This Event-Based Gateway race has already been resolved.' ].
+	aSubscription triggerWithoutOccurrence.
+	subscriptions do: [ :each |
+		(each ~~ aSubscription and: [ each canReceiveOccurrence ]) ifTrue: [ each withdraw ] ].
 	^ aSubscription
 ]

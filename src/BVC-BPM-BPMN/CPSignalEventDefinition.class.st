@@ -15,3 +15,6 @@ CPSignalEventDefinition >> signalRefDescription [ <magritteDescription> ^ MAToOn
 CPSignalEventDefinition >> resultDefinition [
 	^ signalRef
 ]
+
+{ #category : 'testing' }
+CPSignalEventDefinition >> isSignalEventDefinition [ ^ true ]
