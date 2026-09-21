@@ -17,7 +17,14 @@ CPErrorEventDefinition >> interruptsActivityWithFailure [
 
 { #category : 'execution semantics' }
 CPErrorEventDefinition >> catchesError: anError [
-	^ error isNil or: [ error == anError ]
+	| caughtCode thrownCode |
+	error ifNil: [ ^ true ].
+	anError ifNil: [ ^ false ].
+	error == anError ifTrue: [ ^ true ].
+	caughtCode := error errorCode.
+	thrownCode := anError errorCode.
+	(caughtCode isNil or: [ thrownCode isNil ]) ifTrue: [ ^ false ].
+	^ caughtCode = thrownCode
 ]
 
 

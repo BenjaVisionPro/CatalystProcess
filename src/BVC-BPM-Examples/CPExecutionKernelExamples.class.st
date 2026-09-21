@@ -3652,17 +3652,46 @@ CPExecutionKernelExamples >> errorEventDefinitionWithoutErrorCatchesAnyError [
 ]
 
 { #category : 'examples - error events' }
-CPExecutionKernelExamples >> errorEventDefinitionWithErrorCatchesOnlyExactError [
+CPExecutionKernelExamples >> errorEventDefinitionMatchesDistinctErrorWithSameCode [
 	<gtExample>
-	| firstError secondError definition |
-	firstError := CPError new identifier: 'firstError'; yourself.
-	secondError := CPError new identifier: 'secondError'; yourself.
+	| caughtError thrownError definition |
+	caughtError := CPError new identifier: 'caughtError'; errorCode: 'payment-declined'; yourself.
+	thrownError := CPError new identifier: 'thrownError'; errorCode: 'payment-declined'; yourself.
 	definition := CPErrorEventDefinition new
-		identifier: 'catchFirstError';
-		error: firstError;
+		identifier: 'catchPaymentDeclined';
+		error: caughtError;
 		yourself.
-	self assert: (definition catchesError: firstError).
-	self assert: (definition catchesError: secondError) not.
+	self assert: caughtError ~~ thrownError.
+	self assert: (definition catchesError: thrownError).
+	^ definition
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventDefinitionRejectsDistinctErrorWithDifferentCode [
+	<gtExample>
+	| caughtError thrownError definition |
+	caughtError := CPError new identifier: 'caughtError'; errorCode: 'payment-declined'; yourself.
+	thrownError := CPError new identifier: 'thrownError'; errorCode: 'inventory-failure'; yourself.
+	definition := CPErrorEventDefinition new
+		identifier: 'catchPaymentDeclined';
+		error: caughtError;
+		yourself.
+	self assert: (definition catchesError: thrownError) not.
+	^ definition
+]
+
+{ #category : 'examples - error events' }
+CPExecutionKernelExamples >> errorEventDefinitionDoesNotMatchDistinctErrorsWithoutCodes [
+	<gtExample>
+	| caughtError thrownError definition |
+	caughtError := CPError new identifier: 'caughtError'; yourself.
+	thrownError := CPError new identifier: 'thrownError'; yourself.
+	definition := CPErrorEventDefinition new
+		identifier: 'catchCaughtError';
+		error: caughtError;
+		yourself.
+	self assert: (definition catchesError: caughtError).
+	self assert: (definition catchesError: thrownError) not.
 	^ definition
 ]
 
