@@ -169,6 +169,31 @@ CPProcessExecution >> deliverSignalOccurrence: anOccurrence [
 ]
 
 
+{ #category : 'events - timer' }
+CPProcessExecution >> waitingDeliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier [
+	| matches |
+	aSubscriptionIdentifier ifNil: [
+		self error: 'A Timer subscription identifier is required.' ].
+	matches := self allWaitingDeliverableTimerSubscriptions select: [ :each |
+		each identifier = aSubscriptionIdentifier ].
+	matches isEmpty ifTrue: [
+		self error: 'No waiting Timer subscription has the requested identifier.' ].
+	matches size = 1 ifFalse: [
+		self error: 'More than one waiting Timer subscription has the requested identifier.' ].
+	^ matches first
+]
+
+{ #category : 'events - timer' }
+CPProcessExecution >> deliverTimerOccurrence: anOccurrence toSubscriptionIdentifiedBy: aSubscriptionIdentifier [
+	| subscription |
+	anOccurrence ifNil: [ self error: 'Timer delivery requires an occurrence.' ].
+	subscription := self waitingDeliverableTimerSubscriptionIdentifiedBy: aSubscriptionIdentifier.
+	anOccurrence definition == subscription timerDefinition ifFalse: [
+		self error: 'The occurrence does not match the requested Timer subscription.' ].
+	^ subscription deliverOccurrence: anOccurrence
+]
+
+
 { #category : 'activities - compensation' }
 CPProcessExecution >> nextCompensationCompletionSequence [
 	| sequence |

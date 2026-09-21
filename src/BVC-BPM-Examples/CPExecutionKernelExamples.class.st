@@ -9486,3 +9486,63 @@ CPExecutionKernelExamples >> interruptingTimerEventSubProcessTerminatesOrdinaryW
 	self assert: handler subScope eventExecutions first occurrence == occurrence.
 	^ execution
 ]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> timerSubscriptionsHaveDistinctStableIdentity [
+	<gtExample>
+	| execution firstSubscription secondSubscription firstIdentifier |
+	execution := self nonInterruptingTimerEventSubProcessCanBeTriggeredRepeatedly.
+	firstSubscription := execution eventSubProcessTimerSubscriptions first.
+	secondSubscription := execution eventSubProcessTimerSubscriptions last.
+	firstIdentifier := firstSubscription identifier.
+	self assert: firstIdentifier notNil.
+	self assert: secondSubscription identifier notNil.
+	self assert: firstIdentifier ~= secondSubscription identifier.
+	self assert: firstSubscription identifier = firstIdentifier.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> timerDeliveryTargetsExactLiveSubscriptionIdentity [
+	<gtExample>
+	| execution eventSubProcess timerDefinition firstSubscription secondSubscription occurrence handlers |
+	execution := self timerEventSubProcessIsArmedWithoutBlockingCompletion.
+	eventSubProcess := execution definition flowElements detect: [ :each |
+		each isSubProcess and: [ each isEventSubProcess ] ].
+	firstSubscription := execution eventSubProcessTimerSubscriptions first.
+	timerDefinition := firstSubscription timerDefinition.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #targetedTimer1;
+		definition: timerDefinition;
+		yourself.
+	execution
+		deliverTimerOccurrence: occurrence
+		toSubscriptionIdentifiedBy: firstSubscription identifier.
+	self assert: firstSubscription isTriggered.
+	secondSubscription := execution eventSubProcessTimerSubscriptions last.
+	self assert: secondSubscription ~~ firstSubscription.
+	self assert: secondSubscription isWaiting.
+	self assert: secondSubscription identifier ~= firstSubscription identifier.
+	handlers := execution activityExecutions select: [ :each | each definition == eventSubProcess ].
+	self assert: handlers size = 1.
+	self assert: handlers first subScope eventExecutions first occurrence == occurrence.
+	^ execution
+]
+
+{ #category : 'examples - event sub-process' }
+CPExecutionKernelExamples >> timerDeliveryRejectsNonWaitingSubscriptionIdentity [
+	<gtExample>
+	| execution subscription occurrence |
+	execution := self timerDeliveryTargetsExactLiveSubscriptionIdentity.
+	subscription := execution eventSubProcessTimerSubscriptions first.
+	occurrence := CPExecutionOccurrence new
+		occurrenceIdentifier: #duplicateTargetedTimer;
+		definition: subscription timerDefinition;
+		yourself.
+	self
+		should: [ execution
+			deliverTimerOccurrence: occurrence
+			toSubscriptionIdentifiedBy: subscription identifier ]
+		raise: Error.
+	^ execution
+]
