@@ -308,8 +308,10 @@ CPBpmService >> instantiateEventBasedGatewayWorkUnit: aWorkUnit [
 CPBpmService >> armInitiatingEventBasedGatewaysFor: aDeployment [
 	| process subscriptions |
 	process := aDeployment processDefinition.
-	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
 	subscriptions := OrderedCollection new.
+	process ifNil: [
+		aDeployment replaceInitiationSubscriptionsWith: subscriptions.
+		^ subscriptions ].
 	process flowElements do: [ :element |
 		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
 			element outgoing do: [ :flow |
