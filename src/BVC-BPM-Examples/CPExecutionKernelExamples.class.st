@@ -11250,7 +11250,7 @@ CPExecutionKernelExamples >> multiInstanceOutputAssociationWaitsForEveryDeclared
 		yourself.
 	execution := CPProcessExecution for: process environment: environment.
 	taskExecution := execution addActivityExecution: (CPActivityExecution new definition: task; yourself).
-	taskExecution itemValueFor: loopDataInput put: (OrderedCollection with: 'one').
+	taskExecution itemValueFor: loopDataInput put: (OrderedCollection with: 'one' with: 'two').
 	taskExecution activate.
 	taskExecution initializeMultiInstanceCardinality.
 	instance := taskExecution beginMultiInstanceActivityExecutionAt: 1.
