@@ -13,7 +13,14 @@ CPEscalationEventDefinition >> escalationRefDescription [ <magritteDescription> 
 
 { #category : 'execution semantics' }
 CPEscalationEventDefinition >> catchesEscalation: anEscalation [
-	^ escalationRef == anEscalation
+	| caughtCode thrownCode |
+	escalationRef ifNil: [ ^ false ].
+	anEscalation ifNil: [ ^ false ].
+	escalationRef == anEscalation ifTrue: [ ^ true ].
+	caughtCode := escalationRef escalationCode.
+	thrownCode := anEscalation escalationCode.
+	(caughtCode isNil or: [ thrownCode isNil ]) ifTrue: [ ^ false ].
+	^ caughtCode = thrownCode
 ]
 
 

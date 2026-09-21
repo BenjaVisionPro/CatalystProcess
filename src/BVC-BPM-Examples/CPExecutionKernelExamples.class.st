@@ -8931,3 +8931,61 @@ CPExecutionKernelExamples >> escalationRethrowDoesNotReenterItsOwnEventSubProces
 	self assert: subExecution isActive.
 	^ secondExecution
 ]
+
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationDefinitionsWithSameCodeMatch [
+	<gtExample>
+	| thrownEscalation caughtEscalation definition |
+	thrownEscalation := CPEscalation new
+		identifier: 'thrownEscalation';
+		escalationCode: 'payment-escalation';
+		yourself.
+	caughtEscalation := CPEscalation new
+		identifier: 'caughtEscalation';
+		escalationCode: 'payment-escalation';
+		yourself.
+	definition := CPEscalationEventDefinition new
+		identifier: 'catchDefinition';
+		escalationRef: caughtEscalation;
+		yourself.
+	self assert: thrownEscalation ~~ caughtEscalation.
+	self assert: (definition catchesEscalation: thrownEscalation).
+	^ definition
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> escalationDefinitionsWithDifferentCodesDoNotMatch [
+	<gtExample>
+	| thrownEscalation caughtEscalation definition |
+	thrownEscalation := CPEscalation new
+		identifier: 'thrownEscalation';
+		escalationCode: 'payment-escalation';
+		yourself.
+	caughtEscalation := CPEscalation new
+		identifier: 'caughtEscalation';
+		escalationCode: 'shipping-escalation';
+		yourself.
+	definition := CPEscalationEventDefinition new
+		identifier: 'catchDefinition';
+		escalationRef: caughtEscalation;
+		yourself.
+	self assert: (definition catchesEscalation: thrownEscalation) not.
+	^ definition
+]
+
+{ #category : 'examples - escalation events' }
+CPExecutionKernelExamples >> distinctEscalationsWithoutCodesDoNotMatch [
+	<gtExample>
+	| thrownEscalation caughtEscalation definition |
+	thrownEscalation := CPEscalation new identifier: 'thrownEscalation'; yourself.
+	caughtEscalation := CPEscalation new identifier: 'caughtEscalation'; yourself.
+	definition := CPEscalationEventDefinition new
+		identifier: 'catchDefinition';
+		escalationRef: caughtEscalation;
+		yourself.
+	self assert: thrownEscalation ~~ caughtEscalation.
+	self assert: (definition catchesEscalation: thrownEscalation) not.
+	self assert: (definition catchesEscalation: caughtEscalation).
+	^ definition
+]
