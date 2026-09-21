@@ -11027,3 +11027,71 @@ CPExecutionKernelExamples >> retiredDeploymentMakesQueuedTimerInitiationHarmless
 	self assert: root processExecutions isEmpty.
 	^ deployment
 ]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> conditionalStartEventTriggersOnFalseToTrueTransition [
+	<gtExample>
+	| process start task flow condition definition deployment environment root configuration service subscription enqueue workUnit execution |
+	process := CPProcess new identifier: 'conditional-start-process'; yourself.
+	condition := CPFormalExpression new body: 'environment is ready'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'start-condition'; condition: condition; yourself.
+	start := CPConditionalStartEvent new identifier: 'conditional-start'; eventDefinitions: { definition }; yourself.
+	task := CPTask new identifier: 'after-conditional-start'; yourself.
+	flow := CPSequenceFlow new identifier: 'conditional-start-flow'; sourceRef: start; targetRef: task; yourself.
+	process addFlowElement: start; addFlowElement: task; addFlowElement: flow.
+	deployment := CPProcessDeployment new identifier: 'conditional-start-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new expression: condition evaluatesTo: false; yourself.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	self assert: deployment initiationSubscriptions size equals: 1.
+	subscription := deployment initiationSubscriptions first.
+	self assert: subscription isConditionalSubscription.
+	enqueue := CPRecordingEnqueue new.
+	service enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits isEmpty.
+	environment expression: condition evaluatesTo: true.
+	service enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	workUnit := enqueue workUnits first.
+	execution := service deliverProcessInitiationOccurrenceWorkUnit: workUnit.
+	self assert: root processExecutions size equals: 1.
+	self assert: execution isStarted.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+	^ execution
+]
+
+{ #category : 'examples - process initiation' }
+CPExecutionKernelExamples >> conditionalStartEventRequiresResetBeforeRetrigger [
+	<gtExample>
+	| process start condition definition deployment environment root configuration service enqueue firstWorkUnit |
+	process := CPProcess new identifier: 'conditional-reset-process'; yourself.
+	condition := CPFormalExpression new body: 'environment threshold reached'; yourself.
+	definition := CPConditionalEventDefinition new identifier: 'reset-condition'; condition: condition; yourself.
+	start := CPConditionalStartEvent new identifier: 'conditional-reset-start'; eventDefinitions: { definition }; yourself.
+	process addFlowElement: start.
+	deployment := CPProcessDeployment new identifier: 'conditional-reset-deployment'; processDefinition: process; yourself.
+	environment := CPExampleExecutionEnvironment new expression: condition evaluatesTo: false; yourself.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: environment; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	service activateProcessDeploymentWorkUnit: (CPActivateProcessDeploymentWorkUnit processDeployment: deployment).
+	enqueue := CPRecordingEnqueue new.
+	environment expression: condition evaluatesTo: true.
+	service enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	firstWorkUnit := enqueue workUnits first.
+	service deliverProcessInitiationOccurrenceWorkUnit: firstWorkUnit.
+	service enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	environment expression: condition evaluatesTo: false.
+	service enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 1.
+	environment expression: condition evaluatesTo: true.
+	service enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: enqueue.
+	self assert: enqueue workUnits size equals: 2.
+	service deliverProcessInitiationOccurrenceWorkUnit: enqueue workUnits second.
+	self assert: root processExecutions size equals: 2.
+	^ deployment
+]

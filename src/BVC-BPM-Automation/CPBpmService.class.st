@@ -122,6 +122,7 @@ CPBpmService >> processBackgroundWorkUnit: aCPProcessBackgroundWorkUnit [
 	localEnqueue := self capability: CRLocalEnqueueCapability.
 	self enqueueDueTimerWorkUnitsUsing: localEnqueue.
 	self enqueueDueProcessInitiationTimerWorkUnitsUsing: localEnqueue.
+	self enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: localEnqueue.
 	^ self
 ]
 
@@ -168,6 +169,31 @@ CPBpmService >> enqueueDueProcessInitiationTimerWorkUnitsUsing: anEnqueueCapabil
 						initiationSubscription: subscription
 						occurrence: occurrence.
 					anEnqueueCapability enqueue: workUnit ] ] ].
+	^ self
+]
+
+
+{ #category : 'background processing' }
+CPBpmService >> enqueueSatisfiedProcessInitiationConditionalWorkUnitsUsing: anEnqueueCapability [
+	| environment |
+	environment := configuration executionEnvironment.
+	environment ifNil: [ ^ self ].
+	systemRoot processDeployments do: [ :deployment |
+		deployment acceptsNewProcessExecutions ifTrue: [
+			(deployment initiationSubscriptions select: #isConditionalSubscription)
+				do: [ :subscription |
+					(subscription evaluateConditionalUsing: environment) ifTrue: [
+						| occurrenceIdentifier occurrence workUnit |
+						occurrenceIdentifier := UUID new asString.
+						subscription markConditionalDispatchPendingWithOccurrenceIdentifier: occurrenceIdentifier.
+						occurrence := CPExecutionOccurrence new
+							occurrenceIdentifier: occurrenceIdentifier;
+							definition: subscription eventDefinition;
+							yourself.
+						workUnit := CPDeliverProcessInitiationOccurrenceWorkUnit
+							initiationSubscription: subscription
+							occurrence: occurrence.
+						anEnqueueCapability enqueue: workUnit ] ] ] ].
 	^ self
 ]
 
@@ -358,7 +384,7 @@ CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 		aDeployment replaceInitiationSubscriptionsWith: subscriptions.
 		^ subscriptions ].
 	process flowElements do: [ :element |
-		(element isStartEvent and: [ element isMessageStartEvent or: [ element isSignalStartEvent or: [ element isTimerStartEvent ] ] ]) ifTrue: [
+		(element isStartEvent and: [ element isMessageStartEvent or: [ element isSignalStartEvent or: [ element isTimerStartEvent or: [ element isConditionalStartEvent ] ] ] ]) ifTrue: [
 			| definition subscription |
 			element eventDefinitions size = 1 ifFalse: [ self error: 'A triggered top-level Start Event requires exactly one Event Definition.' ].
 			definition := element eventDefinitions first.
@@ -413,11 +439,13 @@ CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
 	subscription ifNil: [ self error: 'A Process initiation subscription is required.' ].
 	occurrence := aWorkUnit occurrence.
 	occurrence ifNil: [ self error: 'A Process initiation occurrence is required.' ].
-	(subscription isTimerSubscription and: [ subscription processDeployment acceptsNewProcessExecutions not ]) ifTrue: [ ^ nil ].
+	((subscription isTimerSubscription or: [ subscription isConditionalSubscription ]) and: [ subscription processDeployment acceptsNewProcessExecutions not ]) ifTrue: [ ^ nil ].
 	(subscription isTimerSubscription and: [ subscription isTimerDispatchPending not ]) ifTrue: [ ^ nil ].
+	(subscription isConditionalSubscription and: [ subscription isConditionalDispatchPending not ]) ifTrue: [ ^ nil ].
 	(subscription matchesOccurrence: occurrence) ifFalse: [ self error: 'The occurrence does not match an active Process initiation subscription.' ].
 	execution := subscription instantiateUsingService: self occurrence: occurrence.
 	subscription isTimerSubscription ifTrue: [
 		subscription acceptTimerOccurrenceAt: configuration executionEnvironment currentTimerTime ].
+	subscription isConditionalSubscription ifTrue: [ subscription acceptConditionalOccurrence ].
 	^ execution
 ]

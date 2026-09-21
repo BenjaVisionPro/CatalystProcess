@@ -1,7 +1,7 @@
 Class {
 	#name : 'CPEventBasedGatewayInitiationSubscription',
 	#superclass : 'CFIdentifiableObject',
-	#instVars : [ 'processDeployment', 'gateway', 'sequenceFlow', 'eventDefinition', 'armedAt', 'dueTime', 'dispatchPending', 'dispatchOccurrenceIdentifier', 'timerCompleted' ],
+	#instVars : [ 'processDeployment', 'gateway', 'sequenceFlow', 'eventDefinition', 'armedAt', 'dueTime', 'dispatchPending', 'dispatchOccurrenceIdentifier', 'timerCompleted', 'conditionalValue', 'conditionalDispatchPending', 'conditionalDispatchOccurrenceIdentifier' ],
 	#category : 'BVC-BPM-Automation',
 	#package : 'BVC-BPM-Automation'
 }
@@ -10,7 +10,9 @@ Class {
 CPEventBasedGatewayInitiationSubscription >> initialize [
 	super initialize.
 	dispatchPending := false.
-	timerCompleted := false
+	timerCompleted := false.
+	conditionalValue := false.
+	conditionalDispatchPending := false
 ]
 
 { #category : 'accessing' }
@@ -38,6 +40,10 @@ CPEventBasedGatewayInitiationSubscription >> isMessageSubscription [ ^ eventDefi
 CPEventBasedGatewayInitiationSubscription >> isSignalSubscription [ ^ eventDefinition isSignalEventDefinition ]
 { #category : 'testing' }
 CPEventBasedGatewayInitiationSubscription >> isTimerSubscription [ ^ eventDefinition isTimerEventDefinition ]
+
+{ #category : 'testing' }
+CPEventBasedGatewayInitiationSubscription >> isConditionalSubscription [ ^ eventDefinition isConditionalEventDefinition ]
+
 { #category : 'accessing' }
 CPEventBasedGatewayInitiationSubscription >> message [ ^ eventDefinition messageRef ]
 { #category : 'accessing' }
@@ -107,6 +113,40 @@ CPEventBasedGatewayInitiationSubscription >> acceptTimerOccurrenceAt: aTime [
 	^ self
 ]
 
+{ #category : 'conditional events' }
+CPEventBasedGatewayInitiationSubscription >> evaluateConditionalUsing: anExecutionEnvironment [
+	| currentValue becameTrue |
+	self isConditionalSubscription ifFalse: [ self error: 'Only a Conditional initiation subscription can be evaluated.' ].
+	conditionalDispatchPending ifTrue: [ ^ false ].
+	currentValue := anExecutionEnvironment
+		evaluateExpression: eventDefinition condition
+		forProcessDeployment: processDeployment.
+	becameTrue := conditionalValue not and: [ currentValue ].
+	conditionalValue := currentValue.
+	^ becameTrue
+]
+
+{ #category : 'conditional events' }
+CPEventBasedGatewayInitiationSubscription >> markConditionalDispatchPendingWithOccurrenceIdentifier: anOccurrenceIdentifier [
+	self isConditionalSubscription ifFalse: [ self error: 'Only a Conditional initiation subscription can be marked dispatch pending.' ].
+	conditionalDispatchPending ifTrue: [ self error: 'A Conditional initiation dispatch is already pending.' ].
+	anOccurrenceIdentifier ifNil: [ self error: 'A Conditional initiation dispatch requires an occurrence identifier.' ].
+	conditionalDispatchPending := true.
+	conditionalDispatchOccurrenceIdentifier := anOccurrenceIdentifier.
+	^ self
+]
+
+{ #category : 'conditional events' }
+CPEventBasedGatewayInitiationSubscription >> isConditionalDispatchPending [ ^ conditionalDispatchPending ]
+
+{ #category : 'conditional events' }
+CPEventBasedGatewayInitiationSubscription >> acceptConditionalOccurrence [
+	conditionalDispatchPending ifFalse: [ self error: 'A Conditional initiation occurrence can only complete a pending dispatch.' ].
+	conditionalDispatchPending := false.
+	conditionalDispatchOccurrenceIdentifier := nil.
+	^ self
+]
+
 { #category : 'matching' }
 CPEventBasedGatewayInitiationSubscription >> matchesOccurrence: anOccurrence [
 	processDeployment acceptsNewProcessExecutions ifFalse: [ ^ false ].
@@ -116,6 +156,10 @@ CPEventBasedGatewayInitiationSubscription >> matchesOccurrence: anOccurrence [
 		^ dispatchPending
 			and: [ anOccurrence definition == eventDefinition
 			and: [ anOccurrence occurrenceIdentifier = dispatchOccurrenceIdentifier ] ] ].
+	self isConditionalSubscription ifTrue: [
+		^ conditionalDispatchPending
+			and: [ anOccurrence definition == eventDefinition
+			and: [ anOccurrence occurrenceIdentifier = conditionalDispatchOccurrenceIdentifier ] ] ].
 	^ false
 ]
 

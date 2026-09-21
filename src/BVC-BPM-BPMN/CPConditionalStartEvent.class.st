@@ -19,5 +19,13 @@ CPConditionalStartEvent >> conditionAllowsInstantiationIn: anExecutionScope [
 	^ anExecutionScope environment evaluateExpression: condition in: anExecutionScope
 ]
 
+{ #category : 'execution' }
+CPConditionalStartEvent >> matchesInstantiationOccurrence: anOccurrence [
+	| definitions |
+	definitions := self eventDefinitions.
+	definitions size = 1 ifFalse: [ ^ false ].
+	^ definitions first == anOccurrence definition
+]
+
 { #category : 'testing' }
 CPConditionalStartEvent >> isConditionalStartEvent [ ^ true ]

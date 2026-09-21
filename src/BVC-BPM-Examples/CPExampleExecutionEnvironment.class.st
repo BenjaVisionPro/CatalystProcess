@@ -54,6 +54,13 @@ CPExampleExecutionEnvironment >> evaluateExpression: anExpression in: anExecutio
 		ifAbsent: [ self error: 'No example expression result has been configured.' ]
 ]
 
+{ #category : 'evaluation' }
+CPExampleExecutionEnvironment >> evaluateExpression: anExpression forProcessDeployment: aProcessDeployment [
+	^ expressionResults
+		at: anExpression
+		ifAbsent: [ self error: 'No example deployment expression result has been configured.' ]
+]
+
 { #category : 'resolution' }
 CPExampleExecutionEnvironment >> resolveCallableElement: aCallableElement in: anExecutionScope [
 	^ callableResolutions

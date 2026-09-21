@@ -11,6 +11,13 @@ CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope 
 ]
 
 { #category : 'evaluation' }
+CPExecutionEnvironment >> evaluateExpression: anExpression forProcessDeployment: aProcessDeployment [
+	"Evaluate an expression that exists before a Process execution/scope. In particular,
+	Conditional Start Events cannot refer to Process-instance data because no instance exists yet."
+	self subclassResponsibility
+]
+
+{ #category : 'evaluation' }
 CPExecutionEnvironment >> evaluateExpression: anExpression in: anExecutionScope forActivityExecution: anActivityExecution [
 	^ self evaluateExpression: anExpression in: anExecutionScope
 ]
