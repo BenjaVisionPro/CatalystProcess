@@ -2121,7 +2121,7 @@ CPExecutionScope >> validateErrorPropagationFor: anError toBoundary: aBoundaryEx
 	(aBoundaryExecution notNil and: [ eventExecutions identityIncludes: aBoundaryExecution ]) ifTrue: [ ^ aBoundaryExecution ].
 	handler := self
 		matchingErrorEventSubProcessFor: anError
-		excluding: aNestedScope owningActivity definition.
+		excluding: aNestedScope owningActivity modeledActivityExecution definition.
 	handler ifNotNil: [
 		self errorStartEventFor: handler.
 		^ handler ].
@@ -2145,7 +2145,7 @@ CPExecutionScope >> propagateErrorOccurrence: anOccurrence fromNestedScope: aNes
 		aNestedScope owningActivity modeledActivityExecution finishFailure ].
 	handler := self
 		matchingErrorEventSubProcessFor: anOccurrence definition
-		excluding: aNestedScope owningActivity definition.
+		excluding: aNestedScope owningActivity modeledActivityExecution definition.
 	handler ifNotNil: [
 		^ self beginErrorEventSubProcess: handler occurrence: anOccurrence ].
 	records := self defaultCompensationRecords.
@@ -2318,7 +2318,7 @@ CPExecutionScope >> validateEscalationPropagationFor: anEscalation fromNestedSco
 	| handler boundaryExecution |
 	handler := self
 		matchingEscalationEventSubProcessFor: anEscalation
-		excluding: aNestedScope owningActivity definition.
+		excluding: aNestedScope owningActivity modeledActivityExecution definition.
 	handler ifNotNil: [
 		self escalationStartEventFor: handler.
 		^ handler ].
@@ -2351,7 +2351,7 @@ CPExecutionScope >> propagateEscalationOccurrence: anOccurrence fromNestedScope:
 	| handler boundaryExecution |
 	handler := self
 		matchingEscalationEventSubProcessFor: anOccurrence definition
-		excluding: aNestedScope owningActivity definition.
+		excluding: aNestedScope owningActivity modeledActivityExecution definition.
 	handler ifNotNil: [
 		^ self beginEscalationEventSubProcess: handler occurrence: anOccurrence ].
 	boundaryExecution := self
