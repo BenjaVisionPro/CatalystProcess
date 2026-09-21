@@ -10,7 +10,8 @@ Class {
 		'processDefinition',
 		'deployedAt',
 		'deployedBy',
-		'status'
+		'status',
+		'initiationSubscriptions'
 	],
 	#category : 'BVC-BPM-Definition',
 	#package : 'BVC-BPM-Definition'
@@ -100,7 +101,8 @@ CPProcessDeployment >> deployedBy: anObject [
 { #category : 'initialization' }
 CPProcessDeployment >> initialize [
 	super initialize.
-	status := #draft
+	status := #draft.
+	initiationSubscriptions := OrderedCollection new
 ]
 
 { #category : 'testing' }
@@ -133,4 +135,22 @@ CPProcessDeployment >> activate [
 CPProcessDeployment >> retire [
 	self isActive ifFalse: [ self error: 'Only an active Process deployment can be retired.' ].
 	status := #retired
+]
+
+
+{ #category : 'process initiation' }
+CPProcessDeployment >> initiationSubscriptions [
+	^ initiationSubscriptions
+]
+
+{ #category : 'process initiation' }
+CPProcessDeployment >> replaceInitiationSubscriptionsWith: aCollection [
+	initiationSubscriptions := aCollection asOrderedCollection.
+	^ initiationSubscriptions
+]
+
+{ #category : 'process initiation' }
+CPProcessDeployment >> clearInitiationSubscriptions [
+	initiationSubscriptions removeAll.
+	^ self
 ]

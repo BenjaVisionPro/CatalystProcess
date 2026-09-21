@@ -257,7 +257,9 @@ CPBpmService >> activateProcessDeploymentWorkUnit: aCPActivateProcessDeploymentW
 	| deployment |
 	deployment := aCPActivateProcessDeploymentWorkUnit processDeployment.
 	deployment ifNil: [ self error: 'A Process deployment is required.' ].
-	^ deployment activate
+	deployment activate.
+	self armInitiatingEventBasedGatewaysFor: deployment.
+	^ deployment
 ]
 
 { #category : 'deployment lifecycle' }
@@ -265,7 +267,9 @@ CPBpmService >> retireProcessDeploymentWorkUnit: aCPRetireProcessDeploymentWorkU
 	| deployment |
 	deployment := aCPRetireProcessDeploymentWorkUnit processDeployment.
 	deployment ifNil: [ self error: 'A Process deployment is required.' ].
-	^ deployment retire
+	deployment retire.
+	deployment clearInitiationSubscriptions.
+	^ deployment
 ]
 
 { #category : 'conditional events' }
@@ -297,4 +301,63 @@ CPBpmService >> instantiateEventBasedGatewayWorkUnit: aWorkUnit [
 	execution startAtInstantiatingEventBasedGateway: gateway via: aWorkUnit sequenceFlow occurrence: aWorkUnit occurrence.
 	systemRoot addProcessExecution: execution.
 	^ execution
+]
+
+
+{ #category : 'process initiation' }
+CPBpmService >> armInitiatingEventBasedGatewaysFor: aDeployment [
+	| process subscriptions |
+	process := aDeployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	subscriptions := OrderedCollection new.
+	process flowElements do: [ :element |
+		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
+			element outgoing do: [ :flow |
+				| target definition subscription |
+				target := flow targetRef.
+				target isReceiveTask
+					ifTrue: [
+						target messageRef ifNil: [ self error: 'An instantiating Event-Based Gateway Receive Task requires a Message.' ].
+						definition := CPMessageEventDefinition new messageRef: target messageRef; yourself ]
+					ifFalse: [
+						target isIntermediateEvent ifFalse: [ self error: 'An instantiating Event-Based Gateway must target a Receive Task or Intermediate Catch Event.' ].
+						target eventDefinitions size = 1 ifFalse: [ self error: 'An instantiating Event-Based Gateway catch Event requires exactly one Event Definition.' ].
+						definition := target eventDefinitions first ].
+				(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition ] ]) ifFalse: [
+					self error: 'This Event Definition cannot initiate through an instantiating Event-Based Gateway.' ].
+				subscription := CPEventBasedGatewayInitiationSubscription new
+					processDeployment: aDeployment; gateway: element; sequenceFlow: flow; eventDefinition: definition; yourself.
+				subscriptions add: subscription ] ] ].
+	aDeployment replaceInitiationSubscriptionsWith: subscriptions.
+	^ subscriptions
+]
+
+{ #category : 'process initiation' }
+CPBpmService >> initiationSubscriptionsForMessage: aMessage [
+	^ systemRoot processDeployments flatCollect: [ :deployment |
+		deployment initiationSubscriptions select: [ :each |
+			deployment acceptsNewProcessExecutions and: [ each isMessageSubscription and: [ each message == aMessage ] ] ] ]
+]
+
+{ #category : 'process initiation' }
+CPBpmService >> initiationSubscriptionsForSignal: aSignal [
+	^ systemRoot processDeployments flatCollect: [ :deployment |
+		deployment initiationSubscriptions select: [ :each |
+			deployment acceptsNewProcessExecutions and: [ each isSignalSubscription and: [ each signal == aSignal ] ] ] ]
+]
+
+{ #category : 'process initiation' }
+CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
+	| subscription occurrence instantiateWorkUnit |
+	subscription := aWorkUnit initiationSubscription.
+	subscription ifNil: [ self error: 'A Process initiation subscription is required.' ].
+	occurrence := aWorkUnit occurrence.
+	occurrence ifNil: [ self error: 'A Process initiation occurrence is required.' ].
+	(subscription matchesOccurrence: occurrence) ifFalse: [ self error: 'The occurrence does not match an active Process initiation subscription.' ].
+	instantiateWorkUnit := CPInstantiateEventBasedGatewayWorkUnit
+		processDeployment: subscription processDeployment
+		gateway: subscription gateway
+		sequenceFlow: subscription sequenceFlow
+		occurrence: occurrence.
+	^ self instantiateEventBasedGatewayWorkUnit: instantiateWorkUnit
 ]

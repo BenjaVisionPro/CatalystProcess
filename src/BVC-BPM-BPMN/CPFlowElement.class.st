@@ -160,3 +160,8 @@ CPFlowElement >> dataAssociationDescriptions [
 CPFlowElement >> isMessageFlow [
 	^ false
 ]
+
+{ #category : 'testing' }
+CPFlowElement >> isEventBasedGateway [
+	^ false
+]

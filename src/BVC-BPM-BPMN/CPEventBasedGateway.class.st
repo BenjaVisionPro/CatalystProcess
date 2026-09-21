@@ -59,3 +59,8 @@ CPEventBasedGateway class >> gatewayTypeLabel [ ^ 'Event-based' ]
 
 { #category : 'gateway type' }
 CPEventBasedGateway class >> gatewayTypeIcon [ ^ #pentagon ]
+
+{ #category : 'testing' }
+CPEventBasedGateway >> isEventBasedGateway [
+	^ true
+]
