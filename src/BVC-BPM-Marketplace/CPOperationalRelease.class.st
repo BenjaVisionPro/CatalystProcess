@@ -85,6 +85,7 @@ CPOperationalRelease >> assertMutable [
 { #category : 'private' }
 CPOperationalRelease >> assertOperationBelongsToRelease: anOperation [
 	definitions ifNil: [ self error: 'Materialized Definitions must be assigned before binding Operations.' ].
-	(definitions rootElements identityIncludes: anOperation) ifFalse: [
+	(definitions rootElements anySatisfy: [ :each |
+		each class = CPInterface and: [ each operations identityIncludes: anOperation ] ]) ifFalse: [
 		self error: 'The Operation does not belong to this Operational Release Definitions.' ]
 ]

@@ -1057,9 +1057,11 @@ CPMarketplaceBootstrapExamples >> productionEnvironmentResolvesOperationThroughD
 		publishedDefinition: CatalystTenantLifecycleV1;
 		definitions: bootstrap tenantLifecycleDefinitions;
 		yourself.
-	operation := release definitions rootElements
-		detect: [ :each | each isKindOf: CPOperation ]
-		ifNone: [ self error: 'Tenant Lifecycle requires an Operation for this example.' ].
+	operation := (release definitions rootElements
+		detect: [ :each | each class = CPInterface ]
+		ifNone: [ self error: 'Tenant Lifecycle requires its Operations Interface.' ]) operations
+		detect: [ :each | each identifier = #validateTenantRegistration ]
+		ifNone: [ self error: 'Tenant Lifecycle requires its validation Operation.' ].
 	implementation := Object new.
 	release
 		bindOperation: operation to: implementation;
