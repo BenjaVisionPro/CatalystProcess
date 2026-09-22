@@ -220,3 +220,33 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationPresentsPendingIn
 	self assert: registration label equals: 'Prospective tenant'.
 	^ element
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationCommitsAndSubmitsPendingInteraction [
+	<gtExample>
+	| application execution workItem input registration memento runtime topology worker queue envelope |
+	application := self tenantRegistrationApplicationUsesRuntimeAndReturnsAuthoritativeWork.
+	execution := application systemRoot processExecutions first.
+	workItem := execution allPendingUserTaskWorkItems first.
+	input := workItem userTask ioSpecification dataInputs first.
+	registration := workItem activityExecution itemValueFor: input.
+
+	memento := CFMaMemento model: registration.
+	memento write: 'Prospective tenant' using: registration labelDescription.
+	memento commit.
+	self assert: registration label equals: 'Prospective tenant'.
+
+	runtime := application runtime.
+	topology := runtime deploymentTopology.
+	worker := topology hosts first workerHandles first.
+	queue := worker workQueue.
+	self assert: queue depth equals: 0.
+	application completeTenantRegistration: registration.
+	self assert: queue depth equals: 1.
+	envelope := queue nextOrNil.
+	self assert: envelope workUnit class equals: CPCompleteUserTaskWorkUnit.
+	self assert: envelope workUnit workItem == workItem.
+	self assert: workItem isPending.
+	^ registration
+]
+
