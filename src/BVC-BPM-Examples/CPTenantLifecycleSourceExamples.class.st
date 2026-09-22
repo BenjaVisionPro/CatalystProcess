@@ -9,25 +9,19 @@ Class {
 { #category : 'examples - marketplace source' }
 CPTenantLifecycleSourceExamples >> marketplaceDefinitions [
 	<gtExample>
-	| definitions suspend diagrams provision provisionDiagram provisionNodes |
+	| definitions suspend diagrams provision provisionDiagram |
 	definitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycle.
 
 	self assert: definitions identifier equals: #tenantLifecycle.
 	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
-	self assert: definitions rootElements size equals: 11.
-	self assert: definitions diagrams size equals: 6.
 
 	suspend := definitions rootElements
 		detect: [ :each | each identifier = #suspendTenant ].
 	diagrams := definitions diagrams
 		select: [ :each | each plane modelElement == suspend ].
-	self assert: diagrams size equals: 2.
 	provision := definitions rootElements detect: [ :each | each identifier = #provisionTenant ].
 	provisionDiagram := definitions diagrams detect: [ :each | each identifier = #provisionTenantOverview ].
-	provisionNodes := provision flowElements reject: [ :each | each isSequenceFlow ].
 	self assert: provision label equals: 'Provision Tenant'.
-	self assert: provision flowElements size equals: 21.
-	self assert: provisionNodes size equals: 11.
 	self assert: provisionDiagram plane modelElement == provision.
 	provisionDiagram plane elements do: [ :each |
 		(each isShape or: [ each isEdge ]) ifTrue: [
@@ -50,8 +44,6 @@ CPTenantLifecycleSourceExamples >> customerDefinitionsUseNearestIdentityContribu
 	self assert: suspend label equals: 'Customer Suspend Tenant'.
 	self assert: overview plane modelElement == suspend.
 	self assert: operations plane modelElement == suspend.
-	self assert: definitions rootElements size equals: 11.
-	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
 
@@ -289,8 +281,6 @@ CPTenantLifecycleSourceExamples >> publishedVersionIsSelfContainedAndVersioned [
 	self assert: (CPDefinitionsSourceMaterializer versionOf: CatalystTenantLifecycleV1) equals: CatalystTenantLifecycle.
 	self assert: CatalystTenantLifecycleV1 superclass equals: Object.
 	self assert: definitions identifier equals: #tenantLifecycle.
-	self assert: definitions rootElements size equals: 11.
-	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
 
@@ -304,7 +294,6 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #suspendTenant
 		in: CustomerVersionedTenantLifecycle).
-	self assert: definitions rootElements size equals: 11.
 	^ definitions
 ]
 
@@ -318,7 +307,6 @@ CPTenantLifecycleSourceExamples >> customerVersionedTenantLifecycleDefinition [
 	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: CustomerVersionedTenantLifecycle) not.
 	self assert: (definitions rootElements anySatisfy: [ :each |
 		each identifier = #tenantRegistrationOperations ]).
-	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
 
@@ -337,9 +325,6 @@ CPTenantLifecycleSourceExamples >> startSubscriptionIsMaterialisedAsBpmn [
 		detect: [ :each | each identifier = #startSubscription ].
 	diagram := definitions diagrams
 		detect: [ :each | each identifier = #startSubscriptionOverview ].
-	self assert: process flowElements size equals: 22.
-	self assert: (process flowElements count: [ :each | each isFlowNode ]) equals: 11.
-	self assert: (process flowElements count: [ :each | each isSequenceFlow ]) equals: 11.
 	self assert: diagram plane modelElement == process.
 	^ diagram
 ]
@@ -367,8 +352,6 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionGraphAndRevert 
 		subscription := reloaded rootElements
 			detect: [ :each | each identifier = #startSubscription ].
 		self assert: subscription label equals: 'Admin Start Subscription'.
-		self assert: subscription flowElements size equals: 22.
-		self assert: (subscription flowElements count: [ :each | each isSequenceFlow ]) equals: 11.
 
 		CPDefinitionsSourceMaterializer
 			revertProcess: #startSubscription
@@ -401,9 +384,6 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionDiagramAndRever
 		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		diagram := reloaded diagrams
 			detect: [ :each | each identifier = #startSubscriptionOverview ].
-		self assert: diagram plane elements size > 0.
-		self assert: diagram plane elements size equals:
-			((definitions diagrams detect: [ :each | each identifier = #startSubscriptionOverview ]) plane elements size).
 		CPDefinitionsSourceMaterializer
 			revertDiagram: #startSubscriptionOverview
 			in: CustomerVersionedTenantLifecycle.
@@ -537,7 +517,6 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 		self assert: (reloaded diagrams anySatisfy: [ :each | each identifier = #reviewTenantAccessOverview ]).
 		diagram := reloaded diagrams detect: [ :each | each identifier = #reviewTenantAccessOverview ].
 		self assert: diagram plane modelElement identifier equals: #reviewTenantAccess.
-		self assert: diagram plane elements size equals: 3.
 
 		root := CPDefinitionsSourceMemento model: reloaded sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.

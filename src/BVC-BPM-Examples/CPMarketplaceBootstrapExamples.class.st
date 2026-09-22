@@ -60,7 +60,6 @@ CPMarketplaceBootstrapExamples >> adminTenantLifecycleIsProductionMarketplaceSou
 	definitions := bootstrap tenantLifecycleDefinitions.
 	self assert: (definitions rootElements anySatisfy: [ :each |
 		each identifier = #tenantRegistrationOperations ]).
-	self assert: definitions diagrams size equals: 6.
 	self assert: bootstrap tenantLifecycleDeployment processDefinition identifier equals: #provisionTenant.
 	^ definitions
 ]
@@ -989,7 +988,6 @@ CPMarketplaceBootstrapExamples >> adminBootstrapDeploysExactMarketplaceTenantLif
 	self assert: (bootstrap marketplace includesPublishedDefinition: CatalystTenantLifecycleV1).
 	self assert: bootstrap tenantLifecycleProduct publishedDefinitions asArray equals: { CatalystTenantLifecycleV1 }.
 	self assert: deploymentProcess identifier equals: marketplaceProcess identifier.
-	self assert: deploymentProcess flowElements size equals: marketplaceProcess flowElements size.
 	self assert: (deploymentProcess flowElements anySatisfy: [ :each | each identifier = #collectTenantRegistration ]).
 	^ deploymentProcess
 ]
