@@ -146,3 +146,53 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationBeginsAsRuntimeWorkWithoutEx
 	self assert: execution startedBy isNil.
 	^ workItem
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationUsesRuntimeAndReturnsAuthoritativeWork [
+	<gtExample>
+	| bootstrap root deployment environment configuration service runtime topology host queue worker serviceHandle application registration envelope context workItem |
+	bootstrap := CPAdminTenantBootstrap configured.
+	root := bootstrap systemRoot.
+	deployment := bootstrap tenantLifecycleDeployment.
+	environment := CPExampleExecutionEnvironment new.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: environment;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+
+	runtime := CRRuntime new.
+	topology := CRDeploymentTopology new.
+	host := topology ensureHostNamed: #localhost.
+	queue := CRPharoWorkQueue new.
+	worker := CRWorkerHandle new
+		workerIdentifier: #registrationWorker;
+		workQueue: queue;
+		lifecycleStatus: CRStatus running;
+		yourself.
+	serviceHandle := worker
+		ensureServiceHandleForIdentifier: #bpm
+		serviceClass: CPBpmService.
+	serviceHandle lifecycleStatus: CRStatus running.
+	host noteWorkerHandle: worker.
+	runtime deploymentTopology: topology.
+
+	application := CPTenantRegistrationApplication
+		runtime: runtime
+		systemRoot: root
+		processDeployment: deployment.
+	registration := application beginTenantRegistration.
+	self assert: registration class equals: CPTenantRegistration.
+	self assert: queue depth equals: 1.
+	envelope := queue nextOrNil.
+	self assert: envelope workUnit class equals: CPBeginTenantRegistrationWorkUnit.
+	self assert: envelope workUnit registration == registration.
+
+	context := CRWorkUnitExecutionContext envelope: envelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workItem := envelope workUnit executeInContext: context.
+	self assert: (application workItemForTenantRegistration: registration) == workItem.
+	self assert: workItem isPending.
+	^ application
+]
