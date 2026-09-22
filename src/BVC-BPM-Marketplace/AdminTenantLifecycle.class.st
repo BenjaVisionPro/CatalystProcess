@@ -38,161 +38,205 @@ AdminTenantLifecycle class >> definitions [
 	^ definitions
 ]
 
-{ #category : 'processes' }
-AdminTenantLifecycle class >> provisionTenant [
-	<process: #provisionTenant>
-	| process registrationData registrationDefinition tenantData tenantDefinition administratorData administratorDefinition administratorRequestDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate validateOperation validateInput validateInputSet validateIoSpecification validateInputAssociation accepted acceptedCondition establishTenant establishTenantOperation establishTenantResultMessage establishTenantInput establishTenantOutput establishTenantInputSet establishTenantOutputSet establishTenantIoSpecification establishTenantInputAssociation establishTenantOutputAssociation establishAdministrator establishAdministratorOperation establishAdministratorResultMessage administratorInput administratorOutput administratorInputSet administratorOutputSet administratorIoSpecification administratorInputAssociation administratorOutputAssociation administratorTransformation establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
-	process := (CPProcess identifier: #provisionTenant)
-		label: 'Provision Tenant';
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> collectTenantRegistrationUsing: registrationData [
+	| definition input output inputSet outputSet ioSpecification inputAssociation outputAssociation |
+	definition := registrationData itemSubjectRef.
+	input := (CPDataInput identifier: #tenantRegistrationInput)
+		itemSubjectRef: definition;
 		yourself.
-
-	registrationDefinition := CPItemDefinition forStructure: CPTenantRegistration new.
-	registrationData := (CPDataObject identifier: #tenantRegistration)
-		itemSubjectRef: registrationDefinition;
+	output := (CPDataOutput identifier: #tenantRegistrationOutput)
+		itemSubjectRef: definition;
 		yourself.
-	tenantDefinition := CPItemDefinition forStructure: CPTenant new.
-	tenantData := (CPDataObject identifier: #establishedTenant)
-		itemSubjectRef: tenantDefinition;
-		yourself.
-	administratorDefinition := CPItemDefinition forStructure: CPUser new.
-	administratorData := (CPDataObject identifier: #establishedTenantAdministrator)
-		itemSubjectRef: administratorDefinition;
-		yourself.
-	administratorRequestDefinition := CPItemDefinition forStructure: CPTenantAdministratorEstablishment new.
-	initiated := (CPStartEvent identifier: #tenantRegistrationInitiated)
-		label: 'Tenant registration initiated';
-		yourself.
-	registrationInput := (CPDataInput identifier: #tenantRegistrationInput)
-		itemSubjectRef: registrationDefinition;
-		yourself.
-	registrationOutput := (CPDataOutput identifier: #tenantRegistrationOutput)
-		itemSubjectRef: registrationDefinition;
-		yourself.
-	inputSet := CPInputSet new dataInputRefs: { registrationInput }; yourself.
-	outputSet := CPOutputSet new dataOutputRefs: { registrationOutput }; yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
 	ioSpecification := CPInputOutputSpecification new
-		dataInputs: { registrationInput };
-		dataOutputs: { registrationOutput };
+		dataInputs: { input };
+		dataOutputs: { output };
 		inputSets: { inputSet };
 		outputSets: { outputSet };
 		yourself.
 	inputAssociation := CPDataInputAssociation new
 		sourceRefs: { registrationData };
-		targetRef: registrationInput;
+		targetRef: input;
 		yourself.
 	outputAssociation := CPDataOutputAssociation new
-		sourceRefs: { registrationOutput };
+		sourceRefs: { output };
 		targetRef: registrationData;
 		yourself.
-	collectRegistration := (CPUserTask identifier: #collectTenantRegistration)
+	^ (CPUserTask identifier: #collectTenantRegistration)
 		label: 'Collect registration';
 		ioSpecification: ioSpecification;
 		dataInputAssociations: { inputAssociation };
 		dataOutputAssociations: { outputAssociation };
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> establishedTenantAdministratorData [
+	^ (CPDataObject identifier: #establishedTenantAdministrator)
+		itemSubjectRef: (CPItemDefinition forStructure: CPUser new);
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> establishedTenantData [
+	^ (CPDataObject identifier: #establishedTenant)
+		itemSubjectRef: (CPItemDefinition forStructure: CPTenant new);
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> establishTenantAdministratorUsing: tenantData registration: registrationData result: administratorData [
+	| operation resultMessage requestDefinition input output inputSet outputSet ioSpecification transformation inputAssociation outputAssociation |
+	resultMessage := (CPMessage identifier: #establishedTenantAdministratorResult)
+		label: 'Established tenant administrator result';
 		yourself.
-	validateOperation := (CPOperation identifier: #validateTenantRegistration)
+	operation := (CPOperation identifier: #establishTenantAdministratorFromRegistration)
+		label: 'Establish tenant administrator from registration';
+		outMessageRef: resultMessage;
+		yourself.
+	requestDefinition := CPItemDefinition forStructure: CPTenantAdministratorEstablishment new.
+	input := (CPDataInput identifier: #tenantAdministratorEstablishment)
+		itemSubjectRef: requestDefinition;
+		yourself.
+	output := (CPDataOutput identifier: #establishedTenantAdministratorOutput)
+		itemSubjectRef: administratorData itemSubjectRef;
+		yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
+	ioSpecification := CPInputOutputSpecification new
+		dataInputs: { input };
+		dataOutputs: { output };
+		inputSets: { inputSet };
+		outputSets: { outputSet };
+		yourself.
+	transformation := (CPFormalExpression identifier: #prepareTenantAdministratorEstablishment)
+		body: 'prepareTenantAdministratorEstablishment';
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { tenantData. registrationData };
+		targetRef: input;
+		transformation: transformation;
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { output };
+		targetRef: administratorData;
+		yourself.
+	^ (CPServiceTask identifier: #establishTenantAdministrator)
+		label: 'Establish tenant administrator';
+		operationRef: operation;
+		ioSpecification: ioSpecification;
+		dataInputAssociations: { inputAssociation };
+		dataOutputAssociations: { outputAssociation };
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> establishTenantUsing: registrationData result: tenantData [
+	| operation resultMessage input output inputSet outputSet ioSpecification inputAssociation outputAssociation |
+	resultMessage := (CPMessage identifier: #establishedTenantResult)
+		label: 'Established tenant result';
+		yourself.
+	operation := (CPOperation identifier: #establishTenantFromRegistration)
+		label: 'Establish tenant from registration';
+		outMessageRef: resultMessage;
+		yourself.
+	input := (CPDataInput identifier: #registrationForTenantEstablishment)
+		itemSubjectRef: registrationData itemSubjectRef;
+		yourself.
+	output := (CPDataOutput identifier: #establishedTenantOutput)
+		itemSubjectRef: tenantData itemSubjectRef;
+		yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	outputSet := CPOutputSet new dataOutputRefs: { output }; yourself.
+	ioSpecification := CPInputOutputSpecification new
+		dataInputs: { input };
+		dataOutputs: { output };
+		inputSets: { inputSet };
+		outputSets: { outputSet };
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { registrationData };
+		targetRef: input;
+		yourself.
+	outputAssociation := CPDataOutputAssociation new
+		sourceRefs: { output };
+		targetRef: tenantData;
+		yourself.
+	^ (CPServiceTask identifier: #establishTenant)
+		label: 'Establish tenant';
+		operationRef: operation;
+		ioSpecification: ioSpecification;
+		dataInputAssociations: { inputAssociation };
+		dataOutputAssociations: { outputAssociation };
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> registrationAcceptedGateway [
+	^ (CPExclusiveGateway identifier: #registrationAccepted)
+		label: 'Registration accepted?';
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> tenantRegistrationData [
+	^ (CPDataObject identifier: #tenantRegistration)
+		itemSubjectRef: (CPItemDefinition forStructure: CPTenantRegistration new);
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> validateTenantRegistrationUsing: registrationData [
+	| operation input inputSet ioSpecification inputAssociation |
+	operation := (CPOperation identifier: #validateTenantRegistration)
 		label: 'Validate tenant registration';
 		yourself.
-	validateInput := (CPDataInput identifier: #registrationToValidate)
-		itemSubjectRef: registrationDefinition;
+	input := (CPDataInput identifier: #registrationToValidate)
+		itemSubjectRef: registrationData itemSubjectRef;
 		yourself.
-	validateInputSet := CPInputSet new dataInputRefs: { validateInput }; yourself.
-	validateIoSpecification := CPInputOutputSpecification new
-		dataInputs: { validateInput };
-		inputSets: { validateInputSet };
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	ioSpecification := CPInputOutputSpecification new
+		dataInputs: { input };
+		inputSets: { inputSet };
 		yourself.
-	validateInputAssociation := CPDataInputAssociation new
+	inputAssociation := CPDataInputAssociation new
 		sourceRefs: { registrationData };
-		targetRef: validateInput;
+		targetRef: input;
 		yourself.
-	validate := (CPServiceTask identifier: #validateRegistration)
+	^ (CPServiceTask identifier: #validateRegistration)
 		label: 'Validate registration';
-		operationRef: validateOperation;
-		ioSpecification: validateIoSpecification;
-		dataInputAssociations: { validateInputAssociation };
+		operationRef: operation;
+		ioSpecification: ioSpecification;
+		dataInputAssociations: { inputAssociation };
+		yourself
+]
+
+{ #category : 'processes' }
+AdminTenantLifecycle class >> provisionTenant [
+	<process: #provisionTenant>
+	| process registrationData tenantData administratorData initiated collectRegistration validate accepted acceptedCondition establishTenant establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
+	process := (CPProcess identifier: #provisionTenant)
+		label: 'Provision Tenant';
 		yourself.
+	registrationData := self tenantRegistrationData.
+	tenantData := self establishedTenantData.
+	administratorData := self establishedTenantAdministratorData.
+	initiated := (CPStartEvent identifier: #tenantRegistrationInitiated)
+		label: 'Tenant registration initiated';
+		yourself.
+	collectRegistration := self collectTenantRegistrationUsing: registrationData.
+	validate := self validateTenantRegistrationUsing: registrationData.
 	acceptedCondition := (CPFormalExpression identifier: #tenantRegistrationIsAccepted)
 		body: 'tenantRegistrationIsAccepted';
 		yourself.
-	accepted := (CPExclusiveGateway identifier: #registrationAccepted)
-		label: 'Registration accepted?';
-		yourself.
-	establishTenantResultMessage := (CPMessage identifier: #establishedTenantResult)
-		label: 'Established tenant result';
-		yourself.
-	establishTenantOperation := (CPOperation identifier: #establishTenantFromRegistration)
-		label: 'Establish tenant from registration';
-		outMessageRef: establishTenantResultMessage;
-		yourself.
-	establishTenantInput := (CPDataInput identifier: #registrationForTenantEstablishment)
-		itemSubjectRef: registrationDefinition;
-		yourself.
-	establishTenantOutput := (CPDataOutput identifier: #establishedTenantOutput)
-		itemSubjectRef: tenantDefinition;
-		yourself.
-	establishTenantInputSet := CPInputSet new dataInputRefs: { establishTenantInput }; yourself.
-	establishTenantOutputSet := CPOutputSet new dataOutputRefs: { establishTenantOutput }; yourself.
-	establishTenantIoSpecification := CPInputOutputSpecification new
-		dataInputs: { establishTenantInput };
-		dataOutputs: { establishTenantOutput };
-		inputSets: { establishTenantInputSet };
-		outputSets: { establishTenantOutputSet };
-		yourself.
-	establishTenantInputAssociation := CPDataInputAssociation new
-		sourceRefs: { registrationData };
-		targetRef: establishTenantInput;
-		yourself.
-	establishTenantOutputAssociation := CPDataOutputAssociation new
-		sourceRefs: { establishTenantOutput };
-		targetRef: tenantData;
-		yourself.
-	establishTenant := (CPServiceTask identifier: #establishTenant)
-		label: 'Establish tenant';
-		operationRef: establishTenantOperation;
-		ioSpecification: establishTenantIoSpecification;
-		dataInputAssociations: { establishTenantInputAssociation };
-		dataOutputAssociations: { establishTenantOutputAssociation };
-		yourself.
-	establishAdministratorResultMessage := (CPMessage identifier: #establishedTenantAdministratorResult)
-		label: 'Established tenant administrator result';
-		yourself.
-	establishAdministratorOperation := (CPOperation identifier: #establishTenantAdministratorFromRegistration)
-		label: 'Establish tenant administrator from registration';
-		outMessageRef: establishAdministratorResultMessage;
-		yourself.
-	administratorInput := (CPDataInput identifier: #tenantAdministratorEstablishment)
-		itemSubjectRef: administratorRequestDefinition;
-		yourself.
-	administratorOutput := (CPDataOutput identifier: #establishedTenantAdministratorOutput)
-		itemSubjectRef: administratorDefinition;
-		yourself.
-	administratorInputSet := CPInputSet new dataInputRefs: { administratorInput }; yourself.
-	administratorOutputSet := CPOutputSet new dataOutputRefs: { administratorOutput }; yourself.
-	administratorIoSpecification := CPInputOutputSpecification new
-		dataInputs: { administratorInput };
-		dataOutputs: { administratorOutput };
-		inputSets: { administratorInputSet };
-		outputSets: { administratorOutputSet };
-		yourself.
-	administratorTransformation := (CPFormalExpression identifier: #prepareTenantAdministratorEstablishment)
-		body: 'prepareTenantAdministratorEstablishment';
-		yourself.
-	administratorInputAssociation := CPDataInputAssociation new
-		sourceRefs: { tenantData. registrationData };
-		targetRef: administratorInput;
-		transformation: administratorTransformation;
-		yourself.
-	administratorOutputAssociation := CPDataOutputAssociation new
-		sourceRefs: { administratorOutput };
-		targetRef: administratorData;
-		yourself.
-	establishAdministrator := (CPServiceTask identifier: #establishTenantAdministrator)
-		label: 'Establish tenant administrator';
-		operationRef: establishAdministratorOperation;
-		ioSpecification: administratorIoSpecification;
-		dataInputAssociations: { administratorInputAssociation };
-		dataOutputAssociations: { administratorOutputAssociation };
-		yourself.
+	accepted := self registrationAcceptedGateway.
+	establishTenant := self establishTenantUsing: registrationData result: tenantData.
+	establishAdministrator := self
+		establishTenantAdministratorUsing: tenantData
+		registration: registrationData
+		result: administratorData.
 	establishTrial := (CPServiceTask identifier: #establishTrialSubscription)
 		label: 'Establish trial subscription';
 		yourself.
@@ -211,7 +255,6 @@ AdminTenantLifecycle class >> provisionTenant [
 	rejected := (CPEndEvent identifier: #registrationRejected)
 		label: 'Registration rejected';
 		yourself.
-
 	flows := {
 		CPSequenceFlow identifier: #initiationToRegistration.
 		CPSequenceFlow identifier: #registrationToValidation.
@@ -240,10 +283,8 @@ AdminTenantLifecycle class >> provisionTenant [
 	(flows at: 9) sourceRef: provisionServices; targetRef: activateAccess.
 	(flows at: 10) sourceRef: activateAccess; targetRef: notifyWelcome.
 	(flows at: 11) sourceRef: notifyWelcome; targetRef: provisioned.
-
 	{ registrationData. tenantData. administratorData. initiated. collectRegistration. validate. accepted. establishTenant.
-	  establishAdministrator. establishTrial. provisionServices. activateAccess.
-	  notifyWelcome. provisioned. rejected }
+	  establishAdministrator. establishTrial. provisionServices. activateAccess. notifyWelcome. provisioned. rejected }
 		do: [ :each | process addFlowElement: each ].
 	flows do: [ :each | process addFlowElement: each ].
 	^ process
