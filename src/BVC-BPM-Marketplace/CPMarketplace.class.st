@@ -4,7 +4,8 @@ Class {
 	#superclass : 'CFLabelledObject',
 	#instVars : [
 		'publishedDefinitions',
-		'products'
+		'products',
+		'licences'
 	],
 	#category : 'BVC-BPM-Marketplace-Domain',
 	#package : 'BVC-BPM-Marketplace',
@@ -15,7 +16,8 @@ Class {
 CPMarketplace >> initialize [
 	super initialize.
 	publishedDefinitions := OrderedCollection new.
-	products := OrderedCollection new
+	products := OrderedCollection new.
+	licences := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -68,6 +70,30 @@ CPMarketplace >> productsDescription [
 		accessor: #products;
 		label: 'Products';
 		priority: 110;
+		group: 'Relations';
+		yourself
+]
+
+
+{ #category : 'accessing' }
+CPMarketplace >> licences [
+	^ licences
+]
+
+{ #category : 'adding' }
+CPMarketplace >> addLicence: aLicence [
+	aLicence ifNil: [ self error: 'A Marketplace licence is required.' ].
+	(licences includes: aLicence) ifFalse: [ licences add: aLicence ].
+	^ aLicence
+]
+
+{ #category : 'descriptions' }
+CPMarketplace >> licencesDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new
+		accessor: #licences;
+		label: 'Licences';
+		priority: 120;
 		group: 'Relations';
 		yourself
 ]

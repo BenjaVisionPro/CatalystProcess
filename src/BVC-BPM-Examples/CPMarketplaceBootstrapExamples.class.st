@@ -904,3 +904,54 @@ CPMarketplaceBootstrapExamples >> adminBootstrapSeedsTenantLifecycleProduct [
 	self assert: (marketplace includesPublishedDefinition: CatalystTenantLifecycleV1).
 	^ product
 ]
+
+
+{ #category : 'examples - marketplace licensing' }
+CPMarketplaceBootstrapExamples >> marketplaceLicenceAuthorizesExplicitFeaturesWithinItsPeriod [
+	<gtExample>
+	| marketplace product tenant licence from until |
+	marketplace := CPMarketplace new.
+	product := CPMarketplaceProduct new label: 'Tenant Lifecycle'; yourself.
+	tenant := CPTenant new label: 'Admin'; yourself.
+	from := DateAndTime year: 2026 month: 1 day: 1 hour: 0 minute: 0 second: 0 offset: Duration zero.
+	until := DateAndTime year: 2026 month: 12 day: 31 hour: 23 minute: 59 second: 59 offset: Duration zero.
+	licence := CPMarketplaceLicence new
+		tenant: tenant;
+		product: product;
+		effectiveFrom: from;
+		effectiveUntil: until;
+		yourself.
+	licence
+		addFeature: CPMarketplaceUseFeature new;
+		addFeature: CPMarketplaceAdaptFeature new.
+	marketplace addLicence: licence.
+
+	self assert: marketplace licences asArray equals: { licence }.
+	self assert: licence tenant == tenant.
+	self assert: licence product == product.
+	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: from).
+	self assert: (licence authorizesFeature: CPMarketplaceAdaptFeature new at: until).
+	self assert: (licence authorizesFeature: CPMarketplacePublishDerivativeFeature new at: from) not.
+	^ licence
+]
+
+{ #category : 'examples - marketplace licensing' }
+CPMarketplaceBootstrapExamples >> marketplaceLicenceDoesNotAuthorizeOutsideItsPeriod [
+	<gtExample>
+	| licence from until before after |
+	from := DateAndTime year: 2026 month: 4 day: 1 hour: 0 minute: 0 second: 0 offset: Duration zero.
+	until := DateAndTime year: 2026 month: 4 day: 30 hour: 23 minute: 59 second: 59 offset: Duration zero.
+	before := from - 1 second.
+	after := until + 1 second.
+	licence := CPMarketplaceLicence new
+		effectiveFrom: from;
+		effectiveUntil: until;
+		yourself.
+	licence addFeature: CPMarketplaceUseFeature new.
+
+	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: before) not.
+	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: from).
+	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: until).
+	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: after) not.
+	^ licence
+]
