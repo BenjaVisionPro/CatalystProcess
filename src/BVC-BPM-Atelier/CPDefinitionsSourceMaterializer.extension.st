@@ -69,17 +69,21 @@ CPDefinitionsSourceMaterializer >> saveSourceChangesFromMemento: aDefinitionsMem
 
 { #category : '*BVC-BPM-Atelier' }
 CPDefinitionsSourceMaterializer >> validateSourceBackedRelationsIn: aDocumentContext [
-	| stagedRoots stagedDiagrams |
+	| definitions stagedRoots stagedDiagrams originalNonProcesses stagedNonProcesses |
+	definitions := aDocumentContext definitionsMemento model.
 	stagedRoots := aDocumentContext rootElements.
 	stagedDiagrams := aDocumentContext diagrams.
 	aDocumentContext validateRootElements: stagedRoots.
 	aDocumentContext validateDiagrams: stagedDiagrams.
-	stagedRoots do: [ :each |
-		each class = CPProcess ifFalse: [
-			self error: 'Source-backed structural editing currently supports Processes only' ] ].
+	originalNonProcesses := definitions rootElements reject: [ :each | each class = CPProcess ].
+	stagedNonProcesses := stagedRoots reject: [ :each | each class = CPProcess ].
+	(originalNonProcesses size = stagedNonProcesses size
+		and: [ originalNonProcesses allSatisfy: [ :each | stagedNonProcesses identityIncludes: each ] ]) ifFalse: [
+		self error: 'Source-backed structural editing currently supports Processes only' ].
 	stagedDiagrams do: [ :each |
 		(each plane modelElement notNil
-			and: [ stagedRoots identityIncludes: each plane modelElement ]) ifFalse: [
+			and: [ each plane modelElement class = CPProcess
+			and: [ stagedRoots identityIncludes: each plane modelElement ] ]) ifFalse: [
 			self error: 'Every source-backed Diagram must reference a staged Process' ] ]
 ]
 
