@@ -284,3 +284,13 @@ CPBpmWorkspaceExamples >> publicTenantRegistrationSubmissionContinuesIntoValidat
 	self assert: invocation inputValue == registration.
 	^ invocation
 ]
+
+{ #category : 'examples - marketplace workspace' }
+CPBpmWorkspaceExamples >> interactiveTenantRegistrationHarness [
+	<gtExample>
+	| harness |
+	harness := CPTenantRegistrationTestHarness configured.
+	self assert: harness root notNil.
+	self assert: harness registration isNil.
+	^ harness
+]
