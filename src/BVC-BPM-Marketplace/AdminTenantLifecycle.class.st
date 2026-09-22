@@ -8,7 +8,7 @@ Class {
 
 { #category : 'definitions' }
 AdminTenantLifecycle class >> definitions [
-	| definitions tenantRegistrationInterface validateOperation establishTenantOperation establishTenantResultMessage establishAdministratorOperation establishAdministratorResultMessage |
+	| definitions tenantRegistrationInterface validateOperation establishTenantOperation establishTenantResultMessage establishAdministratorOperation establishAdministratorResultMessage establishTrialOperation |
 	definitions := super definitions.
 	validateOperation := (CPOperation identifier: #validateTenantRegistration)
 		label: 'Validate tenant registration';
@@ -27,13 +27,17 @@ AdminTenantLifecycle class >> definitions [
 		label: 'Establish tenant administrator from registration';
 		outMessageRef: establishAdministratorResultMessage;
 		yourself.
+	establishTrialOperation := (CPOperation identifier: #establishTrialSubscriptionForTenant)
+		label: 'Establish trial subscription for tenant';
+		yourself.
 	tenantRegistrationInterface := (CPInterface identifier: #tenantRegistrationOperations)
 		label: 'Tenant registration operations';
 		yourself.
 	tenantRegistrationInterface
 		addOperation: validateOperation;
 		addOperation: establishTenantOperation;
-		addOperation: establishAdministratorOperation.
+		addOperation: establishAdministratorOperation;
+		addOperation: establishTrialOperation.
 	definitions addRootElement: tenantRegistrationInterface.
 	^ definitions
 ]
@@ -129,6 +133,32 @@ AdminTenantLifecycle class >> establishTenantAdministratorUsing: tenantData regi
 		ioSpecification: ioSpecification;
 		dataInputAssociations: { inputAssociation };
 		dataOutputAssociations: { outputAssociation };
+		yourself
+]
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> establishTrialSubscriptionUsing: tenantData [
+	| operation input inputSet ioSpecification inputAssociation |
+	operation := (CPOperation identifier: #establishTrialSubscriptionForTenant)
+		label: 'Establish trial subscription for tenant';
+		yourself.
+	input := (CPDataInput identifier: #tenantForTrialSubscription)
+		itemSubjectRef: tenantData itemSubjectRef;
+		yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	ioSpecification := CPInputOutputSpecification new
+		dataInputs: { input };
+		inputSets: { inputSet };
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { tenantData };
+		targetRef: input;
+		yourself.
+	^ (CPServiceTask identifier: #establishTrialSubscription)
+		label: 'Establish trial subscription';
+		operationRef: operation;
+		ioSpecification: ioSpecification;
+		dataInputAssociations: { inputAssociation };
 		yourself
 ]
 
@@ -237,9 +267,7 @@ AdminTenantLifecycle class >> provisionTenant [
 		establishTenantAdministratorUsing: tenantData
 		registration: registrationData
 		result: administratorData.
-	establishTrial := (CPServiceTask identifier: #establishTrialSubscription)
-		label: 'Establish trial subscription';
-		yourself.
+	establishTrial := self establishTrialSubscriptionUsing: tenantData.
 	provisionServices := (CPServiceTask identifier: #provisionTenantServices)
 		label: 'Provision tenant services';
 		yourself.

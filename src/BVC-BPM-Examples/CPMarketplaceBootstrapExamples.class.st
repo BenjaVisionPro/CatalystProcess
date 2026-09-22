@@ -553,3 +553,40 @@ CPMarketplaceBootstrapExamples >> administratorEstablishmentPublishesEstablished
 	^ administratorExecution
 ]
 
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> establishedAdministratorReachesExecutableTrialSubscription [
+	<gtExample>
+	| administratorExecution execution incomingFlow establishTrial operation tenantData tenant implementation environment trialExecution invocation |
+	administratorExecution := self administratorEstablishmentPublishesEstablishedAdministratorAsProcessData.
+	execution := administratorExecution scope processExecution.
+	incomingFlow := execution definition flowElements
+		detect: [ :each | each identifier = #administratorToTrial ].
+	establishTrial := execution definition flowElements
+		detect: [ :each | each identifier = #establishTrialSubscription ].
+	operation := establishTrial operationRef.
+	self assert: operation notNil.
+	self assert: operation identifier equals: #establishTrialSubscriptionForTenant.
+	self assert: establishTrial ioSpecification dataInputs size equals: 1.
+	self assert: establishTrial ioSpecification dataOutputs isEmpty.
+	self assert: establishTrial dataInputAssociations size equals: 1.
+	self assert: establishTrial dataInputAssociations first sourceRefs first identifier equals: #establishedTenant.
+	tenantData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenant ].
+	tenant := execution itemValueFor: tenantData.
+	implementation := Object new.
+	environment := execution environment.
+	environment operation: operation resolvesTo: implementation.
+	self assert: (execution availableFlowActivationsOn: incomingFlow) size equals: 1.
+	trialExecution := execution createServiceTaskExecutionFor: establishTrial.
+	execution readyActivityExecution: trialExecution.
+	self assert: trialExecution consumedFlowActivations size equals: 1.
+	execution activateServiceTaskExecution: trialExecution.
+	self assert: trialExecution isActive.
+	self assert: trialExecution resolvedImplementation == implementation.
+	self assert: (trialExecution itemValueFor: establishTrial ioSpecification dataInputs first) == tenant.
+	invocation := trialExecution prepareExternalInvocationIdentifiedBy: #establishTrialSubscriptionInvocation.
+	self assert: invocation isPending.
+	self assert: invocation inputValue == tenant.
+	^ invocation
+]
