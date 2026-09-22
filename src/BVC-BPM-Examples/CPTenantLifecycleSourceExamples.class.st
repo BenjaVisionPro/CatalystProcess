@@ -310,12 +310,12 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 
 
 { #category : 'examples - marketplace bootstrap' }
-CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
+CPTenantLifecycleSourceExamples >> customerVersionedTenantLifecycleDefinition [
 	<gtExample>
 	| definitions |
-	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
-	self assert: AdminTenantLifecycle superclass = CatalystTenantLifecycleV1.
-	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: AdminTenantLifecycle) not.
+	definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
+	self assert: CustomerVersionedTenantLifecycle superclass = CatalystTenantLifecycleV1.
+	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: CustomerVersionedTenantLifecycle) not.
 	self assert: (definitions rootElements anySatisfy: [ :each |
 		each identifier = #tenantRegistrationOperations ]).
 	self assert: definitions diagrams size equals: 6.
@@ -323,9 +323,9 @@ CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
 ]
 
 { #category : 'examples - marketplace bootstrap' }
-CPTenantLifecycleSourceExamples >> adminTenantLifecycleAtelier [
+CPTenantLifecycleSourceExamples >> customerVersionedTenantLifecycleAtelier [
 	<gtExample>
-	^ self adminTenantLifecycleDefinition
+	^ self customerVersionedTenantLifecycleDefinition
 ]
 
 { #category : 'examples - marketplace source' }
@@ -349,21 +349,21 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionGraphAndRevert 
 	<gtExample>
 	| definitions subscription selector reloaded restored |
 	[
-		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle.
-		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self restoreInheritedProcess: #startSubscription in: CustomerVersionedTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		subscription := definitions rootElements
 			detect: [ :each | each identifier = #startSubscription ].
 		subscription label: 'Admin Start Subscription'.
 
 		selector := CPDefinitionsSourceMaterializer
 			saveProcess: subscription
-			in: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
 		self assert: selector equals: #startSubscription.
 		self assert: (CPDefinitionsSourceMaterializer
 			isSpecialisedProcess: #startSubscription
-			in: AdminTenantLifecycle).
+			in: CustomerVersionedTenantLifecycle).
 
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		subscription := reloaded rootElements
 			detect: [ :each | each identifier = #startSubscription ].
 		self assert: subscription label equals: 'Admin Start Subscription'.
@@ -372,14 +372,14 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionGraphAndRevert 
 
 		CPDefinitionsSourceMaterializer
 			revertProcess: #startSubscription
-			in: AdminTenantLifecycle.
-		restored := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
+		restored := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		subscription := restored rootElements
 			detect: [ :each | each identifier = #startSubscription ].
 		self assert: subscription label equals: 'Start Subscription'.
 		^ restored
 	] ensure: [
-		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle ]
+		self restoreInheritedProcess: #startSubscription in: CustomerVersionedTenantLifecycle ]
 ]
 
 { #category : 'examples - marketplace source' }
@@ -387,18 +387,18 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionDiagramAndRever
 	<gtExample>
 	| definitions diagram selector reloaded restored |
 	[
-		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
-		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		self restoreInheritedDiagram: #startSubscriptionOverview in: CustomerVersionedTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		diagram := definitions diagrams
 			detect: [ :each | each identifier = #startSubscriptionOverview ].
 		selector := CPDefinitionsSourceMaterializer
 			saveDiagram: diagram
-			in: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
 		self assert: selector equals: #startSubscriptionOverview.
 		self assert: (CPDefinitionsSourceMaterializer
 			isSpecialisedDiagram: #startSubscriptionOverview
-			in: AdminTenantLifecycle).
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle).
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		diagram := reloaded diagrams
 			detect: [ :each | each identifier = #startSubscriptionOverview ].
 		self assert: diagram plane elements size > 0.
@@ -406,13 +406,13 @@ CPTenantLifecycleSourceExamples >> saveInheritedStartSubscriptionDiagramAndRever
 			((definitions diagrams detect: [ :each | each identifier = #startSubscriptionOverview ]) plane elements size).
 		CPDefinitionsSourceMaterializer
 			revertDiagram: #startSubscriptionOverview
-			in: AdminTenantLifecycle.
-		restored := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
+		restored := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: (restored diagrams anySatisfy: [ :each |
 			each identifier = #startSubscriptionOverview ]).
 		^ restored
 	] ensure: [
-		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle ]
+		self restoreInheritedDiagram: #startSubscriptionOverview in: CustomerVersionedTenantLifecycle ]
 ]
 
 { #category : 'examples - marketplace source' }
@@ -420,10 +420,10 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoSavesProcessAndDiagramToge
 	<gtExample>
 	| definitions root context process processMemento diagram diagramMemento selectors reloaded |
 	[
-		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle.
-		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
-		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
-		root := CPDefinitionsSourceMemento model: definitions sourceClass: AdminTenantLifecycle.
+		self restoreInheritedProcess: #startSubscription in: CustomerVersionedTenantLifecycle.
+		self restoreInheritedDiagram: #startSubscriptionOverview in: CustomerVersionedTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: definitions sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.
 		process := definitions rootElements detect: [ :each | each identifier = #startSubscription ].
 		processMemento := context mementoForRootElement: process.
@@ -438,16 +438,16 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoSavesProcessAndDiagramToge
 			using: diagram planeDescription.
 		selectors := CPDefinitionsSourceMaterializer new
 			saveSourceChangesFromMemento: root
-			in: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
 		self assert: (selectors includes: #startSubscription).
 		self assert: (selectors includes: #startSubscriptionOverview).
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: ((reloaded rootElements detect: [ :each | each identifier = #startSubscription ]) label)
 			equals: 'Admin Start Subscription'.
 		^ reloaded
 	] ensure: [
-		self restoreInheritedDiagram: #startSubscriptionOverview in: AdminTenantLifecycle.
-		self restoreInheritedProcess: #startSubscription in: AdminTenantLifecycle ]
+		self restoreInheritedDiagram: #startSubscriptionOverview in: CustomerVersionedTenantLifecycle.
+		self restoreInheritedProcess: #startSubscription in: CustomerVersionedTenantLifecycle ]
 ]
 
 { #category : 'examples - marketplace source' }
@@ -455,10 +455,10 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 	<gtExample>
 	| definitions root context localProcess staged reloaded |
 	[
-		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ].
-		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
-		root := CPDefinitionsSourceMemento model: definitions sourceClass: AdminTenantLifecycle.
+		(CustomerVersionedTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #reviewTenantAccess ].
+		definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: definitions sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.
 		localProcess := (CPProcess identifier: #reviewTenantAccess)
 			label: 'Review Tenant Access';
@@ -467,23 +467,23 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 		context writeRootElements: staged.
 		CPDefinitionsSourceMaterializer new
 			saveSourceChangesFromMemento: root
-			in: AdminTenantLifecycle.
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]).
 
-		root := CPDefinitionsSourceMemento model: reloaded sourceClass: AdminTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: reloaded sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.
 		staged := context rootElements reject: [ :each | each identifier = #reviewTenantAccess ].
 		context writeRootElements: staged.
 		CPDefinitionsSourceMaterializer new
 			saveSourceChangesFromMemento: root
-			in: AdminTenantLifecycle.
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]) not.
 		^ reloaded
 	] ensure: [
-		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
+		(CustomerVersionedTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
 ]
 
 
@@ -492,12 +492,12 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 	<gtExample>
 	| definitions root context process start finish flow diagram shape edge roots diagrams reloaded |
 	[
-		(AdminTenantLifecycle class includesSelector: #reviewTenantAccessOverview)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccessOverview ].
-		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ].
-		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
-		root := CPDefinitionsSourceMemento model: definitions sourceClass: AdminTenantLifecycle.
+		(CustomerVersionedTenantLifecycle class includesSelector: #reviewTenantAccessOverview)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #reviewTenantAccessOverview ].
+		(CustomerVersionedTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #reviewTenantAccess ].
+		definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: definitions sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.
 
 		process := (CPProcess identifier: #reviewTenantAccess)
@@ -530,16 +530,16 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 		context writeDiagrams: diagrams.
 		CPDefinitionsSourceMaterializer new
 			saveSourceChangesFromMemento: root
-			in: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
 
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]).
 		self assert: (reloaded diagrams anySatisfy: [ :each | each identifier = #reviewTenantAccessOverview ]).
 		diagram := reloaded diagrams detect: [ :each | each identifier = #reviewTenantAccessOverview ].
 		self assert: diagram plane modelElement identifier equals: #reviewTenantAccess.
 		self assert: diagram plane elements size equals: 3.
 
-		root := CPDefinitionsSourceMemento model: reloaded sourceClass: AdminTenantLifecycle.
+		root := CPDefinitionsSourceMemento model: reloaded sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.
 		diagrams := context diagrams reject: [ :each | each identifier = #reviewTenantAccessOverview ].
 		roots := context rootElements reject: [ :each | each identifier = #reviewTenantAccess ].
@@ -547,16 +547,16 @@ CPTenantLifecycleSourceExamples >> sourceBackedMementoAddsAndRemovesLocalProcess
 		context writeRootElements: roots.
 		CPDefinitionsSourceMaterializer new
 			saveSourceChangesFromMemento: root
-			in: AdminTenantLifecycle.
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+			in: CustomerVersionedTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: (reloaded rootElements anySatisfy: [ :each | each identifier = #reviewTenantAccess ]) not.
 		self assert: (reloaded diagrams anySatisfy: [ :each | each identifier = #reviewTenantAccessOverview ]) not.
 		^ reloaded
 	] ensure: [
-		(AdminTenantLifecycle class includesSelector: #reviewTenantAccessOverview)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccessOverview ].
-		(AdminTenantLifecycle class includesSelector: #reviewTenantAccess)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
+		(CustomerVersionedTenantLifecycle class includesSelector: #reviewTenantAccessOverview)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #reviewTenantAccessOverview ].
+		(CustomerVersionedTenantLifecycle class includesSelector: #reviewTenantAccess)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #reviewTenantAccess ] ]
 ]
 
 
@@ -565,15 +565,15 @@ CPTenantLifecycleSourceExamples >> sourceBackedCommitAddsProcessAndDiagramToMode
 	<gtExample>
 	| definitions root context process start finish flow diagram shape edge reloaded |
 	[
-		(AdminTenantLifecycle class includesSelector: #inspectTenantAccessOverview)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #inspectTenantAccessOverview ].
-		(AdminTenantLifecycle class includesSelector: #inspectTenantAccess)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #inspectTenantAccess ].
+		(CustomerVersionedTenantLifecycle class includesSelector: #inspectTenantAccessOverview)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #inspectTenantAccessOverview ].
+		(CustomerVersionedTenantLifecycle class includesSelector: #inspectTenantAccess)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #inspectTenantAccess ].
 
-		definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		definitions := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		root := CPDefinitionsSourceMemento
 			model: definitions
-			sourceClass: AdminTenantLifecycle.
+			sourceClass: CustomerVersionedTenantLifecycle.
 		context := CPDefinitionsMementoContext memento: root.
 
 		process := (CPProcess identifier: #inspectTenantAccess)
@@ -622,20 +622,20 @@ CPTenantLifecycleSourceExamples >> sourceBackedCommitAddsProcessAndDiagramToMode
 		self assert: (definitions diagrams identityIncludes: diagram).
 		self assert: (CPDefinitionsSourceMaterializer
 			isLocalProcess: #inspectTenantAccess
-			in: AdminTenantLifecycle).
+			in: CustomerVersionedTenantLifecycle).
 		self assert: (CPDefinitionsSourceMaterializer
 			isLocalDiagram: #inspectTenantAccessOverview
-			in: AdminTenantLifecycle).
+			in: CustomerVersionedTenantLifecycle).
 
-		reloaded := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+		reloaded := CPDefinitionsSourceMaterializer materialize: CustomerVersionedTenantLifecycle.
 		self assert: (reloaded rootElements anySatisfy: [ :each |
 			each identifier = #inspectTenantAccess ]).
 		self assert: (reloaded diagrams anySatisfy: [ :each |
 			each identifier = #inspectTenantAccessOverview ]).
 		^ reloaded
 	] ensure: [
-		(AdminTenantLifecycle class includesSelector: #inspectTenantAccessOverview)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #inspectTenantAccessOverview ].
-		(AdminTenantLifecycle class includesSelector: #inspectTenantAccess)
-			ifTrue: [ AdminTenantLifecycle class removeSelector: #inspectTenantAccess ] ]
+		(CustomerVersionedTenantLifecycle class includesSelector: #inspectTenantAccessOverview)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #inspectTenantAccessOverview ].
+		(CustomerVersionedTenantLifecycle class includesSelector: #inspectTenantAccess)
+			ifTrue: [ CustomerVersionedTenantLifecycle class removeSelector: #inspectTenantAccess ] ]
 ]

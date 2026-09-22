@@ -743,6 +743,7 @@ CPDefinitionsSourceMaterializer >> publish: aSourceClass [
 		version: version.
 
 	self compileDefinitionsFrom: aSourceClass into: publishedClass.
+	self compileSupportingMethodsFrom: aSourceClass into: publishedClass.
 	(self effectivePragmasNamed: #process: for: aSourceClass)
 		do: [ :each | publishedClass class compile: each method sourceCode ].
 	(self effectivePragmasNamed: #diagram:process: for: aSourceClass)
@@ -753,6 +754,26 @@ CPDefinitionsSourceMaterializer >> publish: aSourceClass [
 	"The snapshot must stand on its own and materialise successfully."
 	self materialize: publishedClass.
 	^ publishedClass
+]
+
+
+{ #category : 'private - publishing' }
+CPDefinitionsSourceMaterializer >> compileSupportingMethodsFrom: aSourceClass into: aPublishedClass [
+	| hierarchy excludedSelectors current |
+	excludedSelectors := Set with: #definitions with: #version with: #versionOf.
+	(self effectivePragmasNamed: #process: for: aSourceClass)
+		do: [ :each | excludedSelectors add: each methodSelector ].
+	(self effectivePragmasNamed: #diagram:process: for: aSourceClass)
+		do: [ :each | excludedSelectors add: each methodSelector ].
+	hierarchy := OrderedCollection new.
+	current := aSourceClass.
+	[ current notNil and: [ current ~~ Object ] ] whileTrue: [
+		hierarchy addFirst: current.
+		current := current superclass ].
+	hierarchy do: [ :eachClass |
+		eachClass class methodDict valuesDo: [ :method |
+			(excludedSelectors includes: method selector) ifFalse: [
+				aPublishedClass class compile: method sourceCode ] ] ]
 ]
 
 { #category : 'private - publishing' }

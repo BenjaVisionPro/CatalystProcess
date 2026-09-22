@@ -69,7 +69,7 @@ CPMarketplaceBootstrapExamples >> adminTenantLifecycleIsProductionMarketplaceSou
 CPMarketplaceBootstrapExamples >> adminTenantRegistrationBeginsWithHumanCollection [
 	<gtExample>
 	| process registrationData initiated collect flow input output environment execution registration taskExecution |
-	process := AdminTenantLifecycle provisionTenant.
+	process := CatalystTenantLifecycleV1 provisionTenant.
 	registrationData := process flowElements
 		detect: [ :each | each identifier = #tenantRegistration ].
 	initiated := process flowElements
@@ -445,7 +445,7 @@ CPMarketplaceBootstrapExamples >> tenantEstablishmentPublishesEstablishedTenantA
 CPMarketplaceBootstrapExamples >> tenantAdministratorEstablishmentHasExplicitOperationBoundary [
 	<gtExample>
 	| definitions process establishAdministrator operation input output association administratorData |
-	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+	definitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycleV1.
 	process := definitions rootElements
 		detect: [ :each | each identifier = #provisionTenant ].
 	establishAdministrator := process flowElements
@@ -847,7 +847,7 @@ CPMarketplaceBootstrapExamples >> marketplaceRejectsMutableDefinitionSource [
 	| marketplace rejected |
 	marketplace := CPMarketplace new.
 	rejected := false.
-	[ marketplace addPublishedDefinition: AdminTenantLifecycle ]
+	[ marketplace addPublishedDefinition: CustomerVersionedTenantLifecycle ]
 		on: Error
 		do: [ :error | rejected := true ].
 	self assert: rejected.
@@ -881,7 +881,7 @@ CPMarketplaceBootstrapExamples >> marketplaceProductRejectsMutableDefinitionSour
 	| product rejected |
 	product := CPMarketplaceProduct new.
 	rejected := false.
-	[ product addPublishedDefinition: AdminTenantLifecycle ]
+	[ product addPublishedDefinition: CustomerVersionedTenantLifecycle ]
 		on: Error
 		do: [ :error | rejected := true ].
 	self assert: rejected.
@@ -970,53 +970,26 @@ CPMarketplaceBootstrapExamples >> adminBootstrapLicencesTenantLifecycleProductTo
 	self assert: licence tenant == bootstrap adminTenant.
 	self assert: licence product == bootstrap tenantLifecycleProduct.
 	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: DateAndTime now).
-	self assert: (licence authorizesFeature: CPMarketplaceAdaptFeature new at: DateAndTime now).
-	self assert: (licence authorizesFeature: CPMarketplacePublishDerivativeFeature new at: DateAndTime now).
+	self assert: (licence authorizesFeature: CPMarketplaceAdaptFeature new at: DateAndTime now) not.
+	self assert: (licence authorizesFeature: CPMarketplacePublishDerivativeFeature new at: DateAndTime now) not.
 	^ licence
 ]
 
-
-{ #category : 'examples - marketplace publication' }
-CPMarketplaceBootstrapExamples >> adminBootstrapDeploysImmutableAdminTenantLifecyclePublication [
+{ #category : 'examples - marketplace bootstrap' }
+CPMarketplaceBootstrapExamples >> adminBootstrapDeploysExactMarketplaceTenantLifecycle [
 	<gtExample>
-	| bootstrap publication deployment |
+	| bootstrap marketplaceDefinitions deploymentProcess marketplaceProcess |
 	bootstrap := CPAdminTenantBootstrap configured.
-	publication := bootstrap tenantLifecyclePublishedDefinition.
-	deployment := bootstrap tenantLifecycleDeployment.
+	marketplaceDefinitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycleV1.
+	marketplaceProcess := marketplaceDefinitions rootElements
+		detect: [ :each | each identifier = #provisionTenant ].
+	deploymentProcess := bootstrap tenantLifecycleDeployment processDefinition.
 
-	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: publication).
-	self assert: (CPDefinitionsSourceMaterializer versionOf: publication) == AdminTenantLifecycle.
-	self assert: publication superclass == Object.
-	self assert: (bootstrap marketplace includesPublishedDefinition: publication).
-	self assert: (bootstrap tenantLifecycleProduct includesPublishedDefinition: CatalystTenantLifecycleV1).
-	self assert: (bootstrap tenantLifecycleProduct includesPublishedDefinition: publication) not.
-	self assert: deployment processDefinition parent == bootstrap tenantLifecycleDefinitions.
-	self assert: deployment version equals: publication version.
-	^ deployment
-]
-
-{ #category : 'examples - marketplace publication' }
-CPMarketplaceBootstrapExamples >> repeatedAdminBootstrapReusesCanonicalAdminTenantLifecyclePublication [
-	<gtExample>
-	| first second |
-	first := CPAdminTenantBootstrap configured.
-	second := CPAdminTenantBootstrap configured.
-
-	self assert: first tenantLifecyclePublishedDefinition == second tenantLifecyclePublishedDefinition.
-	^ second tenantLifecyclePublishedDefinition
-]
-
-{ #category : 'examples - bootstrap' }
-CPMarketplaceBootstrapExamples >> adminTenantLifecyclePublicationMaterializesStandalone [
-	<gtExample>
-	| bootstrap publication definitions |
-	bootstrap := CPAdminTenantBootstrap configured.
-	publication := bootstrap tenantLifecyclePublishedDefinition.
-	self assert: publication superclass equals: Object.
-	definitions := CPDefinitionsSourceMaterializer materialize: publication.
-	self assert: definitions identifier equals: #tenantLifecycle.
-	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
-	self assert: (definitions rootElements anySatisfy: [ :each |
-		each class = CPProcess and: [ each identifier = #provisionTenant ] ]).
-	^ publication
+	self assert: bootstrap tenantLifecycleDefinitions sourceClass == CatalystTenantLifecycleV1.
+	self assert: (bootstrap marketplace includesPublishedDefinition: CatalystTenantLifecycleV1).
+	self assert: bootstrap tenantLifecycleProduct publishedDefinitions asArray equals: { CatalystTenantLifecycleV1 }.
+	self assert: deploymentProcess identifier equals: marketplaceProcess identifier.
+	self assert: deploymentProcess flowElements size equals: marketplaceProcess flowElements size.
+	self assert: (deploymentProcess flowElements anySatisfy: [ :each | each identifier = #collectTenantRegistration ]).
+	^ deploymentProcess
 ]

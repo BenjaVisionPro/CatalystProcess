@@ -9,7 +9,6 @@ Class {
 		'marketplace',
 		'tenantLifecycleProduct',
 		'tenantLifecycleLicence',
-		'tenantLifecyclePublishedDefinition',
 		'adminTenant',
 		'adminUser',
 		'adminMembership',
@@ -58,23 +57,18 @@ CPAdminTenantBootstrap >> configure [
 		tenant: adminTenant;
 		product: tenantLifecycleProduct;
 		yourself.
-	tenantLifecycleLicence
-		addFeature: CPMarketplaceUseFeature new;
-		addFeature: CPMarketplaceAdaptFeature new;
-		addFeature: CPMarketplacePublishDerivativeFeature new.
+	tenantLifecycleLicence addFeature: CPMarketplaceUseFeature new.
 	marketplace addLicence: tenantLifecycleLicence.
 
-	tenantLifecyclePublishedDefinition := self establishAdminTenantLifecyclePublication.
-	marketplace addPublishedDefinition: tenantLifecyclePublishedDefinition.
-	tenantLifecycleDefinitions := CPDefinitionsSourceMaterializer materialize: tenantLifecyclePublishedDefinition.
+	tenantLifecycleDefinitions := CPDefinitionsSourceMaterializer materialize: CatalystTenantLifecycleV1.
 	process := tenantLifecycleDefinitions rootElements
 		detect: [ :each | each identifier = #provisionTenant ]
-		ifNone: [ self error: 'Admin Tenant Lifecycle does not define provisionTenant.' ].
+		ifNone: [ self error: 'Marketplace Tenant Lifecycle does not define provisionTenant.' ].
 	tenantLifecycleDeployment := CPProcessDeployment new
 		label: 'Admin Tenant Lifecycle - Provision Tenant';
 		tenant: adminTenant;
 		processKey: #provisionTenant;
-		version: tenantLifecyclePublishedDefinition version;
+		version: CatalystTenantLifecycleV1 version;
 		processDefinition: process;
 		deployedBy: adminUser;
 		deployedAt: DateAndTime now;
@@ -117,22 +111,6 @@ CPAdminTenantBootstrap >> configure [
 		yourself
 ]
 
-
-{ #category : 'configuration - marketplace' }
-CPAdminTenantBootstrap >> establishAdminTenantLifecyclePublication [
-	| publications |
-	publications := (Pragma allNamed: #publishedVersion)
-		collect: [ :aPragma | aPragma methodClass instanceSide ]
-		thenSelect: [ :each |
-			each ~~ AdminTenantLifecycle
-				and: [ each versionOf = AdminTenantLifecycle ] ].
-	publications size > 1 ifTrue: [
-		self error: 'Bootstrap requires one canonical Admin Tenant Lifecycle publication.' ].
-	^ publications
-		ifEmpty: [ CPDefinitionsSourceMaterializer publish: AdminTenantLifecycle ]
-		ifNotEmpty: [ publications first ]
-]
-
 { #category : 'accessing' }
 CPAdminTenantBootstrap >> marketplace [
 	^ marketplace
@@ -146,11 +124,6 @@ CPAdminTenantBootstrap >> tenantLifecycleProduct [
 { #category : 'accessing' }
 CPAdminTenantBootstrap >> tenantLifecycleLicence [
 	^ tenantLifecycleLicence
-]
-
-{ #category : 'accessing' }
-CPAdminTenantBootstrap >> tenantLifecyclePublishedDefinition [
-	^ tenantLifecyclePublishedDefinition
 ]
 
 { #category : 'accessing' }
