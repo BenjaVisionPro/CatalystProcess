@@ -438,7 +438,7 @@ CPMarketplaceBootstrapExamples >> tenantEstablishmentPublishesEstablishedTenantA
 	tenantToAdministrator := execution definition flowElements
 		detect: [ :each | each identifier = #tenantToAdministrator ].
 	self assert: (execution availableFlowActivationsOn: tenantToAdministrator) size equals: 1.
-	^ tenant
+	^ tenantExecution
 ]
 
 { #category : 'examples - marketplace application' }
@@ -470,3 +470,86 @@ CPMarketplaceBootstrapExamples >> tenantAdministratorEstablishmentHasExplicitOpe
 	self assert: establishAdministrator dataOutputAssociations first targetRef == administratorData.
 	^ establishAdministrator
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> establishedTenantReachesExecutableAdministratorEstablishment [
+	<gtExample>
+	| tenantExecution execution incomingFlow establishAdministrator operation tenantData registrationData tenant registration request transformation implementation environment administratorExecution invocation |
+	tenantExecution := self tenantEstablishmentPublishesEstablishedTenantAsProcessData.
+	execution := tenantExecution scope processExecution.
+	incomingFlow := execution definition flowElements
+		detect: [ :each | each identifier = #tenantToAdministrator ].
+	establishAdministrator := execution definition flowElements
+		detect: [ :each | each identifier = #establishTenantAdministrator ].
+	operation := establishAdministrator operationRef.
+	tenantData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenant ].
+	registrationData := execution definition flowElements
+		detect: [ :each | each identifier = #tenantRegistration ].
+	tenant := execution itemValueFor: tenantData.
+	registration := execution itemValueFor: registrationData.
+	request := CPTenantAdministratorEstablishment new
+		tenant: tenant;
+		registration: registration;
+		yourself.
+	transformation := establishAdministrator dataInputAssociations first transformation.
+	implementation := Object new.
+	environment := execution environment.
+	environment
+		expression: transformation evaluatesTo: request;
+		operation: operation resolvesTo: implementation.
+	self assert: (execution availableFlowActivationsOn: incomingFlow) size equals: 1.
+	administratorExecution := execution createServiceTaskExecutionFor: establishAdministrator.
+	execution readyActivityExecution: administratorExecution.
+	self assert: administratorExecution consumedFlowActivations size equals: 1.
+	execution activateServiceTaskExecution: administratorExecution.
+	self assert: administratorExecution isActive.
+	self assert: administratorExecution resolvedImplementation == implementation.
+	self assert: (administratorExecution itemValueFor: establishAdministrator ioSpecification dataInputs first) == request.
+	self assert: request tenant == tenant.
+	self assert: request registration == registration.
+	invocation := administratorExecution prepareExternalInvocationIdentifiedBy: #establishTenantAdministratorInvocation.
+	self assert: invocation isPending.
+	self assert: invocation inputValue == request.
+	^ invocation
+]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> administratorEstablishmentPublishesEstablishedAdministratorAsProcessData [
+	<gtExample>
+	| invocation administratorExecution execution establishAdministrator administratorData administratorOutput administratorToTrial administrator root service workUnit context |
+	invocation := self establishedTenantReachesExecutableAdministratorEstablishment.
+	administratorExecution := invocation activityExecution.
+	execution := administratorExecution scope processExecution.
+	establishAdministrator := administratorExecution definition.
+	administratorData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenantAdministrator ].
+	administratorOutput := establishAdministrator ioSpecification dataOutputs first.
+	administrator := CPUser new
+		label: 'Prospective tenant administrator';
+		yourself.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	service := CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: root;
+			executionEnvironment: execution environment;
+			yourself).
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		invocation: invocation
+		occurrenceIdentifier: #tenantAdministratorEstablished
+		payload: administrator.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workUnit executeInContext: context.
+	self assert: invocation isCompleted.
+	self assert: administratorExecution isCompleted.
+	self assert: (administratorExecution itemValueFor: administratorOutput) == administrator.
+	self assert: (execution itemValueFor: administratorData) == administrator.
+	administratorToTrial := execution definition flowElements
+		detect: [ :each | each identifier = #administratorToTrial ].
+	self assert: (execution availableFlowActivationsOn: administratorToTrial) size equals: 1.
+	^ administratorExecution
+]
+
