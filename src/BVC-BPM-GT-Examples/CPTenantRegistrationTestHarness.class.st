@@ -96,6 +96,7 @@ CPTenantRegistrationTestHarness >> beginRegistration [
 CPTenantRegistrationTestHarness >> submitRegistration [
 	| envelope context |
 	interaction ifNil: [ self error: 'Begin the Tenant registration before submitting it.' ].
+	self hasSubmitted ifTrue: [ ^ registration ].
 	interaction submit.
 	envelope := queue nextOrNil.
 	envelope ifNil: [ self error: 'Submitting Tenant registration did not enqueue Runtime work.' ].
@@ -104,6 +105,23 @@ CPTenantRegistrationTestHarness >> submitRegistration [
 	context bindCapabilities: Dictionary new.
 	envelope workUnit executeInContext: context.
 	^ registration
+]
+
+
+{ #category : 'accessing' }
+CPTenantRegistrationTestHarness >> registrationStatus [
+	interaction ifNil: [ ^ 'Not started' ].
+	self hasSubmitted ifTrue: [ ^ 'Submitted' ].
+	^ 'Pending submission'
+]
+
+{ #category : 'gt - views' }
+CPTenantRegistrationTestHarness >> gtStatusFor: aView [
+	<gtView>
+	^ aView text
+		title: 'Status';
+		priority: 5;
+		text: [ self registrationStatus ]
 ]
 
 { #category : 'gt - views' }
