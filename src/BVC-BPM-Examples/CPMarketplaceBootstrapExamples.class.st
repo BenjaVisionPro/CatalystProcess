@@ -362,7 +362,7 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationValidationCompletionSelectsA
 { #category : 'examples - marketplace application' }
 CPMarketplaceBootstrapExamples >> acceptedTenantRegistrationReachesExecutableTenantEstablishment [
 	<gtExample>
-	| gatewayExecution execution acceptedFlow establishTenant operation registration input implementation environment tenantExecution invocation |
+	| gatewayExecution execution acceptedFlow acceptedActivation establishTenant operation registration input implementation environment tenantExecution invocation |
 	gatewayExecution := self tenantRegistrationValidationCompletionSelectsAcceptedPath.
 	execution := gatewayExecution scope processExecution.
 	acceptedFlow := execution definition flowElements
@@ -380,10 +380,13 @@ CPMarketplaceBootstrapExamples >> acceptedTenantRegistrationReachesExecutableTen
 	implementation := Object new.
 	environment := execution environment.
 	environment operation: operation resolvesTo: implementation.
-	self assert: (execution availableFlowActivationsOn: acceptedFlow) size equals: 1.
+	self assert: gatewayExecution producedFlowActivations size equals: 1.
+	acceptedActivation := gatewayExecution producedFlowActivations first.
+	self assert: acceptedActivation definition == acceptedFlow.
+	self assert: acceptedActivation isAvailable.
 	tenantExecution := execution createServiceTaskExecutionFor: establishTenant.
 	execution readyActivityExecution: tenantExecution.
-	tenantExecution consumeFlowActivation: (execution availableFlowActivationsOn: acceptedFlow) first.
+	tenantExecution consumeFlowActivation: acceptedActivation.
 	execution activateServiceTaskExecution: tenantExecution.
 	self assert: tenantExecution isActive.
 	self assert: tenantExecution resolvedImplementation == implementation.
