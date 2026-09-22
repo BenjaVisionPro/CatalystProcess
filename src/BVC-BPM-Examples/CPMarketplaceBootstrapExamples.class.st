@@ -297,7 +297,8 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationSubmissionReachesExecutableV
 	validationFlow := execution definition flowElements
 		detect: [ :each | each identifier = #registrationToValidation ].
 	self assert: (execution availableFlowActivationsOn: validationFlow) size equals: 1.
-	validationExecution := execution readyActivityExecutionFor: validate.
+	validationExecution := execution createServiceTaskExecutionFor: validate.
+	execution readyActivityExecution: validationExecution.
 	execution activateServiceTaskExecution: validationExecution.
 	self assert: validationExecution isActive.
 	self assert: validationExecution resolvedImplementation == implementation.
