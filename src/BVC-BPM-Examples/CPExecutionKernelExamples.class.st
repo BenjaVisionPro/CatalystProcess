@@ -9831,7 +9831,7 @@ CPExecutionKernelExamples >> pendingAutonomousTimerTriggerCompletesExactSubscrip
 { #category : 'examples - runtime service' }
 CPExecutionKernelExamples >> bpmStartProcessWorkUnitStartsRegisteredExecutionFromDeployment [
 	<gtExample>
-	| process startEvent deployment root environment configuration service workUnit context execution |
+	| process startEvent deployment user root environment configuration service workUnit context execution |
 	process := CPProcess new identifier: 'runtime-start-process'; yourself.
 	startEvent := CPStartEvent new identifier: 'start'; yourself.
 	process addFlowElement: startEvent.
@@ -9840,6 +9840,8 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitStartsRegisteredExecutionFro
 		processDefinition: process;
 		yourself.
 	deployment activate.
+	user := CPUser new label: 'Starter'; yourself.
+	deployment authorizeStartFor: user.
 	root := CPSystemRoot new.
 	root addProcessDeployment: deployment.
 	environment := CPExampleExecutionEnvironment new.
@@ -9848,7 +9850,7 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitStartsRegisteredExecutionFro
 		executionEnvironment: environment;
 		yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPStartProcessWorkUnit processDeployment: deployment.
+	workUnit := CPStartProcessWorkUnit processDeployment: deployment user: user.
 	self assert: workUnit class serviceClass == CPBpmService.
 	self assert: workUnit class requiredCapabilities isEmpty.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
@@ -9867,10 +9869,11 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitStartsRegisteredExecutionFro
 { #category : 'examples - runtime service' }
 CPExecutionKernelExamples >> bpmStartProcessWorkUnitRejectsInactiveDeploymentWithoutRegisteringExecution [
 	<gtExample>
-	| process startEvent deployment root configuration service workUnit context rejected |
+	| process startEvent deployment user root configuration service workUnit context rejected |
 	process := CPProcess new identifier: 'inactive-runtime-start-process'; yourself.
 	startEvent := CPStartEvent new identifier: 'start'; yourself.
 	process addFlowElement: startEvent.
+	user := CPUser new label: 'Starter'; yourself.
 	deployment := CPProcessDeployment new
 		identifier: 'inactive-runtime-start-deployment';
 		processDefinition: process;
@@ -9882,7 +9885,7 @@ CPExecutionKernelExamples >> bpmStartProcessWorkUnitRejectsInactiveDeploymentWit
 		executionEnvironment: CPExampleExecutionEnvironment new;
 		yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPStartProcessWorkUnit processDeployment: deployment.
+	workUnit := CPStartProcessWorkUnit processDeployment: deployment user: user.
 	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
 	context service: service.
 	context bindCapabilities: Dictionary new.
@@ -11461,4 +11464,95 @@ CPExecutionKernelExamples >> userTaskDiscoveryWorkUnitsCarryActualUser [
 	self assert: assigned class serviceClass equals: CPBpmService.
 	self assert: claimable class serviceClass equals: CPBpmService.
 	^ { assigned. claimable }
+]
+
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> tenantMembershipLinksActualTenantAndUser [
+	<gtExample>
+	| tenant user membership duplicateRejected |
+	tenant := CPTenant new label: 'Admin'; yourself.
+	user := CPUser new label: 'Administrator'; yourself.
+	membership := CPTenantMembership tenant: tenant user: user.
+	self assert: membership tenant == tenant.
+	self assert: membership user == user.
+	self assert: tenant memberships asArray equals: { membership }.
+	self assert: user memberships asArray equals: { membership }.
+	duplicateRejected := false.
+	[ CPTenantMembership tenant: tenant user: user ] on: Error do: [ :error | duplicateRejected := true ].
+	self assert: duplicateRejected.
+	^ membership
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmStartableProcessDeploymentsRequireExplicitUserAuthorization [
+	<gtExample>
+	| alice bob activeAuthorized activeUnauthorized draftAuthorized root configuration service workUnit context deployments |
+	alice := CPUser new label: 'Alice'; yourself.
+	bob := CPUser new label: 'Bob'; yourself.
+	activeAuthorized := CPProcessDeployment new label: 'Authorized'; yourself.
+	activeAuthorized activate; authorizeStartFor: alice.
+	activeUnauthorized := CPProcessDeployment new label: 'Not authorized'; yourself.
+	activeUnauthorized activate; authorizeStartFor: bob.
+	draftAuthorized := CPProcessDeployment new label: 'Draft'; yourself.
+	draftAuthorized authorizeStartFor: alice.
+	root := CPSystemRoot new.
+	root addProcessDeployment: activeAuthorized; addProcessDeployment: activeUnauthorized; addProcessDeployment: draftAuthorized.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	self assert: (service startableProcessDeploymentsFor: alice) asArray equals: { activeAuthorized }.
+	workUnit := CPQueryStartableProcessDeploymentsWorkUnit user: alice.
+	self assert: workUnit user == alice.
+	self assert: workUnit class serviceClass == CPBpmService.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	deployments := workUnit executeInContext: context.
+	self assert: deployments asArray equals: { activeAuthorized }.
+	^ deployments
+]
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmStartProcessWorkUnitRejectsUnauthorizedUser [
+	<gtExample>
+	| process startEvent deployment authorizedUser otherUser root configuration service workUnit context rejected |
+	process := CPProcess new identifier: 'authorized-start-process'; yourself.
+	startEvent := CPStartEvent new identifier: 'start'; yourself.
+	process addFlowElement: startEvent.
+	deployment := CPProcessDeployment new processDefinition: process; yourself.
+	deployment activate.
+	authorizedUser := CPUser new label: 'Authorized'; yourself.
+	otherUser := CPUser new label: 'Other'; yourself.
+	deployment authorizeStartFor: authorizedUser.
+	root := CPSystemRoot new addProcessDeployment: deployment; yourself.
+	configuration := CPBpmServiceConfiguration new systemRoot: root; executionEnvironment: CPExampleExecutionEnvironment new; yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPStartProcessWorkUnit processDeployment: deployment user: otherUser.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	rejected := false.
+	[ workUnit executeInContext: context ] on: Error do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: root processExecutions isEmpty.
+	^ deployment
+]
+
+
+{ #category : 'examples - runtime service' }
+CPExecutionKernelExamples >> bpmStartAuthorizationRespectsDeploymentTenantMembership [
+	<gtExample>
+	| tenant member outsider membership deployment |
+	tenant := CPTenant new label: 'Admin'; yourself.
+	member := CPUser new label: 'Member'; yourself.
+	outsider := CPUser new label: 'Outsider'; yourself.
+	membership := CPTenantMembership tenant: tenant user: member.
+	deployment := CPProcessDeployment new tenant: tenant; yourself.
+	deployment activate.
+	deployment authorizeStartFor: member; authorizeStartFor: outsider.
+	self assert: (member isMemberOfTenant: tenant).
+	self assert: (outsider isMemberOfTenant: tenant) not.
+	self assert: (deployment canBeStartedBy: member).
+	self assert: (deployment canBeStartedBy: outsider) not.
+	^ membership
 ]

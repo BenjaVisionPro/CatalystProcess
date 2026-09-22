@@ -11,6 +11,20 @@ Class {
 	#package : 'BVC-BPM-Core'
 }
 
+
+{ #category : 'instance creation' }
+CPTenantMembership class >> tenant: aTenant user: aUser [
+	| membership |
+	aTenant ifNil: [ self error: 'A Tenant is required.' ].
+	aUser ifNil: [ self error: 'A User is required.' ].
+	(aTenant memberships anySatisfy: [ :each | each user == aUser ]) ifTrue: [
+		self error: 'The User already has a membership in this Tenant.' ].
+	membership := self new tenant: aTenant; user: aUser; yourself.
+	aTenant memberships add: membership.
+	aUser memberships add: membership.
+	^ membership
+]
+
 { #category : 'accessing' }
 CPTenantMembership >> tenant [
 	^ tenant

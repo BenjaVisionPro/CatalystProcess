@@ -57,3 +57,9 @@ CPUser >> membershipsDescription [
 		yourself
 ]
 
+
+{ #category : 'membership' }
+CPUser >> isMemberOfTenant: aTenant [
+	aTenant ifNil: [ ^ false ].
+	^ memberships anySatisfy: [ :membership | membership tenant == aTenant ]
+]

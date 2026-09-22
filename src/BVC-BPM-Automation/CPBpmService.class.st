@@ -205,10 +205,12 @@ CPBpmService >> processDeploymentForIdentifier: aDeploymentIdentifier [
 
 { #category : 'process start' }
 CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
-	| deployment process environment execution |
+	| deployment user process environment execution |
 	deployment := aCPStartProcessWorkUnit processDeployment.
 	deployment ifNil: [ self error: 'A Process deployment is required.' ].
-	deployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
+	user := aCPStartProcessWorkUnit user.
+	user ifNil: [ self error: 'A User is required to start a Process.' ].
+	(deployment canBeStartedBy: user) ifFalse: [ self error: 'The User is not authorized to start this Process deployment.' ].
 	process := deployment processDefinition.
 	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
 	environment := configuration executionEnvironment.
@@ -498,6 +500,17 @@ CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
 		subscription acceptTimerOccurrenceAt: configuration executionEnvironment currentTimerTime ].
 	subscription isConditionalSubscription ifTrue: [ subscription acceptConditionalOccurrence ].
 	^ execution
+]
+
+{ #category : 'process start authorization' }
+CPBpmService >> startableProcessDeploymentsFor: aUser [
+	aUser ifNil: [ self error: 'A User is required.' ].
+	^ systemRoot processDeployments select: [ :deployment | deployment canBeStartedBy: aUser ]
+]
+
+{ #category : 'process start authorization' }
+CPBpmService >> queryStartableProcessDeploymentsWorkUnit: aWorkUnit [
+	^ self startableProcessDeploymentsFor: aWorkUnit user
 ]
 
 { #category : 'user task query' }

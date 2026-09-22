@@ -11,7 +11,8 @@ Class {
 		'deployedAt',
 		'deployedBy',
 		'status',
-		'initiationSubscriptions'
+		'initiationSubscriptions',
+		'authorizedStartUsers'
 	],
 	#category : 'BVC-BPM-Definition',
 	#package : 'BVC-BPM-Definition'
@@ -102,7 +103,8 @@ CPProcessDeployment >> deployedBy: anObject [
 CPProcessDeployment >> initialize [
 	super initialize.
 	status := #draft.
-	initiationSubscriptions := OrderedCollection new
+	initiationSubscriptions := OrderedCollection new.
+	authorizedStartUsers := OrderedCollection new
 ]
 
 { #category : 'testing' }
@@ -153,4 +155,31 @@ CPProcessDeployment >> replaceInitiationSubscriptionsWith: aCollection [
 CPProcessDeployment >> clearInitiationSubscriptions [
 	initiationSubscriptions removeAll.
 	^ self
+]
+
+
+{ #category : 'process start authorization' }
+CPProcessDeployment >> authorizedStartUsers [
+	^ authorizedStartUsers
+]
+
+{ #category : 'process start authorization' }
+CPProcessDeployment >> authorizeStartFor: aUser [
+	aUser ifNil: [ self error: 'A User is required.' ].
+	(authorizedStartUsers includes: aUser) ifFalse: [ authorizedStartUsers add: aUser ].
+	^ aUser
+]
+
+{ #category : 'process start authorization' }
+CPProcessDeployment >> revokeStartFor: aUser [
+	authorizedStartUsers remove: aUser ifAbsent: [ ].
+	^ aUser
+]
+
+{ #category : 'process start authorization' }
+CPProcessDeployment >> canBeStartedBy: aUser [
+	aUser ifNil: [ ^ false ].
+	^ self acceptsNewProcessExecutions and: [
+		(authorizedStartUsers includes: aUser) and: [
+			tenant isNil or: [ aUser isMemberOfTenant: tenant ] ] ]
 ]
