@@ -287,9 +287,16 @@ CPBpmService >> instantiateParallelMultipleStartEvent: aStartEvent fromDeploymen
 
 { #category : 'user task completion' }
 CPBpmService >> completeUserTaskWorkUnit: aCPCompleteUserTaskWorkUnit [
-    | workItem |
+    | workItem outputValue task output |
     workItem := aCPCompleteUserTaskWorkUnit workItem.
     workItem ifNil: [ self error: 'A User Task work item is required.' ].
+    outputValue := aCPCompleteUserTaskWorkUnit outputValue.
+    outputValue ifNotNil: [
+        task := workItem userTask.
+        (task ioSpecification isNil or: [ task ioSpecification dataOutputs size ~= 1 ]) ifTrue: [
+            self error: 'A User Task interaction with an output value requires exactly one DataOutput.' ].
+        output := task ioSpecification dataOutputs first.
+        workItem activityExecution itemValueFor: output put: outputValue ].
     ^ workItem completeThroughExecution
 ]
 

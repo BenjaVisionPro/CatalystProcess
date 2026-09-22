@@ -95,3 +95,12 @@ CPBpmWorkspace >> foundationInteractionForUserTaskWorkItem: aCPUserTaskWorkItem 
 	viewModel := CFMaViewModel forObject: model memento: memento.
 	^ viewModel preparedElementForMemento: memento
 ]
+
+
+{ #category : 'user task interaction' }
+CPBpmWorkspace >> userTaskInteractionForUserTaskWorkItem: aCPUserTaskWorkItem [
+	^ CPBpmUserTaskInteraction
+		application: self requiredApplication
+		workItem: aCPUserTaskWorkItem
+		model: (self interactionModelForUserTaskWorkItem: aCPUserTaskWorkItem)
+]
