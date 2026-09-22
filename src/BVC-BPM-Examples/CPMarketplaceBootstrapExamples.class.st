@@ -386,7 +386,7 @@ CPMarketplaceBootstrapExamples >> acceptedTenantRegistrationReachesExecutableTen
 	self assert: acceptedActivation isAvailable.
 	tenantExecution := execution createServiceTaskExecutionFor: establishTenant.
 	execution readyActivityExecution: tenantExecution.
-	tenantExecution consumeFlowActivation: acceptedActivation.
+	self assert: (tenantExecution consumedFlowActivations identityIncludes: acceptedActivation).
 	execution activateServiceTaskExecution: tenantExecution.
 	self assert: tenantExecution isActive.
 	self assert: tenantExecution resolvedImplementation == implementation.
