@@ -9,7 +9,7 @@ Class {
 { #category : 'processes' }
 AdminTenantLifecycle class >> provisionTenant [
 	<process: #provisionTenant>
-	| process registrationData registrationDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate accepted establishTenant establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
+	| process registrationData registrationDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate validateOperation validateInput validateInputSet validateIoSpecification validateInputAssociation accepted establishTenant establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
 	process := (CPProcess identifier: #provisionTenant)
 		label: 'Provision Tenant';
 		yourself.
@@ -49,8 +49,26 @@ AdminTenantLifecycle class >> provisionTenant [
 		dataInputAssociations: { inputAssociation };
 		dataOutputAssociations: { outputAssociation };
 		yourself.
+	validateOperation := (CPOperation identifier: #validateTenantRegistration)
+		label: 'Validate tenant registration';
+		yourself.
+	validateInput := (CPDataInput identifier: #registrationToValidate)
+		itemSubjectRef: registrationDefinition;
+		yourself.
+	validateInputSet := CPInputSet new dataInputRefs: { validateInput }; yourself.
+	validateIoSpecification := CPInputOutputSpecification new
+		dataInputs: { validateInput };
+		inputSets: { validateInputSet };
+		yourself.
+	validateInputAssociation := CPDataInputAssociation new
+		sourceRefs: { registrationData };
+		targetRef: validateInput;
+		yourself.
 	validate := (CPServiceTask identifier: #validateRegistration)
 		label: 'Validate registration';
+		operationRef: validateOperation;
+		ioSpecification: validateIoSpecification;
+		dataInputAssociations: { validateInputAssociation };
 		yourself.
 	accepted := (CPExclusiveGateway identifier: #registrationAccepted)
 		label: 'Registration accepted?';

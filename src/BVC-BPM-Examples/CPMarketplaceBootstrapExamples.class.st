@@ -250,3 +250,59 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationCommitsAndSubmits
 	^ registration
 ]
 
+
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantRegistrationSubmissionReachesExecutableValidationOperation [
+	<gtExample>
+	| application execution workItem input registration memento runtime topology worker queue completionEnvelope context environment validate operation implementation validationFlow validationExecution invocation |
+	application := self tenantRegistrationApplicationUsesRuntimeAndReturnsAuthoritativeWork.
+	execution := application systemRoot processExecutions first.
+	workItem := execution allPendingUserTaskWorkItems first.
+	input := workItem userTask ioSpecification dataInputs first.
+	registration := workItem activityExecution itemValueFor: input.
+
+	memento := CFMaMemento model: registration.
+	memento write: 'Prospective tenant' using: registration labelDescription.
+	memento commit.
+
+	validate := execution definition flowElements
+		detect: [ :each | each identifier = #validateRegistration ].
+	operation := validate operationRef.
+	self assert: operation notNil.
+	self assert: operation identifier equals: #validateTenantRegistration.
+	self assert: validate ioSpecification dataInputs size equals: 1.
+	self assert: validate dataInputAssociations first sourceRefs first identifier equals: #tenantRegistration.
+	implementation := Object new.
+	environment := execution environment.
+	environment operation: operation resolvesTo: implementation.
+
+	application completeTenantRegistration: registration.
+	runtime := application runtime.
+	topology := runtime deploymentTopology.
+	worker := topology hosts first workerHandles first.
+	queue := worker workQueue.
+	self assert: queue depth equals: 1.
+	completionEnvelope := queue nextOrNil.
+	context := CRWorkUnitExecutionContext envelope: completionEnvelope.
+	context service: (CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: application systemRoot;
+			executionEnvironment: environment;
+			yourself)).
+	context bindCapabilities: Dictionary new.
+	completionEnvelope workUnit executeInContext: context.
+	self assert: workItem isCompleted.
+
+	validationFlow := execution definition flowElements
+		detect: [ :each | each identifier = #registrationToValidation ].
+	self assert: (execution availableFlowActivationsOn: validationFlow) size equals: 1.
+	validationExecution := execution readyActivityExecutionFor: validate.
+	execution activateServiceTaskExecution: validationExecution.
+	self assert: validationExecution isActive.
+	self assert: validationExecution resolvedImplementation == implementation.
+	invocation := validationExecution prepareExternalInvocationIdentifiedBy: #validateTenantRegistrationInvocation.
+	self assert: invocation isPending.
+	self assert: invocation inputValue == registration.
+	^ invocation
+]
