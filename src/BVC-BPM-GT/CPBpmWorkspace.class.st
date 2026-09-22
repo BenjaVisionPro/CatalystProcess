@@ -37,6 +37,12 @@ CPBpmWorkspace >> claimUserTaskWorkItem: aCPUserTaskWorkItem [
 	^ self requiredApplication claimUserTaskWorkItem: aCPUserTaskWorkItem
 ]
 
+
+{ #category : 'commands' }
+CPBpmWorkspace >> completeUserTaskWorkItem: aCPUserTaskWorkItem [
+	^ self requiredApplication completeUserTaskWorkItem: aCPUserTaskWorkItem
+]
+
 { #category : 'gt - views' }
 CPBpmWorkspace >> gtStartableProcessesFor: aView [
 	<gtView>

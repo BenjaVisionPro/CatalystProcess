@@ -53,6 +53,14 @@ CPBpmApplication >> claimUserTaskWorkItem: aCPUserTaskWorkItem [
 	^ aCPUserTaskWorkItem
 ]
 
+
+{ #category : 'commands' }
+CPBpmApplication >> completeUserTaskWorkItem: aCPUserTaskWorkItem [
+	aCPUserTaskWorkItem ifNil: [ self error: 'A User Task work item is required.' ].
+	self enqueue: (CPCompleteUserTaskWorkUnit workItem: aCPUserTaskWorkItem).
+	^ aCPUserTaskWorkItem
+]
+
 { #category : 'private' }
 CPBpmApplication >> enqueue: aWorkUnit [
 	| router |
