@@ -14,7 +14,10 @@ Class {
 { #category : 'initialization' }
 CPBpmServiceConfiguration >> initialize [
 	super initialize.
-	self serviceClass: CPBpmService.
+	self
+		identifier: #bpm;
+		label: 'BPM';
+		serviceClass: CPBpmService.
 	systemRoot := CPSystemRoot new.
 	backgroundScheduleKey := #bpmBackgroundProcessing.
 	backgroundIntervalMillis := 1000

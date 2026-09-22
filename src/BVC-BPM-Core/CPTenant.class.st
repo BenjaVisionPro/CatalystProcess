@@ -103,3 +103,14 @@ CPTenant >> processDeploymentsDescription [
 		yourself
 ]
 
+
+{ #category : 'adding' }
+CPTenant >> addProcessDeployment: aProcessDeployment [
+	aProcessDeployment ifNil: [ self error: 'A Process deployment is required.' ].
+	(aProcessDeployment tenant notNil and: [ aProcessDeployment tenant ~~ self ]) ifTrue: [
+		self error: 'The Process deployment belongs to another Tenant.' ].
+	aProcessDeployment tenant: self.
+	(processDeployments identityIncludes: aProcessDeployment) ifFalse: [
+		processDeployments add: aProcessDeployment ].
+	^ aProcessDeployment
+]
