@@ -396,3 +396,46 @@ CPMarketplaceBootstrapExamples >> acceptedTenantRegistrationReachesExecutableTen
 	self assert: invocation inputValue == registration.
 	^ invocation
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantEstablishmentPublishesEstablishedTenantAsProcessData [
+	<gtExample>
+	| invocation tenantExecution execution establishTenant tenantData tenantOutput tenantToAdministrator tenant root service workUnit context |
+	invocation := self acceptedTenantRegistrationReachesExecutableTenantEstablishment.
+	tenantExecution := invocation activityExecution.
+	execution := tenantExecution scope processExecution.
+	establishTenant := tenantExecution definition.
+	tenantData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenant ].
+	tenantOutput := establishTenant ioSpecification dataOutputs first.
+	self assert: tenantOutput identifier equals: #establishedTenantOutput.
+	self assert: establishTenant dataOutputAssociations size equals: 1.
+	self assert: establishTenant dataOutputAssociations first sourceRefs first == tenantOutput.
+	self assert: establishTenant dataOutputAssociations first targetRef == tenantData.
+	tenant := CPTenant new
+		label: 'Prospective tenant';
+		yourself.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	service := CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: root;
+			executionEnvironment: execution environment;
+			yourself).
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		invocation: invocation
+		occurrenceIdentifier: #tenantEstablished
+		payload: tenant.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workUnit executeInContext: context.
+	self assert: invocation isCompleted.
+	self assert: tenantExecution isCompleted.
+	self assert: (tenantExecution itemValueFor: tenantOutput) == tenant.
+	self assert: (execution itemValueFor: tenantData) == tenant.
+	tenantToAdministrator := execution definition flowElements
+		detect: [ :each | each identifier = #tenantToAdministrator ].
+	self assert: (execution availableFlowActivationsOn: tenantToAdministrator) size equals: 1.
+	^ tenant
+]
