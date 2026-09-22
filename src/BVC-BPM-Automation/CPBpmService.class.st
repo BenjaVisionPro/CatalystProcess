@@ -443,23 +443,21 @@ CPBpmService >> armProcessInitiationSubscriptionsFor: aDeployment [
 			subscriptions add: subscription ].
 		(element isEventBasedGateway and: [ element instantiate ]) ifTrue: [
 			element outgoing do: [ :flow |
-				| target definitions |
+				| target definition subscription |
 				target := flow targetRef.
 				target isReceiveTask
 					ifTrue: [
 						target messageRef ifNil: [ self error: 'An instantiating Event-Based Gateway Receive Task requires a Message.' ].
-						definitions := { CPMessageEventDefinition new messageRef: target messageRef; yourself } ]
+						definition := CPMessageEventDefinition new messageRef: target messageRef; yourself ]
 					ifFalse: [
 						target isIntermediateEvent ifFalse: [ self error: 'An instantiating Event-Based Gateway must target a Receive Task or Intermediate Catch Event.' ].
-						definitions := target eventDefinitions.
-						definitions ifEmpty: [ self error: 'An instantiating Event-Based Gateway catch Event requires at least one Event Definition.' ] ].
-				definitions do: [ :definition |
-					| subscription |
-					(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition or: [ definition isConditionalEventDefinition ] ] ]) ifFalse: [
-						self error: 'This Event Definition cannot initiate through an instantiating Event-Based Gateway.' ].
-					subscription := CPEventBasedGatewayInitiationSubscription new
-						processDeployment: aDeployment; gateway: element; sequenceFlow: flow; eventDefinition: definition; yourself.
-					subscriptions add: subscription ] ] ] ].
+						target eventDefinitions size = 1 ifFalse: [ self error: 'An instantiating Event-Based Gateway catch Event requires exactly one Event Definition.' ].
+						definition := target eventDefinitions first ].
+				(definition isMessageEventDefinition or: [ definition isSignalEventDefinition or: [ definition isTimerEventDefinition ] ]) ifFalse: [
+					self error: 'This Event Definition cannot initiate through an instantiating Event-Based Gateway.' ].
+				subscription := CPEventBasedGatewayInitiationSubscription new
+					processDeployment: aDeployment; gateway: element; sequenceFlow: flow; eventDefinition: definition; yourself.
+				subscriptions add: subscription ] ] ].
 	(subscriptions anySatisfy: [ :each | each isTimerSubscription ]) ifTrue: [
 		| environment armingTime |
 		environment := configuration executionEnvironment.

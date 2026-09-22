@@ -32,9 +32,9 @@ CPUserTaskExecution >> actualOwner [
 ]
 
 { #category : 'assignment' }
-CPUserTaskExecution >> claimBy: anOwnerIdentifier [
+CPUserTaskExecution >> claimBy: anOwner [
     workItem ifNil: [ self error: 'The User Task execution has no distributed work item.' ].
-    ^ workItem claimBy: anOwnerIdentifier
+    ^ workItem claimBy: anOwner
 ]
 
 { #category : 'assignment' }

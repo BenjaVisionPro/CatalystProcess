@@ -585,9 +585,9 @@ CPMultiInstanceActivityExecution >> userTaskActualOwner [
 ]
 
 { #category : 'user task - assignment' }
-CPMultiInstanceActivityExecution >> claimUserTaskBy: anOwnerIdentifier [
+CPMultiInstanceActivityExecution >> claimUserTaskBy: anOwner [
     userTaskWorkItem ifNil: [ self error: 'The Multi-Instance User Task instance has no distributed work item.' ].
-    ^ userTaskWorkItem claimBy: anOwnerIdentifier
+    ^ userTaskWorkItem claimBy: anOwner
 ]
 
 { #category : 'user task - assignment' }
