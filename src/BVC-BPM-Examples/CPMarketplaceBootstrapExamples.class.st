@@ -888,3 +888,19 @@ CPMarketplaceBootstrapExamples >> marketplaceProductRejectsMutableDefinitionSour
 	self assert: product publishedDefinitions isEmpty.
 	^ product
 ]
+
+
+{ #category : 'examples - marketplace products' }
+CPMarketplaceBootstrapExamples >> adminBootstrapSeedsTenantLifecycleProduct [
+	<gtExample>
+	| bootstrap marketplace product |
+	bootstrap := CPAdminTenantBootstrap configured.
+	marketplace := bootstrap marketplace.
+
+	self assert: marketplace products size equals: 1.
+	product := marketplace products first.
+	self assert: product label equals: 'Tenant Lifecycle'.
+	self assert: product publishedDefinitions asArray equals: { CatalystTenantLifecycleV1 }.
+	self assert: (marketplace includesPublishedDefinition: CatalystTenantLifecycleV1).
+	^ product
+]

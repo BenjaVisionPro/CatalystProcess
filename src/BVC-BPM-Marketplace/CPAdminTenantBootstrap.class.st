@@ -27,7 +27,7 @@ CPAdminTenantBootstrap class >> configured [
 
 { #category : 'configuration' }
 CPAdminTenantBootstrap >> configure [
-	| process topology host deployment |
+	| process topology host deployment tenantLifecycleProduct |
 	systemRoot := CPSystemRoot new
 		label: 'Catalyst Process';
 		yourself.
@@ -35,6 +35,11 @@ CPAdminTenantBootstrap >> configure [
 		label: 'Catalyst Marketplace';
 		yourself.
 	marketplace addPublishedDefinition: CatalystTenantLifecycleV1.
+	tenantLifecycleProduct := CPMarketplaceProduct new
+		label: 'Tenant Lifecycle';
+		yourself.
+	tenantLifecycleProduct addPublishedDefinition: CatalystTenantLifecycleV1.
+	marketplace addProduct: tenantLifecycleProduct.
 	systemRoot marketplace: marketplace.
 	adminTenant := CPTenant new
 		label: 'Admin';
