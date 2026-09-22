@@ -439,3 +439,33 @@ CPMarketplaceBootstrapExamples >> tenantEstablishmentPublishesEstablishedTenantA
 	self assert: (execution availableFlowActivationsOn: tenantToAdministrator) size equals: 1.
 	^ tenant
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantAdministratorEstablishmentHasExplicitOperationBoundary [
+	<gtExample>
+	| definitions process establishAdministrator operation input output association administratorData |
+	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
+	process := definitions rootElements
+		detect: [ :each | each identifier = #provisionTenant ].
+	establishAdministrator := process flowElements
+		detect: [ :each | each identifier = #establishTenantAdministrator ].
+	operation := establishAdministrator operationRef.
+	self assert: operation notNil.
+	self assert: operation identifier equals: #establishTenantAdministratorFromRegistration.
+	self assert: establishAdministrator ioSpecification dataInputs size equals: 1.
+	self assert: establishAdministrator ioSpecification dataOutputs size equals: 1.
+	input := establishAdministrator ioSpecification dataInputs first.
+	output := establishAdministrator ioSpecification dataOutputs first.
+	self assert: input identifier equals: #tenantAdministratorEstablishment.
+	self assert: output identifier equals: #establishedTenantAdministratorOutput.
+	association := establishAdministrator dataInputAssociations first.
+	self assert: association sourceRefs size equals: 2.
+	self assert: association sourceRefs first identifier equals: #establishedTenant.
+	self assert: association sourceRefs second identifier equals: #tenantRegistration.
+	self assert: association transformation identifier equals: #prepareTenantAdministratorEstablishment.
+	administratorData := process flowElements
+		detect: [ :each | each identifier = #establishedTenantAdministrator ].
+	self assert: establishAdministrator dataOutputAssociations first sourceRefs first == output.
+	self assert: establishAdministrator dataOutputAssociations first targetRef == administratorData.
+	^ establishAdministrator
+]
