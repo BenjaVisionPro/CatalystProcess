@@ -31,6 +31,12 @@ CPGatewayExecution >> consumedFlowActivations [ ^ consumedFlowActivations ]
 { #category : 'accessing' }
 CPGatewayExecution >> producedFlowActivations [ ^ producedFlowActivations ]
 
+
+{ #category : 'gateways - event based' }
+CPGatewayExecution >> eventBasedSubscriptions [
+	^ #()
+]
+
 { #category : 'control flow' }
 CPGatewayExecution >> consumeFlowActivation: anActivation [
 	anActivation consumeBy: self.

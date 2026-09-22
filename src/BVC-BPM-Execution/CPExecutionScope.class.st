@@ -427,7 +427,7 @@ CPExecutionScope >> waitingEventBasedGatewaySubscriptions [
 	| subscriptions |
 	subscriptions := OrderedCollection new.
 	gatewayExecutions do: [ :eachExecution |
-		subscriptions addAll: (eachExecution subscriptions select: #canReceiveOccurrence) ].
+		subscriptions addAll: (eachExecution eventBasedSubscriptions select: #canReceiveOccurrence) ].
 	^ subscriptions
 ]
 
@@ -2075,7 +2075,7 @@ CPExecutionScope >> terminateRemainingWork [
 	conditionalSubscriptions do: [ :eachSubscription |
 		eachSubscription isWaiting ifTrue: [ eachSubscription cancel ] ].
 	gatewayExecutions do: [ :eachExecution |
-		eachExecution subscriptions do: [ :eachSubscription |
+		eachExecution eventBasedSubscriptions do: [ :eachSubscription |
 			eachSubscription isWaiting ifTrue: [ eachSubscription withdraw ] ] ].
 	eventExecutions do: [ :eachExecution |
 		eachExecution terminatePendingWork.

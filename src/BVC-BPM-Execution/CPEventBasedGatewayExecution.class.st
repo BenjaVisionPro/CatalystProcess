@@ -13,6 +13,9 @@ CPEventBasedGatewayExecution >> initialize [
 ]
 { #category : 'accessing' }
 CPEventBasedGatewayExecution >> subscriptions [ ^ subscriptions ]
+
+{ #category : 'gateways - event based' }
+CPEventBasedGatewayExecution >> eventBasedSubscriptions [ ^ subscriptions ]
 { #category : 'testing' }
 CPEventBasedGatewayExecution >> isWaiting [ ^ subscriptions anySatisfy: [ :each | each canReceiveOccurrence ] ]
 { #category : 'testing' }
