@@ -47,14 +47,22 @@ CPTenantRegistrationApplication >> beginTenantRegistration: aTenantRegistration 
 
 { #category : 'registration' }
 CPTenantRegistrationApplication >> completeTenantRegistration: aTenantRegistration [
-	| workItem router |
+	| workItem |
 	workItem := self workItemForTenantRegistration: aTenantRegistration.
 	workItem ifNil: [ self error: 'No pending Tenant registration work item exists for the registration.' ].
-	workItem isPending ifFalse: [ self error: 'Only a pending Tenant registration work item can be completed.' ].
+	^ self completeTenantRegistration: aTenantRegistration workItem: workItem
+]
+
+{ #category : 'registration' }
+CPTenantRegistrationApplication >> completeTenantRegistration: aTenantRegistration workItem: aCPUserTaskWorkItem [
+	| router |
+	aTenantRegistration ifNil: [ self error: 'A Tenant registration is required.' ].
+	aCPUserTaskWorkItem ifNil: [ self error: 'A Tenant registration work item is required.' ].
+	aCPUserTaskWorkItem isPending ifFalse: [ self error: 'Only a pending Tenant registration work item can be completed.' ].
 	runtime ifNil: [ self error: 'Catalyst Runtime is required.' ].
 	router := CRWorkRouter deploymentTopology: runtime deploymentTopology.
 	router enqueue: (CPCompleteTenantRegistrationWorkUnit
-		workItem: workItem
+		workItem: aCPUserTaskWorkItem
 		registration: aTenantRegistration).
 	^ aTenantRegistration
 ]

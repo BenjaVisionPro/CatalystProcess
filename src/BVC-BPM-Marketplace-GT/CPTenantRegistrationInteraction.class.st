@@ -64,6 +64,6 @@ CPTenantRegistrationInteraction >> element [
 { #category : 'commands' }
 CPTenantRegistrationInteraction >> submit [
 	memento commit.
-	application completeTenantRegistration: registration.
+	application completeTenantRegistration: registration workItem: workItem.
 	^ registration
 ]
