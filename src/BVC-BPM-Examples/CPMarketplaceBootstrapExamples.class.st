@@ -35,16 +35,31 @@ CPMarketplaceBootstrapExamples >> adminBootstrapEstablishesPersistentApplication
 { #category : 'examples - marketplace bootstrap' }
 CPMarketplaceBootstrapExamples >> adminBootstrapConfiguresRuntimeBpmServiceOverSameSystemRoot [
 	<gtExample>
-	| bootstrap bpm runtime service |
+	| bootstrap bpm runtime orchestration host serviceIdentifiers deployedIdentifiers service |
 	bootstrap := CPAdminTenantBootstrap configured.
 	bpm := bootstrap bpmServiceConfiguration.
 	runtime := bootstrap runtimeConfiguration.
+	orchestration := runtime serviceConfigurationNamed: CRRuntime orchestratorIdentifier.
+	self assert: orchestration notNil.
+	self assert: orchestration class equals: CROrchestrationConfiguration.
 	self assert: bpm identifier equals: #bpm.
 	self assert: bpm serviceClass == CPBpmService.
 	self assert: bpm systemRoot == bootstrap systemRoot.
-	self assert: runtime services asArray equals: { bpm }.
-	self assert: runtime deployment serviceDeployments size equals: 1.
-	self assert: runtime deployment serviceDeployments first serviceIdentifier equals: #bpm.
+	self assert: bpm executionEnvironment == bootstrap executionEnvironment.
+	self assert: bpm parent == runtime.
+	self assert: orchestration parent == runtime.
+	self assert: runtime topology parent == runtime.
+	self assert: runtime deployment parent == runtime.
+	host := runtime topology hosts first.
+	self assert: host parent == runtime topology.
+	serviceIdentifiers := runtime services collect: #identifier.
+	self assert: (serviceIdentifiers includes: CRRuntime orchestratorIdentifier).
+	self assert: (serviceIdentifiers includes: #bpm).
+	self assert: (host services includes: CRRuntime orchestratorIdentifier).
+	self assert: (host services includes: #bpm).
+	deployedIdentifiers := runtime deployment serviceDeployments collect: #serviceIdentifier.
+	self assert: (deployedIdentifiers includes: CRRuntime orchestratorIdentifier).
+	self assert: (deployedIdentifiers includes: #bpm).
 	self assert: runtime validate isValid.
 	service := CPBpmService new installWithConfiguration: bpm.
 	self assert: (service startableProcessDeploymentsFor: bootstrap adminUser) asArray
@@ -990,4 +1005,29 @@ CPMarketplaceBootstrapExamples >> adminBootstrapDeploysExactMarketplaceTenantLif
 	self assert: deploymentProcess identifier equals: marketplaceProcess identifier.
 	self assert: (deploymentProcess flowElements anySatisfy: [ :each | each identifier = #collectTenantRegistration ]).
 	^ deploymentProcess
+]
+
+
+{ #category : 'examples - marketplace bootstrap' }
+CPMarketplaceBootstrapExamples >> administratorStartsMarketplaceTenantLifecycleThroughBpmService [
+	<gtExample>
+	| bootstrap service workUnit context execution initialFlow |
+	bootstrap := CPAdminTenantBootstrap configured.
+	service := CPBpmService new installWithConfiguration: bootstrap bpmServiceConfiguration.
+	workUnit := CPStartProcessWorkUnit
+		processDeployment: bootstrap tenantLifecycleDeployment
+		user: bootstrap adminUser.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	execution := workUnit executeInContext: context.
+	self assert: execution deployment == bootstrap tenantLifecycleDeployment.
+	self assert: execution tenant == bootstrap adminTenant.
+	self assert: execution environment == bootstrap executionEnvironment.
+	self assert: execution isStarted.
+	self assert: bootstrap systemRoot processExecutions asArray equals: { execution }.
+	initialFlow := execution definition flowElements
+		detect: [ :each | each identifier = #initiationToRegistration ].
+	self assert: (execution availableFlowActivationsOn: initialFlow) isNotEmpty.
+	^ execution
 ]

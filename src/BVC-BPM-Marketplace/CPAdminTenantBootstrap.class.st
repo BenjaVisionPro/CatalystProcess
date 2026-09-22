@@ -15,6 +15,7 @@ Class {
 		'tenantLifecycleDefinitions',
 		'tenantLifecycleDeployment',
 		'bpmServiceConfiguration',
+		'executionEnvironment',
 		'runtimeConfiguration'
 	],
 	#category : 'BVC-BPM-Marketplace-Bootstrap',
@@ -29,7 +30,7 @@ CPAdminTenantBootstrap class >> configured [
 
 { #category : 'configuration' }
 CPAdminTenantBootstrap >> configure [
-	| process topology host deployment |
+	| process orchestration topology host deployment |
 	systemRoot := CPSystemRoot new
 		label: 'Catalyst Process';
 		yourself.
@@ -79,36 +80,46 @@ CPAdminTenantBootstrap >> configure [
 		authorizeStartFor: adminUser;
 		activate.
 
-	bpmServiceConfiguration := CPBpmServiceConfiguration new
-		systemRoot: systemRoot;
+	executionEnvironment := CPBpmExecutionEnvironment new.
+	runtimeConfiguration := CRRuntimeConfiguration new
+		label: 'Catalyst Process Admin';
 		yourself.
+	bpmServiceConfiguration := (CPBpmServiceConfiguration withParent: runtimeConfiguration)
+		systemRoot: systemRoot;
+		executionEnvironment: executionEnvironment;
+		yourself.
+	orchestration := CROrchestrationConfiguration defaultWithParent: runtimeConfiguration.
 
-	host := CRHostConfiguration new
+	topology := CRTopologyConfiguration defaultWithParent: runtimeConfiguration.
+	topology
+		label: 'Admin Local Topology';
+		placementStrategyConfiguration: (CRFirstAvailablePlacementStrategyConfiguration defaultWithParent: topology).
+	host := CRHostConfiguration defaultWithParent: topology.
+	host
 		identifier: #adminHost;
 		label: 'Admin Host';
 		address: 'local';
-		maxProcesses: 1;
-		services: { bpmServiceConfiguration identifier };
-		yourself.
-	topology := CRTopologyConfiguration new
-		label: 'Admin Local Topology';
-		hosts: { host };
-		placementStrategyConfiguration: CRFirstAvailablePlacementStrategyConfiguration new;
-		yourself.
-	deployment := CRDeploymentConfiguration new
-		serviceDeployments: {
-			CRServiceDeploymentConfiguration new
-				serviceIdentifier: bpmServiceConfiguration identifier;
-				label: 'BPM Service';
-				initialCount: 1;
-				yourself } asOrderedCollection;
-		yourself.
-	runtimeConfiguration := CRRuntimeConfiguration new
-		label: 'Catalyst Process Admin';
-		services: { bpmServiceConfiguration } asOrderedCollection;
+		maxProcesses: 2;
+		services: { orchestration identifier. bpmServiceConfiguration identifier }.
+	topology hosts: { host }.
+
+	deployment := CRDeploymentConfiguration defaultWithParent: runtimeConfiguration.
+	deployment serviceDeployments: {
+		(CRServiceDeploymentConfiguration defaultWithParent: deployment)
+			serviceIdentifier: orchestration identifier;
+			label: 'Orchestration Service';
+			initialCount: 1;
+			yourself.
+		(CRServiceDeploymentConfiguration defaultWithParent: deployment)
+			serviceIdentifier: bpmServiceConfiguration identifier;
+			label: 'BPM Service';
+			initialCount: 1;
+			yourself }.
+	runtimeConfiguration
+		services: { orchestration. bpmServiceConfiguration } asOrderedCollection;
 		topology: topology;
-		deployment: deployment;
-		yourself
+		deployment: deployment
+
 ]
 
 { #category : 'accessing' }
@@ -159,6 +170,11 @@ CPAdminTenantBootstrap >> tenantLifecycleDeployment [
 { #category : 'accessing' }
 CPAdminTenantBootstrap >> bpmServiceConfiguration [
 	^ bpmServiceConfiguration
+]
+
+{ #category : 'accessing' }
+CPAdminTenantBootstrap >> executionEnvironment [
+	^ executionEnvironment
 ]
 
 { #category : 'accessing' }
