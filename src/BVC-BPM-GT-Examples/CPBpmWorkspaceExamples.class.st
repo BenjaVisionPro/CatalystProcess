@@ -153,3 +153,61 @@ CPBpmWorkspaceExamples >> workspaceSubmitsFoundationUserTaskInteractionThroughRu
 	self assert: envelope workUnit outputValue == model.
 	^ interaction
 ]
+
+{ #category : 'examples - marketplace workspace' }
+CPBpmWorkspaceExamples >> publicTenantRegistrationUsesItsOwnFoundationInteractionBoundary [
+	<gtExample>
+	| bootstrap root deployment environment configuration service runtime topology host queue worker serviceHandle application workspace registration beginEnvelope beginContext workItem interaction completionEnvelope |
+	bootstrap := CPAdminTenantBootstrap configured.
+	root := bootstrap systemRoot.
+	deployment := bootstrap tenantLifecycleDeployment.
+	environment := CPExampleExecutionEnvironment new.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: environment;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	runtime := CRRuntime new.
+	topology := CRDeploymentTopology new.
+	host := topology ensureHostNamed: #localhost.
+	queue := CRPharoWorkQueue new.
+	worker := CRWorkerHandle new
+		workerIdentifier: #tenantRegistrationWorkspaceWorker;
+		workQueue: queue;
+		lifecycleStatus: CRStatus running;
+		yourself.
+	serviceHandle := worker
+		ensureServiceHandleForIdentifier: #bpm
+		serviceClass: CPBpmService.
+	serviceHandle lifecycleStatus: CRStatus running.
+	host noteWorkerHandle: worker.
+	runtime deploymentTopology: topology.
+	application := CPTenantRegistrationApplication
+		runtime: runtime
+		systemRoot: root
+		processDeployment: deployment.
+	workspace := CPTenantRegistrationWorkspace application: application.
+
+	registration := workspace beginTenantRegistration.
+	self assert: registration class equals: CPTenantRegistration.
+	beginEnvelope := queue nextOrNil.
+	self assert: beginEnvelope workUnit class equals: CPBeginTenantRegistrationWorkUnit.
+	beginContext := CRWorkUnitExecutionContext envelope: beginEnvelope.
+	beginContext service: service.
+	beginContext bindCapabilities: Dictionary new.
+	workItem := beginEnvelope workUnit executeInContext: beginContext.
+	interaction := workspace interactionFor: registration.
+	self assert: interaction registration == registration.
+	self assert: interaction workItem == workItem.
+	self assert: interaction element notNil.
+	interaction memento write: 'Prospective tenant' using: registration labelDescription.
+	self assert: registration label isNil.
+	self assert: (interaction submit) == registration.
+	self assert: registration label equals: 'Prospective tenant'.
+	self assert: queue depth equals: 1.
+	completionEnvelope := queue nextOrNil.
+	self assert: completionEnvelope workUnit class equals: CPCompleteTenantRegistrationWorkUnit.
+	self assert: completionEnvelope workUnit workItem == workItem.
+	self assert: completionEnvelope workUnit registration == registration.
+	^ interaction
+]
