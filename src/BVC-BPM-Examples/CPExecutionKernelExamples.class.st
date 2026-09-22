@@ -11402,3 +11402,63 @@ CPExecutionKernelExamples >> instantiatingReceiveTaskStartsProcessFromMessage [
 	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
 	^ execution
 ]
+
+{ #category : 'examples - user work discovery' }
+CPExecutionKernelExamples >> bpmServiceDiscoversAssignedAndClaimableUserTaskWork [
+	<gtExample>
+	| root tenant alice bob process task assignment potentialOwner environment execution taskExecution workItem configuration service |
+	root := CPSystemRoot new.
+	tenant := CPTenant new label: 'Admin tenant'; yourself.
+	alice := CPUser new label: 'Alice'; yourself.
+	bob := CPUser new label: 'Bob'; yourself.
+	root addTenant: tenant; addUser: alice; addUser: bob.
+	process := CPProcess new identifier: 'user-work-discovery'; yourself.
+	assignment := CPResourceAssignmentExpression new
+		expression: (CPExpression new identifier: 'potentialOwners'; yourself);
+		yourself.
+	potentialOwner := CPPotentialOwner new
+		identifier: 'potentialOwners';
+		resourceAssignmentExpression: assignment;
+		yourself.
+	task := CPUserTask new
+		identifier: 'review';
+		resources: { potentialOwner };
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: assignment expression evaluatesTo: { alice. bob };
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution tenant: tenant.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution activateUserTaskExecution: taskExecution.
+	workItem := taskExecution workItem.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: environment;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	self assert: (service claimableUserTaskWorkItemsFor: alice) asArray equals: { workItem }.
+	self assert: (service claimableUserTaskWorkItemsFor: bob) asArray equals: { workItem }.
+	self assert: (service assignedUserTaskWorkItemsFor: alice) isEmpty.
+	workItem claimBy: alice.
+	self assert: (service assignedUserTaskWorkItemsFor: alice) asArray equals: { workItem }.
+	self assert: (service claimableUserTaskWorkItemsFor: alice) isEmpty.
+	self assert: (service claimableUserTaskWorkItemsFor: bob) isEmpty.
+	^ service
+]
+
+{ #category : 'examples - user work discovery' }
+CPExecutionKernelExamples >> userTaskDiscoveryWorkUnitsCarryActualUser [
+	<gtExample>
+	| user assigned claimable |
+	user := CPUser new label: 'Admin'; yourself.
+	assigned := CPQueryAssignedUserTaskWorkItemsWorkUnit user: user.
+	claimable := CPQueryClaimableUserTaskWorkItemsWorkUnit user: user.
+	self assert: assigned user == user.
+	self assert: claimable user == user.
+	self assert: assigned class serviceClass equals: CPBpmService.
+	self assert: claimable class serviceClass equals: CPBpmService.
+	^ { assigned. claimable }
+]

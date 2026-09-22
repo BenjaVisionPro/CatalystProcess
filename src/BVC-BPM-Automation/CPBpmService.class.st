@@ -499,3 +499,29 @@ CPBpmService >> deliverProcessInitiationOccurrenceWorkUnit: aWorkUnit [
 	subscription isConditionalSubscription ifTrue: [ subscription acceptConditionalOccurrence ].
 	^ execution
 ]
+
+{ #category : 'user task query' }
+CPBpmService >> assignedUserTaskWorkItemsFor: aUser [
+	aUser ifNil: [ self error: 'A User is required.' ].
+	^ systemRoot processExecutions flatCollect: [ :execution |
+		execution allPendingUserTaskWorkItems select: [ :workItem |
+			workItem actualOwner == aUser ] ]
+]
+
+{ #category : 'user task query' }
+CPBpmService >> claimableUserTaskWorkItemsFor: aUser [
+	aUser ifNil: [ self error: 'A User is required.' ].
+	^ systemRoot processExecutions flatCollect: [ :execution |
+		execution allPendingUserTaskWorkItems select: [ :workItem |
+			workItem actualOwner isNil and: [ workItem potentialOwners includes: aUser ] ] ]
+]
+
+{ #category : 'user task query' }
+CPBpmService >> queryAssignedUserTaskWorkItemsWorkUnit: aWorkUnit [
+	^ self assignedUserTaskWorkItemsFor: aWorkUnit user
+]
+
+{ #category : 'user task query' }
+CPBpmService >> queryClaimableUserTaskWorkItemsWorkUnit: aWorkUnit [
+	^ self claimableUserTaskWorkItemsFor: aWorkUnit user
+]
