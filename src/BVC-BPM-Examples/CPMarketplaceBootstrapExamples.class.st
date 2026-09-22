@@ -1005,3 +1005,18 @@ CPMarketplaceBootstrapExamples >> repeatedAdminBootstrapReusesCanonicalAdminTena
 	self assert: first tenantLifecyclePublishedDefinition == second tenantLifecyclePublishedDefinition.
 	^ second tenantLifecyclePublishedDefinition
 ]
+
+{ #category : 'examples - bootstrap' }
+CPMarketplaceBootstrapExamples >> adminTenantLifecyclePublicationMaterializesStandalone [
+	<gtExample>
+	| bootstrap publication definitions |
+	bootstrap := CPAdminTenantBootstrap configured.
+	publication := bootstrap tenantLifecyclePublishedDefinition.
+	self assert: publication superclass equals: Object.
+	definitions := CPDefinitionsSourceMaterializer materialize: publication.
+	self assert: definitions identifier equals: #tenantLifecycle.
+	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
+	self assert: (definitions rootElements anySatisfy: [ :each |
+		each class = CPProcess and: [ each identifier = #provisionTenant ] ]).
+	^ publication
+]

@@ -9,7 +9,8 @@ Class {
 { #category : 'definitions' }
 AdminTenantLifecycle class >> definitions [
 	| definitions tenantRegistrationInterface validateOperation establishTenantOperation establishTenantResultMessage establishAdministratorOperation establishAdministratorResultMessage establishTrialOperation provisionServicesOperation activateAccessOperation welcomeNotificationMessage |
-	definitions := super definitions.
+	definitions := CPDefinitions identifier: #tenantLifecycle.
+	definitions targetNamespace: 'urn:catalyst:tenant-lifecycle'.
 	validateOperation := (CPOperation identifier: #validateTenantRegistration)
 		label: 'Validate tenant registration';
 		yourself.
