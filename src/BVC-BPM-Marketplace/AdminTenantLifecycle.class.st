@@ -304,6 +304,33 @@ AdminTenantLifecycle class >> validateTenantRegistrationUsing: registrationData 
 		yourself
 ]
 
+
+{ #category : 'process construction' }
+AdminTenantLifecycle class >> sendWelcomeNotificationUsing: tenantData [
+	| message input inputSet ioSpecification inputAssociation |
+	message := (CPMessage identifier: #tenantWelcomeNotification)
+		label: 'Tenant welcome notification';
+		yourself.
+	input := (CPDataInput identifier: #tenantForWelcomeNotification)
+		itemSubjectRef: tenantData itemSubjectRef;
+		yourself.
+	inputSet := CPInputSet new dataInputRefs: { input }; yourself.
+	ioSpecification := CPInputOutputSpecification new
+		dataInputs: { input };
+		inputSets: { inputSet };
+		yourself.
+	inputAssociation := CPDataInputAssociation new
+		sourceRefs: { tenantData };
+		targetRef: input;
+		yourself.
+	^ (CPSendTask identifier: #sendWelcomeNotification)
+		label: 'Send welcome notification';
+		messageRef: message;
+		ioSpecification: ioSpecification;
+		dataInputAssociations: { inputAssociation };
+		yourself
+]
+
 { #category : 'processes' }
 AdminTenantLifecycle class >> provisionTenant [
 	<process: #provisionTenant>
@@ -331,9 +358,7 @@ AdminTenantLifecycle class >> provisionTenant [
 	establishTrial := self establishTrialSubscriptionUsing: tenantData.
 	provisionServices := self provisionTenantServicesUsing: tenantData.
 	activateAccess := self activateTrialAccessUsing: tenantData.
-	notifyWelcome := (CPSendTask identifier: #sendWelcomeNotification)
-		label: 'Send welcome notification';
-		yourself.
+	notifyWelcome := self sendWelcomeNotificationUsing: tenantData.
 	provisioned := (CPEndEvent identifier: #tenantProvisioned)
 		label: 'Tenant provisioned';
 		yourself.

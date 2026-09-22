@@ -702,3 +702,66 @@ CPMarketplaceBootstrapExamples >> tenantServiceProvisioningCompletionReachesExec
 	^ accessInvocation
 ]
 
+
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> trialAccessCompletionSendsWelcomeAndCompletesTenantProvisioning [
+	<gtExample>
+	| invocation accessExecution execution accessToWelcome welcome tenantData tenant welcomeExecution dispatch welcomeToProvisioned provisioned endActivation root service workUnit context |
+	invocation := self tenantServiceProvisioningCompletionReachesExecutableTrialAccessActivation.
+	accessExecution := invocation activityExecution.
+	execution := accessExecution scope processExecution.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	service := CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: root;
+			executionEnvironment: execution environment;
+			yourself).
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		invocation: invocation
+		occurrenceIdentifier: #trialAccessActivated
+		payload: Dictionary new.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workUnit executeInContext: context.
+	self assert: invocation isCompleted.
+	self assert: accessExecution isCompleted.
+	accessToWelcome := execution definition flowElements
+		detect: [ :each | each identifier = #accessToWelcome ].
+	self assert: (execution availableFlowActivationsOn: accessToWelcome) size equals: 1.
+	welcome := execution definition flowElements
+		detect: [ :each | each identifier = #sendWelcomeNotification ].
+	self assert: welcome messageRef notNil.
+	self assert: welcome messageRef identifier equals: #tenantWelcomeNotification.
+	self assert: welcome ioSpecification dataInputs size equals: 1.
+	self assert: welcome dataInputAssociations size equals: 1.
+	self assert: welcome dataInputAssociations first sourceRefs first identifier equals: #establishedTenant.
+	tenantData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenant ].
+	tenant := execution itemValueFor: tenantData.
+	welcomeExecution := execution createSendTaskExecutionFor: welcome.
+	execution readyActivityExecution: welcomeExecution.
+	self assert: welcomeExecution consumedFlowActivations size equals: 1.
+	execution activateSendTaskExecution: welcomeExecution.
+	self assert: welcomeExecution isActive.
+	dispatch := welcomeExecution messageDispatch.
+	self assert: dispatch isPending.
+	self assert: dispatch message == welcome messageRef.
+	self assert: dispatch payload == tenant.
+	execution completeSendTaskExecution: welcomeExecution.
+	self assert: dispatch isSent.
+	self assert: welcomeExecution isCompleted.
+	welcomeToProvisioned := execution definition flowElements
+		detect: [ :each | each identifier = #welcomeToProvisioned ].
+	self assert: (execution availableFlowActivationsOn: welcomeToProvisioned) size equals: 1.
+	provisioned := execution definition flowElements
+		detect: [ :each | each identifier = #tenantProvisioned ].
+	endActivation := (execution availableFlowActivationsOn: welcomeToProvisioned) first.
+	execution executeEndEvent: provisioned consuming: endActivation.
+	self assert: execution canComplete.
+	execution complete.
+	self assert: execution isCompleted.
+	^ execution
+]
