@@ -24,7 +24,7 @@ AdminTenantLifecycle class >> definitions [
 { #category : 'processes' }
 AdminTenantLifecycle class >> provisionTenant [
 	<process: #provisionTenant>
-	| process registrationData registrationDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate validateOperation validateInput validateInputSet validateIoSpecification validateInputAssociation accepted establishTenant establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
+	| process registrationData registrationDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate validateOperation validateInput validateInputSet validateIoSpecification validateInputAssociation accepted acceptedCondition establishTenant establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
 	process := (CPProcess identifier: #provisionTenant)
 		label: 'Provision Tenant';
 		yourself.
@@ -85,6 +85,9 @@ AdminTenantLifecycle class >> provisionTenant [
 		ioSpecification: validateIoSpecification;
 		dataInputAssociations: { validateInputAssociation };
 		yourself.
+	acceptedCondition := (CPFormalExpression identifier: #tenantRegistrationIsAccepted)
+		body: 'tenantRegistrationIsAccepted';
+		yourself.
 	accepted := (CPExclusiveGateway identifier: #registrationAccepted)
 		label: 'Registration accepted?';
 		yourself.
@@ -128,8 +131,13 @@ AdminTenantLifecycle class >> provisionTenant [
 	(flows at: 1) sourceRef: initiated; targetRef: collectRegistration.
 	(flows at: 2) sourceRef: collectRegistration; targetRef: validate.
 	(flows at: 3) sourceRef: validate; targetRef: accepted.
-	(flows at: 4) label: 'Accepted'; sourceRef: accepted; targetRef: establishTenant.
+	(flows at: 4)
+		label: 'Accepted';
+		sourceRef: accepted;
+		targetRef: establishTenant;
+		conditionExpression: acceptedCondition.
 	(flows at: 5) label: 'Rejected'; sourceRef: accepted; targetRef: rejected.
+	accepted default: (flows at: 5).
 	(flows at: 6) sourceRef: establishTenant; targetRef: establishAdministrator.
 	(flows at: 7) sourceRef: establishAdministrator; targetRef: establishTrial.
 	(flows at: 8) sourceRef: establishTrial; targetRef: provisionServices.
