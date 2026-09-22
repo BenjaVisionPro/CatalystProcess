@@ -590,3 +590,59 @@ CPMarketplaceBootstrapExamples >> establishedAdministratorReachesExecutableTrial
 	self assert: invocation inputValue == tenant.
 	^ invocation
 ]
+
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> trialSubscriptionCompletionReachesExecutableTenantServiceProvisioning [
+	<gtExample>
+	| invocation trialExecution execution trialToServices provisionServices operation tenantData tenant root service workUnit context implementation environment provisionExecution provisionInvocation |
+	invocation := self establishedAdministratorReachesExecutableTrialSubscription.
+	trialExecution := invocation activityExecution.
+	execution := trialExecution scope processExecution.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	service := CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: root;
+			executionEnvironment: execution environment;
+			yourself).
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		invocation: invocation
+		occurrenceIdentifier: #trialSubscriptionEstablished
+		payload: Dictionary new.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workUnit executeInContext: context.
+	self assert: invocation isCompleted.
+	self assert: trialExecution isCompleted.
+	trialToServices := execution definition flowElements
+		detect: [ :each | each identifier = #trialToServices ].
+	self assert: (execution availableFlowActivationsOn: trialToServices) size equals: 1.
+	provisionServices := execution definition flowElements
+		detect: [ :each | each identifier = #provisionTenantServices ].
+	operation := provisionServices operationRef.
+	self assert: operation notNil.
+	self assert: operation identifier equals: #provisionTenantServicesForTenant.
+	self assert: provisionServices ioSpecification dataInputs size equals: 1.
+	self assert: provisionServices ioSpecification dataOutputs isEmpty.
+	self assert: provisionServices dataInputAssociations size equals: 1.
+	self assert: provisionServices dataInputAssociations first sourceRefs first identifier equals: #establishedTenant.
+	tenantData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenant ].
+	tenant := execution itemValueFor: tenantData.
+	implementation := Object new.
+	environment := execution environment.
+	environment operation: operation resolvesTo: implementation.
+	provisionExecution := execution createServiceTaskExecutionFor: provisionServices.
+	execution readyActivityExecution: provisionExecution.
+	self assert: provisionExecution consumedFlowActivations size equals: 1.
+	execution activateServiceTaskExecution: provisionExecution.
+	self assert: provisionExecution isActive.
+	self assert: provisionExecution resolvedImplementation == implementation.
+	self assert: (provisionExecution itemValueFor: provisionServices ioSpecification dataInputs first) == tenant.
+	provisionInvocation := provisionExecution prepareExternalInvocationIdentifiedBy: #provisionTenantServicesInvocation.
+	self assert: provisionInvocation isPending.
+	self assert: provisionInvocation inputValue == tenant.
+	^ provisionInvocation
+]
