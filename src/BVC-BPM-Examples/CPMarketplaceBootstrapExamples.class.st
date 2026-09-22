@@ -854,3 +854,37 @@ CPMarketplaceBootstrapExamples >> marketplaceRejectsMutableDefinitionSource [
 	self assert: marketplace publishedDefinitions isEmpty.
 	^ marketplace
 ]
+
+{ #category : 'examples - marketplace products' }
+CPMarketplaceBootstrapExamples >> tenantLifecycleProductPackagesPublishedDefinition [
+	<gtExample>
+	| marketplace product |
+	marketplace := CPMarketplace new
+		label: 'Catalyst Marketplace';
+		yourself.
+	marketplace addPublishedDefinition: CatalystTenantLifecycleV1.
+	product := CPMarketplaceProduct new
+		label: 'Tenant Lifecycle';
+		yourself.
+	product addPublishedDefinition: CatalystTenantLifecycleV1.
+	marketplace addProduct: product.
+
+	self assert: marketplace products asArray equals: { product }.
+	self assert: product publishedDefinitions asArray equals: { CatalystTenantLifecycleV1 }.
+	self assert: (marketplace includesPublishedDefinition: CatalystTenantLifecycleV1).
+	^ product
+]
+
+{ #category : 'examples - marketplace products' }
+CPMarketplaceBootstrapExamples >> marketplaceProductRejectsMutableDefinitionSource [
+	<gtExample>
+	| product rejected |
+	product := CPMarketplaceProduct new.
+	rejected := false.
+	[ product addPublishedDefinition: AdminTenantLifecycle ]
+		on: Error
+		do: [ :error | rejected := true ].
+	self assert: rejected.
+	self assert: product publishedDefinitions isEmpty.
+	^ product
+]

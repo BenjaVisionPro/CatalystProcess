@@ -3,7 +3,8 @@ Class {
 	#name : 'CPMarketplace',
 	#superclass : 'CFLabelledObject',
 	#instVars : [
-		'publishedDefinitions'
+		'publishedDefinitions',
+		'products'
 	],
 	#category : 'BVC-BPM-Marketplace-Domain',
 	#package : 'BVC-BPM-Marketplace',
@@ -13,7 +14,8 @@ Class {
 { #category : 'initialization' }
 CPMarketplace >> initialize [
 	super initialize.
-	publishedDefinitions := OrderedCollection new
+	publishedDefinitions := OrderedCollection new.
+	products := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -42,6 +44,30 @@ CPMarketplace >> publishedDefinitionsDescription [
 		accessor: #publishedDefinitions;
 		label: 'Published Definitions';
 		priority: 100;
+		group: 'Relations';
+		yourself
+]
+
+
+{ #category : 'accessing' }
+CPMarketplace >> products [
+	^ products
+]
+
+{ #category : 'adding' }
+CPMarketplace >> addProduct: aProduct [
+	aProduct ifNil: [ self error: 'A Marketplace product is required.' ].
+	(products includes: aProduct) ifFalse: [ products add: aProduct ].
+	^ aProduct
+]
+
+{ #category : 'descriptions' }
+CPMarketplace >> productsDescription [
+	<magritteDescription>
+	^ MAToManyRelationDescription new
+		accessor: #products;
+		label: 'Products';
+		priority: 110;
 		group: 'Relations';
 		yourself
 ]
