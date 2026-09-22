@@ -6,6 +6,21 @@ Class {
 	#tag : 'Marketplace'
 }
 
+{ #category : 'definitions' }
+AdminTenantLifecycle class >> definitions [
+	| definitions tenantRegistrationInterface validateOperation |
+	definitions := super definitions.
+	validateOperation := (CPOperation identifier: #validateTenantRegistration)
+		label: 'Validate tenant registration';
+		yourself.
+	tenantRegistrationInterface := (CPInterface identifier: #tenantRegistrationOperations)
+		label: 'Tenant registration operations';
+		yourself.
+	tenantRegistrationInterface addOperation: validateOperation.
+	definitions addRootElement: tenantRegistrationInterface.
+	^ definitions
+]
+
 { #category : 'processes' }
 AdminTenantLifecycle class >> provisionTenant [
 	<process: #provisionTenant>
