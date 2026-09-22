@@ -8,7 +8,7 @@ Class {
 
 { #category : 'definitions' }
 AdminTenantLifecycle class >> definitions [
-	| definitions tenantRegistrationInterface validateOperation establishTenantOperation establishTenantResultMessage establishAdministratorOperation establishAdministratorResultMessage establishTrialOperation provisionServicesOperation activateAccessOperation |
+	| definitions tenantRegistrationInterface validateOperation establishTenantOperation establishTenantResultMessage establishAdministratorOperation establishAdministratorResultMessage establishTrialOperation provisionServicesOperation activateAccessOperation welcomeNotificationMessage |
 	definitions := super definitions.
 	validateOperation := (CPOperation identifier: #validateTenantRegistration)
 		label: 'Validate tenant registration';
@@ -36,6 +36,9 @@ AdminTenantLifecycle class >> definitions [
 	activateAccessOperation := (CPOperation identifier: #activateTrialAccessForTenant)
 		label: 'Activate trial access for tenant';
 		yourself.
+	welcomeNotificationMessage := (CPMessage identifier: #tenantWelcomeNotification)
+		label: 'Tenant welcome notification';
+		yourself.
 	tenantRegistrationInterface := (CPInterface identifier: #tenantRegistrationOperations)
 		label: 'Tenant registration operations';
 		yourself.
@@ -46,7 +49,9 @@ AdminTenantLifecycle class >> definitions [
 		addOperation: establishTrialOperation;
 		addOperation: provisionServicesOperation;
 		addOperation: activateAccessOperation.
-	definitions addRootElement: tenantRegistrationInterface.
+	definitions
+		addRootElement: tenantRegistrationInterface;
+		addRootElement: welcomeNotificationMessage.
 	^ definitions
 ]
 
