@@ -985,7 +985,7 @@ CPMarketplaceBootstrapExamples >> adminBootstrapDeploysExactMarketplaceTenantLif
 		detect: [ :each | each identifier = #provisionTenant ].
 	deploymentProcess := bootstrap tenantLifecycleDeployment processDefinition.
 
-	self assert: bootstrap tenantLifecycleDefinitions sourceClass == CatalystTenantLifecycleV1.
+	self assert: bootstrap tenantLifecycleDeployment version equals: CatalystTenantLifecycleV1 version.
 	self assert: (bootstrap marketplace includesPublishedDefinition: CatalystTenantLifecycleV1).
 	self assert: bootstrap tenantLifecycleProduct publishedDefinitions asArray equals: { CatalystTenantLifecycleV1 }.
 	self assert: deploymentProcess identifier equals: marketplaceProcess identifier.

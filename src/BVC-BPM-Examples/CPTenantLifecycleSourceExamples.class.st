@@ -14,7 +14,7 @@ CPTenantLifecycleSourceExamples >> marketplaceDefinitions [
 
 	self assert: definitions identifier equals: #tenantLifecycle.
 	self assert: definitions targetNamespace equals: 'urn:catalyst:tenant-lifecycle'.
-	self assert: definitions rootElements size equals: 9.
+	self assert: definitions rootElements size equals: 11.
 	self assert: definitions diagrams size equals: 6.
 
 	suspend := definitions rootElements
@@ -50,7 +50,7 @@ CPTenantLifecycleSourceExamples >> customerDefinitionsUseNearestIdentityContribu
 	self assert: suspend label equals: 'Customer Suspend Tenant'.
 	self assert: overview plane modelElement == suspend.
 	self assert: operations plane modelElement == suspend.
-	self assert: definitions rootElements size equals: 9.
+	self assert: definitions rootElements size equals: 11.
 	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
@@ -289,7 +289,7 @@ CPTenantLifecycleSourceExamples >> publishedVersionIsSelfContainedAndVersioned [
 	self assert: (CPDefinitionsSourceMaterializer versionOf: CatalystTenantLifecycleV1) equals: CatalystTenantLifecycle.
 	self assert: CatalystTenantLifecycleV1 superclass equals: Object.
 	self assert: definitions identifier equals: #tenantLifecycle.
-	self assert: definitions rootElements size equals: 9.
+	self assert: definitions rootElements size equals: 11.
 	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]
@@ -304,7 +304,7 @@ CPTenantLifecycleSourceExamples >> workingDefinitionCanDeriveFromPublishedVersio
 	self assert: (CPDefinitionsSourceMaterializer
 		isInheritedProcess: #suspendTenant
 		in: CustomerVersionedTenantLifecycle).
-	self assert: definitions rootElements size equals: 9.
+	self assert: definitions rootElements size equals: 11.
 	^ definitions
 ]
 
