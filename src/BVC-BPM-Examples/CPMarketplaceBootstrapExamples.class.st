@@ -974,3 +974,34 @@ CPMarketplaceBootstrapExamples >> adminBootstrapLicencesTenantLifecycleProductTo
 	self assert: (licence authorizesFeature: CPMarketplacePublishDerivativeFeature new at: DateAndTime now).
 	^ licence
 ]
+
+
+{ #category : 'examples - marketplace publication' }
+CPMarketplaceBootstrapExamples >> adminBootstrapDeploysImmutableAdminTenantLifecyclePublication [
+	<gtExample>
+	| bootstrap publication deployment |
+	bootstrap := CPAdminTenantBootstrap configured.
+	publication := bootstrap tenantLifecyclePublishedDefinition.
+	deployment := bootstrap tenantLifecycleDeployment.
+
+	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: publication).
+	self assert: (CPDefinitionsSourceMaterializer versionOf: publication) == AdminTenantLifecycle.
+	self assert: publication superclass == Object.
+	self assert: (bootstrap marketplace includesPublishedDefinition: publication).
+	self assert: (bootstrap tenantLifecycleProduct includesPublishedDefinition: CatalystTenantLifecycleV1).
+	self assert: (bootstrap tenantLifecycleProduct includesPublishedDefinition: publication) not.
+	self assert: deployment processDefinition parent == bootstrap tenantLifecycleDefinitions.
+	self assert: deployment version equals: publication version.
+	^ deployment
+]
+
+{ #category : 'examples - marketplace publication' }
+CPMarketplaceBootstrapExamples >> repeatedAdminBootstrapReusesCanonicalAdminTenantLifecyclePublication [
+	<gtExample>
+	| first second |
+	first := CPAdminTenantBootstrap configured.
+	second := CPAdminTenantBootstrap configured.
+
+	self assert: first tenantLifecyclePublishedDefinition == second tenantLifecyclePublishedDefinition.
+	^ second tenantLifecyclePublishedDefinition
+]
