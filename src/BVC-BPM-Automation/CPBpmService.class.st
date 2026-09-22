@@ -340,33 +340,18 @@ CPBpmService >> processExecutionSnapshotForIdentifier: anExecutionIdentifier [
 	^ CPProcessExecutionSnapshot from: execution
 ]
 
-{ #category : 'process query' }
-CPBpmService >> queryProcessExecutionWorkUnit: aCPQueryProcessExecutionWorkUnit [
-	| execution |
-	execution := aCPQueryProcessExecutionWorkUnit processExecution.
-	execution ifNil: [ self error: 'A Process execution is required.' ].
-	^ execution
-]
 
 { #category : 'process query' }
 CPBpmService >> processExecutions [
 	^ systemRoot processExecutions asArray
 ]
 
-{ #category : 'process query' }
-CPBpmService >> queryProcessExecutionsWorkUnit: aCPQueryProcessExecutionsWorkUnit [
-	^ self processExecutions
-]
 
 { #category : 'deployment query' }
 CPBpmService >> processDeployments [
 	^ systemRoot processDeployments asArray
 ]
 
-{ #category : 'deployment query' }
-CPBpmService >> queryProcessDeploymentsWorkUnit: aCPQueryProcessDeploymentsWorkUnit [
-	^ self processDeployments
-]
 
 { #category : 'deployment lifecycle' }
 CPBpmService >> activateProcessDeploymentWorkUnit: aCPActivateProcessDeploymentWorkUnit [
@@ -531,10 +516,6 @@ CPBpmService >> startableProcessDeploymentsFor: aUser [
 	^ systemRoot processDeployments select: [ :deployment | deployment canBeStartedBy: aUser ]
 ]
 
-{ #category : 'process start authorization' }
-CPBpmService >> queryStartableProcessDeploymentsWorkUnit: aWorkUnit [
-	^ self startableProcessDeploymentsFor: aWorkUnit user
-]
 
 { #category : 'user task query' }
 CPBpmService >> assignedUserTaskWorkItemsFor: aUser [
@@ -552,15 +533,7 @@ CPBpmService >> claimableUserTaskWorkItemsFor: aUser [
 			workItem actualOwner isNil and: [ workItem potentialOwners includes: aUser ] ] ]
 ]
 
-{ #category : 'user task query' }
-CPBpmService >> queryAssignedUserTaskWorkItemsWorkUnit: aWorkUnit [
-	^ self assignedUserTaskWorkItemsFor: aWorkUnit user
-]
 
-{ #category : 'user task query' }
-CPBpmService >> queryClaimableUserTaskWorkItemsWorkUnit: aWorkUnit [
-	^ self claimableUserTaskWorkItemsFor: aWorkUnit user
-]
 
 
 { #category : 'user task completion' }

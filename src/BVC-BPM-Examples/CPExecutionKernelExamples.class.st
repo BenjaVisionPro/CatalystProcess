@@ -10156,9 +10156,9 @@ CPExecutionKernelExamples >> bpmTerminateProcessWorkUnitRejectsCompletedExecutio
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitReturnsGemStoneExecutionObject [
+CPExecutionKernelExamples >> bpmProcessExecutionQueryReturnsGemStoneExecutionObject [
 	<gtExample>
-	| process environment execution root configuration service workUnit context returnedExecution |
+	| process environment execution root configuration service returnedExecution |
 	process := CPProcess new identifier: 'runtime-query-process'; yourself.
 	environment := CPExampleExecutionEnvironment new.
 	execution := CPProcessExecution for: process environment: environment.
@@ -10166,12 +10166,7 @@ CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitReturnsGemStoneExec
 	root addProcessExecution: execution.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessExecutionWorkUnit processExecution: execution.
-	self assert: workUnit processExecution == execution.
-	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
-	context service: service.
-	context bindCapabilities: Dictionary new.
-	returnedExecution := workUnit executeInContext: context.
+	returnedExecution := service processExecutionForIdentifier: execution executionIdentifier.
 	self assert: returnedExecution == execution.
 	^ returnedExecution
 ]
@@ -10190,26 +10185,20 @@ CPExecutionKernelExamples >> bpmExecutionSnapshotRemainsAnExternalBoundaryRepres
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionWorkUnitRejectsMissingExecution [
+CPExecutionKernelExamples >> bpmProcessExecutionQueryReturnsNilForMissingExecution [
 	<gtExample>
-	| root configuration service workUnit context rejected |
+	| root configuration service |
 	root := CPSystemRoot new.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessExecutionWorkUnit processExecution: nil.
-	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
-	context service: service.
-	context bindCapabilities: Dictionary new.
-	rejected := false.
-	[ workUnit executeInContext: context ] on: Error do: [ :error | rejected := true ].
-	self assert: rejected.
+	self assert: (service processExecutionForIdentifier: UUID new) isNil.
 	^ service
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessExecutionsWorkUnitReturnsGemStoneExecutionObjects [
+CPExecutionKernelExamples >> bpmProcessExecutionsQueryReturnsGemStoneExecutionObjects [
 	<gtExample>
-	| processOne processTwo environment executionOne executionTwo root configuration service workUnit context executions returnedExecutions |
+	| processOne processTwo environment executionOne executionTwo root configuration service executions returnedExecutions |
 	processOne := CPProcess new identifier: 'process-one'; yourself.
 	processTwo := CPProcess new identifier: 'process-two'; yourself.
 	environment := CPExampleExecutionEnvironment new.
@@ -10220,11 +10209,7 @@ CPExecutionKernelExamples >> bpmQueryProcessExecutionsWorkUnitReturnsGemStoneExe
 	root addProcessExecution: executionTwo.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessExecutionsWorkUnit new.
-	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
-	context service: service.
-	context bindCapabilities: Dictionary new.
-	executions := workUnit executeInContext: context.
+	executions := service processExecutions.
 	self assert: executions size equals: 2.
 	self assert: executions first == executionOne.
 	self assert: executions second == executionTwo.
@@ -10250,9 +10235,9 @@ CPExecutionKernelExamples >> bpmProcessExecutionSnapshotIncludesTenantIdentity [
 ]
 
 { #category : 'examples - runtime service' }
-CPExecutionKernelExamples >> bpmQueryProcessDeploymentsWorkUnitReturnsGemStoneDeploymentObjects [
+CPExecutionKernelExamples >> bpmProcessDeploymentsQueryReturnsGemStoneDeploymentObjects [
 	<gtExample>
-	| activeDeployment draftDeployment root configuration service workUnit context deployments returnedDeployments |
+	| activeDeployment draftDeployment root configuration service deployments returnedDeployments |
 	activeDeployment := CPProcessDeployment new identifier: 'active-deployment'; yourself.
 	activeDeployment activate.
 	draftDeployment := CPProcessDeployment new identifier: 'draft-deployment'; yourself.
@@ -10261,11 +10246,7 @@ CPExecutionKernelExamples >> bpmQueryProcessDeploymentsWorkUnitReturnsGemStoneDe
 	root addProcessDeployment: draftDeployment.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	workUnit := CPQueryProcessDeploymentsWorkUnit new.
-	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
-	context service: service.
-	context bindCapabilities: Dictionary new.
-	deployments := workUnit executeInContext: context.
+	deployments := service processDeployments.
 	self assert: deployments size equals: 2.
 	self assert: deployments first == activeDeployment.
 	self assert: deployments second == draftDeployment.
@@ -11453,17 +11434,12 @@ CPExecutionKernelExamples >> bpmServiceDiscoversAssignedAndClaimableUserTaskWork
 ]
 
 { #category : 'examples - user work discovery' }
-CPExecutionKernelExamples >> userTaskDiscoveryWorkUnitsCarryActualUser [
+CPExecutionKernelExamples >> userTaskDiscoveryIsDirectApplicationQuery [
 	<gtExample>
-	| user assigned claimable |
-	user := CPUser new label: 'Admin'; yourself.
-	assigned := CPQueryAssignedUserTaskWorkItemsWorkUnit user: user.
-	claimable := CPQueryClaimableUserTaskWorkItemsWorkUnit user: user.
-	self assert: assigned user == user.
-	self assert: claimable user == user.
-	self assert: assigned class serviceClass equals: CPBpmService.
-	self assert: claimable class serviceClass equals: CPBpmService.
-	^ { assigned. claimable }
+	| service |
+	service := self bpmServiceDiscoversAssignedAndClaimableUserTaskWork.
+	self assert: service class equals: CPBpmService.
+	^ service
 ]
 
 
@@ -11487,7 +11463,7 @@ CPExecutionKernelExamples >> tenantMembershipLinksActualTenantAndUser [
 { #category : 'examples - runtime service' }
 CPExecutionKernelExamples >> bpmStartableProcessDeploymentsRequireExplicitUserAuthorization [
 	<gtExample>
-	| alice bob activeAuthorized activeUnauthorized draftAuthorized root configuration service workUnit context deployments |
+	| alice bob activeAuthorized activeUnauthorized draftAuthorized root configuration service deployments |
 	alice := CPUser new label: 'Alice'; yourself.
 	bob := CPUser new label: 'Bob'; yourself.
 	activeAuthorized := CPProcessDeployment new label: 'Authorized'; yourself.
@@ -11500,14 +11476,7 @@ CPExecutionKernelExamples >> bpmStartableProcessDeploymentsRequireExplicitUserAu
 	root addProcessDeployment: activeAuthorized; addProcessDeployment: activeUnauthorized; addProcessDeployment: draftAuthorized.
 	configuration := CPBpmServiceConfiguration new systemRoot: root; yourself.
 	service := CPBpmService new installWithConfiguration: configuration.
-	self assert: (service startableProcessDeploymentsFor: alice) asArray equals: { activeAuthorized }.
-	workUnit := CPQueryStartableProcessDeploymentsWorkUnit user: alice.
-	self assert: workUnit user == alice.
-	self assert: workUnit class serviceClass == CPBpmService.
-	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
-	context service: service.
-	context bindCapabilities: Dictionary new.
-	deployments := workUnit executeInContext: context.
+	deployments := service startableProcessDeploymentsFor: alice.
 	self assert: deployments asArray equals: { activeAuthorized }.
 	^ deployments
 ]
