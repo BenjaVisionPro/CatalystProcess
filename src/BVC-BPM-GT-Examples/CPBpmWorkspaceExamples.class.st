@@ -69,3 +69,28 @@ CPBpmWorkspaceExamples >> workspaceCompletesUserTaskThroughRuntimeCommand [
 	self assert: envelope workUnit workItem == workItem.
 	^ workspace
 ]
+
+
+{ #category : 'examples - workspace' }
+CPBpmWorkspaceExamples >> workspacePresentsUserTaskInteractionThroughFoundation [
+	<gtExample>
+	| workspace task specification input execution workItem model element |
+	workspace := self workspaceUsesAuthenticatedApplicationBoundary.
+	model := CPUser new.
+	input := CPDataInput new.
+	specification := CPInputOutputSpecification new
+		dataInputs: { input };
+		yourself.
+	task := CPUserTask new ioSpecification: specification; yourself.
+	execution := CPActivityExecution new definition: task; yourself.
+	execution itemValueFor: input put: model.
+	workItem := CPUserTaskWorkItem new
+		userTask: task;
+		activityExecution: execution;
+		yourself.
+
+	self assert: (workspace interactionModelForUserTaskWorkItem: workItem) == model.
+	element := workspace foundationInteractionForUserTaskWorkItem: workItem.
+	self assert: element notNil.
+	^ element
+]

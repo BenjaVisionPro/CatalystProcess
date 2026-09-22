@@ -69,3 +69,29 @@ CPBpmWorkspace >> gtClaimableWorkFor: aView [
 		priority: 30;
 		items: [ self requiredApplication claimableUserTaskWorkItems ]
 ]
+
+
+{ #category : 'user task interaction' }
+CPBpmWorkspace >> interactionModelForUserTaskWorkItem: aCPUserTaskWorkItem [
+	| task inputs model |
+	aCPUserTaskWorkItem ifNil: [ self error: 'A User Task work item is required.' ].
+	task := aCPUserTaskWorkItem userTask.
+	task ifNil: [ self error: 'A User Task work item requires its User Task.' ].
+	inputs := task ioSpecification
+		ifNil: [ #() ]
+		ifNotNil: [ :specification | specification dataInputs ].
+	inputs size = 1 ifFalse: [
+		self error: 'A Foundation User Task interaction requires exactly one DataInput.' ].
+	model := aCPUserTaskWorkItem activityExecution itemValueFor: inputs first.
+	model ifNil: [ self error: 'The User Task interaction DataInput has no value.' ].
+	^ model
+]
+
+{ #category : 'user task interaction' }
+CPBpmWorkspace >> foundationInteractionForUserTaskWorkItem: aCPUserTaskWorkItem [
+	| model memento viewModel |
+	model := self interactionModelForUserTaskWorkItem: aCPUserTaskWorkItem.
+	memento := CFMaMemento model: model.
+	viewModel := CFMaViewModel forObject: model memento: memento.
+	^ viewModel preparedElementForMemento: memento
+]
