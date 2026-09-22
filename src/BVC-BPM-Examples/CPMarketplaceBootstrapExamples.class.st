@@ -646,3 +646,59 @@ CPMarketplaceBootstrapExamples >> trialSubscriptionCompletionReachesExecutableTe
 	self assert: provisionInvocation inputValue == tenant.
 	^ provisionInvocation
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantServiceProvisioningCompletionReachesExecutableTrialAccessActivation [
+	<gtExample>
+	| invocation provisionExecution execution servicesToAccess activateAccess operation tenantData tenant root service workUnit context implementation environment accessExecution accessInvocation |
+	invocation := self trialSubscriptionCompletionReachesExecutableTenantServiceProvisioning.
+	provisionExecution := invocation activityExecution.
+	execution := provisionExecution scope processExecution.
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	service := CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: root;
+			executionEnvironment: execution environment;
+			yourself).
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		invocation: invocation
+		occurrenceIdentifier: #tenantServicesProvisioned
+		payload: Dictionary new.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workUnit executeInContext: context.
+	self assert: invocation isCompleted.
+	self assert: provisionExecution isCompleted.
+	servicesToAccess := execution definition flowElements
+		detect: [ :each | each identifier = #servicesToAccess ].
+	self assert: (execution availableFlowActivationsOn: servicesToAccess) size equals: 1.
+	activateAccess := execution definition flowElements
+		detect: [ :each | each identifier = #activateTrialAccess ].
+	operation := activateAccess operationRef.
+	self assert: operation notNil.
+	self assert: operation identifier equals: #activateTrialAccessForTenant.
+	self assert: activateAccess ioSpecification dataInputs size equals: 1.
+	self assert: activateAccess ioSpecification dataOutputs isEmpty.
+	self assert: activateAccess dataInputAssociations size equals: 1.
+	self assert: activateAccess dataInputAssociations first sourceRefs first identifier equals: #establishedTenant.
+	tenantData := execution definition flowElements
+		detect: [ :each | each identifier = #establishedTenant ].
+	tenant := execution itemValueFor: tenantData.
+	implementation := Object new.
+	environment := execution environment.
+	environment operation: operation resolvesTo: implementation.
+	accessExecution := execution createServiceTaskExecutionFor: activateAccess.
+	execution readyActivityExecution: accessExecution.
+	self assert: accessExecution consumedFlowActivations size equals: 1.
+	execution activateServiceTaskExecution: accessExecution.
+	self assert: accessExecution isActive.
+	self assert: accessExecution resolvedImplementation == implementation.
+	self assert: (accessExecution itemValueFor: activateAccess ioSpecification dataInputs first) == tenant.
+	accessInvocation := accessExecution prepareExternalInvocationIdentifiedBy: #activateTrialAccessInvocation.
+	self assert: accessInvocation isPending.
+	self assert: accessInvocation inputValue == tenant.
+	^ accessInvocation
+]
+
