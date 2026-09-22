@@ -63,3 +63,46 @@ CPMarketplaceBootstrapExamples >> adminTenantLifecycleIsProductionMarketplaceSou
 	self assert: bootstrap tenantLifecycleDeployment processDefinition identifier equals: #provisionTenant.
 	^ definitions
 ]
+
+{ #category : 'examples - marketplace bootstrap' }
+CPMarketplaceBootstrapExamples >> adminTenantRegistrationBeginsWithHumanCollection [
+	<gtExample>
+	| process registrationData initiated collect flow input output environment execution registration taskExecution |
+	process := AdminTenantLifecycle provisionTenant.
+	registrationData := process flowElements
+		detect: [ :each | each identifier = #tenantRegistration ].
+	initiated := process flowElements
+		detect: [ :each | each identifier = #tenantRegistrationInitiated ].
+	collect := process flowElements
+		detect: [ :each | each identifier = #collectTenantRegistration ].
+	flow := process flowElements
+		detect: [ :each | each identifier = #initiationToRegistration ].
+	input := collect ioSpecification dataInputs first.
+	output := collect ioSpecification dataOutputs first.
+
+	self assert: registrationData isDataObject.
+	self assert: registrationData structureRef class equals: CPTenantRegistration.
+	self assert: initiated isStartEvent.
+	self assert: collect class equals: CPUserTask.
+	self assert: collect dataInputAssociations first sourceRefs first == registrationData.
+	self assert: collect dataInputAssociations first targetRef == input.
+	self assert: collect dataOutputAssociations first sourceRefs first == output.
+	self assert: collect dataOutputAssociations first targetRef == registrationData.
+
+	environment := CPExampleExecutionEnvironment new.
+	execution := CPProcessExecution for: process environment: environment.
+	registration := CPTenantRegistration new label: 'Prospective tenant'; yourself.
+	execution itemValueFor: registrationData put: registration.
+	execution start.
+	self assert: (execution availableFlowActivationsOn: flow) size equals: 1.
+
+	taskExecution := execution createUserTaskExecutionFor: collect.
+	execution readyActivityExecution: taskExecution.
+	execution activateUserTaskExecution: taskExecution.
+	self assert: taskExecution isActive.
+	self assert: taskExecution workItem isPending.
+	self assert: taskExecution workItem activityExecution == taskExecution.
+	self assert: (taskExecution itemValueFor: input) == registration.
+	self assert: environment userTaskWorkItems asArray equals: { taskExecution workItem }.
+	^ taskExecution
+]
