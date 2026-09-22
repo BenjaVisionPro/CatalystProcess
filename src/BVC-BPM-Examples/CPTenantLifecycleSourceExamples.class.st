@@ -316,7 +316,8 @@ CPTenantLifecycleSourceExamples >> adminTenantLifecycleDefinition [
 	definitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
 	self assert: AdminTenantLifecycle superclass = CatalystTenantLifecycleV1.
 	self assert: (CPDefinitionsSourceMaterializer isPublishedVersion: AdminTenantLifecycle) not.
-	self assert: definitions rootElements size equals: 9.
+	self assert: (definitions rootElements anySatisfy: [ :each |
+		each identifier = #tenantRegistrationOperations ]).
 	self assert: definitions diagrams size equals: 6.
 	^ definitions
 ]

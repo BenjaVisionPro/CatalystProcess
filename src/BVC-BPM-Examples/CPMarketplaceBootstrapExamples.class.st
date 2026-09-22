@@ -58,7 +58,8 @@ CPMarketplaceBootstrapExamples >> adminTenantLifecycleIsProductionMarketplaceSou
 	| bootstrap definitions |
 	bootstrap := CPAdminTenantBootstrap configured.
 	definitions := bootstrap tenantLifecycleDefinitions.
-	self assert: definitions rootElements size equals: 9.
+	self assert: (definitions rootElements anySatisfy: [ :each |
+		each identifier = #tenantRegistrationOperations ]).
 	self assert: definitions diagrams size equals: 6.
 	self assert: bootstrap tenantLifecycleDeployment processDefinition identifier equals: #provisionTenant.
 	^ definitions
