@@ -561,3 +561,22 @@ CPBpmService >> queryAssignedUserTaskWorkItemsWorkUnit: aWorkUnit [
 CPBpmService >> queryClaimableUserTaskWorkItemsWorkUnit: aWorkUnit [
 	^ self claimableUserTaskWorkItemsFor: aWorkUnit user
 ]
+
+
+{ #category : 'user task completion' }
+CPBpmService >> completeTenantRegistrationWorkUnit: aCPCompleteTenantRegistrationWorkUnit [
+	| workItem registration task output |
+	workItem := aCPCompleteTenantRegistrationWorkUnit workItem.
+	registration := aCPCompleteTenantRegistrationWorkUnit registration.
+	workItem ifNil: [ self error: 'A User Task work item is required.' ].
+	registration ifNil: [ self error: 'A Tenant registration is required.' ].
+	workItem isPending ifFalse: [ self error: 'Only a pending Tenant registration work item can be completed.' ].
+	task := workItem userTask.
+	task identifier = #collectTenantRegistration ifFalse: [
+		self error: 'The work item is not the Collect Tenant Registration activity.' ].
+	(task ioSpecification isNil or: [ task ioSpecification dataOutputs size ~= 1 ]) ifTrue: [
+		self error: 'Collect Tenant Registration requires exactly one DataOutput.' ].
+	output := task ioSpecification dataOutputs first.
+	workItem activityExecution itemValueFor: output put: registration.
+	^ workItem completeThroughExecution
+]

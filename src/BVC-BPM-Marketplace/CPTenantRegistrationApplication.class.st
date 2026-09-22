@@ -53,7 +53,9 @@ CPTenantRegistrationApplication >> completeTenantRegistration: aTenantRegistrati
 	workItem isPending ifFalse: [ self error: 'Only a pending Tenant registration work item can be completed.' ].
 	runtime ifNil: [ self error: 'Catalyst Runtime is required.' ].
 	router := CRWorkRouter deploymentTopology: runtime deploymentTopology.
-	router enqueue: (CPCompleteUserTaskWorkUnit workItem: workItem).
+	router enqueue: (CPCompleteTenantRegistrationWorkUnit
+		workItem: workItem
+		registration: aTenantRegistration).
 	^ aTenantRegistration
 ]
 

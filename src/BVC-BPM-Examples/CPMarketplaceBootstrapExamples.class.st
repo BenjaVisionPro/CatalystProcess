@@ -244,7 +244,7 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationCommitsAndSubmits
 	application completeTenantRegistration: registration.
 	self assert: queue depth equals: 1.
 	envelope := queue nextOrNil.
-	self assert: envelope workUnit class equals: CPCompleteUserTaskWorkUnit.
+	self assert: envelope workUnit class equals: CPCompleteTenantRegistrationWorkUnit.
 	self assert: envelope workUnit workItem == workItem.
 	self assert: workItem isPending.
 	^ registration
