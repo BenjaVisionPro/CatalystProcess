@@ -226,6 +226,29 @@ CPBpmService >> startProcessWorkUnit: aCPStartProcessWorkUnit [
 
 
 { #category : 'process start' }
+CPBpmService >> instantiateProcessDeployment: aDeployment initialItemValues: initialItemValues [
+	| process environment execution |
+	aDeployment ifNil: [ self error: 'A Process deployment is required.' ].
+	aDeployment acceptsNewProcessExecutions ifFalse: [ self error: 'The Process deployment does not accept new Process executions.' ].
+	process := aDeployment processDefinition.
+	process ifNil: [ self error: 'The Process deployment has no executable BPMN Process definition.' ].
+	environment := configuration executionEnvironment.
+	environment ifNil: [ self error: 'BPM service configuration requires an execution environment to start a Process.' ].
+	execution := CPProcessExecution for: process environment: environment.
+	execution
+		deployment: aDeployment;
+		tenant: aDeployment tenant.
+	initialItemValues keysAndValuesDo: [ :item :value |
+		(process flowElements identityIncludes: item) ifFalse: [
+			self error: 'An initial Process item does not belong to the deployed Process definition.' ].
+		execution itemValueFor: item put: value ].
+	execution start.
+	systemRoot addProcessExecution: execution.
+	^ execution
+]
+
+
+{ #category : 'process start' }
 CPBpmService >> instantiateStartEvent: aStartEvent fromDeployment: aDeployment occurrence: anOccurrence [
 	| process environment execution |
 	aDeployment ifNil: [ self error: 'A Process deployment is required.' ].

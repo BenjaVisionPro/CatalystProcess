@@ -106,3 +106,43 @@ CPMarketplaceBootstrapExamples >> adminTenantRegistrationBeginsWithHumanCollecti
 	self assert: environment userTaskWorkItems asArray equals: { taskExecution workItem }.
 	^ taskExecution
 ]
+
+{ #category : 'examples - marketplace bootstrap' }
+CPMarketplaceBootstrapExamples >> tenantRegistrationBeginsAsRuntimeWorkWithoutExistingUser [
+	<gtExample>
+	| bootstrap root deployment registration environment configuration service workUnit context workItem execution input |
+	bootstrap := CPAdminTenantBootstrap configured.
+	root := bootstrap systemRoot.
+	deployment := bootstrap tenantLifecycleDeployment.
+	registration := CPTenantRegistration new
+		label: 'Prospective tenant';
+		yourself.
+	environment := CPExampleExecutionEnvironment new.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: environment;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	workUnit := CPBeginTenantRegistrationWorkUnit
+		processDeployment: deployment
+		registration: registration.
+	self assert: workUnit class serviceClass == CPBpmService.
+	self assert: workUnit processDeployment == deployment.
+	self assert: workUnit registration == registration.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workItem := workUnit executeInContext: context.
+	execution := workItem activityExecution processExecution.
+	input := workItem userTask ioSpecification dataInputs first.
+	self assert: root processExecutions size equals: 1.
+	self assert: root processExecutions first == execution.
+	self assert: execution deployment == deployment.
+	self assert: execution isStarted.
+	self assert: workItem isPending.
+	self assert: workItem userTask identifier equals: #collectTenantRegistration.
+	self assert: (workItem activityExecution itemValueFor: input) == registration.
+	self assert: environment userTaskWorkItems asArray equals: { workItem }.
+	self assert: execution startedBy isNil.
+	^ workItem
+]
