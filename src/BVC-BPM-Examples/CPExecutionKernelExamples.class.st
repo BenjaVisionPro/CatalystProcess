@@ -11560,11 +11560,39 @@ CPExecutionKernelExamples >> bpmStartAuthorizationRespectsDeploymentTenantMember
 { #category : 'examples - user work discovery' }
 CPExecutionKernelExamples >> userTaskClaimIsRuntimeWork [
 	<gtExample>
-	| service root user workItem workUnit context |
-	service := self bpmServiceDiscoversAssignedAndClaimableUserTaskWork.
-	root := service configuration systemRoot.
-	user := root users first.
-	workItem := (service claimableUserTaskWorkItemsFor: user) first.
+	| root tenant user process task assignment potentialOwner environment execution taskExecution workItem configuration service workUnit context |
+	root := CPSystemRoot new.
+	tenant := CPTenant new label: 'Admin tenant'; yourself.
+	user := CPUser new label: 'Alice'; yourself.
+	root addTenant: tenant; addUser: user.
+	process := CPProcess new identifier: 'user-task-claim-command'; yourself.
+	assignment := CPResourceAssignmentExpression new
+		expression: (CPExpression new identifier: 'potentialOwners'; yourself);
+		yourself.
+	potentialOwner := CPPotentialOwner new
+		identifier: 'potentialOwners';
+		resourceAssignmentExpression: assignment;
+		yourself.
+	task := CPUserTask new
+		identifier: 'review';
+		resources: { potentialOwner };
+		yourself.
+	process addFlowElement: task.
+	environment := CPExampleExecutionEnvironment new
+		expression: assignment expression evaluatesTo: { user };
+		yourself.
+	execution := CPProcessExecution for: process environment: environment.
+	execution tenant: tenant.
+	taskExecution := execution createUserTaskExecutionFor: task.
+	execution activateUserTaskExecution: taskExecution.
+	workItem := taskExecution workItem.
+	root addProcessExecution: execution.
+	configuration := CPBpmServiceConfiguration new
+		systemRoot: root;
+		executionEnvironment: environment;
+		yourself.
+	service := CPBpmService new installWithConfiguration: configuration.
+	self assert: (service claimableUserTaskWorkItemsFor: user) asArray equals: { workItem }.
 	workUnit := CPClaimUserTaskWorkItemWorkUnit workItem: workItem user: user.
 	self assert: workUnit workItem == workItem.
 	self assert: workUnit user == user.
