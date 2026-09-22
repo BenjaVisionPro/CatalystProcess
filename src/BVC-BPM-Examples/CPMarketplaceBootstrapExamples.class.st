@@ -357,3 +357,39 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationValidationCompletionSelectsA
 	self assert: (execution availableFlowActivationsOn: rejectedFlow) isEmpty.
 	^ gatewayExecution
 ]
+
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> acceptedTenantRegistrationReachesExecutableTenantEstablishment [
+	<gtExample>
+	| gatewayExecution execution acceptedFlow establishTenant operation registration input implementation environment tenantExecution invocation |
+	gatewayExecution := self tenantRegistrationValidationCompletionSelectsAcceptedPath.
+	execution := gatewayExecution scope processExecution.
+	acceptedFlow := execution definition flowElements
+		detect: [ :each | each identifier = #acceptedToTenant ].
+	establishTenant := execution definition flowElements
+		detect: [ :each | each identifier = #establishTenant ].
+	operation := establishTenant operationRef.
+	self assert: operation notNil.
+	self assert: operation identifier equals: #establishTenantFromRegistration.
+	self assert: establishTenant ioSpecification dataInputs size equals: 1.
+	input := establishTenant ioSpecification dataInputs first.
+	self assert: establishTenant dataInputAssociations first sourceRefs first identifier equals: #tenantRegistration.
+	registration := execution itemValueFor:
+		(execution definition flowElements detect: [ :each | each identifier = #tenantRegistration ]).
+	implementation := Object new.
+	environment := execution environment.
+	environment operation: operation resolvesTo: implementation.
+	self assert: (execution availableFlowActivationsOn: acceptedFlow) size equals: 1.
+	tenantExecution := execution createServiceTaskExecutionFor: establishTenant.
+	execution readyActivityExecution: tenantExecution.
+	tenantExecution consumeFlowActivation: (execution availableFlowActivationsOn: acceptedFlow) first.
+	execution activateServiceTaskExecution: tenantExecution.
+	self assert: tenantExecution isActive.
+	self assert: tenantExecution resolvedImplementation == implementation.
+	self assert: (tenantExecution itemValueFor: input) == registration.
+	invocation := tenantExecution prepareExternalInvocationIdentifiedBy: #establishTenantInvocation.
+	self assert: invocation isPending.
+	self assert: invocation inputValue == registration.
+	^ invocation
+]

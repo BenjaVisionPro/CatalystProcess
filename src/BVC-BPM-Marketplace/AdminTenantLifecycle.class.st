@@ -8,15 +8,20 @@ Class {
 
 { #category : 'definitions' }
 AdminTenantLifecycle class >> definitions [
-	| definitions tenantRegistrationInterface validateOperation |
+	| definitions tenantRegistrationInterface validateOperation establishTenantOperation |
 	definitions := super definitions.
 	validateOperation := (CPOperation identifier: #validateTenantRegistration)
 		label: 'Validate tenant registration';
 		yourself.
+	establishTenantOperation := (CPOperation identifier: #establishTenantFromRegistration)
+		label: 'Establish tenant from registration';
+		yourself.
 	tenantRegistrationInterface := (CPInterface identifier: #tenantRegistrationOperations)
 		label: 'Tenant registration operations';
 		yourself.
-	tenantRegistrationInterface addOperation: validateOperation.
+	tenantRegistrationInterface
+		addOperation: validateOperation;
+		addOperation: establishTenantOperation.
 	definitions addRootElement: tenantRegistrationInterface.
 	^ definitions
 ]
@@ -24,7 +29,7 @@ AdminTenantLifecycle class >> definitions [
 { #category : 'processes' }
 AdminTenantLifecycle class >> provisionTenant [
 	<process: #provisionTenant>
-	| process registrationData registrationDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate validateOperation validateInput validateInputSet validateIoSpecification validateInputAssociation accepted acceptedCondition establishTenant establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
+	| process registrationData registrationDefinition initiated collectRegistration registrationInput registrationOutput inputSet outputSet ioSpecification inputAssociation outputAssociation validate validateOperation validateInput validateInputSet validateIoSpecification validateInputAssociation accepted acceptedCondition establishTenant establishTenantOperation establishTenantInput establishTenantInputSet establishTenantIoSpecification establishTenantInputAssociation establishAdministrator establishTrial provisionServices activateAccess notifyWelcome provisioned rejected flows |
 	process := (CPProcess identifier: #provisionTenant)
 		label: 'Provision Tenant';
 		yourself.
@@ -91,8 +96,26 @@ AdminTenantLifecycle class >> provisionTenant [
 	accepted := (CPExclusiveGateway identifier: #registrationAccepted)
 		label: 'Registration accepted?';
 		yourself.
+	establishTenantOperation := (CPOperation identifier: #establishTenantFromRegistration)
+		label: 'Establish tenant from registration';
+		yourself.
+	establishTenantInput := (CPDataInput identifier: #registrationForTenantEstablishment)
+		itemSubjectRef: registrationDefinition;
+		yourself.
+	establishTenantInputSet := CPInputSet new dataInputRefs: { establishTenantInput }; yourself.
+	establishTenantIoSpecification := CPInputOutputSpecification new
+		dataInputs: { establishTenantInput };
+		inputSets: { establishTenantInputSet };
+		yourself.
+	establishTenantInputAssociation := CPDataInputAssociation new
+		sourceRefs: { registrationData };
+		targetRef: establishTenantInput;
+		yourself.
 	establishTenant := (CPServiceTask identifier: #establishTenant)
 		label: 'Establish tenant';
+		operationRef: establishTenantOperation;
+		ioSpecification: establishTenantIoSpecification;
+		dataInputAssociations: { establishTenantInputAssociation };
 		yourself.
 	establishAdministrator := (CPServiceTask identifier: #establishTenantAdministrator)
 		label: 'Establish tenant administrator';
