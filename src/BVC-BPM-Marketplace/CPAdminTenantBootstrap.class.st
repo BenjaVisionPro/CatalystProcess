@@ -6,6 +6,7 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'systemRoot',
+		'marketplace',
 		'adminTenant',
 		'adminUser',
 		'adminMembership',
@@ -30,6 +31,11 @@ CPAdminTenantBootstrap >> configure [
 	systemRoot := CPSystemRoot new
 		label: 'Catalyst Process';
 		yourself.
+	marketplace := CPMarketplace new
+		label: 'Catalyst Marketplace';
+		yourself.
+	marketplace addPublishedDefinition: CatalystTenantLifecycleV1.
+	systemRoot marketplace: marketplace.
 	adminTenant := CPTenant new
 		label: 'Admin';
 		yourself.
@@ -90,6 +96,11 @@ CPAdminTenantBootstrap >> configure [
 		topology: topology;
 		deployment: deployment;
 		yourself
+]
+
+{ #category : 'accessing' }
+CPAdminTenantBootstrap >> marketplace [
+	^ marketplace
 ]
 
 { #category : 'accessing' }

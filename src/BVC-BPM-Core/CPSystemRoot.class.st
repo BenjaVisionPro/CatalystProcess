@@ -12,11 +12,33 @@ Class {
 		'processExecutions',
 		'workItems',
 		'scheduledJobs',
-		'auditEvents'
+		'auditEvents',
+		'marketplace'
 	],
 	#category : 'BVC-BPM-Core',
 	#package : 'BVC-BPM-Core'
 }
+
+{ #category : 'accessing' }
+CPSystemRoot >> marketplace [
+	^ marketplace
+]
+
+{ #category : 'accessing' }
+CPSystemRoot >> marketplace: aMarketplace [
+	marketplace := aMarketplace
+]
+
+{ #category : 'descriptions' }
+CPSystemRoot >> marketplaceDescription [
+	<magritteDescription>
+	^ MAToOneRelationDescription new
+		accessor: #marketplace;
+		label: 'Marketplace';
+		priority: 95;
+		group: 'Relations';
+		yourself
+]
 
 { #category : 'accessing' }
 CPSystemRoot >> tenants [
