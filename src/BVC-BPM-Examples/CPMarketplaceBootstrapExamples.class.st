@@ -133,7 +133,7 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationBeginsAsRuntimeWorkWithoutEx
 	context service: service.
 	context bindCapabilities: Dictionary new.
 	workItem := workUnit executeInContext: context.
-	execution := workItem activityExecution processExecution.
+	execution := workItem activityExecution scope processExecution.
 	input := workItem userTask ioSpecification dataInputs first.
 	self assert: root processExecutions size equals: 1.
 	self assert: root processExecutions first == execution.
