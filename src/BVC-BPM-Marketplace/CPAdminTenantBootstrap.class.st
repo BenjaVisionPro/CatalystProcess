@@ -7,6 +7,8 @@ Class {
 	#instVars : [
 		'systemRoot',
 		'marketplace',
+		'tenantLifecycleProduct',
+		'tenantLifecycleLicence',
 		'adminTenant',
 		'adminUser',
 		'adminMembership',
@@ -27,7 +29,7 @@ CPAdminTenantBootstrap class >> configured [
 
 { #category : 'configuration' }
 CPAdminTenantBootstrap >> configure [
-	| process topology host deployment tenantLifecycleProduct |
+	| process topology host deployment |
 	systemRoot := CPSystemRoot new
 		label: 'Catalyst Process';
 		yourself.
@@ -51,6 +53,15 @@ CPAdminTenantBootstrap >> configure [
 		addTenant: adminTenant;
 		addUser: adminUser.
 	adminMembership := CPTenantMembership tenant: adminTenant user: adminUser.
+	tenantLifecycleLicence := CPMarketplaceLicence new
+		tenant: adminTenant;
+		product: tenantLifecycleProduct;
+		yourself.
+	tenantLifecycleLicence
+		addFeature: CPMarketplaceUseFeature new;
+		addFeature: CPMarketplaceAdaptFeature new;
+		addFeature: CPMarketplacePublishDerivativeFeature new.
+	marketplace addLicence: tenantLifecycleLicence.
 
 	tenantLifecycleDefinitions := CPDefinitionsSourceMaterializer materialize: AdminTenantLifecycle.
 	process := tenantLifecycleDefinitions rootElements
@@ -106,6 +117,16 @@ CPAdminTenantBootstrap >> configure [
 { #category : 'accessing' }
 CPAdminTenantBootstrap >> marketplace [
 	^ marketplace
+]
+
+{ #category : 'accessing' }
+CPAdminTenantBootstrap >> tenantLifecycleProduct [
+	^ tenantLifecycleProduct
+]
+
+{ #category : 'accessing' }
+CPAdminTenantBootstrap >> tenantLifecycleLicence [
+	^ tenantLifecycleLicence
 ]
 
 { #category : 'accessing' }

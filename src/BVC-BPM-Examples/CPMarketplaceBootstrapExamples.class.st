@@ -955,3 +955,22 @@ CPMarketplaceBootstrapExamples >> marketplaceLicenceDoesNotAuthorizeOutsideItsPe
 	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: after) not.
 	^ licence
 ]
+
+
+{ #category : 'examples - marketplace licensing' }
+CPMarketplaceBootstrapExamples >> adminBootstrapLicencesTenantLifecycleProductToAdmin [
+	<gtExample>
+	| bootstrap marketplace licence |
+	bootstrap := CPAdminTenantBootstrap configured.
+	marketplace := bootstrap marketplace.
+	licence := bootstrap tenantLifecycleLicence.
+
+	self assert: bootstrap tenantLifecycleProduct == marketplace products first.
+	self assert: marketplace licences asArray equals: { licence }.
+	self assert: licence tenant == bootstrap adminTenant.
+	self assert: licence product == bootstrap tenantLifecycleProduct.
+	self assert: (licence authorizesFeature: CPMarketplaceUseFeature new at: DateAndTime now).
+	self assert: (licence authorizesFeature: CPMarketplaceAdaptFeature new at: DateAndTime now).
+	self assert: (licence authorizesFeature: CPMarketplacePublishDerivativeFeature new at: DateAndTime now).
+	^ licence
+]
