@@ -580,3 +580,13 @@ CPBpmService >> completeTenantRegistrationWorkUnit: aCPCompleteTenantRegistratio
 	workItem activityExecution itemValueFor: output put: registration.
 	^ workItem completeThroughExecution
 ]
+
+{ #category : 'user task assignment' }
+CPBpmService >> claimUserTaskWorkItemWorkUnit: aCPClaimUserTaskWorkItemWorkUnit [
+	| workItem user |
+	workItem := aCPClaimUserTaskWorkItemWorkUnit workItem.
+	user := aCPClaimUserTaskWorkItemWorkUnit user.
+	workItem ifNil: [ self error: 'A User Task work item is required.' ].
+	user ifNil: [ self error: 'A User is required.' ].
+	^ workItem claimBy: user
+]

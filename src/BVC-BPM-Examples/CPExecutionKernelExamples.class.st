@@ -11556,3 +11556,25 @@ CPExecutionKernelExamples >> bpmStartAuthorizationRespectsDeploymentTenantMember
 	self assert: (deployment canBeStartedBy: outsider) not.
 	^ membership
 ]
+
+{ #category : 'examples - user work discovery' }
+CPExecutionKernelExamples >> userTaskClaimIsRuntimeWork [
+	<gtExample>
+	| service root user workItem workUnit context |
+	service := self bpmServiceDiscoversAssignedAndClaimableUserTaskWork.
+	root := service configuration systemRoot.
+	user := root users first.
+	workItem := (service claimableUserTaskWorkItemsFor: user) first.
+	workUnit := CPClaimUserTaskWorkItemWorkUnit workItem: workItem user: user.
+	self assert: workUnit workItem == workItem.
+	self assert: workUnit user == user.
+	self assert: workUnit class serviceClass equals: CPBpmService.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	self assert: (workUnit executeInContext: context) == user.
+	self assert: workItem actualOwner == user.
+	self assert: (service assignedUserTaskWorkItemsFor: user) asArray equals: { workItem }.
+	self assert: (service claimableUserTaskWorkItemsFor: user) isEmpty.
+	^ workItem
+]
