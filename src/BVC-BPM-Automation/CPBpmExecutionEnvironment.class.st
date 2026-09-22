@@ -14,3 +14,13 @@ Class {
 CPBpmExecutionEnvironment >> distributeUserTaskWorkItem: aWorkItem in: anExecutionScope [
 	^ aWorkItem
 ]
+
+{ #category : 'resolution' }
+CPBpmExecutionEnvironment >> resolveOperation: anOperation in: anExecutionScope [
+	| deployment release |
+	deployment := anExecutionScope processExecution deployment.
+	deployment ifNil: [ self error: 'Operation resolution requires a Process deployment.' ].
+	release := deployment operationalRelease.
+	release ifNil: [ self error: 'Operation resolution requires an Operational Release.' ].
+	^ release implementationForOperation: anOperation
+]

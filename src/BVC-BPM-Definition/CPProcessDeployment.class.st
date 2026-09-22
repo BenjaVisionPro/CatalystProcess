@@ -12,11 +12,24 @@ Class {
 		'deployedBy',
 		'status',
 		'initiationSubscriptions',
-		'authorizedStartUsers'
+		'authorizedStartUsers',
+		'operationalRelease'
 	],
 	#category : 'BVC-BPM-Definition',
 	#package : 'BVC-BPM-Definition'
 }
+
+
+
+{ #category : 'accessing' }
+CPProcessDeployment >> operationalRelease [
+	^ operationalRelease
+]
+
+{ #category : 'accessing' }
+CPProcessDeployment >> operationalRelease: aRelease [
+	operationalRelease := aRelease
+]
 
 { #category : 'accessing' }
 CPProcessDeployment >> tenant [

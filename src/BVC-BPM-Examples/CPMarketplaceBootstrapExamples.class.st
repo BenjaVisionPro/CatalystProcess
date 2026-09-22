@@ -1031,3 +1031,46 @@ CPMarketplaceBootstrapExamples >> administratorStartsMarketplaceTenantLifecycleT
 	self assert: (execution availableFlowActivationsOn: initialFlow) isNotEmpty.
 	^ execution
 ]
+
+{ #category : 'examples - bootstrap' }
+CPMarketplaceBootstrapExamples >> adminDeploymentUsesImmutableOperationalRelease [
+	<gtExample>
+	| bootstrap release deployment |
+	bootstrap := CPAdminTenantBootstrap configured.
+	release := bootstrap tenantLifecycleRelease.
+	deployment := bootstrap tenantLifecycleDeployment.
+	self assert: release isReleased.
+	self assert: release publishedDefinition == CatalystTenantLifecycleV1.
+	self assert: release definitions == bootstrap tenantLifecycleDefinitions.
+	self assert: deployment operationalRelease == release.
+	self assert: (release definitions rootElements identityIncludes: deployment processDefinition).
+	^ release
+]
+
+{ #category : 'examples - bootstrap' }
+CPMarketplaceBootstrapExamples >> productionEnvironmentResolvesOperationThroughDeploymentRelease [
+	<gtExample>
+	| bootstrap release deployment operation implementation execution environment resolved |
+	bootstrap := CPAdminTenantBootstrap configured.
+	release := CPOperationalRelease new
+		label: 'Resolution example';
+		publishedDefinition: CatalystTenantLifecycleV1;
+		definitions: bootstrap tenantLifecycleDefinitions;
+		yourself.
+	operation := release definitions rootElements
+		detect: [ :each | each isKindOf: CPOperation ]
+		ifNone: [ self error: 'Tenant Lifecycle requires an Operation for this example.' ].
+	implementation := Object new.
+	release
+		bindOperation: operation to: implementation;
+		release.
+	deployment := CPProcessDeployment new
+		operationalRelease: release;
+		yourself.
+	execution := CPProcessExecution for: bootstrap tenantLifecycleDeployment processDefinition environment: bootstrap executionEnvironment.
+	execution deployment: deployment.
+	environment := bootstrap executionEnvironment.
+	resolved := environment resolveOperation: operation in: execution.
+	self assert: resolved == implementation.
+	^ release
+]

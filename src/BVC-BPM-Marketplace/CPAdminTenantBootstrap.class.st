@@ -14,6 +14,7 @@ Class {
 		'adminMembership',
 		'tenantLifecycleDefinitions',
 		'tenantLifecycleDeployment',
+		'tenantLifecycleRelease',
 		'bpmServiceConfiguration',
 		'executionEnvironment',
 		'runtimeConfiguration'
@@ -65,12 +66,18 @@ CPAdminTenantBootstrap >> configure [
 	process := tenantLifecycleDefinitions rootElements
 		detect: [ :each | each identifier = #provisionTenant ]
 		ifNone: [ self error: 'Marketplace Tenant Lifecycle does not define provisionTenant.' ].
+	tenantLifecycleRelease := CPOperationalRelease new
+		label: 'Tenant Lifecycle V1 - Admin';
+		publishedDefinition: CatalystTenantLifecycleV1;
+		definitions: tenantLifecycleDefinitions;
+		release.
 	tenantLifecycleDeployment := CPProcessDeployment new
 		label: 'Admin Tenant Lifecycle - Provision Tenant';
 		tenant: adminTenant;
 		processKey: #provisionTenant;
 		version: CatalystTenantLifecycleV1 version;
 		processDefinition: process;
+		operationalRelease: tenantLifecycleRelease;
 		deployedBy: adminUser;
 		deployedAt: DateAndTime now;
 		yourself.
@@ -160,6 +167,11 @@ CPAdminTenantBootstrap >> adminMembership [
 { #category : 'accessing' }
 CPAdminTenantBootstrap >> tenantLifecycleDefinitions [
 	^ tenantLifecycleDefinitions
+]
+
+{ #category : 'accessing' }
+CPAdminTenantBootstrap >> tenantLifecycleRelease [
+	^ tenantLifecycleRelease
 ]
 
 { #category : 'accessing' }
