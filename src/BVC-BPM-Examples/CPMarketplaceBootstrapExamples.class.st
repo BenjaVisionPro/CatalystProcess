@@ -196,3 +196,27 @@ CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationUsesRuntimeAndRet
 	self assert: workItem isPending.
 	^ application
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> tenantRegistrationApplicationPresentsPendingInteractionThroughFoundation [
+	<gtExample>
+	| application execution workItem input registration memento viewModel element |
+	application := self tenantRegistrationApplicationUsesRuntimeAndReturnsAuthoritativeWork.
+	execution := application systemRoot processExecutions first.
+	workItem := execution allPendingUserTaskWorkItems first.
+	input := workItem userTask ioSpecification dataInputs first.
+	registration := workItem activityExecution itemValueFor: input.
+
+	self assert: (application workItemForTenantRegistration: registration) == workItem.
+	memento := CFMaMemento model: registration.
+	viewModel := CFMaViewModel forObject: registration memento: memento.
+	element := viewModel preparedElementForMemento: memento.
+
+	self assert: memento model == registration.
+	self assert: registration label isNil.
+	memento write: 'Prospective tenant' using: registration labelDescription.
+	self assert: registration label isNil.
+	memento commit.
+	self assert: registration label equals: 'Prospective tenant'.
+	^ element
+]
