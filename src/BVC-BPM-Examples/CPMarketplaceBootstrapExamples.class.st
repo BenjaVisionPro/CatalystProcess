@@ -765,3 +765,61 @@ CPMarketplaceBootstrapExamples >> trialAccessCompletionSendsWelcomeAndCompletesT
 	self assert: execution isCompleted.
 	^ execution
 ]
+
+{ #category : 'examples - marketplace application' }
+CPMarketplaceBootstrapExamples >> rejectedTenantRegistrationCompletesWithoutProvisioning [
+	<gtExample>
+	| invocation validationExecution execution environment decision acceptedFlow rejectedFlow rejectedEnd root service workUnit context decisionFlow decisionActivation gatewayExecution rejectedActivation |
+	invocation := self tenantRegistrationSubmissionReachesExecutableValidationOperation.
+	validationExecution := invocation activityExecution.
+	execution := validationExecution scope processExecution.
+	environment := execution environment.
+	decision := execution definition flowElements
+		detect: [ :each | each identifier = #registrationAccepted ].
+	acceptedFlow := execution definition flowElements
+		detect: [ :each | each identifier = #acceptedToTenant ].
+	rejectedFlow := execution definition flowElements
+		detect: [ :each | each identifier = #rejectedRegistration ].
+	rejectedEnd := execution definition flowElements
+		detect: [ :each | each identifier = #registrationRejected ].
+	environment
+		expression: acceptedFlow conditionExpression
+		evaluatesTo: false.
+
+	root := CPSystemRoot new.
+	root addProcessExecution: execution.
+	service := CPBpmService new installWithConfiguration:
+		(CPBpmServiceConfiguration new
+			systemRoot: root;
+			executionEnvironment: environment;
+			yourself).
+	workUnit := CPCompleteServiceInvocationWorkUnit
+		invocation: invocation
+		occurrenceIdentifier: #tenantRegistrationRejected
+		payload: Dictionary new.
+	context := CRWorkUnitExecutionContext envelope: workUnit asEnvelope.
+	context service: service.
+	context bindCapabilities: Dictionary new.
+	workUnit executeInContext: context.
+	self assert: invocation isCompleted.
+	self assert: validationExecution isCompleted.
+
+	decisionFlow := execution definition flowElements
+		detect: [ :each | each identifier = #validationToDecision ].
+	self assert: (execution availableFlowActivationsOn: decisionFlow) size equals: 1.
+	decisionActivation := (execution availableFlowActivationsOn: decisionFlow) first.
+	gatewayExecution := execution executeExclusiveGateway: decision consuming: decisionActivation.
+	self assert: gatewayExecution notNil.
+	self assert: (execution availableFlowActivationsOn: acceptedFlow) isEmpty.
+	self assert: (execution availableFlowActivationsOn: rejectedFlow) size equals: 1.
+
+	rejectedActivation := (execution availableFlowActivationsOn: rejectedFlow) first.
+	execution executeEndEvent: rejectedEnd consuming: rejectedActivation.
+	self assert: execution canComplete.
+	execution complete.
+	self assert: execution isCompleted.
+	self assert: (execution definition flowElements
+		select: [ :each | each identifier = #establishTenant ]) size equals: 1.
+	self assert: (execution availableFlowActivationsOn: acceptedFlow) isEmpty.
+	^ execution
+]
